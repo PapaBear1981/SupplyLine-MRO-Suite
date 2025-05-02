@@ -43,7 +43,9 @@ const UserCheckouts = () => {
             <Table striped bordered hover className="mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th>Tool</th>
+                  <th>Tool Number</th>
+                  <th>Serial Number</th>
+                  <th>Description</th>
                   <th>Checkout Date</th>
                   <th>Expected Return</th>
                   <th>Status</th>
@@ -56,18 +58,20 @@ const UserCheckouts = () => {
                     <tr key={checkout.id}>
                       <td>
                         <Link to={`/tools/${checkout.tool_id}`} className="fw-bold">
-                          {checkout.tool_name}
+                          {checkout.tool_number}
                         </Link>
                       </td>
+                      <td>{checkout.serial_number}</td>
+                      <td>{checkout.description}</td>
                       <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
                       <td>
-                        {new Date(checkout.expected_return_date).toLocaleDateString()}
-                        {new Date(checkout.expected_return_date) < new Date() && (
+                        {checkout.expected_return_date ? new Date(checkout.expected_return_date).toLocaleDateString() : 'N/A'}
+                        {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() && (
                           <Badge bg="danger" className="ms-2">Overdue</Badge>
                         )}
                       </td>
                       <td>
-                        <Badge bg="warning">Checked Out</Badge>
+                        <Badge bg="warning">{checkout.status}</Badge>
                       </td>
                       <td>
                         <Button
@@ -83,7 +87,7 @@ const UserCheckouts = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center py-4">
+                    <td colSpan="7" className="text-center py-4">
                       You have no active checkouts.
                     </td>
                   </tr>
@@ -103,7 +107,9 @@ const UserCheckouts = () => {
             <Table striped bordered hover className="mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th>Tool</th>
+                  <th>Tool Number</th>
+                  <th>Serial Number</th>
+                  <th>Description</th>
                   <th>Checkout Date</th>
                   <th>Return Date</th>
                   <th>Status</th>
@@ -115,9 +121,11 @@ const UserCheckouts = () => {
                     <tr key={checkout.id}>
                       <td>
                         <Link to={`/tools/${checkout.tool_id}`} className="fw-bold">
-                          {checkout.tool_name}
+                          {checkout.tool_number}
                         </Link>
                       </td>
+                      <td>{checkout.serial_number}</td>
+                      <td>{checkout.description}</td>
                       <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
                       <td>{new Date(checkout.return_date).toLocaleDateString()}</td>
                       <td>
@@ -127,7 +135,7 @@ const UserCheckouts = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center py-4">
+                    <td colSpan="6" className="text-center py-4">
                       You have no checkout history.
                     </td>
                   </tr>

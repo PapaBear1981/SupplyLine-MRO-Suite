@@ -625,13 +625,18 @@ def register_routes(app):
             return jsonify({'error': 'Authentication required'}), 401
 
         user_id = session['user_id']
-        checkouts = Checkout.query.filter_by(user_id=user_id, return_date=None).all()
+        # Get all checkouts for the user (both active and past)
+        checkouts = Checkout.query.filter_by(user_id=user_id).all()
 
         return jsonify([{
             'id': c.id,
             'tool_id': c.tool_id,
             'tool_number': c.tool.tool_number if c.tool else 'Unknown',
+            'serial_number': c.tool.serial_number if c.tool else 'Unknown',
+            'description': c.tool.description if c.tool else '',
+            'status': 'Checked Out' if not c.return_date else 'Returned',
             'checkout_date': c.checkout_date.isoformat(),
+            'return_date': c.return_date.isoformat() if c.return_date else None,
             'expected_return_date': None  # Add this field if you have it in your model
         } for c in checkouts]), 200
 
