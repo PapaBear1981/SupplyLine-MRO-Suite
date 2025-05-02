@@ -10,7 +10,7 @@ const ToolList = () => {
   const { tools, loading, searchResults } = useSelector((state) => state.tools);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTools, setFilteredTools] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
 
   useEffect(() => {
     dispatch(fetchTools());
@@ -85,17 +85,14 @@ const ToolList = () => {
           <Table striped bordered hover className="mb-0">
             <thead className="bg-light">
               <tr>
-                <th onClick={() => handleSort('id')} className="cursor-pointer">
-                  ID {getSortIcon('id')}
+                <th onClick={() => handleSort('tool_number')} className="cursor-pointer">
+                  Tool Number {getSortIcon('tool_number')}
                 </th>
-                <th onClick={() => handleSort('name')} className="cursor-pointer">
-                  Name {getSortIcon('name')}
+                <th onClick={() => handleSort('serial_number')} className="cursor-pointer">
+                  Serial Number {getSortIcon('serial_number')}
                 </th>
-                <th onClick={() => handleSort('category')} className="cursor-pointer">
-                  Category {getSortIcon('category')}
-                </th>
-                <th onClick={() => handleSort('location')} className="cursor-pointer">
-                  Location {getSortIcon('location')}
+                <th onClick={() => handleSort('description')} className="cursor-pointer">
+                  Description {getSortIcon('description')}
                 </th>
                 <th onClick={() => handleSort('status')} className="cursor-pointer">
                   Status {getSortIcon('status')}
@@ -107,21 +104,20 @@ const ToolList = () => {
               {filteredTools.length > 0 ? (
                 filteredTools.map((tool) => (
                   <tr key={tool.id}>
-                    <td>{tool.id}</td>
-                    <td>{tool.name}</td>
-                    <td>{tool.category}</td>
-                    <td>{tool.location}</td>
+                    <td>{tool.tool_number}</td>
+                    <td>{tool.serial_number}</td>
+                    <td>{tool.description || 'N/A'}</td>
                     <td>
                       <span
                         className={`badge ${
-                          tool.status === 'Available'
+                          tool.status === 'available'
                             ? 'bg-success'
-                            : tool.status === 'Checked Out'
+                            : tool.status === 'checked_out'
                             ? 'bg-warning'
                             : 'bg-danger'
                         }`}
                       >
-                        {tool.status}
+                        {tool.status === 'available' ? 'Available' : 'Checked Out'}
                       </span>
                     </td>
                     <td>
@@ -134,7 +130,7 @@ const ToolList = () => {
                         >
                           View
                         </Button>
-                        {tool.status === 'Available' && (
+                        {tool.status === 'available' && (
                           <Button
                             as={Link}
                             to={`/checkout/${tool.id}`}
@@ -150,7 +146,7 @@ const ToolList = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-4">
+                  <td colSpan="5" className="text-center py-4">
                     No tools found.
                   </td>
                 </tr>
