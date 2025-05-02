@@ -44,6 +44,20 @@ const CheckoutService = {
     }
   },
 
+  // Checkout a tool to another user
+  checkoutToolToUser: async (toolId, userId, expectedReturnDate) => {
+    try {
+      const response = await api.post('/checkouts', {
+        tool_id: toolId,
+        user_id: userId,
+        expected_return_date: expectedReturnDate
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Return a tool
   returnTool: async (checkoutId, condition) => {
     try {

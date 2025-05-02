@@ -50,6 +50,18 @@ export const returnTool = createAsyncThunk(
   }
 );
 
+export const checkoutToolToUser = createAsyncThunk(
+  'checkouts/checkoutToolToUser',
+  async ({ toolId, userId, expectedReturnDate }, { rejectWithValue }) => {
+    try {
+      const data = await CheckoutService.checkoutToolToUser(toolId, userId, expectedReturnDate);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to checkout tool to user' });
+    }
+  }
+);
+
 export const fetchToolCheckoutHistory = createAsyncThunk(
   'checkouts/fetchToolCheckoutHistory',
   async (toolId, { rejectWithValue }) => {
@@ -154,6 +166,19 @@ const checkoutsSlice = createSlice({
         state.checkoutHistory[action.payload.toolId] = action.payload.history;
       })
       .addCase(fetchToolCheckoutHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Checkout tool to user
+      .addCase(checkoutToolToUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(checkoutToolToUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.checkouts.push(action.payload);
+      })
+      .addCase(checkoutToolToUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

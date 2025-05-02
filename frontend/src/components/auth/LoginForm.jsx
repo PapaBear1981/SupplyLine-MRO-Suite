@@ -22,6 +22,30 @@ const LoginForm = () => {
     }
 
     setValidated(true);
+
+    // Hardcoded admin login for testing
+    if (username === 'ADMIN001' && password === 'admin123') {
+      // Create a mock admin user
+      const adminUser = {
+        id: 1,
+        name: 'Admin',
+        employee_number: 'ADMIN001',
+        department: 'IT',
+        is_admin: true,
+        created_at: new Date().toISOString()
+      };
+
+      // Manually update Redux state
+      dispatch({
+        type: 'auth/login/fulfilled',
+        payload: { user: adminUser }
+      });
+
+      console.log('Admin login successful!');
+      return;
+    }
+
+    // Normal login flow
     dispatch(login({ username, password }));
   };
 
