@@ -1,0 +1,56 @@
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Custom styles for the Tool Inventory System */
+
+/* Page titles */
+h1 {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+/* Card title styling */
+.card-header h4, .card-header h5 {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.5em 0.75em;
+  border-radius: 0.25rem;
+}
+
+/* Table hover effect */
+.table-hover tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Navbar active link */
+.nav-link.active {
+  font-weight: 600;
+}
+
+/* Form styling */
+.form-control:focus, .form-select:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button focus */
+.btn:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Utility classes */
+.w-100 {
+  width: 100%;
+}
+
+.h-100 {
+  height: 100%;
+}
