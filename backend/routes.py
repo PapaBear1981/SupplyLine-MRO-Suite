@@ -54,7 +54,7 @@ def register_routes(app):
             db.session.commit()
             print("Admin user created with employee number ADMIN001 and password admin123")
 
-    @app.route('/tools', methods=['GET', 'POST'])
+    @app.route('/api/tools', methods=['GET', 'POST'])
     def tools_route():
         # GET - List all tools
         if request.method == 'GET':
@@ -118,7 +118,7 @@ def register_routes(app):
             'message': 'Tool created successfully'
         }), 201
 
-    @app.route('/tools/<int:id>', methods=['GET'])
+    @app.route('/api/tools/<int:id>', methods=['GET'])
     def get_tool(id):
         tool = Tool.query.get_or_404(id)
 
@@ -137,7 +137,7 @@ def register_routes(app):
             'created_at': tool.created_at.isoformat()
         })
 
-    @app.route('/users', methods=['GET', 'POST'])
+    @app.route('/api/users', methods=['GET', 'POST'])
     def users_route():
         if request.method == 'GET':
             users = User.query.all()
@@ -165,7 +165,7 @@ def register_routes(app):
         db.session.commit()
         return jsonify({'id': u.id}), 201
 
-    @app.route('/checkouts', methods=['GET', 'POST'])
+    @app.route('/api/checkouts', methods=['GET', 'POST'])
     def checkouts_route():
         if request.method == 'GET':
             checkouts = Checkout.query.all()
@@ -237,7 +237,7 @@ def register_routes(app):
             'message': f'Tool {tool.tool_number} checked out successfully'
         }), 201
 
-    @app.route('/checkouts/<int:id>/return', methods=['POST'])
+    @app.route('/api/checkouts/<int:id>/return', methods=['POST'])
     def return_route(id):
         # Validate checkout exists
         c = Checkout.query.get_or_404(id)
@@ -278,7 +278,7 @@ def register_routes(app):
             'message': f'Tool {tool.tool_number if tool else "Unknown"} returned successfully'
         }), 200
 
-    @app.route('/audit', methods=['GET'])
+    @app.route('/api/audit', methods=['GET'])
     @admin_required
     def audit_route():
         logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
@@ -453,7 +453,7 @@ def register_routes(app):
 
         return jsonify({'message': 'Registration successful', 'user_id': user.id}), 201
 
-    @app.route('/auth/reset-password/request', methods=['POST'])
+    @app.route('/api/auth/reset-password/request', methods=['POST'])
     def request_password_reset():
         data = request.get_json() or {}
 
@@ -489,7 +489,7 @@ def register_routes(app):
             'reset_code': reset_code  # In production, remove this line and send via email/SMS
         }), 200
 
-    @app.route('/auth/reset-password/confirm', methods=['POST'])
+    @app.route('/api/auth/reset-password/confirm', methods=['POST'])
     def confirm_password_reset():
         data = request.get_json() or {}
 
@@ -530,7 +530,7 @@ def register_routes(app):
         user = User.query.get(session['user_id'])
         return jsonify(user.to_dict()), 200
 
-    @app.route('/user/profile', methods=['PUT'])
+    @app.route('/api/user/profile', methods=['PUT'])
     @login_required
     def update_profile():
         user = User.query.get(session['user_id'])
@@ -556,7 +556,7 @@ def register_routes(app):
 
         return jsonify(user.to_dict()), 200
 
-    @app.route('/user/password', methods=['PUT'])
+    @app.route('/api/user/password', methods=['PUT'])
     @login_required
     def change_password():
         user = User.query.get(session['user_id'])
@@ -588,9 +588,63 @@ def register_routes(app):
 
         return jsonify({'message': 'Password updated successfully'}), 200
 
-    @app.route('/user/activity', methods=['GET'])
+    @app.route('/api/user/activity', methods=['GET'])
     @login_required
     def get_user_activity():
         user_id = session['user_id']
         activities = UserActivity.query.filter_by(user_id=user_id).order_by(UserActivity.timestamp.desc()).limit(50).all()
         return jsonify([activity.to_dict() for activity in activities]), 200
+
+    @app.route('/api/tools/new', methods=['GET'])
+    @tool_manager_required
+    def get_new_tool_form():
+        # This endpoint returns the form data needed to create a new tool
+        # It can include any default values or validation rules
+        return jsonify({
+            'form_fields': [
+                {'name': 'tool_number', 'type': 'text', 'required': True, 'label': 'Tool Number'},
+                {'name': 'serial_number', 'type': 'text', 'required': True, 'label': 'Serial Number'},
+                {'name': 'description', 'type': 'text', 'required': False, 'label': 'Description'},
+                {'name': 'condition', 'type': 'select', 'required': False, 'label': 'Condition',
+                 'options': ['New', 'Good', 'Fair', 'Poor']},
+                {'name': 'location', 'type': 'text', 'required': False, 'label': 'Location'}
+            ]
+        }), 200
+
+    @app.route('/api/tools/new/checkouts', methods=['GET'])
+    @login_required
+    def get_new_tool_checkouts():
+        # This endpoint returns checkout history for a new tool (which should be empty)
+        return jsonify([]), 200
+
+    @app.route('/api/checkouts/user', methods=['GET'])
+    @login_required
+    def get_user_checkouts():
+        # Get the current user's checkouts
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        user_id = session['user_id']
+        checkouts = Checkout.query.filter_by(user_id=user_id, return_date=None).all()
+
+        return jsonify([{
+            'id': c.id,
+            'tool_id': c.tool_id,
+            'tool_number': c.tool.tool_number if c.tool else 'Unknown',
+            'checkout_date': c.checkout_date.isoformat(),
+            'expected_return_date': None  # Add this field if you have it in your model
+        } for c in checkouts]), 200
+
+    @app.route('/api/tools/<int:id>/checkouts', methods=['GET'])
+    def get_tool_checkouts(id):
+        # Get checkout history for a specific tool
+        tool = Tool.query.get_or_404(id)
+        checkouts = Checkout.query.filter_by(tool_id=id).order_by(Checkout.checkout_date.desc()).all()
+
+        return jsonify([{
+            'id': c.id,
+            'user_id': c.user_id,
+            'user_name': c.user.name if c.user else 'Unknown',
+            'checkout_date': c.checkout_date.isoformat(),
+            'return_date': c.return_date.isoformat() if c.return_date else None
+        } for c in checkouts]), 200
