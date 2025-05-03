@@ -3,6 +3,7 @@ import authReducer from './authSlice';
 import toolsReducer from './toolsSlice';
 import checkoutsReducer from './checkoutsSlice';
 import usersReducer from './usersSlice';
+import auditReducer from './auditSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     tools: toolsReducer,
     checkouts: checkoutsReducer,
     users: usersReducer,
+    audit: auditReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
