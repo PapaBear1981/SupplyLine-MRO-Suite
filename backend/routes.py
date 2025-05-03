@@ -286,21 +286,38 @@ def register_routes(app):
             'message': f'Tool {tool.tool_number} checked out successfully'
         }), 201
 
-    @app.route('/api/checkouts/<int:id>/return', methods=['POST'])
+    @app.route('/api/checkouts/<int:id>/return', methods=['POST', 'PUT'])
     def return_route(id):
+        print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
+
         # Validate checkout exists
         c = Checkout.query.get_or_404(id)
+        print(f"Found checkout: {c.id} for tool_id: {c.tool_id}, user_id: {c.user_id}")
 
         # Check if already returned
         if c.return_date:
+            print(f"Tool already returned on: {c.return_date}")
             return jsonify({'error': 'This tool has already been returned'}), 400
 
         # Get tool and user info for better logging
         tool = Tool.query.get(c.tool_id)
         user = User.query.get(c.user_id)
+        print(f"Tool: {tool.tool_number if tool else 'Unknown'}, User: {user.name if user else 'Unknown'}")
+
+        # Get condition from request if provided
+        data = request.get_json() or {}
+        condition = data.get('condition')
+        print(f"Return condition: {condition}")
 
         # Mark as returned
         c.return_date = datetime.now(datetime.timezone.utc)
+
+        # Update tool condition if provided
+        if condition and tool:
+            old_condition = tool.condition
+            tool.condition = condition
+            print(f"Updated tool condition from {old_condition} to {condition}")
+
         db.session.commit()
 
         # Log the action
@@ -322,8 +339,20 @@ def register_routes(app):
 
         db.session.commit()
 
+        # Return a more detailed response
         return jsonify({
             'id': c.id,
+            'tool_id': c.tool_id,
+            'tool_number': tool.tool_number if tool else 'Unknown',
+            'serial_number': tool.serial_number if tool else 'Unknown',
+            'description': tool.description if tool else '',
+            'condition': tool.condition if tool else '',
+            'user_id': c.user_id,
+            'user_name': user.name if user else 'Unknown',
+            'checkout_date': c.checkout_date.isoformat(),
+            'return_date': c.return_date.isoformat() if c.return_date else None,
+            'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
+            'status': 'Returned',
             'message': f'Tool {tool.tool_number if tool else "Unknown"} returned successfully'
         }), 200
 
