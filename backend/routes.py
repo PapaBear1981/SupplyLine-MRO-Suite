@@ -58,15 +58,20 @@ def register_routes(app):
     def tools_route():
         # GET - List all tools
         if request.method == 'GET':
+            print("Received request for all tools")
             tools = Tool.query.all()
+            print(f"Found {len(tools)} tools")
 
             # Get checkout status for each tool
             tool_status = {}
             active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
+            print(f"Found {len(active_checkouts)} active checkouts")
+
             for checkout in active_checkouts:
                 tool_status[checkout.tool_id] = 'checked_out'
+                print(f"Tool {checkout.tool_id} is checked out")
 
-            return jsonify([{
+            result = [{
                 'id': t.id,
                 'tool_number': t.tool_number,
                 'serial_number': t.serial_number,
@@ -75,7 +80,10 @@ def register_routes(app):
                 'location': t.location,
                 'status': tool_status.get(t.id, 'available'),
                 'created_at': t.created_at.isoformat()
-            } for t in tools])
+            } for t in tools]
+
+            print(f"Returning {len(result)} tools")
+            return jsonify(result)
 
         # POST - Create new tool (requires tool manager privileges)
         if not (session.get('is_admin', False) or session.get('department') == 'Materials'):

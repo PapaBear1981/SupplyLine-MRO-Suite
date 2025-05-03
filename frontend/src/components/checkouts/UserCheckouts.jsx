@@ -10,7 +10,14 @@ const UserCheckouts = () => {
   const { userCheckouts, loading } = useSelector((state) => state.checkouts);
 
   useEffect(() => {
-    dispatch(fetchUserCheckouts());
+    console.log("UserCheckouts: Fetching user checkouts...");
+    dispatch(fetchUserCheckouts())
+      .then(result => {
+        console.log("UserCheckouts: Fetch user checkouts result:", result);
+      })
+      .catch(error => {
+        console.error("UserCheckouts: Error fetching user checkouts:", error);
+      });
   }, [dispatch]);
 
   const handleReturnTool = (checkoutId) => {

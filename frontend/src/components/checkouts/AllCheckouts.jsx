@@ -9,12 +9,19 @@ const AllCheckouts = () => {
   const dispatch = useDispatch();
   const { checkouts, loading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
-  
+
   // Check if user has permission to return tools
   const canReturnTools = user?.is_admin || user?.department === 'Materials';
 
   useEffect(() => {
-    dispatch(fetchCheckouts());
+    console.log("AllCheckouts: Fetching all checkouts...");
+    dispatch(fetchCheckouts())
+      .then(result => {
+        console.log("AllCheckouts: Fetch all checkouts result:", result);
+      })
+      .catch(error => {
+        console.error("AllCheckouts: Error fetching all checkouts:", error);
+      });
   }, [dispatch]);
 
   const handleReturnTool = (checkoutId) => {

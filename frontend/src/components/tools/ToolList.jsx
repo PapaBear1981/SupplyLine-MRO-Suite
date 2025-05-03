@@ -17,7 +17,14 @@ const ToolList = () => {
   const [selectedTool, setSelectedTool] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchTools());
+    console.log("ToolList: Fetching tools...");
+    dispatch(fetchTools())
+      .then(result => {
+        console.log("ToolList: Fetch tools result:", result);
+      })
+      .catch(error => {
+        console.error("ToolList: Error fetching tools:", error);
+      });
   }, [dispatch]);
 
   useEffect(() => {
