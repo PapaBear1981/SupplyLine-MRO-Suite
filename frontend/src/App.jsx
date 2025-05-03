@@ -20,6 +20,7 @@ import NewToolPage from './pages/NewToolPage';
 import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
+import AllCheckoutsPage from './pages/AllCheckoutsPage';
 
 function App() {
   const dispatch = useDispatch();
@@ -89,6 +90,14 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <UserCheckoutsPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/checkouts/all" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <AllCheckoutsPage />
             </MainLayout>
           </ProtectedRoute>
         } />

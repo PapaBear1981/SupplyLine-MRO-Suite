@@ -10,11 +10,11 @@ const CheckoutsPage = () => {
   return (
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <h1 className="mb-0">Checkouts Management</h1>
+        <h1 className="mb-0">My Checkouts</h1>
         {isAdmin && (
           <div>
-            <Button as={Link} to="/checkouts/all" variant="info" size="lg" className="me-2">
-              View All Checkouts
+            <Button as={Link} to="/checkouts/all" variant="primary" size="lg" className="me-2">
+              View All Active Checkouts
             </Button>
           </div>
         )}

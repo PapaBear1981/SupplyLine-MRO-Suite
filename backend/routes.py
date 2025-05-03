@@ -173,10 +173,14 @@ def register_routes(app):
                 'id': c.id,
                 'tool_id': c.tool_id,
                 'tool_number': c.tool.tool_number if c.tool else 'Unknown',
+                'serial_number': c.tool.serial_number if c.tool else 'Unknown',
+                'description': c.tool.description if c.tool else '',
                 'user_id': c.user_id,
                 'user_name': c.user.name if c.user else 'Unknown',
                 'checkout_date': c.checkout_date.isoformat(),
-                'return_date': c.return_date.isoformat() if c.return_date else None
+                'return_date': c.return_date.isoformat() if c.return_date else None,
+                'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
+                'status': 'Returned' if c.return_date else 'Checked Out'
             } for c in checkouts])
 
         # POST - Create new checkout

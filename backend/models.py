@@ -90,6 +90,7 @@ class Checkout(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     checkout_date = db.Column(db.DateTime, default=datetime.utcnow)
     return_date = db.Column(db.DateTime)
+    expected_return_date = db.Column(db.DateTime)
     tool = db.relationship('Tool')
     user = db.relationship('User')
 
