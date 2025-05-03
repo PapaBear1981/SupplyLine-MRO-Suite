@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Alert, Table, Badge } from 'react-bootstrap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
          LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useSelector } from 'react-redux';
@@ -12,7 +12,15 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 const defaultData = {
   checkoutsByDepartment: [],
   checkoutsByDay: [],
-  toolUsageByCategory: []
+  toolUsageByCategory: [],
+  mostFrequentlyCheckedOut: [],
+  overallStats: {
+    totalCheckouts: 0,
+    totalReturns: 0,
+    currentlyCheckedOut: 0,
+    averageDuration: 0,
+    overdueCount: 0
+  }
 };
 
 const UsageGraphs = () => {
@@ -105,7 +113,12 @@ const UsageGraphs = () => {
   // Check if we have data to display
   const hasData = data.checkoutsByDepartment?.length > 0 ||
                   data.checkoutsByDay?.length > 0 ||
-                  data.toolUsageByCategory?.length > 0;
+                  data.toolUsageByCategory?.length > 0 ||
+                  data.mostFrequentlyCheckedOut?.length > 0 ||
+                  (data.overallStats &&
+                   (data.overallStats.totalCheckouts > 0 ||
+                    data.overallStats.totalReturns > 0 ||
+                    data.overallStats.currentlyCheckedOut > 0));
 
   if (!hasData) {
     return (
@@ -148,6 +161,58 @@ const UsageGraphs = () => {
         </Form.Select>
       </Card.Header>
       <Card.Body>
+        {/* Overall Stats Section */}
+        <Row className="mb-4">
+          <Col>
+            <h5 className="text-center mb-3">Overall Statistics</h5>
+            <Row className="text-center">
+              <Col xs={6} md={2} className="mb-3">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Body>
+                    <h3 className="text-primary">{data.overallStats.totalCheckouts}</h3>
+                    <div className="text-muted small">Total Checkouts</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2} className="mb-3">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Body>
+                    <h3 className="text-success">{data.overallStats.totalReturns}</h3>
+                    <div className="text-muted small">Total Returns</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={3} className="mb-3">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Body>
+                    <h3 className="text-info">{data.overallStats.currentlyCheckedOut}</h3>
+                    <div className="text-muted small">Currently Checked Out</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2} className="mb-3">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Body>
+                    <h3 className="text-secondary">{data.overallStats.averageDuration}</h3>
+                    <div className="text-muted small">Avg. Days Checked Out</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={3} className="mb-3">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Body>
+                    <h3 className={data.overallStats.overdueCount > 0 ? "text-danger" : "text-success"}>
+                      {data.overallStats.overdueCount}
+                    </h3>
+                    <div className="text-muted small">Overdue Checkouts</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+
+        {/* Charts Section */}
         <Row>
           <Col lg={6} className="mb-4">
             <h5 className="text-center mb-3">Checkouts by Department</h5>
@@ -197,8 +262,9 @@ const UsageGraphs = () => {
             )}
           </Col>
         </Row>
+
         <Row>
-          <Col>
+          <Col lg={7} className="mb-4">
             <h5 className="text-center mb-3">Checkouts and Returns by Day</h5>
             {data.checkoutsByDay?.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
@@ -217,6 +283,36 @@ const UsageGraphs = () => {
               </ResponsiveContainer>
             ) : (
               <div className="text-center text-muted p-5">No daily data available</div>
+            )}
+          </Col>
+
+          <Col lg={5} className="mb-4">
+            <h5 className="text-center mb-3">Most Frequently Checked Out Tools</h5>
+            {data.mostFrequentlyCheckedOut?.length > 0 ? (
+              <div className="table-responsive">
+                <Table hover size="sm" className="border">
+                  <thead className="bg-light">
+                    <tr>
+                      <th>Tool Number</th>
+                      <th>Description</th>
+                      <th className="text-center">Checkouts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.mostFrequentlyCheckedOut.map((tool) => (
+                      <tr key={tool.id}>
+                        <td>{tool.tool_number}</td>
+                        <td>{tool.description}</td>
+                        <td className="text-center">
+                          <Badge bg="primary" pill>{tool.checkouts}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center text-muted p-5">No tool usage data available</div>
             )}
           </Col>
         </Row>
