@@ -9,6 +9,8 @@ import ToolStats from '../components/dashboard/ToolStats';
 import ActiveCheckouts from '../components/dashboard/ActiveCheckouts';
 import QuickActions from '../components/dashboard/QuickActions';
 import RecentActivity from '../components/dashboard/RecentActivity';
+import UsageGraphs from '../components/dashboard/UsageGraphs';
+import PastDueTools from '../components/dashboard/PastDueTools';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -71,6 +73,9 @@ const Dashboard = () => {
 
       <ToolStats tools={tools} />
 
+      {/* Past Due Tools Alert */}
+      <PastDueTools />
+
       <Row className="mb-4 g-4">
         <Col lg={6} md={12}>
           <ActiveCheckouts checkouts={userCheckouts} />
@@ -80,6 +85,9 @@ const Dashboard = () => {
           <QuickActions isAdmin={isAdmin} />
         </Col>
       </Row>
+
+      {/* Usage Graphs */}
+      <UsageGraphs />
 
       <Row className="mb-4 g-4">
         <Col>
