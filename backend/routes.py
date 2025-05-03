@@ -250,7 +250,7 @@ def register_routes(app):
             except Exception as e:
                 print(f"Error parsing date: {e}")
                 # Use a default date (7 days from now) if parsing fails
-                parsed_date = datetime.now(datetime.timezone.utc) + timedelta(days=7)
+                parsed_date = datetime.now() + timedelta(days=7)
                 print(f"Using default date: {parsed_date}")
 
         c = Checkout(
@@ -310,7 +310,7 @@ def register_routes(app):
         print(f"Return condition: {condition}")
 
         # Mark as returned
-        c.return_date = datetime.now(datetime.timezone.utc)
+        c.return_date = datetime.now()
 
         # Update tool condition if provided
         if condition and tool:
