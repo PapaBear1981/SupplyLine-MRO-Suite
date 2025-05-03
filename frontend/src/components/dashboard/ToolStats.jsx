@@ -2,10 +2,13 @@ import { Card, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 const ToolStats = ({ tools }) => {
+  // Log tool statuses for debugging
+  console.log('Tool statuses:', tools.map(tool => tool.status));
+
   // Count tools by status
-  const availableTools = tools.filter(tool => tool.status === 'Available').length;
-  const checkedOutTools = tools.filter(tool => tool.status === 'Checked Out').length;
-  const maintenanceTools = tools.filter(tool => tool.status === 'Maintenance').length;
+  const availableTools = tools.filter(tool => tool.status === 'available').length;
+  const checkedOutTools = tools.filter(tool => tool.status === 'checked_out').length;
+  const maintenanceTools = tools.filter(tool => tool.status === 'maintenance').length;
   const totalTools = tools.length;
 
   return (
