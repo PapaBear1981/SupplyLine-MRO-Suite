@@ -14,8 +14,13 @@ def create_app():
     )
     app.config.from_object(Config)
 
-    # Initialize CORS
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+    # Initialize CORS with more permissive settings for development
+    CORS(app,
+         supports_credentials=True,
+         origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+         allow_headers=["Content-Type", "Authorization"],
+         expose_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     # Initialize Flask-Session
     Session(app)

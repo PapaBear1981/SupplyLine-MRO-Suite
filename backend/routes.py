@@ -181,37 +181,86 @@ def register_routes(app):
 
         # POST - Create new checkout
         data = request.get_json() or {}
+        print(f"Received checkout request with data: {data}")
+        print(f"Current session: {session}")
 
         # Validate required fields
-        required_fields = ['tool_id', 'user_id']
+        required_fields = ['tool_id']
         for field in required_fields:
             if not data.get(field):
+                print(f"Missing required field: {field}")
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
         # Validate tool exists
         tool_id = data.get('tool_id')
         tool = Tool.query.get(tool_id)
         if not tool:
+            print(f"Tool with ID {tool_id} does not exist")
             return jsonify({'error': f'Tool with ID {tool_id} does not exist'}), 404
 
-        # Validate user exists
+        # Get user ID - either from request data or from session
         user_id = data.get('user_id')
+        print(f"User ID from request: {user_id}")
+
+        # Convert user_id to integer if it's a string
+        if user_id and isinstance(user_id, str):
+            try:
+                user_id = int(user_id)
+                print(f"Converted user_id string to integer: {user_id}")
+            except ValueError:
+                print(f"Could not convert user_id '{user_id}' to integer")
+                user_id = None
+
+        if not user_id:
+            print("No valid user_id in request, checking session")
+            # If user_id not provided in request, use the logged-in user's ID
+            if 'user_id' not in session:
+                print("No user_id in session either")
+                return jsonify({'error': 'Authentication required'}), 401
+            user_id = session['user_id']
+            print(f"Using user_id from session: {user_id}")
+
+        # Validate user exists
         user = User.query.get(user_id)
         if not user:
+            print(f"User with ID {user_id} does not exist")
             return jsonify({'error': f'User with ID {user_id} does not exist'}), 404
+
+        print(f"Found user: {user.name} (ID: {user.id})")
 
         # Check if tool is already checked out
         active_checkout = Checkout.query.filter_by(tool_id=tool_id, return_date=None).first()
         if active_checkout:
+            print(f"Tool {tool.tool_number} is already checked out")
             return jsonify({'error': f'Tool {tool.tool_number} is already checked out'}), 400
 
         # Create checkout
+        expected_return_date = data.get('expected_return_date')
+        print(f"Creating checkout for tool {tool_id} to user {user_id}")
+
+        # Parse expected_return_date if it's a string
+        parsed_date = None
+        if expected_return_date:
+            try:
+                if isinstance(expected_return_date, str):
+                    parsed_date = datetime.fromisoformat(expected_return_date.replace('Z', '+00:00'))
+                else:
+                    parsed_date = expected_return_date
+                print(f"Parsed expected return date: {parsed_date}")
+            except Exception as e:
+                print(f"Error parsing date: {e}")
+                # Use a default date (7 days from now) if parsing fails
+                parsed_date = datetime.now(datetime.timezone.utc) + timedelta(days=7)
+                print(f"Using default date: {parsed_date}")
+
         c = Checkout(
             tool_id=tool_id,
-            user_id=user_id
+            user_id=user_id,
+            expected_return_date=parsed_date
         )
         db.session.add(c)
         db.session.commit()
+        print(f"Checkout created with ID: {c.id}")
 
         # Log the action
         log = AuditLog(
@@ -637,7 +686,7 @@ def register_routes(app):
             'status': 'Checked Out' if not c.return_date else 'Returned',
             'checkout_date': c.checkout_date.isoformat(),
             'return_date': c.return_date.isoformat() if c.return_date else None,
-            'expected_return_date': None  # Add this field if you have it in your model
+            'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None
         } for c in checkouts]), 200
 
     @app.route('/api/tools/<int:id>/checkouts', methods=['GET'])

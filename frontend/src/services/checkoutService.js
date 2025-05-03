@@ -31,15 +31,23 @@ const CheckoutService = {
     }
   },
 
-  // Checkout a tool
+  // Checkout a tool for the current user
   checkoutTool: async (toolId, expectedReturnDate) => {
     try {
-      const response = await api.post('/checkouts', {
+      console.log('Checking out tool:', { toolId, expectedReturnDate });
+
+      // Simplified approach - let the backend handle user identification from session
+      const requestData = {
         tool_id: toolId,
         expected_return_date: expectedReturnDate
-      });
+      };
+      console.log('Sending checkout request with data:', requestData);
+
+      const response = await api.post('/checkouts', requestData);
+      console.log('Checkout response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Checkout error details:', error.response?.data || error.message);
       throw error;
     }
   },
