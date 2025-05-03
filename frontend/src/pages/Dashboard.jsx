@@ -21,9 +21,19 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch tools and checkouts data
         await dispatch(fetchTools()).unwrap();
         await dispatch(fetchUserCheckouts()).unwrap();
-        await dispatch(fetchAuditLogs({ limit: 5 })).unwrap();
+
+        // Fetch audit logs only if user is admin or in Materials department
+        if (user && (user.is_admin || user.department === 'Materials')) {
+          try {
+            await dispatch(fetchAuditLogs({ limit: 5 })).unwrap();
+          } catch (auditErr) {
+            console.error('Error loading audit logs:', auditErr);
+            // Don't set global error for audit logs failure
+          }
+        }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
         setError('Failed to load some dashboard data. Please try refreshing the page.');
@@ -31,7 +41,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [dispatch]);
+  }, [dispatch, user]);
 
   // Combine errors from different sources
   useEffect(() => {
