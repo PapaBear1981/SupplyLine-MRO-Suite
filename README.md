@@ -19,6 +19,7 @@ A comprehensive tool inventory management system built with React and Flask.
 - React Router
 - React Bootstrap
 - Axios
+- Nginx (for production deployment)
 
 ### Backend
 - Flask
@@ -26,6 +27,12 @@ A comprehensive tool inventory management system built with React and Flask.
 - Flask-SQLAlchemy
 - Flask-CORS
 - Flask-Session
+- Gunicorn (for production deployment)
+
+### Deployment
+- Docker
+- Docker Compose
+- Nginx (as reverse proxy)
 
 ## Getting Started
 
@@ -33,10 +40,13 @@ A comprehensive tool inventory management system built with React and Flask.
 - Node.js (v14+)
 - Python (v3.8+)
 - npm or yarn
+- Docker and Docker Compose (for containerized deployment)
 
 ### Installation
 
-#### Backend Setup
+#### Option 1: Local Development Setup
+
+##### Backend Setup
 ```bash
 # Navigate to the backend directory
 cd backend
@@ -57,7 +67,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-#### Frontend Setup
+##### Frontend Setup
 ```bash
 # Navigate to the frontend directory
 cd frontend
@@ -69,9 +79,37 @@ npm install
 npm run dev
 ```
 
+#### Option 2: Docker Deployment
+
+The application can be easily deployed using Docker and Docker Compose:
+
+```bash
+# Clone the repository
+git clone https://github.com/PapaBear1981/Basic_inventory.git
+cd Basic_inventory
+
+# Create a .env file from the example
+cp .env.example .env
+
+# Build and start the containers
+docker-compose up -d
+
+# Access the application at http://localhost
+```
+
+For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCKER_README.md).
+
 ## Usage
 
+### Local Development
 - Access the application at http://localhost:5173
+- API server runs at http://localhost:5000
+
+### Docker Deployment
+- Access the application at http://localhost
+- API server runs at http://localhost:5000
+
+### Default Credentials
 - Default admin credentials:
   - Employee Number: ADMIN001
   - Password: admin123
@@ -80,25 +118,33 @@ npm run dev
 
 ```
 tool-inventory-system/
-├── backend/             # Flask backend
-│   ├── app.py           # Main application entry point
-│   ├── models.py        # Database models
-│   ├── routes.py        # API routes
-│   ├── config.py        # Configuration
-│   ├── requirements.txt # Python dependencies
-│   └── static/          # Static files
-├── frontend/            # React frontend
-│   ├── public/          # Public assets
-│   ├── src/             # Source code
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Page components
-│   │   ├── services/    # API services
-│   │   ├── store/       # Redux store
-│   │   ├── App.jsx      # Main App component
-│   │   └── main.jsx     # Entry point
-│   ├── package.json     # Node.js dependencies
-│   └── vite.config.js   # Vite configuration
-└── database/            # SQLite database
+├── backend/                # Flask backend
+│   ├── app.py              # Main application entry point
+│   ├── models.py           # Database models
+│   ├── routes.py           # API routes
+│   ├── config.py           # Configuration
+│   ├── requirements.txt    # Python dependencies
+│   ├── Dockerfile          # Docker configuration for backend
+│   ├── .dockerignore       # Files to ignore in Docker build
+│   └── static/             # Static files
+├── frontend/               # React frontend
+│   ├── public/             # Public assets
+│   ├── src/                # Source code
+│   │   ├── components/     # React components
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API services
+│   │   ├── store/          # Redux store
+│   │   ├── App.jsx         # Main App component
+│   │   └── main.jsx        # Entry point
+│   ├── package.json        # Node.js dependencies
+│   ├── vite.config.js      # Vite configuration
+│   ├── Dockerfile          # Docker configuration for frontend
+│   ├── .dockerignore       # Files to ignore in Docker build
+│   └── nginx.conf          # Nginx configuration for production
+├── database/               # SQLite database
+├── docker-compose.yml      # Docker Compose configuration
+├── .env.example            # Example environment variables
+└── DOCKER_README.md        # Docker deployment instructions
 ```
 
 ## License
