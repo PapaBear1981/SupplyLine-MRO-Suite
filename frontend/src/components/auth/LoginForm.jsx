@@ -23,35 +23,18 @@ const LoginForm = () => {
 
     setValidated(true);
 
-    // Hardcoded admin login for testing
-    if (username === 'ADMIN001' && password === 'admin123') {
-      // Create a mock admin user
-      const adminUser = {
-        id: 1,
-        name: 'Admin',
-        employee_number: 'ADMIN001',
-        department: 'IT',
-        is_admin: true,
-        created_at: new Date().toISOString()
-      };
-
-      // Manually update Redux state
-      dispatch({
-        type: 'auth/login/fulfilled',
-        payload: { user: adminUser }
-      });
-
-      console.log('Admin login successful!');
-      return;
+    // Use the actual backend login API
+    try {
+      await dispatch(login({ username, password })).unwrap();
+      console.log('Login successful!');
+    } catch (err) {
+      console.error('Login failed:', err);
     }
-
-    // Normal login flow
-    dispatch(login({ username, password }));
   };
 
   return (
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
-      {error && <Alert variant="danger">{error.message}</Alert>}
+      {error && <Alert variant="danger">{error.message || error.error || JSON.stringify(error)}</Alert>}
 
       <Form.Group className="mb-3" controlId="formUsername">
         <Form.Label>Employee Number</Form.Label>

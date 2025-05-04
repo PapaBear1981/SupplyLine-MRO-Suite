@@ -147,31 +147,106 @@ def register_routes(app):
 
     @app.route('/api/users', methods=['GET', 'POST'])
     def users_route():
+        # Check if user is admin or Materials department
+        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            return jsonify({'error': 'User management privileges required'}), 403
+
         if request.method == 'GET':
+            # Get all users, including inactive ones
             users = User.query.all()
-            return jsonify([{
-                'id': u.id,
-                'name': u.name,
-                'employee_number': u.employee_number,
-                'department': u.department,
-                'created_at': u.created_at.isoformat()
-            } for u in users])
+            return jsonify([u.to_dict() for u in users])
+
+        # POST - Create a new user
         data = request.get_json() or {}
+
+        # Validate required fields
+        required_fields = ['name', 'employee_number', 'department', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Check if employee number already exists
+        if User.query.filter_by(employee_number=data['employee_number']).first():
+            return jsonify({'error': 'Employee number already exists'}), 400
+
+        # Create new user
         u = User(
             name=data.get('name'),
             employee_number=data.get('employee_number'),
             department=data.get('department'),
-            password_hash=data.get('password_hash')
+            is_admin=data.get('is_admin', False),
+            is_active=data.get('is_active', True)
         )
+        u.set_password(data.get('password'))
+
         db.session.add(u)
         db.session.commit()
+
+        # Log the action
         log = AuditLog(
             action_type='create_user',
-            action_details=f'Created user {u.id}'
+            action_details=f'Created user {u.id} ({u.name})'
         )
         db.session.add(log)
         db.session.commit()
-        return jsonify({'id': u.id}), 201
+
+        return jsonify(u.to_dict()), 201
+
+    @app.route('/api/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    def user_detail_route(id):
+        # Check if user is admin or Materials department
+        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            return jsonify({'error': 'User management privileges required'}), 403
+
+        # Get the user
+        user = User.query.get_or_404(id)
+
+        if request.method == 'GET':
+            # Return user details
+            return jsonify(user.to_dict())
+
+        elif request.method == 'PUT':
+            # Update user
+            data = request.get_json() or {}
+
+            # Update fields
+            if 'name' in data:
+                user.name = data['name']
+            if 'department' in data:
+                user.department = data['department']
+            if 'is_admin' in data:
+                user.is_admin = data['is_admin']
+            if 'is_active' in data:
+                user.is_active = data['is_active']
+            if 'password' in data and data['password']:
+                user.set_password(data['password'])
+
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='update_user',
+                action_details=f'Updated user {user.id} ({user.name})'
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify(user.to_dict())
+
+        elif request.method == 'DELETE':
+            # Deactivate user instead of deleting
+            user.is_active = False
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='deactivate_user',
+                action_details=f'Deactivated user {user.id} ({user.name})'
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({'message': f'User {user.name} deactivated successfully'})
 
     @app.route('/api/checkouts', methods=['GET', 'POST'])
     def checkouts_route():
@@ -567,6 +642,10 @@ def register_routes(app):
 
         if not user or not user.check_password(data['password']):
             return jsonify({'error': 'Invalid credentials'}), 401
+
+        # Check if user is active
+        if not user.is_active:
+            return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
 
         # Store user info in session
         session['user_id'] = user.id

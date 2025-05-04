@@ -22,6 +22,7 @@ class User(db.Model):
     department = db.Column(db.String)
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reset_token = db.Column(db.String, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
@@ -80,6 +81,7 @@ class User(db.Model):
             'employee_number': self.employee_number,
             'department': self.department,
             'is_admin': self.is_admin,
+            'is_active': self.is_active,
             'created_at': self.created_at.isoformat()
         }
 

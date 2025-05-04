@@ -13,7 +13,10 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // You could add auth token here if using JWT
-    console.log(`API Request [${config.method.toUpperCase()}] ${config.url}:`, config.data);
+    // Only log non-GET requests or enable for debugging
+    if (config.method.toUpperCase() !== 'GET') {
+      console.log(`API Request [${config.method.toUpperCase()}] ${config.url}:`, config.data);
+    }
     return config;
   },
   (error) => {
@@ -25,7 +28,10 @@ api.interceptors.request.use(
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
+    // Only log non-GET responses or enable for debugging
+    if (response.config.method.toUpperCase() !== 'GET') {
+      console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
+    }
     return response;
   },
   (error) => {

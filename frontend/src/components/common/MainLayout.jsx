@@ -24,7 +24,10 @@ const MainLayout = ({ children }) => {
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
               <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
               {user && (user.is_admin || user.department === 'Materials') && (
-                <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
+                <>
+                  <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
+                  <Nav.Link as={Link} to="/users">User Management</Nav.Link>
+                </>
               )}
             </Nav>
             <Nav>
