@@ -21,14 +21,10 @@ const MainLayout = ({ children }) => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link as={Link} to="/">Dashboard</Nav.Link>
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
               <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
               {user && (user.is_admin || user.department === 'Materials') && (
                 <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
-              )}
-              {user && user.is_admin && (
-                <Nav.Link as={Link} to="/admin">Admin</Nav.Link>
               )}
             </Nav>
             <Nav>

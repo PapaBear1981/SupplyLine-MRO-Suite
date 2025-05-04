@@ -11,7 +11,6 @@ import MainLayout from './components/common/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Import pages
-import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ToolsManagement from './pages/ToolsManagement';
@@ -37,14 +36,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+        {/* Protected routes - Redirect from dashboard to tools */}
+        <Route path="/" element={<Navigate to="/tools" replace />} />
 
         <Route path="/tools" element={
           <ProtectedRoute>
