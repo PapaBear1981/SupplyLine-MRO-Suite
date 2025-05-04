@@ -126,13 +126,62 @@ def register_routes(app):
             'message': 'Tool created successfully'
         }), 201
 
-    @app.route('/api/tools/<int:id>', methods=['GET'])
+    @app.route('/api/tools/<int:id>', methods=['GET', 'PUT'])
     def get_tool(id):
         tool = Tool.query.get_or_404(id)
 
-        # Check if tool is currently checked out
-        active_checkout = Checkout.query.filter_by(tool_id=id, return_date=None).first()
-        status = 'checked_out' if active_checkout else 'available'
+        # GET - Get tool details
+        if request.method == 'GET':
+            # Check if tool is currently checked out
+            active_checkout = Checkout.query.filter_by(tool_id=id, return_date=None).first()
+            status = 'checked_out' if active_checkout else 'available'
+
+            return jsonify({
+                'id': tool.id,
+                'tool_number': tool.tool_number,
+                'serial_number': tool.serial_number,
+                'description': tool.description,
+                'condition': tool.condition,
+                'location': tool.location,
+                'status': status,
+                'created_at': tool.created_at.isoformat()
+            })
+
+        # PUT - Update tool (requires tool manager privileges)
+        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            return jsonify({'error': 'Tool management privileges required'}), 403
+
+        data = request.get_json() or {}
+
+        # Update fields
+        if 'tool_number' in data:
+            # Check if tool number already exists and is not this tool
+            existing_tool = Tool.query.filter_by(tool_number=data['tool_number']).first()
+            if existing_tool and existing_tool.id != id:
+                return jsonify({'error': 'Tool number already exists'}), 400
+            tool.tool_number = data['tool_number']
+
+        if 'serial_number' in data:
+            tool.serial_number = data['serial_number']
+
+        if 'description' in data:
+            tool.description = data['description']
+
+        if 'condition' in data:
+            tool.condition = data['condition']
+
+        if 'location' in data:
+            tool.location = data['location']
+
+        db.session.commit()
+
+        # Log the action
+        log = AuditLog(
+            action_type='update_tool',
+            action_details=f'Updated tool {tool.id} ({tool.tool_number})'
+        )
+        db.session.add(log)
+        db.session.commit()
 
         return jsonify({
             'id': tool.id,
@@ -141,8 +190,7 @@ def register_routes(app):
             'description': tool.description,
             'condition': tool.condition,
             'location': tool.location,
-            'status': status,
-            'created_at': tool.created_at.isoformat()
+            'message': 'Tool updated successfully'
         })
 
     @app.route('/api/users', methods=['GET', 'POST'])

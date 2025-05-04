@@ -16,6 +16,7 @@ import RegisterPage from './pages/RegisterPage';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
+import EditToolPage from './pages/EditToolPage';
 import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
@@ -60,6 +61,14 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <ToolDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/tools/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <EditToolPage />
             </MainLayout>
           </ProtectedRoute>
         } />

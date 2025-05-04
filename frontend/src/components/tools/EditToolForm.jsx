@@ -1,0 +1,170 @@
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Form, Button, Card, Alert } from 'react-bootstrap';
+import { fetchToolById, updateTool } from '../../store/toolsSlice';
+import LoadingSpinner from '../common/LoadingSpinner';
+
+const EditToolForm = () => {
+  const { id } = useParams();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { currentTool, loading, error } = useSelector((state) => state.tools);
+  
+  const [toolData, setToolData] = useState({
+    tool_number: '',
+    serial_number: '',
+    description: '',
+    condition: 'New',
+    location: ''
+  });
+  const [validated, setValidated] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchToolById(id))
+        .unwrap()
+        .then(() => {
+          setInitialLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch tool:', err);
+          setInitialLoading(false);
+        });
+    }
+  }, [dispatch, id]);
+  
+  useEffect(() => {
+    if (currentTool) {
+      setToolData({
+        tool_number: currentTool.tool_number || '',
+        serial_number: currentTool.serial_number || '',
+        description: currentTool.description || '',
+        condition: currentTool.condition || 'New',
+        location: currentTool.location || ''
+      });
+    }
+  }, [currentTool]);
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setToolData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    
+    if (form.checkValidity() === false) {
+      e.stopPropagation();
+      setValidated(true);
+      return;
+    }
+    
+    setValidated(true);
+    
+    dispatch(updateTool({ id, toolData }))
+      .unwrap()
+      .then(() => {
+        navigate(`/tools/${id}`);
+      })
+      .catch((err) => {
+        console.error('Failed to update tool:', err);
+      });
+  };
+  
+  if (initialLoading) {
+    return <LoadingSpinner />;
+  }
+  
+  return (
+    <Card className="shadow-sm">
+      <Card.Header>
+        <h4>Edit Tool</h4>
+      </Card.Header>
+      <Card.Body>
+        {error && <Alert variant="danger">{error.message}</Alert>}
+        
+        <Form noValidate validated={validated} onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Label>Tool Number*</Form.Label>
+            <Form.Control
+              type="text"
+              name="tool_number"
+              value={toolData.tool_number}
+              onChange={handleChange}
+              required
+            />
+            <Form.Control.Feedback type="invalid">
+              Tool number is required
+            </Form.Control.Feedback>
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Serial Number*</Form.Label>
+            <Form.Control
+              type="text"
+              name="serial_number"
+              value={toolData.serial_number}
+              onChange={handleChange}
+              required
+            />
+            <Form.Control.Feedback type="invalid">
+              Serial number is required
+            </Form.Control.Feedback>
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Description</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              name="description"
+              value={toolData.description}
+              onChange={handleChange}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Condition</Form.Label>
+            <Form.Select
+              name="condition"
+              value={toolData.condition}
+              onChange={handleChange}
+            >
+              <option value="New">New</option>
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Poor">Poor</option>
+            </Form.Select>
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Location</Form.Label>
+            <Form.Control
+              type="text"
+              name="location"
+              value={toolData.location}
+              onChange={handleChange}
+            />
+          </Form.Group>
+          
+          <div className="d-flex justify-content-end gap-2">
+            <Button variant="secondary" onClick={() => navigate(`/tools/${id}`)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </Form>
+      </Card.Body>
+    </Card>
+  );
+};
+
+export default EditToolForm;
