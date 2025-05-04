@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser } from './store/authSlice';
 
 // Import Bootstrap CSS
@@ -25,11 +25,17 @@ import UserManagementPage from './pages/UserManagementPage';
 
 function App() {
   const dispatch = useDispatch();
+  const { theme } = useSelector((state) => state.theme);
 
   useEffect(() => {
     // Try to fetch current user on app load
     dispatch(fetchCurrentUser());
   }, [dispatch]);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+  }, [theme]);
 
   return (
     <Router>

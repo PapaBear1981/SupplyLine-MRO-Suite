@@ -4,6 +4,7 @@ import toolsReducer from './toolsSlice';
 import checkoutsReducer from './checkoutsSlice';
 import usersReducer from './usersSlice';
 import auditReducer from './auditSlice';
+import themeReducer from './themeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     checkouts: checkoutsReducer,
     users: usersReducer,
     audit: auditReducer,
+    theme: themeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

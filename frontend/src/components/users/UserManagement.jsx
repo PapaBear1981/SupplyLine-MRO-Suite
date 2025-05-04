@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup 
+import {
+  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup
 } from 'react-bootstrap';
 import { fetchUsers, createUser, updateUser, deactivateUser } from '../../store/usersSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -10,16 +10,16 @@ const UserManagement = () => {
   const dispatch = useDispatch();
   const { users, loading, error } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
-  
+
   // State for search and filter
   const [searchQuery, setSearchQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  
+
   // State for modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // State for form data
   const [formData, setFormData] = useState({
     name: '',
@@ -29,30 +29,30 @@ const UserManagement = () => {
     is_admin: false,
     is_active: true
   });
-  
+
   // State for selected user
   const [selectedUser, setSelectedUser] = useState(null);
-  
+
   // Form validation
   const [validated, setValidated] = useState(false);
-  
+
   // Load users on component mount
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
-  
+
   // Filter users based on search query and active status
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.employee_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.department.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
     const matchesStatus = showInactive ? true : user.is_active;
-    
+
     return matchesSearch && matchesStatus;
   });
-  
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -61,18 +61,18 @@ const UserManagement = () => {
       [name]: type === 'checkbox' ? checked : value
     });
   };
-  
+
   // Handle add user form submission
   const handleAddUser = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     dispatch(createUser(formData))
       .unwrap()
       .then(() => {
@@ -83,24 +83,24 @@ const UserManagement = () => {
         console.error('Failed to create user:', err);
       });
   };
-  
+
   // Handle edit user form submission
   const handleEditUser = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     // If password is empty, remove it from the data to avoid changing it
     const userData = { ...formData };
     if (!userData.password) {
       delete userData.password;
     }
-    
+
     dispatch(updateUser({ id: selectedUser.id, userData }))
       .unwrap()
       .then(() => {
@@ -111,7 +111,7 @@ const UserManagement = () => {
         console.error('Failed to update user:', err);
       });
   };
-  
+
   // Handle deactivate user
   const handleDeactivateUser = () => {
     dispatch(deactivateUser(selectedUser.id))
@@ -123,7 +123,7 @@ const UserManagement = () => {
         console.error('Failed to deactivate user:', err);
       });
   };
-  
+
   // Reset form data
   const resetForm = () => {
     setFormData({
@@ -136,7 +136,7 @@ const UserManagement = () => {
     });
     setValidated(false);
   };
-  
+
   // Open edit modal with user data
   const openEditModal = (user) => {
     setSelectedUser(user);
@@ -150,16 +150,16 @@ const UserManagement = () => {
     });
     setShowEditModal(true);
   };
-  
+
   // Open delete modal with user data
   const openDeleteModal = (user) => {
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
-  
+
   // Check if user has permission to manage users
   const hasPermission = currentUser?.is_admin || currentUser?.department === 'Materials';
-  
+
   if (!hasPermission) {
     return (
       <Alert variant="danger">
@@ -167,11 +167,11 @@ const UserManagement = () => {
       </Alert>
     );
   }
-  
+
   if (loading && !users.length) {
     return <LoadingSpinner />;
   }
-  
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -180,13 +180,13 @@ const UserManagement = () => {
           Add New User
         </Button>
       </div>
-      
+
       {error && (
         <Alert variant="danger" className="mb-4">
           {error.message || 'An error occurred while loading users.'}
         </Alert>
       )}
-      
+
       <Card className="mb-4">
         <Card.Header>
           <div className="d-flex justify-content-between align-items-center">
@@ -232,16 +232,16 @@ const UserManagement = () => {
                       <td>{user.department}</td>
                       <td>
                         {user.is_admin ? (
-                          <Badge bg="primary">Admin</Badge>
+                          <span className="status-badge" style={{backgroundColor: 'var(--bs-primary)', color: 'white'}}>Admin</span>
                         ) : (
-                          <Badge bg="secondary">User</Badge>
+                          <span className="status-badge" style={{backgroundColor: 'var(--bs-secondary)', color: 'white'}}>User</span>
                         )}
                       </td>
                       <td>
                         {user.is_active ? (
-                          <Badge bg="success">Active</Badge>
+                          <span className="status-badge status-active">Active</span>
                         ) : (
-                          <Badge bg="danger">Inactive</Badge>
+                          <span className="status-badge status-inactive">Inactive</span>
                         )}
                       </td>
                       <td>
@@ -279,7 +279,7 @@ const UserManagement = () => {
           </div>
         </Card.Body>
       </Card>
-      
+
       {/* Add User Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
         <Modal.Header closeButton>
@@ -300,7 +300,7 @@ const UserManagement = () => {
                 Name is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Employee Number</Form.Label>
               <Form.Control
@@ -314,7 +314,7 @@ const UserManagement = () => {
                 Employee number is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Department</Form.Label>
               <Form.Select
@@ -335,7 +335,7 @@ const UserManagement = () => {
                 Department is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Password</Form.Label>
               <Form.Control
@@ -349,7 +349,7 @@ const UserManagement = () => {
                 Password is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
@@ -370,7 +370,7 @@ const UserManagement = () => {
           </Modal.Footer>
         </Form>
       </Modal>
-      
+
       {/* Edit User Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
@@ -391,7 +391,7 @@ const UserManagement = () => {
                 Name is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Employee Number</Form.Label>
               <Form.Control
@@ -403,7 +403,7 @@ const UserManagement = () => {
                 disabled // Employee number shouldn't be changed
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Department</Form.Label>
               <Form.Select
@@ -424,7 +424,7 @@ const UserManagement = () => {
                 Department is required.
               </Form.Control.Feedback>
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Password (leave blank to keep current)</Form.Label>
               <Form.Control
@@ -434,7 +434,7 @@ const UserManagement = () => {
                 onChange={handleInputChange}
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
@@ -444,7 +444,7 @@ const UserManagement = () => {
                 onChange={handleInputChange}
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
@@ -465,7 +465,7 @@ const UserManagement = () => {
           </Modal.Footer>
         </Form>
       </Modal>
-      
+
       {/* Deactivate User Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
         <Modal.Header closeButton>

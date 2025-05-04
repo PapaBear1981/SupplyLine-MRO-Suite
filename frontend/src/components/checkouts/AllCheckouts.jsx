@@ -77,11 +77,11 @@ const AllCheckouts = () => {
                       <td>
                         {checkout.expected_return_date ? new Date(checkout.expected_return_date).toLocaleDateString() : 'N/A'}
                         {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() && (
-                          <Badge bg="danger" className="ms-2">Overdue</Badge>
+                          <span className="status-badge status-maintenance ms-2">Overdue</span>
                         )}
                       </td>
                       <td>
-                        <Badge bg="warning">Checked Out</Badge>
+                        <span className="status-badge status-checked-out">Checked Out</span>
                       </td>
                       {canReturnTools && (
                         <td>

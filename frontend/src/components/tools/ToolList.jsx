@@ -132,12 +132,12 @@ const ToolList = () => {
                       <td>{tool.location || 'N/A'}</td>
                       <td>
                         <span
-                          className={`badge ${
+                          className={`status-badge ${
                             tool.status === 'available'
-                              ? 'bg-success'
+                              ? 'status-available'
                               : tool.status === 'checked_out'
-                              ? 'bg-warning'
-                              : 'bg-danger'
+                              ? 'status-checked-out'
+                              : 'status-maintenance'
                           }`}
                         >
                           {tool.status === 'available' ? 'Available' : 'Checked Out'}

@@ -74,11 +74,11 @@ const UserCheckouts = () => {
                       <td>
                         {checkout.expected_return_date ? new Date(checkout.expected_return_date).toLocaleDateString() : 'N/A'}
                         {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() && (
-                          <Badge bg="danger" className="ms-2">Overdue</Badge>
+                          <span className="status-badge status-maintenance ms-2">Overdue</span>
                         )}
                       </td>
                       <td>
-                        <Badge bg="warning">{checkout.status}</Badge>
+                        <span className="status-badge status-checked-out">{checkout.status}</span>
                       </td>
                       <td>
                         <Button
@@ -136,7 +136,7 @@ const UserCheckouts = () => {
                       <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
                       <td>{new Date(checkout.return_date).toLocaleDateString()}</td>
                       <td>
-                        <Badge bg="success">Returned</Badge>
+                        <span className="status-badge status-available">Returned</span>
                       </td>
                     </tr>
                   ))

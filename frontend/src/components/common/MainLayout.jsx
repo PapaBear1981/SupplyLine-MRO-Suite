@@ -1,17 +1,12 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { Container, Navbar, Nav, NavDropdown, Button } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { logout } from '../../store/authSlice';
+import { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { Container, Navbar, Nav, Button } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import ProfileModal from '../profile/ProfileModal';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
-  };
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -32,12 +27,16 @@ const MainLayout = ({ children }) => {
             </Nav>
             <Nav>
               {isAuthenticated ? (
-                <NavDropdown title={user?.name || 'User'} id="user-dropdown">
-                  <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                  <NavDropdown.Item as={Link} to="/my-checkouts">My Checkouts</NavDropdown.Item>
-                  <NavDropdown.Divider />
-                  <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
-                </NavDropdown>
+                <Button
+                  variant="outline-light"
+                  className="d-flex align-items-center"
+                  onClick={() => setShowProfileModal(true)}
+                >
+                  <span className="me-2">{user?.name || 'User'}</span>
+                  <div className="avatar-circle-sm bg-primary text-white">
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+                </Button>
               ) : (
                 <>
                   <Button variant="outline-light" className="me-2" as={Link} to="/login">
@@ -65,6 +64,12 @@ const MainLayout = ({ children }) => {
           </div>
         </Container>
       </footer>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        show={showProfileModal}
+        onHide={() => setShowProfileModal(false)}
+      />
     </div>
   );
 };

@@ -48,7 +48,19 @@ code {
 /* Table styling */
 .table th {
   font-weight: 600;
-  background-color: var(--bs-light);
+  background-color: var(--bs-primary);
+  color: white;
+}
+
+/* Dark mode table styling */
+[data-bs-theme="dark"] .table th {
+  background-color: var(--bs-dark);
+  color: white;
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .table td {
+  border-color: #495057;
 }
 
 /* Navbar styling */
@@ -90,4 +102,91 @@ code {
 
 .btn:hover {
   transform: translateY(-1px);
+}
+
+/* Avatar circles */
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 500;
+  margin: 0 auto;
+}
+
+.avatar-circle-sm {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Dark mode styles */
+[data-bs-theme="dark"] {
+  --bs-body-bg: #212529;
+  --bs-body-color: #f8f9fa;
+  --bs-primary: #3d8bfd;
+  --bs-secondary: #6c757d;
+  --bs-success: #42ba96;
+  --bs-info: #56cdfc;
+  --bs-warning: #ffca2c;
+  --bs-danger: #ff4d6b;
+  --bs-light: #343a40;
+  --bs-dark: #1a1d20;
+  --bs-border-color: #495057;
+}
+
+[data-bs-theme="light"] {
+  --bs-body-bg: #f8f9fa;
+  --bs-body-color: #212529;
+  --bs-primary: #0d6efd;
+  --bs-secondary: #6c757d;
+  --bs-success: #198754;
+  --bs-info: #0dcaf0;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-light: #f8f9fa;
+  --bs-dark: #212529;
+  --bs-border-color: #dee2e6;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.status-available {
+  background-color: var(--bs-success);
+  color: white;
+}
+
+.status-checked-out {
+  background-color: var(--bs-warning);
+  color: #212529;
+}
+
+.status-maintenance {
+  background-color: var(--bs-danger);
+  color: white;
+}
+
+.status-active {
+  background-color: var(--bs-success);
+  color: white;
+}
+
+.status-inactive {
+  background-color: var(--bs-secondary);
+  color: white;
 }
