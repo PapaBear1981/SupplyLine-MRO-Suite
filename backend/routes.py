@@ -54,6 +54,14 @@ def register_routes(app):
             db.session.commit()
             print("Admin user created with employee number ADMIN001 and password admin123")
 
+    # Health check endpoint for Docker
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat()
+        })
+
     @app.route('/api/tools', methods=['GET', 'POST'])
     def tools_route():
         # GET - List all tools

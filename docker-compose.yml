@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: tool-inventory-backend
+    restart: unless-stopped
+    volumes:
+      - ./database:/app/database
+      - ./flask_session:/app/flask_session
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    container_name: tool-inventory-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  database:
+  flask_session:

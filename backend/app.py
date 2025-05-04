@@ -14,10 +14,10 @@ def create_app():
     )
     app.config.from_object(Config)
 
-    # Initialize CORS with more permissive settings for development
+    # Initialize CORS with settings from config
     CORS(app,
-         supports_credentials=True,
-         origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+         supports_credentials=app.config.get('CORS_SUPPORTS_CREDENTIALS', True),
+         origins=app.config.get('CORS_ORIGINS', ["http://localhost:5173", "http://127.0.0.1:5173"]),
          allow_headers=["Content-Type", "Authorization"],
          expose_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
