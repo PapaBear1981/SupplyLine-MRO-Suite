@@ -28,8 +28,19 @@ const ToolList = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    // Use search results if available, otherwise use all tools
-    const toolsToDisplay = searchQuery ? searchResults : tools;
+    // Filter tools based on search query
+    let toolsToDisplay = [...tools];
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      toolsToDisplay = tools.filter(tool =>
+        tool.tool_number.toLowerCase().includes(query) ||
+        tool.serial_number.toLowerCase().includes(query) ||
+        (tool.description && tool.description.toLowerCase().includes(query)) ||
+        (tool.location && tool.location.toLowerCase().includes(query))
+      );
+      console.log(`Filtered to ${toolsToDisplay.length} tools matching "${query}"`);
+    }
 
     // Apply sorting
     const sortedTools = [...toolsToDisplay].sort((a, b) => {
@@ -43,13 +54,12 @@ const ToolList = () => {
     });
 
     setFilteredTools(sortedTools);
-  }, [tools, searchResults, searchQuery, sortConfig]);
+  }, [tools, searchQuery, sortConfig]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      dispatch(searchTools(searchQuery));
-    }
+    // Search is now handled in the useEffect above
+    console.log(`Searching for: ${searchQuery}`);
   };
 
   const handleSort = (key) => {
@@ -84,19 +94,24 @@ const ToolList = () => {
         <Card.Header className="bg-light">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <h5 className="mb-0">Tool Inventory</h5>
-            <Form onSubmit={handleSearch} className="d-flex flex-grow-1 flex-md-grow-0" style={{ maxWidth: '500px' }}>
+            <div className="d-flex flex-grow-1 flex-md-grow-0" style={{ maxWidth: '500px' }}>
               <InputGroup>
                 <Form.Control
                   type="text"
                   placeholder="Search tools..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search tools"
                 />
-                <Button type="submit" variant="primary">
-                  Search
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setSearchQuery('')}
+                  style={{ display: searchQuery ? 'block' : 'none' }}
+                >
+                  Clear
                 </Button>
               </InputGroup>
-            </Form>
+            </div>
           </div>
         </Card.Header>
         <Card.Body className="p-0">

@@ -67,8 +67,40 @@ def register_routes(app):
         # GET - List all tools
         if request.method == 'GET':
             print("Received request for all tools")
-            tools = Tool.query.all()
-            print(f"Found {len(tools)} tools")
+
+            # Check if there's a search query
+            print(f"Request method: {request.method}")
+            print(f"Request URL: {request.url}")
+            print(f"Request args: {request.args}")
+            print(f"Request args type: {type(request.args)}")
+            print(f"Request args keys: {list(request.args.keys())}")
+
+            search_query = request.args.get('q')
+            print(f"Search query: {search_query}")
+            print(f"Search query type: {type(search_query)}")
+
+            if search_query:
+                print(f"Searching for tools with query: {search_query}")
+                search_term = f'%{search_query.lower()}%'
+                print(f"Search term: {search_term}")
+
+                try:
+                    tools = Tool.query.filter(
+                        db.or_(
+                            db.func.lower(Tool.tool_number).like(search_term),
+                            db.func.lower(Tool.serial_number).like(search_term),
+                            db.func.lower(Tool.description).like(search_term),
+                            db.func.lower(Tool.location).like(search_term)
+                        )
+                    ).all()
+                    print(f"Found {len(tools)} tools matching search query")
+                except Exception as e:
+                    print(f"Error during search: {str(e)}")
+                    tools = Tool.query.all()
+                    print(f"Falling back to all tools: {len(tools)}")
+            else:
+                tools = Tool.query.all()
+                print(f"Found {len(tools)} tools")
 
             # Get checkout status for each tool
             tool_status = {}
@@ -1022,6 +1054,55 @@ def register_routes(app):
         user_id = session['user_id']
         activities = UserActivity.query.filter_by(user_id=user_id).order_by(UserActivity.timestamp.desc()).limit(50).all()
         return jsonify([activity.to_dict() for activity in activities]), 200
+
+    @app.route('/api/tools/search', methods=['GET'])
+    def search_tools():
+        # Get search query from request parameters
+        query = request.args.get('q', '')
+        print(f"Search endpoint called with query: {query}")
+
+        if not query:
+            return jsonify({'error': 'Search query is required'}), 400
+
+        # Convert query to lowercase for case-insensitive search
+        search_term = f'%{query.lower()}%'
+        print(f"Search term: {search_term}")
+
+        # Search in tool_number, serial_number, description, and location
+        try:
+            tools = Tool.query.filter(
+                db.or_(
+                    db.func.lower(Tool.tool_number).like(search_term),
+                    db.func.lower(Tool.serial_number).like(search_term),
+                    db.func.lower(Tool.description).like(search_term),
+                    db.func.lower(Tool.location).like(search_term)
+                )
+            ).all()
+            print(f"Found {len(tools)} tools matching search query")
+        except Exception as e:
+            print(f"Error during search: {str(e)}")
+            return jsonify({'error': f'Search error: {str(e)}'}), 500
+
+        # Get checkout status for each tool
+        tool_status = {}
+        active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
+
+        for checkout in active_checkouts:
+            tool_status[checkout.tool_id] = 'checked_out'
+
+        # Format the results
+        result = [{
+            'id': t.id,
+            'tool_number': t.tool_number,
+            'serial_number': t.serial_number,
+            'description': t.description,
+            'condition': t.condition,
+            'location': t.location,
+            'status': tool_status.get(t.id, 'available'),
+            'created_at': t.created_at.isoformat()
+        } for t in tools]
+
+        return jsonify(result)
 
     @app.route('/api/tools/new', methods=['GET'])
     @tool_manager_required

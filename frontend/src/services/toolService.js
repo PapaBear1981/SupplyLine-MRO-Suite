@@ -54,7 +54,7 @@ const ToolService = {
   // Search tools
   searchTools: async (query) => {
     try {
-      const response = await api.get(`/tools/search?q=${query}`);
+      const response = await api.get(`/tools?q=${query}`);
       return response.data;
     } catch (error) {
       throw error;
