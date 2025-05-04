@@ -10,7 +10,7 @@ const EditToolForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { currentTool, loading, error } = useSelector((state) => state.tools);
-  
+
   const [toolData, setToolData] = useState({
     tool_number: '',
     serial_number: '',
@@ -20,7 +20,7 @@ const EditToolForm = () => {
   });
   const [validated, setValidated] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  
+
   useEffect(() => {
     if (id) {
       dispatch(fetchToolById(id))
@@ -34,7 +34,7 @@ const EditToolForm = () => {
         });
     }
   }, [dispatch, id]);
-  
+
   useEffect(() => {
     if (currentTool) {
       setToolData({
@@ -46,7 +46,7 @@ const EditToolForm = () => {
       });
     }
   }, [currentTool]);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setToolData(prev => ({
@@ -54,19 +54,19 @@ const EditToolForm = () => {
       [name]: value
     }));
   };
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
-    
+
     dispatch(updateTool({ id, toolData }))
       .unwrap()
       .then(() => {
@@ -76,11 +76,11 @@ const EditToolForm = () => {
         console.error('Failed to update tool:', err);
       });
   };
-  
+
   if (initialLoading) {
     return <LoadingSpinner />;
   }
-  
+
   return (
     <Card className="shadow-sm">
       <Card.Header>
@@ -88,7 +88,7 @@ const EditToolForm = () => {
       </Card.Header>
       <Card.Body>
         {error && <Alert variant="danger">{error.message}</Alert>}
-        
+
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Tool Number*</Form.Label>
@@ -102,8 +102,11 @@ const EditToolForm = () => {
             <Form.Control.Feedback type="invalid">
               Tool number is required
             </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              You can have multiple tools with the same tool number as long as they have different serial numbers.
+            </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Serial Number*</Form.Label>
             <Form.Control
@@ -116,8 +119,11 @@ const EditToolForm = () => {
             <Form.Control.Feedback type="invalid">
               Serial number is required
             </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Serial number must be unique for tools with the same tool number.
+            </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>
             <Form.Control
@@ -128,7 +134,7 @@ const EditToolForm = () => {
               onChange={handleChange}
             />
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Condition</Form.Label>
             <Form.Select
@@ -142,7 +148,7 @@ const EditToolForm = () => {
               <option value="Poor">Poor</option>
             </Form.Select>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Location</Form.Label>
             <Form.Control
@@ -152,7 +158,7 @@ const EditToolForm = () => {
               onChange={handleChange}
             />
           </Form.Group>
-          
+
           <div className="d-flex justify-content-end gap-2">
             <Button variant="secondary" onClick={() => navigate(`/tools/${id}`)}>
               Cancel

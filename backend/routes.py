@@ -137,9 +137,9 @@ def register_routes(app):
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        # Check if tool number already exists
-        if Tool.query.filter_by(tool_number=data['tool_number']).first():
-            return jsonify({'error': 'Tool number already exists'}), 400
+        # Check if tool with same tool number AND serial number already exists
+        if Tool.query.filter_by(tool_number=data['tool_number'], serial_number=data['serial_number']).first():
+            return jsonify({'error': 'A tool with this tool number and serial number combination already exists'}), 400
 
         # Create new tool
         t = Tool(
@@ -194,15 +194,21 @@ def register_routes(app):
         data = request.get_json() or {}
 
         # Update fields
-        if 'tool_number' in data:
-            # Check if tool number already exists and is not this tool
-            existing_tool = Tool.query.filter_by(tool_number=data['tool_number']).first()
-            if existing_tool and existing_tool.id != id:
-                return jsonify({'error': 'Tool number already exists'}), 400
-            tool.tool_number = data['tool_number']
+        if 'tool_number' in data or 'serial_number' in data:
+            # If either tool_number or serial_number is being updated, we need to check for duplicates
+            new_tool_number = data.get('tool_number', tool.tool_number)
+            new_serial_number = data.get('serial_number', tool.serial_number)
 
-        if 'serial_number' in data:
-            tool.serial_number = data['serial_number']
+            # Check if the combination of tool_number and serial_number already exists for another tool
+            existing_tool = Tool.query.filter_by(tool_number=new_tool_number, serial_number=new_serial_number).first()
+            if existing_tool and existing_tool.id != id:
+                return jsonify({'error': 'A tool with this tool number and serial number combination already exists'}), 400
+
+            # Update the fields if they were provided
+            if 'tool_number' in data:
+                tool.tool_number = data['tool_number']
+            if 'serial_number' in data:
+                tool.serial_number = data['serial_number']
 
         if 'description' in data:
             tool.description = data['description']

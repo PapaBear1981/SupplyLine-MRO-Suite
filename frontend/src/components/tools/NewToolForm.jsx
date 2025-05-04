@@ -8,7 +8,7 @@ const NewToolForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.tools);
-  
+
   const [toolData, setToolData] = useState({
     tool_number: '',
     serial_number: '',
@@ -17,7 +17,7 @@ const NewToolForm = () => {
     location: ''
   });
   const [validated, setValidated] = useState(false);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setToolData(prev => ({
@@ -25,19 +25,19 @@ const NewToolForm = () => {
       [name]: value
     }));
   };
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
-    
+
     dispatch(createTool(toolData))
       .unwrap()
       .then(() => {
@@ -47,7 +47,7 @@ const NewToolForm = () => {
         console.error('Failed to create tool:', err);
       });
   };
-  
+
   return (
     <Card className="shadow-sm">
       <Card.Header>
@@ -55,7 +55,7 @@ const NewToolForm = () => {
       </Card.Header>
       <Card.Body>
         {error && <Alert variant="danger">{error.message}</Alert>}
-        
+
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Tool Number*</Form.Label>
@@ -69,8 +69,11 @@ const NewToolForm = () => {
             <Form.Control.Feedback type="invalid">
               Tool number is required
             </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              You can create multiple tools with the same tool number as long as they have different serial numbers.
+            </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Serial Number*</Form.Label>
             <Form.Control
@@ -83,8 +86,11 @@ const NewToolForm = () => {
             <Form.Control.Feedback type="invalid">
               Serial number is required
             </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Serial number must be unique for tools with the same tool number.
+            </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>
             <Form.Control
@@ -95,7 +101,7 @@ const NewToolForm = () => {
               onChange={handleChange}
             />
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Condition</Form.Label>
             <Form.Select
@@ -109,7 +115,7 @@ const NewToolForm = () => {
               <option value="Poor">Poor</option>
             </Form.Select>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Location</Form.Label>
             <Form.Control
@@ -119,7 +125,7 @@ const NewToolForm = () => {
               onChange={handleChange}
             />
           </Form.Group>
-          
+
           <div className="d-flex justify-content-end gap-2">
             <Button variant="secondary" onClick={() => navigate('/tools')}>
               Cancel
