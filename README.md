@@ -2,6 +2,8 @@
 
 A comprehensive tool inventory management system built with React and Flask.
 
+**Current Version: 1.0.0** - See [VERSION.md](VERSION.md) for version history and release notes.
+
 ## Features
 
 - User authentication and authorization
@@ -144,7 +146,8 @@ tool-inventory-system/
 ├── database/               # SQLite database
 ├── docker-compose.yml      # Docker Compose configuration
 ├── .env.example            # Example environment variables
-└── DOCKER_README.md        # Docker deployment instructions
+├── DOCKER_README.md        # Docker deployment instructions
+└── VERSION.md              # Version history and release notes
 ```
 
 ## License
