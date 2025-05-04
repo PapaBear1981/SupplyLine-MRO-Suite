@@ -70,10 +70,11 @@ const ToolDetail = () => {
                   <Col sm={4} className="fw-bold">Status:</Col>
                   <Col sm={8}>
                     <Badge bg={
-                      currentTool.status === 'Available' ? 'success' :
-                      currentTool.status === 'Checked Out' ? 'warning' : 'danger'
+                      currentTool.status === 'available' ? 'success' :
+                      currentTool.status === 'checked_out' ? 'warning' : 'danger'
                     }>
-                      {currentTool.status}
+                      {currentTool.status === 'available' ? 'Available' :
+                       currentTool.status === 'checked_out' ? 'Checked Out' : 'Unavailable'}
                     </Badge>
                   </Col>
                 </Row>
@@ -94,7 +95,7 @@ const ToolDetail = () => {
               </Card.Body>
               <Card.Footer>
                 <div className="d-flex gap-2">
-                  {currentTool.status === 'Available' ? (
+                  {currentTool.status === 'available' ? (
                     <>
                       <Button as={Link} to={`/checkout/${currentTool.id}`} variant="success">
                         Checkout to Me
