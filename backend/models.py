@@ -12,6 +12,9 @@ class Tool(db.Model):
     description = db.Column(db.String)
     condition = db.Column(db.String)
     location = db.Column(db.String)
+    category = db.Column(db.String, nullable=True, default='General')
+    status = db.Column(db.String, nullable=True, default='available')  # available, checked_out, maintenance, retired
+    status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class User(db.Model):
@@ -120,5 +123,29 @@ class UserActivity(db.Model):
             'activity_type': self.activity_type,
             'description': self.description,
             'ip_address': self.ip_address,
+            'timestamp': self.timestamp.isoformat()
+        }
+
+class ToolServiceRecord(db.Model):
+    __tablename__ = 'tool_service_records'
+    id = db.Column(db.Integer, primary_key=True)
+    tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action_type = db.Column(db.String, nullable=False)  # 'remove_maintenance', 'remove_permanent', 'return_service'
+    reason = db.Column(db.String, nullable=False)
+    comments = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    tool = db.relationship('Tool')
+    user = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_id': self.tool_id,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'action_type': self.action_type,
+            'reason': self.reason,
+            'comments': self.comments,
             'timestamp': self.timestamp.isoformat()
         }

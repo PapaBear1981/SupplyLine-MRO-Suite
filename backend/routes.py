@@ -1,5 +1,5 @@
 from flask import request, jsonify, session, make_response
-from models import db, Tool, User, Checkout, AuditLog, UserActivity
+from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
@@ -118,7 +118,9 @@ def register_routes(app):
                 'description': t.description,
                 'condition': t.condition,
                 'location': t.location,
-                'status': tool_status.get(t.id, 'available'),
+                'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
+                'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
+                'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
                 'created_at': t.created_at.isoformat()
             } for t in tools]
 
@@ -174,7 +176,9 @@ def register_routes(app):
         if request.method == 'GET':
             # Check if tool is currently checked out
             active_checkout = Checkout.query.filter_by(tool_id=id, return_date=None).first()
-            status = 'checked_out' if active_checkout else 'available'
+
+            # Determine status - checkout status takes precedence over tool status
+            status = 'checked_out' if active_checkout else getattr(tool, 'status', 'available')
 
             return jsonify({
                 'id': tool.id,
@@ -183,7 +187,9 @@ def register_routes(app):
                 'description': tool.description,
                 'condition': tool.condition,
                 'location': tool.location,
+                'category': getattr(tool, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
                 'status': status,
+                'status_reason': getattr(tool, 'status_reason', None) if status in ['maintenance', 'retired'] else None,
                 'created_at': tool.created_at.isoformat()
             })
 
@@ -1104,7 +1110,9 @@ def register_routes(app):
             'description': t.description,
             'condition': t.condition,
             'location': t.location,
-            'status': tool_status.get(t.id, 'available'),
+            'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
+            'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
+            'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
             'created_at': t.created_at.isoformat()
         } for t in tools]
 
@@ -1464,3 +1472,172 @@ def register_routes(app):
             'checkout_date': c.checkout_date.isoformat(),
             'return_date': c.return_date.isoformat() if c.return_date else None
         } for c in checkouts]), 200
+
+    @app.route('/api/tools/<int:id>/service/remove', methods=['POST'])
+    @tool_manager_required
+    def remove_tool_from_service(id):
+        try:
+            # Get the tool
+            tool = Tool.query.get_or_404(id)
+
+            # Check if tool is already out of service
+            if tool.status in ['maintenance', 'retired']:
+                return jsonify({'error': f'Tool is already out of service with status: {tool.status}'}), 400
+
+            # Check if tool is currently checked out
+            active_checkout = Checkout.query.filter_by(tool_id=id, return_date=None).first()
+            if active_checkout:
+                return jsonify({'error': 'Cannot remove a tool that is currently checked out'}), 400
+
+            # Get data from request
+            data = request.get_json() or {}
+
+            # Validate required fields
+            required_fields = ['action_type', 'reason']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({'error': f'Missing required field: {field}'}), 400
+
+            # Validate action type
+            action_type = data.get('action_type')
+            if action_type not in ['remove_maintenance', 'remove_permanent']:
+                return jsonify({'error': 'Invalid action type. Must be "remove_maintenance" or "remove_permanent"'}), 400
+
+            # Update tool status
+            if action_type == 'remove_maintenance':
+                tool.status = 'maintenance'
+            else:  # remove_permanent
+                tool.status = 'retired'
+
+            tool.status_reason = data.get('reason')
+
+            # Create service record
+            service_record = ToolServiceRecord(
+                tool_id=id,
+                user_id=session['user_id'],
+                action_type=action_type,
+                reason=data.get('reason'),
+                comments=data.get('comments', '')
+            )
+
+            # Create audit log
+            log = AuditLog(
+                action_type=action_type,
+                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) removed tool {tool.tool_number} (ID: {id}) from service. Reason: {data.get("reason")}'
+            )
+
+            # Create user activity
+            activity = UserActivity(
+                user_id=session['user_id'],
+                activity_type=action_type,
+                description=f'Removed tool {tool.tool_number} from service',
+                ip_address=request.remote_addr
+            )
+
+            # Save changes
+            db.session.add(service_record)
+            db.session.add(log)
+            db.session.add(activity)
+            db.session.commit()
+
+            return jsonify({
+                'id': tool.id,
+                'tool_number': tool.tool_number,
+                'serial_number': tool.serial_number,
+                'status': tool.status,
+                'status_reason': tool.status_reason,
+                'message': f'Tool successfully removed from service with status: {tool.status}'
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error removing tool from service: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+    @app.route('/api/tools/<int:id>/service/return', methods=['POST'])
+    @tool_manager_required
+    def return_tool_to_service(id):
+        try:
+            # Get the tool
+            tool = Tool.query.get_or_404(id)
+
+            # Check if tool is out of service
+            if tool.status not in ['maintenance', 'retired']:
+                return jsonify({'error': f'Tool is not out of service. Current status: {tool.status}'}), 400
+
+            # Get data from request
+            data = request.get_json() or {}
+
+            # Validate required fields
+            if not data.get('reason'):
+                return jsonify({'error': 'Missing required field: reason'}), 400
+
+            # Update tool status
+            tool.status = 'available'
+            tool.status_reason = None
+
+            # Create service record
+            service_record = ToolServiceRecord(
+                tool_id=id,
+                user_id=session['user_id'],
+                action_type='return_service',
+                reason=data.get('reason'),
+                comments=data.get('comments', '')
+            )
+
+            # Create audit log
+            log = AuditLog(
+                action_type='return_service',
+                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) returned tool {tool.tool_number} (ID: {id}) to service. Reason: {data.get("reason")}'
+            )
+
+            # Create user activity
+            activity = UserActivity(
+                user_id=session['user_id'],
+                activity_type='return_service',
+                description=f'Returned tool {tool.tool_number} to service',
+                ip_address=request.remote_addr
+            )
+
+            # Save changes
+            db.session.add(service_record)
+            db.session.add(log)
+            db.session.add(activity)
+            db.session.commit()
+
+            return jsonify({
+                'id': tool.id,
+                'tool_number': tool.tool_number,
+                'serial_number': tool.serial_number,
+                'status': tool.status,
+                'message': 'Tool successfully returned to service'
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error returning tool to service: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+    @app.route('/api/tools/<int:id>/service/history', methods=['GET'])
+    def get_tool_service_history(id):
+        try:
+            # Get pagination parameters
+            page = request.args.get('page', 1, type=int)
+            limit = request.args.get('limit', 20, type=int)
+
+            # Calculate offset
+            offset = (page - 1) * limit
+
+            # Get the tool
+            tool = Tool.query.get_or_404(id)
+
+            # Get service history
+            service_records = ToolServiceRecord.query.filter_by(tool_id=id).order_by(
+                ToolServiceRecord.timestamp.desc()
+            ).offset(offset).limit(limit).all()
+
+            return jsonify([record.to_dict() for record in service_records]), 200
+
+        except Exception as e:
+            print(f"Error getting tool service history: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500

@@ -60,7 +60,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>Tool Inventory System &copy; {new Date().getFullYear()}</span>
-            <span>Version 1.0.0</span>
+            <span>Version 1.1.1</span>
           </div>
         </Container>
       </footer>
