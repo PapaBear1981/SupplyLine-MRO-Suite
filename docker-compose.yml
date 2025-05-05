@@ -8,6 +8,7 @@ services:
     volumes:
       - ./database:/app/database
       - ./flask_session:/app/flask_session
+      - ./update_tools_schema.py:/app/update_tools_schema.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}

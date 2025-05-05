@@ -96,6 +96,26 @@ docker-compose restart
 docker-compose up -d --build
 ```
 
+### Updating to a New Version
+
+When updating to a new version of the application:
+
+1. Pull the latest changes from the repository:
+   ```bash
+   git pull origin master
+   ```
+
+2. Rebuild the containers to apply the changes:
+   ```bash
+   docker-compose down
+   docker-compose up -d --build
+   ```
+
+The update process includes:
+- Automatic database schema updates
+- Updated frontend with the latest features
+- Version number updates in the UI
+
 ## Data Persistence
 
 The application uses Docker volumes to persist data:
