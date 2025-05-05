@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Row, Col, Button, Table, Badge } from 'react-bootstrap';
+import { Card, Row, Col, Button, Table, Badge, Tabs, Tab } from 'react-bootstrap';
 import { fetchToolById } from '../../store/toolsSlice';
 import { fetchToolCheckoutHistory } from '../../store/checkoutsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
+import RemoveFromServiceModal from './RemoveFromServiceModal';
+import ReturnToServiceModal from './ReturnToServiceModal';
+import ServiceHistoryList from './ServiceHistoryList';
 
 const ToolDetail = () => {
   const { id } = useParams();
@@ -15,6 +18,9 @@ const ToolDetail = () => {
   const { user } = useSelector((state) => state.auth);
 
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showRemoveFromServiceModal, setShowRemoveFromServiceModal] = useState(false);
+  const [showReturnToServiceModal, setShowReturnToServiceModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
     if (id) {
@@ -71,11 +77,19 @@ const ToolDetail = () => {
                   <Col sm={8}>
                     <Badge bg={
                       currentTool.status === 'available' ? 'success' :
-                      currentTool.status === 'checked_out' ? 'warning' : 'danger'
+                      currentTool.status === 'checked_out' ? 'warning' :
+                      currentTool.status === 'maintenance' ? 'info' : 'danger'
                     }>
                       {currentTool.status === 'available' ? 'Available' :
-                       currentTool.status === 'checked_out' ? 'Checked Out' : 'Unavailable'}
+                       currentTool.status === 'checked_out' ? 'Checked Out' :
+                       currentTool.status === 'maintenance' ? 'Maintenance/Calibration' : 'Retired'}
                     </Badge>
+
+                    {currentTool.status_reason && (currentTool.status === 'maintenance' || currentTool.status === 'retired') && (
+                      <div className="mt-2">
+                        <small className="text-muted">Reason: {currentTool.status_reason}</small>
+                      </div>
+                    )}
                   </Col>
                 </Row>
                 <Row className="mb-3">
@@ -94,8 +108,8 @@ const ToolDetail = () => {
                 )}
               </Card.Body>
               <Card.Footer>
-                <div className="d-flex gap-2">
-                  {currentTool.status === 'available' ? (
+                <div className="d-flex flex-wrap gap-2">
+                  {currentTool.status === 'available' && (
                     <>
                       <Button as={Link} to={`/checkout/${currentTool.id}`} variant="success">
                         Checkout to Me
@@ -106,11 +120,37 @@ const ToolDetail = () => {
                       >
                         Checkout to User
                       </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="warning"
+                          onClick={() => setShowRemoveFromServiceModal(true)}
+                        >
+                          Remove from Service
+                        </Button>
+                      )}
                     </>
-                  ) : (
+                  )}
+
+                  {currentTool.status === 'checked_out' && (
                     <Button disabled variant="secondary">
-                      Currently Unavailable
+                      Currently Checked Out
                     </Button>
+                  )}
+
+                  {(currentTool.status === 'maintenance' || currentTool.status === 'retired') && (
+                    <>
+                      <Button disabled variant="secondary">
+                        Out of Service
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="success"
+                          onClick={() => setShowReturnToServiceModal(true)}
+                        >
+                          Return to Service
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </Card.Footer>
@@ -120,60 +160,83 @@ const ToolDetail = () => {
           <Col md={6}>
             <Card>
               <Card.Header>
-                <h4>Checkout History</h4>
+                <Tabs
+                  activeKey={activeTab}
+                  onSelect={(k) => setActiveTab(k)}
+                  className="card-header-tabs"
+                >
+                  <Tab eventKey="details" title="Checkout History" />
+                  <Tab eventKey="service" title="Service History" />
+                </Tabs>
               </Card.Header>
               <Card.Body>
-                {historyLoading ? (
-                  <LoadingSpinner size="sm" text="Loading history..." />
-                ) : (
-                  <Table striped bordered hover responsive>
-                    <thead>
-                      <tr>
-                        <th>User</th>
-                        <th>Checkout Date</th>
-                        <th>Return Date</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.length > 0 ? (
-                        history.map((checkout) => (
-                          <tr key={checkout.id}>
-                            <td>{checkout.user_name}</td>
-                            <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
-                            <td>
-                              {checkout.return_date
-                                ? new Date(checkout.return_date).toLocaleDateString()
-                                : 'Not returned'}
-                            </td>
-                            <td>
-                              <Badge bg={
-                                checkout.status === 'Returned' ? 'success' : 'warning'
-                              }>
-                                {checkout.status}
-                              </Badge>
+                {activeTab === 'details' ? (
+                  historyLoading ? (
+                    <LoadingSpinner size="sm" text="Loading checkout history..." />
+                  ) : (
+                    <Table striped bordered hover responsive>
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Checkout Date</th>
+                          <th>Return Date</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.length > 0 ? (
+                          history.map((checkout) => (
+                            <tr key={checkout.id}>
+                              <td>{checkout.user_name}</td>
+                              <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                              <td>
+                                {checkout.return_date
+                                  ? new Date(checkout.return_date).toLocaleDateString()
+                                  : 'Not returned'}
+                              </td>
+                              <td>
+                                <Badge bg={
+                                  checkout.status === 'Returned' ? 'success' : 'warning'
+                                }>
+                                  {checkout.status}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="text-center">
+                              No checkout history available.
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="4" className="text-center">
-                            No checkout history available.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </Table>
+                        )}
+                      </tbody>
+                    </Table>
+                  )
+                ) : (
+                  <ServiceHistoryList toolId={id} />
                 )}
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
-        {/* Checkout Modal */}
+        {/* Modals */}
         <CheckoutModal
           show={showCheckoutModal}
           onHide={() => setShowCheckoutModal(false)}
+          tool={currentTool}
+        />
+
+        <RemoveFromServiceModal
+          show={showRemoveFromServiceModal}
+          onHide={() => setShowRemoveFromServiceModal(false)}
+          tool={currentTool}
+        />
+
+        <ReturnToServiceModal
+          show={showReturnToServiceModal}
+          onHide={() => setShowReturnToServiceModal(false)}
           tool={currentTool}
         />
       </div>

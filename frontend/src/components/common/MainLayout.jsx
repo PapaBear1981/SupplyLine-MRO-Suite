@@ -22,6 +22,7 @@ const MainLayout = ({ children }) => {
                 <>
                   <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                   <Nav.Link as={Link} to="/users">User Management</Nav.Link>
+                  <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                 </>
               )}
             </Nav>
@@ -60,7 +61,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>Tool Inventory System &copy; {new Date().getFullYear()}</span>
-            <span>Version 1.1.1</span>
+            <span>Version 1.2.0</span>
           </div>
         </Container>
       </footer>

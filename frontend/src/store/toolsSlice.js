@@ -74,6 +74,42 @@ export const searchTools = createAsyncThunk(
   }
 );
 
+export const removeToolFromService = createAsyncThunk(
+  'tools/removeFromService',
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await ToolService.removeFromService(id, data);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to remove tool from service' });
+    }
+  }
+);
+
+export const returnToolToService = createAsyncThunk(
+  'tools/returnToService',
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await ToolService.returnToService(id, data);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to return tool to service' });
+    }
+  }
+);
+
+export const fetchToolServiceHistory = createAsyncThunk(
+  'tools/fetchServiceHistory',
+  async ({ id, page, limit }, { rejectWithValue }) => {
+    try {
+      const data = await ToolService.getServiceHistory(id, page, limit);
+      return { toolId: id, history: data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch service history' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   tools: [],
@@ -81,6 +117,9 @@ const initialState = {
   loading: false,
   error: null,
   searchResults: [],
+  serviceHistory: {},
+  serviceLoading: false,
+  serviceError: null,
 };
 
 // Slice
@@ -181,6 +220,61 @@ const toolsSlice = createSlice({
       .addCase(searchTools.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Remove tool from service
+      .addCase(removeToolFromService.pending, (state) => {
+        state.serviceLoading = true;
+        state.serviceError = null;
+      })
+      .addCase(removeToolFromService.fulfilled, (state, action) => {
+        state.serviceLoading = false;
+        // Update the current tool if it's the one being modified
+        if (state.currentTool && state.currentTool.id === action.payload.id) {
+          state.currentTool = { ...state.currentTool, ...action.payload };
+        }
+        // Update the tool in the tools array
+        const index = state.tools.findIndex(tool => tool.id === action.payload.id);
+        if (index !== -1) {
+          state.tools[index] = { ...state.tools[index], ...action.payload };
+        }
+      })
+      .addCase(removeToolFromService.rejected, (state, action) => {
+        state.serviceLoading = false;
+        state.serviceError = action.payload;
+      })
+      // Return tool to service
+      .addCase(returnToolToService.pending, (state) => {
+        state.serviceLoading = true;
+        state.serviceError = null;
+      })
+      .addCase(returnToolToService.fulfilled, (state, action) => {
+        state.serviceLoading = false;
+        // Update the current tool if it's the one being modified
+        if (state.currentTool && state.currentTool.id === action.payload.id) {
+          state.currentTool = { ...state.currentTool, ...action.payload };
+        }
+        // Update the tool in the tools array
+        const index = state.tools.findIndex(tool => tool.id === action.payload.id);
+        if (index !== -1) {
+          state.tools[index] = { ...state.tools[index], ...action.payload };
+        }
+      })
+      .addCase(returnToolToService.rejected, (state, action) => {
+        state.serviceLoading = false;
+        state.serviceError = action.payload;
+      })
+      // Fetch tool service history
+      .addCase(fetchToolServiceHistory.pending, (state) => {
+        state.serviceLoading = true;
+        state.serviceError = null;
+      })
+      .addCase(fetchToolServiceHistory.fulfilled, (state, action) => {
+        state.serviceLoading = false;
+        state.serviceHistory[action.payload.toolId] = action.payload.history;
+      })
+      .addCase(fetchToolServiceHistory.rejected, (state, action) => {
+        state.serviceLoading = false;
+        state.serviceError = action.payload;
       });
   },
 });

@@ -5,6 +5,7 @@ import checkoutsReducer from './checkoutsSlice';
 import usersReducer from './usersSlice';
 import auditReducer from './auditSlice';
 import themeReducer from './themeSlice';
+import reportReducer from './reportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     users: usersReducer,
     audit: auditReducer,
     theme: themeReducer,
+    reports: reportReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

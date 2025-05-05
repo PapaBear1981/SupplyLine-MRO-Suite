@@ -152,10 +152,18 @@ const ToolList = () => {
                               ? 'status-available'
                               : tool.status === 'checked_out'
                               ? 'status-checked-out'
-                              : 'status-maintenance'
+                              : tool.status === 'maintenance'
+                              ? 'status-maintenance'
+                              : 'status-retired'
                           }`}
                         >
-                          {tool.status === 'available' ? 'Available' : 'Checked Out'}
+                          {tool.status === 'available'
+                            ? 'Available'
+                            : tool.status === 'checked_out'
+                            ? 'Checked Out'
+                            : tool.status === 'maintenance'
+                            ? 'Maintenance'
+                            : 'Retired'}
                         </span>
                       </td>
                       <td>

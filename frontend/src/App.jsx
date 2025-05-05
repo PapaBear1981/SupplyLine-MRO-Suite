@@ -22,6 +22,7 @@ import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import UserManagementPage from './pages/UserManagementPage';
+import ReportingPage from './pages/ReportingPage';
 
 function App() {
   const dispatch = useDispatch();
@@ -115,6 +116,14 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <UserManagementPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ReportingPage />
             </MainLayout>
           </ProtectedRoute>
         } />

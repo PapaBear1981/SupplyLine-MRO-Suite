@@ -177,6 +177,11 @@ code {
 }
 
 .status-maintenance {
+  background-color: var(--bs-info);
+  color: white;
+}
+
+.status-retired {
   background-color: var(--bs-danger);
   color: white;
 }
