@@ -2,13 +2,15 @@
 
 A comprehensive tool inventory management system built with React and Flask.
 
-**Current Version: 1.0.0** - See [VERSION.md](VERSION.md) for version history and release notes.
+**Current Version: 1.1.1** - See [VERSION.md](VERSION.md) for version history and release notes.
 
 ## Features
 
 - User authentication and authorization
 - Tool inventory management
 - Tool checkout and return system
+- Tool service status tracking (maintenance, retirement)
+- Service history tracking
 - User activity tracking
 - Admin dashboard
 - Responsive design
@@ -111,6 +113,35 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
 - Access the application at http://localhost
 - API server runs at http://localhost:5000
 
+### Updating to the Latest Version
+If you're updating from a previous version, follow these steps:
+
+1. Pull the latest changes from the repository:
+   ```bash
+   git pull origin master
+   ```
+
+2. Run the database schema update script:
+   ```bash
+   python update_tools_schema.py
+   ```
+
+3. Restart the application:
+   ```bash
+   # For local development
+   # Backend
+   cd backend
+   python app.py
+
+   # Frontend
+   cd frontend
+   npm run dev
+
+   # For Docker deployment
+   docker-compose down
+   docker-compose up -d
+   ```
+
 ### Default Credentials
 - Default admin credentials:
   - Employee Number: ADMIN001
@@ -147,7 +178,8 @@ tool-inventory-system/
 ├── docker-compose.yml      # Docker Compose configuration
 ├── .env.example            # Example environment variables
 ├── DOCKER_README.md        # Docker deployment instructions
-└── VERSION.md              # Version history and release notes
+├── VERSION.md              # Version history and release notes
+└── update_tools_schema.py  # Database schema update script
 ```
 
 ## License
