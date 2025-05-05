@@ -2,7 +2,11 @@ import os
 import sqlite3
 
 # Define the database path
-db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'database', 'tools.db'))
+# Check if we're in Docker environment (look for /database volume)
+if os.path.exists('/database'):
+    db_path = os.path.join('/database', 'tools.db')
+else:
+    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'database', 'tools.db'))
 print(f"Database path: {db_path}")
 
 # Connect to the database
