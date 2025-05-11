@@ -268,9 +268,18 @@ def register_routes(app):
             return jsonify({'error': 'User management privileges required'}), 403
 
         if request.method == 'GET':
-            # Get all users, including inactive ones
-            users = User.query.all()
-            return jsonify([u.to_dict() for u in users])
+            # Check if there's a search query for employee number
+            search_query = request.args.get('q')
+
+            if search_query:
+                # Search for users by employee number
+                search_term = f'%{search_query}%'
+                users = User.query.filter(User.employee_number.like(search_term)).all()
+                return jsonify([u.to_dict() for u in users])
+            else:
+                # Get all users, including inactive ones
+                users = User.query.all()
+                return jsonify([u.to_dict() for u in users])
 
         # POST - Create a new user
         data = request.get_json() or {}

@@ -62,6 +62,18 @@ export const deactivateUser = createAsyncThunk(
   }
 );
 
+export const searchUsersByEmployeeNumber = createAsyncThunk(
+  'users/searchUsersByEmployeeNumber',
+  async (query, { rejectWithValue }) => {
+    try {
+      const data = await UserService.searchUsersByEmployeeNumber(query);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to search users' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   users: [],
@@ -154,6 +166,20 @@ const usersSlice = createSlice({
         }
       })
       .addCase(deactivateUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Search users by employee number
+      .addCase(searchUsersByEmployeeNumber.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchUsersByEmployeeNumber.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = action.payload;
+      })
+      .addCase(searchUsersByEmployeeNumber.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

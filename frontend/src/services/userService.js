@@ -93,6 +93,16 @@ const UserService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Search users by employee number
+  searchUsersByEmployeeNumber: async (query) => {
+    try {
+      const response = await api.get(`/users?q=${query}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
