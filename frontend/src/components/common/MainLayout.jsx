@@ -21,6 +21,7 @@ const MainLayout = ({ children }) => {
               {user && (user.is_admin || user.department === 'Materials') && (
                 <>
                   <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
+                  <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
                   <Nav.Link as={Link} to="/users">User Management</Nav.Link>
                   <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                 </>
@@ -70,7 +71,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>Tool Inventory System &copy; {new Date().getFullYear()}</span>
-            <span>Version 1.3.0</span>
+            <span>Version 1.4.0</span>
           </div>
         </Container>
       </footer>

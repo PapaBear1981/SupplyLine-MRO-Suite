@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2025-05-15
+
+### Added
+- Added chemicals tracking system for sealants, paints, and other materials
+- Added chemical inventory management with expiration date tracking
+- Added chemical issuance functionality to track usage by hangar
+- Added low stock alerts based on minimum stock levels
+- Added chemicals to reporting system for usage analytics
+
+### Changed
+- Updated navigation to include chemicals section
+- Enhanced permission system to restrict chemicals management to Materials personnel and admins
+
 ## [1.3.0] - 2025-05-10
 
 ### Added

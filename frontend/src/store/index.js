@@ -6,6 +6,7 @@ import usersReducer from './usersSlice';
 import auditReducer from './auditSlice';
 import themeReducer from './themeSlice';
 import reportReducer from './reportSlice';
+import chemicalsReducer from './chemicalsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     audit: auditReducer,
     theme: themeReducer,
     reports: reportReducer,
+    chemicals: chemicalsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

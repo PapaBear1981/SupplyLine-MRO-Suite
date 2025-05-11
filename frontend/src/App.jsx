@@ -24,6 +24,11 @@ import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import UserManagementPage from './pages/UserManagementPage';
 import ReportingPage from './pages/ReportingPage';
+import ChemicalsManagement from './pages/ChemicalsManagement';
+import ChemicalDetailPage from './pages/ChemicalDetailPage';
+import NewChemicalPage from './pages/NewChemicalPage';
+import EditChemicalPage from './pages/EditChemicalPage';
+import ChemicalIssuePage from './pages/ChemicalIssuePage';
 
 function App() {
   const dispatch = useDispatch();
@@ -132,6 +137,47 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+
+        {/* Chemical routes */}
+        <Route path="/chemicals" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ChemicalsManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/chemicals/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <NewChemicalPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/chemicals/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ChemicalDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/chemicals/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <EditChemicalPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/chemicals/:id/issue" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ChemicalIssuePage />
+            </MainLayout>
           </ProtectedRoute>
         } />
 

@@ -1,5 +1,5 @@
 from flask import request, jsonify, session, make_response, current_app
-from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord
+from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
@@ -8,6 +8,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from routes_reports import register_report_routes
+from routes_chemicals import register_chemical_routes
 
 def login_required(f):
     @wraps(f)
@@ -60,6 +61,9 @@ def register_routes(app):
 
     # Register report routes
     register_report_routes(app)
+
+    # Register chemical routes
+    register_chemical_routes(app)
 
     # Health check endpoint for Docker
     @app.route('/api/health', methods=['GET'])

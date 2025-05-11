@@ -151,3 +151,94 @@ class ToolServiceRecord(db.Model):
             'comments': self.comments,
             'timestamp': self.timestamp.isoformat()
         }
+
+class Chemical(db.Model):
+    __tablename__ = 'chemicals'
+    id = db.Column(db.Integer, primary_key=True)
+    part_number = db.Column(db.String, nullable=False)
+    lot_number = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    manufacturer = db.Column(db.String)
+    quantity = db.Column(db.Float, nullable=False, default=0)
+    unit = db.Column(db.String, nullable=False, default='each')  # each, oz, ml, etc.
+    location = db.Column(db.String)
+    category = db.Column(db.String, nullable=True, default='General')  # Sealant, Paint, Adhesive, etc.
+    status = db.Column(db.String, nullable=False, default='available')  # available, low_stock, out_of_stock, expired
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    expiration_date = db.Column(db.DateTime, nullable=True)
+    minimum_stock_level = db.Column(db.Float, nullable=True)  # Threshold for low stock alert
+    notes = db.Column(db.String)
+
+    # These columns might not exist in older databases, so we'll handle them in the to_dict method
+    try:
+        is_archived = db.Column(db.Boolean, default=False)  # Whether the chemical is archived
+        archived_reason = db.Column(db.String, nullable=True)  # Reason for archiving (expired, depleted, etc.)
+        archived_date = db.Column(db.DateTime, nullable=True)  # When the chemical was archived
+    except:
+        # If the columns don't exist, we'll create them later with a migration
+        pass
+
+    def to_dict(self):
+        result = {
+            'id': self.id,
+            'part_number': self.part_number,
+            'lot_number': self.lot_number,
+            'description': self.description,
+            'manufacturer': self.manufacturer,
+            'quantity': self.quantity,
+            'unit': self.unit,
+            'location': self.location,
+            'category': self.category,
+            'status': self.status,
+            'date_added': self.date_added.isoformat(),
+            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
+            'minimum_stock_level': self.minimum_stock_level,
+            'notes': self.notes
+        }
+
+        # Add archive fields if they exist
+        try:
+            result['is_archived'] = self.is_archived
+            result['archived_reason'] = self.archived_reason
+            result['archived_date'] = self.archived_date.isoformat() if self.archived_date else None
+        except:
+            # If the columns don't exist, set default values
+            result['is_archived'] = False
+            result['archived_reason'] = None
+            result['archived_date'] = None
+
+        return result
+
+    def is_expired(self):
+        if not self.expiration_date:
+            return False
+        return datetime.utcnow() > self.expiration_date
+
+    def is_low_stock(self):
+        if not self.minimum_stock_level:
+            return False
+        return self.quantity <= self.minimum_stock_level
+
+class ChemicalIssuance(db.Model):
+    __tablename__ = 'chemical_issuances'
+    id = db.Column(db.Integer, primary_key=True)
+    chemical_id = db.Column(db.Integer, db.ForeignKey('chemicals.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    hangar = db.Column(db.String, nullable=False)  # Location where chemical is being used
+    purpose = db.Column(db.String)  # What the chemical is being used for
+    issue_date = db.Column(db.DateTime, default=datetime.utcnow)
+    chemical = db.relationship('Chemical')
+    user = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'chemical_id': self.chemical_id,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'quantity': self.quantity,
+            'hangar': self.hangar,
+            'purpose': self.purpose,
+            'issue_date': self.issue_date.isoformat()
+        }
