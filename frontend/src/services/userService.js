@@ -49,6 +49,50 @@ const UserService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/user/profile', profileData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Upload user avatar
+  uploadAvatar: async (formData) => {
+    try {
+      const response = await api.post('/user/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Change user password
+  changePassword: async (passwordData) => {
+    try {
+      const response = await api.put('/user/password', passwordData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get user activity logs
+  getUserActivity: async () => {
+    try {
+      const response = await api.get('/user/activity');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

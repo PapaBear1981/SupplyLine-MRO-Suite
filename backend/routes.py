@@ -1,9 +1,13 @@
-from flask import request, jsonify, session, make_response
+from flask import request, jsonify, session, make_response, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
 import string
+import os
+import uuid
+from werkzeug.utils import secure_filename
+from routes_reports import register_report_routes
 
 def login_required(f):
     @wraps(f)
@@ -54,6 +58,9 @@ def register_routes(app):
             db.session.commit()
             print("Admin user created with employee number ADMIN001 and password admin123")
 
+    # Register report routes
+    register_report_routes(app)
+
     # Health check endpoint for Docker
     @app.route('/api/health', methods=['GET'])
     def health_check():
@@ -61,6 +68,11 @@ def register_routes(app):
             'status': 'healthy',
             'timestamp': datetime.now().isoformat()
         })
+
+    # Serve static files
+    @app.route('/api/static/<path:filename>')
+    def serve_static(filename):
+        return current_app.send_static_file(filename)
 
     @app.route('/api/tools', methods=['GET', 'POST'])
     def tools_route():
@@ -1013,6 +1025,8 @@ def register_routes(app):
             user.name = data['name']
         if 'department' in data:
             user.department = data['department']
+        if 'avatar' in data:
+            user.avatar = data['avatar']
 
         db.session.commit()
 
@@ -1027,6 +1041,60 @@ def register_routes(app):
         db.session.commit()
 
         return jsonify(user.to_dict()), 200
+
+    @app.route('/api/user/avatar', methods=['POST'])
+    @login_required
+    def upload_avatar():
+        user = User.query.get(session['user_id'])
+
+        if 'avatar' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+
+        file = request.files['avatar']
+
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        if file:
+            # Check file extension
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+            if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+                return jsonify({'error': 'File type not allowed. Please upload an image (PNG, JPG, JPEG, GIF)'}), 400
+
+            # Create a unique filename
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+
+            # Save the file
+            avatar_dir = os.path.join(current_app.static_folder, 'avatars')
+            if not os.path.exists(avatar_dir):
+                os.makedirs(avatar_dir)
+
+            file_path = os.path.join(avatar_dir, unique_filename)
+            file.save(file_path)
+
+            # Update user's avatar field with the relative path
+            # Use absolute URL for the avatar to ensure it's accessible from the frontend
+            avatar_url = f"/api/static/avatars/{unique_filename}"
+            user.avatar = avatar_url
+            db.session.commit()
+
+            # Log the avatar update
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='avatar_update',
+                description='Profile avatar updated',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+            db.session.commit()
+
+            return jsonify({
+                'message': 'Avatar uploaded successfully',
+                'avatar': avatar_url
+            }), 200
+
+        return jsonify({'error': 'Failed to upload avatar'}), 400
 
     @app.route('/api/user/password', methods=['PUT'])
     @login_required

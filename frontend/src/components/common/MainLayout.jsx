@@ -34,9 +34,18 @@ const MainLayout = ({ children }) => {
                   onClick={() => setShowProfileModal(true)}
                 >
                   <span className="me-2">{user?.name || 'User'}</span>
-                  <div className="avatar-circle-sm bg-primary text-white">
-                    {user?.name?.charAt(0) || 'U'}
-                  </div>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="User Avatar"
+                      className="avatar-circle-sm"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div className="avatar-circle-sm bg-primary text-white">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
                 </Button>
               ) : (
                 <>

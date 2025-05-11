@@ -13,6 +13,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 // Import pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
@@ -125,6 +126,12 @@ function App() {
             <MainLayout>
               <ReportingPage />
             </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         } />
 

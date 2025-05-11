@@ -30,16 +30,25 @@ const ProfileModal = ({ show, onHide }) => {
         <div className="text-center mb-4">
           <div className="user-avatar mb-3">
             {/* User avatar or initials */}
-            <div className="avatar-circle bg-primary text-white">
-              {user?.name?.charAt(0) || 'U'}
-            </div>
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt="User Avatar"
+                className="avatar-circle"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="avatar-circle bg-primary text-white">
+                {user?.name?.charAt(0) || 'U'}
+              </div>
+            )}
           </div>
           <h5 className="mb-1">{user?.name || 'User'}</h5>
           <p className="text-muted mb-0">
-            {user?.is_admin 
-              ? 'Administrator' 
-              : user?.department === 'Materials' 
-                ? 'Materials (Tool Manager)' 
+            {user?.is_admin
+              ? 'Administrator'
+              : user?.department === 'Materials'
+                ? 'Materials (Tool Manager)'
                 : user?.department || 'Regular User'}
           </p>
         </div>
@@ -56,7 +65,7 @@ const ProfileModal = ({ show, onHide }) => {
         <div className="mb-4">
           <h6 className="mb-3">Preferences</h6>
           <Form>
-            <Form.Check 
+            <Form.Check
               type="switch"
               id="theme-switch"
               label={`Theme: ${theme === 'light' ? 'Light' : 'Dark'}`}

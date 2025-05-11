@@ -6,7 +6,7 @@ import sqlite3
 if os.path.exists('/database'):
     db_path = os.path.join('/database', 'tools.db')
 else:
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'database', 'tools.db'))
+    db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
 print(f"Database path: {db_path}")
 
 # Connect to the database
@@ -58,6 +58,20 @@ CREATE TABLE IF NOT EXISTS tool_service_records (
 )
 ''')
 print("Created or verified tool_service_records table")
+
+# Check if avatar column exists in users table
+cursor.execute("PRAGMA table_info(users)")
+user_columns = cursor.fetchall()
+user_column_names = [column[1] for column in user_columns]
+print(f"Current columns in users table: {user_column_names}")
+
+# Add avatar column if it doesn't exist
+if 'avatar' not in user_column_names:
+    print("Adding 'avatar' column to users table...")
+    cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
+    print("Avatar column added")
+else:
+    print("Avatar column already exists")
 
 # Commit the changes
 conn.commit()

@@ -31,6 +31,7 @@ class User(db.Model):
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     remember_token = db.Column(db.String, nullable=True)
     remember_token_expiry = db.Column(db.DateTime, nullable=True)
+    avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -85,7 +86,8 @@ class User(db.Model):
             'department': self.department,
             'is_admin': self.is_admin,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'avatar': self.avatar
         }
 
 class Checkout(db.Model):

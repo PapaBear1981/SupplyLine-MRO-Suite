@@ -128,6 +128,30 @@ code {
   font-weight: 500;
 }
 
+/* Profile page styles */
+.profile-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bs-primary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar-placeholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 500;
+  background-color: var(--bs-primary);
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* Dark mode styles */
 [data-bs-theme="dark"] {
   --bs-body-bg: #212529;

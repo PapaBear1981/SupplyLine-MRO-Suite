@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AuthService from '../services/authService';
+import UserService from '../services/userService';
 
 // Async thunks
 export const login = createAsyncThunk(
@@ -57,12 +58,61 @@ export const register = createAsyncThunk(
   }
 );
 
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (profileData, { rejectWithValue }) => {
+    try {
+      const data = await UserService.updateProfile(profileData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to update profile' });
+    }
+  }
+);
+
+export const updateAvatar = createAsyncThunk(
+  'auth/updateAvatar',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const data = await UserService.uploadAvatar(formData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to upload avatar' });
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (passwordData, { rejectWithValue }) => {
+    try {
+      const data = await UserService.changePassword(passwordData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to change password' });
+    }
+  }
+);
+
+export const fetchUserActivity = createAsyncThunk(
+  'auth/fetchUserActivity',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await UserService.getUserActivity();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch activity logs' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   user: null,
   isAuthenticated: false,
   loading: false,
   error: null,
+  activityLogs: [],
 };
 
 // Slice
@@ -130,6 +180,59 @@ const authSlice = createSlice({
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Update profile
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.error || 'Failed to update profile';
+      })
+      // Update avatar
+      .addCase(updateAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateAvatar.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.user) {
+          state.user.avatar = action.payload.avatar;
+        }
+      })
+      .addCase(updateAvatar.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.error || 'Failed to upload avatar';
+      })
+      // Change password
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.error || 'Failed to change password';
+      })
+      // Fetch user activity
+      .addCase(fetchUserActivity.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserActivity.fulfilled, (state, action) => {
+        state.loading = false;
+        state.activityLogs = action.payload;
+      })
+      .addCase(fetchUserActivity.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.error || 'Failed to fetch activity logs';
       });
   },
 });
