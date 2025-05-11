@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy package files and install dependencies
 COPY package*.json ./
 # Set the version in package.json
-RUN sed -i 's/"version": ".*"/"version": "1.1.1"/' package.json
+RUN sed -i 's/"version": ".*"/"version": "1.3.0"/' package.json
 RUN npm ci
 
 # Copy the rest of the application

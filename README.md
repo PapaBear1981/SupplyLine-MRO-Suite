@@ -2,17 +2,19 @@
 
 A comprehensive tool inventory management system built with React and Flask.
 
-**Current Version: 1.1.1** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 1.3.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Features
 
 - User authentication and authorization
+- User profiles with avatar/picture upload
 - Tool inventory management
 - Tool checkout and return system
 - Tool service status tracking (maintenance, retirement)
 - Service history tracking
 - User activity tracking
-- Admin dashboard
+- Reporting with data visualization and export options
+- Light/dark theme support
 - Responsive design
 
 ## Tech Stack

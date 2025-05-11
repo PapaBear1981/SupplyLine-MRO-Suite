@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-05-10
+
+### Added
+- Added user profile page with detailed user information
+- Added avatar/profile picture upload functionality
+- Added password change functionality in profile page
+- Added user activity log viewing in profile page
+
+### Changed
+- Updated user interface to display user avatars throughout the application
+- Improved static file handling for user-uploaded content
+
+## [1.2.0] - 2025-05-07
+
+### Added
+- Added reporting page with data visualization
+- Added PDF and Excel export capabilities for reports
+- Added tool service status tracking (maintenance, retirement)
+
+### Changed
+- Improved tool inventory management interface
+- Enhanced user experience with better error handling
+
 ## [1.1.1] - 2025-05-04
 
 ### Fixed
