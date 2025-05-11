@@ -1,0 +1,53 @@
+.filter-section {
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.filter-badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+}
+
+.filter-button i {
+  margin-right: 0.25rem;
+}
+
+/* Status badge styles */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-available {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-checked-out {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+.status-maintenance {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+
+.status-retired {
+  background-color: #e2e3e5;
+  color: #41464b;
+}
