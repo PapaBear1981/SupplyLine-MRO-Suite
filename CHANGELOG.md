@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2025-05-31
+
+### Added
+- Added employee number search functionality to tool checkout process
+- Added advanced filtering capabilities to tool inventory list
+- Added ability to filter tools by status, category, and location
+- Added option to hide retired tools in tool inventory list
+- Added visual indicators for tool status in inventory list
+
 ## [2.2.1] - 2025-05-30
 
 ### Changed
