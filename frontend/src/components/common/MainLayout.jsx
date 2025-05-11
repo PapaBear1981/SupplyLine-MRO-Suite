@@ -12,7 +12,7 @@ const MainLayout = ({ children }) => {
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
         <Container fluid>
-          <Navbar.Brand as={Link} to="/">Tool Inventory System</Navbar.Brand>
+          <Navbar.Brand as={Link} to="/">SupplyLine MRO Suite</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
@@ -70,8 +70,8 @@ const MainLayout = ({ children }) => {
       <footer className="bg-dark text-light py-3 mt-auto">
         <Container fluid>
           <div className="d-flex justify-content-between">
-            <span>Tool Inventory System &copy; {new Date().getFullYear()}</span>
-            <span>Version 1.4.0</span>
+            <span>SupplyLine MRO Suite &copy; {new Date().getFullYear()}</span>
+            <span>Version 2.2.0</span>
           </div>
         </Container>
       </footer>

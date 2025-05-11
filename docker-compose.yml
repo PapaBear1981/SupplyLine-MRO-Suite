@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    container_name: tool-inventory-backend
+    container_name: supplyline-mro-backend
     restart: unless-stopped
     volumes:
       - ./database:/database
@@ -27,7 +27,7 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: tool-inventory-frontend
+    container_name: supplyline-mro-frontend
     restart: unless-stopped
     depends_on:
       - backend

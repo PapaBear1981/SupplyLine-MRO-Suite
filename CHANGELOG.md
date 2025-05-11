@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2025-05-25
+
+### Changed
+- Renamed application to "SupplyLine MRO Suite" throughout the codebase
+- Updated all user interfaces with the new application name
+- Updated container names in Docker configuration
+- Updated package names and version information
+- Modernized application branding to better reflect MRO capabilities
+
 ## [2.1.0] - 2025-05-20
 
 ### Added

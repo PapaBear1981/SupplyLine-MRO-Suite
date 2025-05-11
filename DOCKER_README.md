@@ -1,6 +1,6 @@
-# Docker Deployment Guide for Tool Inventory System
+# Docker Deployment Guide for SupplyLine MRO Suite
 
-This guide explains how to deploy the Tool Inventory System using Docker and Docker Compose.
+This guide explains how to deploy the SupplyLine MRO Suite using Docker and Docker Compose.
 
 ## Prerequisites
 

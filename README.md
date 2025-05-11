@@ -1,8 +1,8 @@
-# Tool & Chemical Inventory Management System
+# SupplyLine MRO Suite
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 2.1.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 2.2.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
@@ -349,7 +349,7 @@ If you're updating from a previous version, follow these steps:
 ## Project Structure
 
 ```
-tool-chemical-inventory-system/
+supplyline-mro-suite/
 ├── backend/                      # Flask backend
 │   ├── app.py                    # Main application entry point
 │   ├── models.py                 # Database models
@@ -415,6 +415,15 @@ tool-chemical-inventory-system/
 ├── update_tools_schema.py        # Tool database schema update script
 └── migrate_chemicals.py          # Chemical database migration script
 ```
+
+## Application Rebranding (v2.2.0)
+
+Version 2.2.0 introduces a complete rebranding of the application to "SupplyLine MRO Suite". This update includes:
+
+- Renaming the application throughout the entire codebase
+- Updating all user-facing interfaces with the new name
+- Modernizing the application's identity to better reflect its comprehensive MRO (Maintenance, Repair, and Operations) capabilities
+- Maintaining all existing functionality while presenting a more professional and industry-specific brand
 
 ## Advanced Chemical Reporting Features (v2.1.0)
 
