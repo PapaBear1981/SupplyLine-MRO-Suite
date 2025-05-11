@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1] - 2025-05-30
+
+### Changed
+- Updated table header styling to match background color across all pages
+- Improved visual consistency throughout the application
+- Enhanced UI flow with consistent styling
+
 ## [2.2.0] - 2025-05-25
 
 ### Changed

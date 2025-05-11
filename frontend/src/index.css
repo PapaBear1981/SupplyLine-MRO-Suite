@@ -48,14 +48,20 @@ code {
 /* Table styling */
 .table th {
   font-weight: 600;
-  background-color: var(--bs-primary);
-  color: white;
+  border-bottom-width: 2px;
+}
+
+/* Make all table headers have light background */
+.table thead, .table thead.bg-light, thead.bg-light {
+  background-color: var(--bs-light);
+}
+
+.table th {
+  color: var(--bs-body-color);
 }
 
 /* Dark mode table styling */
 [data-bs-theme="dark"] .table th {
-  background-color: var(--bs-dark);
-  color: white;
   border-color: #495057;
 }
 

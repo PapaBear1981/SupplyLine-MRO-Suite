@@ -140,8 +140,9 @@ th, td {
 }
 
 th {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  font-weight: 600;
 }
 
 /* Modal Styles */
@@ -398,8 +399,9 @@ th {
 }
 
 #tools_table th {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  font-weight: 600;
 }
 
 #tools_table tr:nth-child(even) {
