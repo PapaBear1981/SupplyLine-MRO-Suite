@@ -136,12 +136,47 @@ export const fetchArchivedChemicals = createAsyncThunk(
 
 export const fetchWasteAnalytics = createAsyncThunk(
   'chemicals/fetchWasteAnalytics',
-  async (timeframe = 'month', { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      const data = await ChemicalService.getWasteAnalytics(timeframe);
+      // Handle both string (timeframe only) and object (with part_number) params
+      let timeframe = 'month';
+      let part_number = null;
+
+      if (typeof params === 'string') {
+        timeframe = params;
+      } else if (params && typeof params === 'object') {
+        timeframe = params.timeframe || 'month';
+        part_number = params.part_number || null;
+      }
+
+      const data = await ChemicalService.getWasteAnalytics(timeframe, part_number);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch waste analytics' });
+    }
+  }
+);
+
+export const fetchPartNumberAnalytics = createAsyncThunk(
+  'chemicals/fetchPartNumberAnalytics',
+  async (part_number, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getPartNumberAnalytics(part_number);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch part number analytics' });
+    }
+  }
+);
+
+export const fetchUniquePartNumbers = createAsyncThunk(
+  'chemicals/fetchUniquePartNumbers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getUniquePartNumbers();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch unique part numbers' });
     }
   }
 );
@@ -162,6 +197,12 @@ const initialState = {
   wasteAnalytics: null,
   wasteLoading: false,
   wasteError: null,
+  partNumberAnalytics: null,
+  partNumberLoading: false,
+  partNumberError: null,
+  uniquePartNumbers: [],
+  uniquePartNumbersLoading: false,
+  uniquePartNumbersError: null,
 };
 
 // Slice
@@ -367,6 +408,34 @@ const chemicalsSlice = createSlice({
       .addCase(fetchWasteAnalytics.rejected, (state, action) => {
         state.wasteLoading = false;
         state.wasteError = action.payload || { message: 'An error occurred while fetching waste analytics' };
+      })
+
+      // fetchPartNumberAnalytics
+      .addCase(fetchPartNumberAnalytics.pending, (state) => {
+        state.partNumberLoading = true;
+        state.partNumberError = null;
+      })
+      .addCase(fetchPartNumberAnalytics.fulfilled, (state, action) => {
+        state.partNumberLoading = false;
+        state.partNumberAnalytics = action.payload;
+      })
+      .addCase(fetchPartNumberAnalytics.rejected, (state, action) => {
+        state.partNumberLoading = false;
+        state.partNumberError = action.payload || { message: 'An error occurred while fetching part number analytics' };
+      })
+
+      // fetchUniquePartNumbers
+      .addCase(fetchUniquePartNumbers.pending, (state) => {
+        state.uniquePartNumbersLoading = true;
+        state.uniquePartNumbersError = null;
+      })
+      .addCase(fetchUniquePartNumbers.fulfilled, (state, action) => {
+        state.uniquePartNumbersLoading = false;
+        state.uniquePartNumbers = action.payload;
+      })
+      .addCase(fetchUniquePartNumbers.rejected, (state, action) => {
+        state.uniquePartNumbersLoading = false;
+        state.uniquePartNumbersError = action.payload || { message: 'An error occurred while fetching unique part numbers' };
       });
   }
 });

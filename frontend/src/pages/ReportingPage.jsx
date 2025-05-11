@@ -6,6 +6,7 @@ import ReportSelector from '../components/reports/ReportSelector';
 import ReportViewer from '../components/reports/ReportViewer';
 import ExportControls from '../components/reports/ExportControls';
 import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics';
+import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
 import {
   fetchToolInventoryReport,
   fetchCheckoutHistoryReport,
@@ -157,6 +158,12 @@ const ReportingPage = () => {
         <Tab eventKey="chemical-waste" title="Chemical Waste Analytics">
           <div className="pt-4">
             <ChemicalWasteAnalytics />
+          </div>
+        </Tab>
+
+        <Tab eventKey="part-number-analytics" title="Part Number Analytics">
+          <div className="pt-4">
+            <PartNumberAnalytics />
           </div>
         </Tab>
       </Tabs>

@@ -122,12 +122,43 @@ const ChemicalService = {
   },
 
   // Get waste analytics
-  getWasteAnalytics: async (timeframe = 'month') => {
+  getWasteAnalytics: async (timeframe = 'month', part_number = null) => {
     try {
-      const response = await api.get('/chemicals/waste-analytics', {
-        params: { timeframe }
+      const params = { timeframe };
+      if (part_number) {
+        params.part_number = part_number;
+      }
+
+      const response = await api.get('/chemicals/waste-analytics', { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get part number analytics
+  getPartNumberAnalytics: async (part_number) => {
+    try {
+      if (!part_number) {
+        throw new Error('Part number is required');
+      }
+
+      const response = await api.get('/chemicals/part-analytics', {
+        params: { part_number }
       });
       return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get all unique part numbers
+  getUniquePartNumbers: async () => {
+    try {
+      // Get all chemicals and extract unique part numbers
+      const chemicals = await ChemicalService.getAllChemicals();
+      const partNumbers = [...new Set(chemicals.map(c => c.part_number))];
+      return partNumbers.sort();
     } catch (error) {
       throw error;
     }

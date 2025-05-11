@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2025-05-20
+
+### Added
+- Enhanced chemical usage reporting with part number-specific analytics
+- Added ability to track usage by part number, lot number, and location
+- Added shelf life analytics with usage percentage calculations
+- Added waste percentage tracking by part number
+- Added part number analytics page with detailed metrics
+- Added filtering capabilities to chemical waste analytics
+
+### Changed
+- Improved chemical waste analytics with location-based data
+- Enhanced reporting interface with more detailed charts and tables
+- Updated backend API to support more granular chemical tracking
+
 ## [1.4.0] - 2025-05-15
 
 ### Added

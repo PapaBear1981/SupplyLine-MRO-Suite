@@ -22,13 +22,15 @@ ENV PYTHONUNBUFFERED=1
 # Expose the port the app runs on
 EXPOSE 5000
 
-# Copy the database schema update script
+# Copy the database schema update scripts
 COPY update_tools_schema.py /app/
+COPY migrate_chemicals.py /app/
 
-# Create an entrypoint script to run the schema update before starting the app
+# Create an entrypoint script to run the schema updates before starting the app
 RUN echo '#!/bin/sh\n\
-echo "Running database schema update..."\n\
+echo "Running database schema updates..."\n\
 python /app/update_tools_schema.py\n\
+python /app/migrate_chemicals.py\n\
 echo "Starting application..."\n\
 exec gunicorn --bind 0.0.0.0:5000 "app:create_app()"\n\
 ' > /app/entrypoint.sh
