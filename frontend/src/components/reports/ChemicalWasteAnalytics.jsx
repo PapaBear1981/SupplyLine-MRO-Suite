@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Form, Alert, Spinner, Row, Col, Table, Button } from 'react-bootstrap';
 import { fetchWasteAnalytics, fetchUniquePartNumbers } from '../../store/chemicalsSlice';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar, Pie, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,9 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  PointElement,
+  LineElement
 } from 'chart.js';
 
 // Register ChartJS components
@@ -22,7 +24,9 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  PointElement,
+  LineElement
 );
 
 const ChemicalWasteAnalytics = () => {
@@ -444,35 +448,86 @@ const ChemicalWasteAnalytics = () => {
                   )}
                 </Row>
 
-                <div className="mb-4">
-                  <h5>Waste Over Time</h5>
-                  <div style={{ height: '300px' }}>
-                    <Bar
-                      data={chartData.timeSeriesData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'top',
+                <Row className="g-4 mb-4">
+                  <Col md={6}>
+                    <h5>Waste Over Time (Stacked)</h5>
+                    <div style={{ height: '300px' }}>
+                      <Bar
+                        data={chartData.timeSeriesData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'top',
+                            },
+                            title: {
+                              display: true,
+                              text: 'Chemical Waste Over Time',
+                            },
                           },
-                          title: {
-                            display: true,
-                            text: 'Chemical Waste Over Time',
+                          scales: {
+                            x: {
+                              stacked: true,
+                            },
+                            y: {
+                              stacked: true,
+                            },
                           },
-                        },
-                        scales: {
-                          x: {
-                            stacked: true,
+                        }}
+                      />
+                    </div>
+                  </Col>
+                  <Col md={6}>
+                    <h5>Waste Trends</h5>
+                    <div style={{ height: '300px' }}>
+                      <Line
+                        data={{
+                          labels: chartData.timeSeriesData.labels,
+                          datasets: [
+                            {
+                              label: 'Expired',
+                              data: chartData.timeSeriesData.datasets[0].data,
+                              fill: false,
+                              borderColor: 'rgba(255, 99, 132, 1)',
+                              tension: 0.1,
+                              pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                            },
+                            {
+                              label: 'Depleted',
+                              data: chartData.timeSeriesData.datasets[1].data,
+                              fill: false,
+                              borderColor: 'rgba(54, 162, 235, 1)',
+                              tension: 0.1,
+                              pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                            },
+                            {
+                              label: 'Other',
+                              data: chartData.timeSeriesData.datasets[2].data,
+                              fill: false,
+                              borderColor: 'rgba(255, 206, 86, 1)',
+                              tension: 0.1,
+                              pointBackgroundColor: 'rgba(255, 206, 86, 1)',
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'top',
+                            },
+                            title: {
+                              display: true,
+                              text: 'Chemical Waste Trends',
+                            },
                           },
-                          y: {
-                            stacked: true,
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                </div>
+                        }}
+                      />
+                    </div>
+                  </Col>
+                </Row>
               </>
             )}
 

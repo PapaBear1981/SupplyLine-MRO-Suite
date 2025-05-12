@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2025-06-05
+
+### Added
+- Added chemical usage analytics to the reports page
+- Enhanced reporting capabilities with additional data visualization options
+- Improved backend API performance for chemical analytics
+- Added line graphs for chemical usage trends over time
+
+### Changed
+- Updated server configurations for better development experience
+- Improved error handling in chemical analytics endpoints
+- Enhanced UI responsiveness for reporting features
+
 ## [2.3.0] - 2025-05-31
 
 ### Added

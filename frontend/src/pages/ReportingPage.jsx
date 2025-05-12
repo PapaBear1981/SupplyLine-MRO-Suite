@@ -6,6 +6,7 @@ import ReportSelector from '../components/reports/ReportSelector';
 import ReportViewer from '../components/reports/ReportViewer';
 import ExportControls from '../components/reports/ExportControls';
 import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics';
+import ChemicalUsageAnalytics from '../components/reports/ChemicalUsageAnalytics';
 import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
 import {
   fetchToolInventoryReport,
@@ -32,6 +33,7 @@ const ReportingPage = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState(null);
   const [activeTab, setActiveTab] = useState('standard-reports');
+  const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
@@ -155,9 +157,28 @@ const ReportingPage = () => {
           </div>
         </Tab>
 
-        <Tab eventKey="chemical-waste" title="Chemical Waste Analytics">
+        <Tab eventKey="chemical-analytics" title="Chemical Analytics">
           <div className="pt-4">
-            <ChemicalWasteAnalytics />
+            <Card className="shadow-sm mb-4">
+              <Card.Header className="bg-light">
+                <Tabs
+                  activeKey={chemicalAnalyticsTab}
+                  onSelect={(k) => setChemicalAnalyticsTab(k)}
+                  className="mb-0"
+                >
+                  <Tab eventKey="waste" title="Waste Analytics">
+                    <div className="pt-3">
+                      <ChemicalWasteAnalytics />
+                    </div>
+                  </Tab>
+                  <Tab eventKey="usage" title="Usage Analytics">
+                    <div className="pt-3">
+                      <ChemicalUsageAnalytics />
+                    </div>
+                  </Tab>
+                </Tabs>
+              </Card.Header>
+            </Card>
           </div>
         </Tab>
 

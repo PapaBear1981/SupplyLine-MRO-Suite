@@ -280,6 +280,9 @@ const ToolList = () => {
                   <th onClick={() => handleSort('description')} className="cursor-pointer">
                     Description {getSortIcon('description')}
                   </th>
+                  <th onClick={() => handleSort('category')} className="cursor-pointer">
+                    Category {getSortIcon('category')}
+                  </th>
                   <th onClick={() => handleSort('location')} className="cursor-pointer">
                     Location {getSortIcon('location')}
                   </th>
@@ -296,6 +299,7 @@ const ToolList = () => {
                       <td>{tool.tool_number}</td>
                       <td>{tool.serial_number}</td>
                       <td>{tool.description || 'N/A'}</td>
+                      <td>{tool.category || 'General'}</td>
                       <td>{tool.location || 'N/A'}</td>
                       <td>
                         <span
@@ -359,7 +363,7 @@ const ToolList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center py-4">
+                    <td colSpan="7" className="text-center py-4">
                       No tools found.
                     </td>
                   </tr>

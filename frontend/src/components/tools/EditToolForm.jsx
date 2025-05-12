@@ -16,7 +16,8 @@ const EditToolForm = () => {
     serial_number: '',
     description: '',
     condition: 'New',
-    location: ''
+    location: '',
+    category: 'General'
   });
   const [validated, setValidated] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -42,7 +43,8 @@ const EditToolForm = () => {
         serial_number: currentTool.serial_number || '',
         description: currentTool.description || '',
         condition: currentTool.condition || 'New',
-        location: currentTool.location || ''
+        location: currentTool.location || '',
+        category: currentTool.category || 'General'
       });
     }
   }, [currentTool]);
@@ -67,9 +69,28 @@ const EditToolForm = () => {
 
     setValidated(true);
 
-    dispatch(updateTool({ id, toolData }))
+    // Add more detailed logging
+    console.log('Submitting tool data:', toolData);
+    console.log('Tool data category:', toolData.category);
+    console.log('Tool data type:', typeof toolData);
+    console.log('Tool data keys:', Object.keys(toolData));
+
+    // Create a copy of the data to ensure we're sending the right fields
+    const toolDataToSend = {
+      tool_number: toolData.tool_number,
+      serial_number: toolData.serial_number,
+      description: toolData.description,
+      condition: toolData.condition,
+      location: toolData.location,
+      category: toolData.category
+    };
+
+    console.log('Tool data to send:', toolDataToSend);
+
+    dispatch(updateTool({ id, toolData: toolDataToSend }))
       .unwrap()
-      .then(() => {
+      .then((result) => {
+        console.log('Tool update result:', result);
         navigate(`/tools/${id}`);
       })
       .catch((err) => {
@@ -157,6 +178,24 @@ const EditToolForm = () => {
               value={toolData.location}
               onChange={handleChange}
             />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Category</Form.Label>
+            <Form.Select
+              name="category"
+              value={toolData.category}
+              onChange={handleChange}
+            >
+              <option value="General">General</option>
+              <option value="Q400">Q400</option>
+              <option value="CL415">CL415</option>
+              <option value="RJ85">RJ85</option>
+              <option value="Engine">Engine</option>
+              <option value="Floor">Floor</option>
+              <option value="CNC">CNC</option>
+              <option value="Sheetmetal">Sheetmetal</option>
+            </Form.Select>
           </Form.Group>
 
           <div className="d-flex justify-content-end gap-2">

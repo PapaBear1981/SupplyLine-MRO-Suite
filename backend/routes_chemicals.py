@@ -788,6 +788,15 @@ def register_chemical_routes(app):
             print(f"Error in waste analytics route: {str(e)}")
             return jsonify({'error': 'An error occurred while generating waste analytics'}), 500
 
+    # Debug endpoint to test API
+    @app.route('/api/debug/test', methods=['GET'])
+    def debug_test_route():
+        return jsonify({
+            'status': 'success',
+            'message': 'Debug endpoint is working',
+            'timestamp': datetime.now().isoformat()
+        })
+
     # Get part number analytics
     @app.route('/api/chemicals/part-analytics', methods=['GET'])
     @materials_manager_required

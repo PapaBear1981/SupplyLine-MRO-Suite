@@ -14,7 +14,8 @@ const NewToolForm = () => {
     serial_number: '',
     description: '',
     condition: 'New',
-    location: ''
+    location: '',
+    category: 'General'
   });
   const [validated, setValidated] = useState(false);
 
@@ -124,6 +125,24 @@ const NewToolForm = () => {
               value={toolData.location}
               onChange={handleChange}
             />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Category</Form.Label>
+            <Form.Select
+              name="category"
+              value={toolData.category}
+              onChange={handleChange}
+            >
+              <option value="General">General</option>
+              <option value="Q400">Q400</option>
+              <option value="CL415">CL415</option>
+              <option value="RJ85">RJ85</option>
+              <option value="Engine">Engine</option>
+              <option value="Floor">Floor</option>
+              <option value="CNC">CNC</option>
+              <option value="Sheetmetal">Sheetmetal</option>
+            </Form.Select>
           </Form.Group>
 
           <div className="d-flex justify-content-end gap-2">

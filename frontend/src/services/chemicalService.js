@@ -136,6 +136,22 @@ const ChemicalService = {
     }
   },
 
+  // Get usage analytics
+  getUsageAnalytics: async (part_number, timeframe = 'month') => {
+    try {
+      if (!part_number) {
+        throw new Error('Part number is required');
+      }
+
+      const response = await api.get('/chemicals/usage-analytics', {
+        params: { part_number, timeframe }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Get part number analytics
   getPartNumberAnalytics: async (part_number) => {
     try {

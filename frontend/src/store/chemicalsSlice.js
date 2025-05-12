@@ -157,6 +157,33 @@ export const fetchWasteAnalytics = createAsyncThunk(
   }
 );
 
+export const fetchUsageAnalytics = createAsyncThunk(
+  'chemicals/fetchUsageAnalytics',
+  async (params, { rejectWithValue }) => {
+    try {
+      // Handle both string (part_number only) and object (with timeframe) params
+      let part_number = '';
+      let timeframe = 'month';
+
+      if (typeof params === 'string') {
+        part_number = params;
+      } else if (params && typeof params === 'object') {
+        part_number = params.part_number || '';
+        timeframe = params.timeframe || 'month';
+      }
+
+      if (!part_number) {
+        return rejectWithValue({ message: 'Part number is required' });
+      }
+
+      const data = await ChemicalService.getUsageAnalytics(part_number, timeframe);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch usage analytics' });
+    }
+  }
+);
+
 export const fetchPartNumberAnalytics = createAsyncThunk(
   'chemicals/fetchPartNumberAnalytics',
   async (part_number, { rejectWithValue }) => {
@@ -197,6 +224,9 @@ const initialState = {
   wasteAnalytics: null,
   wasteLoading: false,
   wasteError: null,
+  usageAnalytics: null,
+  usageLoading: false,
+  usageError: null,
   partNumberAnalytics: null,
   partNumberLoading: false,
   partNumberError: null,
@@ -408,6 +438,20 @@ const chemicalsSlice = createSlice({
       .addCase(fetchWasteAnalytics.rejected, (state, action) => {
         state.wasteLoading = false;
         state.wasteError = action.payload || { message: 'An error occurred while fetching waste analytics' };
+      })
+
+      // fetchUsageAnalytics
+      .addCase(fetchUsageAnalytics.pending, (state) => {
+        state.usageLoading = true;
+        state.usageError = null;
+      })
+      .addCase(fetchUsageAnalytics.fulfilled, (state, action) => {
+        state.usageLoading = false;
+        state.usageAnalytics = action.payload;
+      })
+      .addCase(fetchUsageAnalytics.rejected, (state, action) => {
+        state.usageLoading = false;
+        state.usageError = action.payload || { message: 'An error occurred while fetching usage analytics' };
       })
 
       // fetchPartNumberAnalytics

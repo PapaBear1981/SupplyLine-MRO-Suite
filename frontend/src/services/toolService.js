@@ -34,9 +34,12 @@ const ToolService = {
   // Update tool
   updateTool: async (id, toolData) => {
     try {
+      console.log('Sending tool update request:', { id, toolData });
       const response = await api.put(`/tools/${id}`, toolData);
+      console.log('Tool update response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Error updating tool:', error);
       throw error;
     }
   },

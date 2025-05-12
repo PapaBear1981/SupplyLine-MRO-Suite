@@ -42,9 +42,12 @@ export const updateTool = createAsyncThunk(
   'tools/updateTool',
   async ({ id, toolData }, { rejectWithValue }) => {
     try {
+      console.log('updateTool thunk called with:', { id, toolData });
       const data = await ToolService.updateTool(id, toolData);
+      console.log('updateTool thunk response:', data);
       return data;
     } catch (error) {
+      console.error('updateTool thunk error:', error);
       return rejectWithValue(error.response?.data || { message: 'Failed to update tool' });
     }
   }

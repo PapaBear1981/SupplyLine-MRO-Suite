@@ -13,12 +13,12 @@ const ReportSelector = ({
   const [localFilters, setLocalFilters] = useState(filters || {});
   const { tools } = useSelector((state) => state.tools);
   const { users } = useSelector((state) => state.users);
-  
+
   // Update local filters when props change
   useEffect(() => {
     setLocalFilters(filters || {});
   }, [filters]);
-  
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setLocalFilters((prev) => ({
@@ -26,26 +26,33 @@ const ReportSelector = ({
       [name]: value
     }));
   };
-  
+
   const applyFilters = () => {
     onFilterChange(localFilters);
   };
-  
+
   const resetFilters = () => {
     setLocalFilters({});
     onFilterChange({});
   };
-  
+
   // Get unique categories from tools
-  const categories = tools ? 
-    [...new Set(tools.map(tool => tool.category || 'General'))] : 
-    ['General', 'CL415', 'RJ85', 'Q400', 'Engine', 'CNC', 'Sheetmetal'];
-  
+  const [categories, setCategories] = useState(['General', 'CL415', 'RJ85', 'Q400', 'Engine', 'CNC', 'Sheetmetal']);
+
+  // Update categories when tools change
+  useEffect(() => {
+    if (tools && tools.length > 0) {
+      const uniqueCategories = [...new Set(tools.map(tool => tool.category || 'General'))];
+      setCategories(uniqueCategories.sort());
+      console.log('Updated categories:', uniqueCategories);
+    }
+  }, [tools]);
+
   // Get unique departments from users
-  const departments = users ? 
-    [...new Set(users.map(user => user.department))] : 
+  const departments = users ?
+    [...new Set(users.map(user => user.department))] :
     ['Maintenance', 'Materials', 'Engineering', 'Management'];
-  
+
   return (
     <div>
       <Row className="mb-3">
@@ -62,7 +69,7 @@ const ReportSelector = ({
             </Form.Select>
           </Form.Group>
         </Col>
-        
+
         <Col md={4}>
           <Form.Group>
             <Form.Label>Time Period</Form.Label>
@@ -80,9 +87,9 @@ const ReportSelector = ({
           </Form.Group>
         </Col>
       </Row>
-      
+
       <h5 className="mt-4 mb-3">Filters</h5>
-      
+
       {currentReport === 'tool-inventory' && (
         <Row className="mb-3">
           <Col md={4}>
@@ -102,7 +109,7 @@ const ReportSelector = ({
               </Form.Select>
             </Form.Group>
           </Col>
-          
+
           <Col md={4}>
             <Form.Group>
               <Form.Label>Status</Form.Label>
@@ -119,7 +126,7 @@ const ReportSelector = ({
               </Form.Select>
             </Form.Group>
           </Col>
-          
+
           <Col md={4}>
             <Form.Group>
               <Form.Label>Location</Form.Label>
@@ -134,7 +141,7 @@ const ReportSelector = ({
           </Col>
         </Row>
       )}
-      
+
       {currentReport === 'checkout-history' && (
         <Row className="mb-3">
           <Col md={4}>
@@ -154,7 +161,7 @@ const ReportSelector = ({
               </Form.Select>
             </Form.Group>
           </Col>
-          
+
           <Col md={4}>
             <Form.Group>
               <Form.Label>Status</Form.Label>
@@ -169,7 +176,7 @@ const ReportSelector = ({
               </Form.Select>
             </Form.Group>
           </Col>
-          
+
           <Col md={4}>
             <Form.Group>
               <Form.Label>Tool Category</Form.Label>
@@ -189,16 +196,16 @@ const ReportSelector = ({
           </Col>
         </Row>
       )}
-      
+
       <div className="d-flex justify-content-end mt-3">
-        <Button 
-          variant="outline-secondary" 
+        <Button
+          variant="outline-secondary"
           className="me-2"
           onClick={resetFilters}
         >
           Reset Filters
         </Button>
-        <Button 
+        <Button
           variant="primary"
           onClick={applyFilters}
         >
