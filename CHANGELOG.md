@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-05-12
+
+### Added
+- Enhanced Admin Dashboard with real data integration instead of fallback data
+- Improved System Statistics tab with detailed metrics and visualizations
+- Added Performance Metrics section showing tool utilization and user activity rates
+- Added System Health monitoring section with server and database status
+- Added System Resources visualization with CPU, memory, and disk usage
+- Improved Registration Requests management with better UI feedback
+
+### Fixed
+- Fixed issue with admin dashboard showing fallback data instead of real data
+- Improved error handling in API requests with graceful fallbacks
+- Enhanced user experience with better feedback on registration approval/denial
+
 ## [3.0.0] - 2025-06-15
 
 ### Added

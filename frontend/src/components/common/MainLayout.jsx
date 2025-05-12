@@ -74,7 +74,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>SupplyLine MRO Suite &copy; {new Date().getFullYear()}</span>
-            <span>Version 3.0.0</span>
+            <span>Version 3.1.0</span>
           </div>
         </Container>
       </footer>

@@ -21,19 +21,17 @@ const RegistrationRequests = () => {
   const fetchRequests = async (status = 'pending') => {
     try {
       setLoading(true);
-
-      // Use mock data instead of API call for now
       console.log(`Fetching registration requests with status: ${status}`);
 
-      // Create mock registration requests data
+      // Use hardcoded data instead of API call
       const mockRequests = [
         {
           id: 1,
           name: 'John Doe',
           employee_number: 'EMP001',
-          department: 'Maintenance',
+          department: 'Engineering',
           status: 'pending',
-          created_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+          created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
           processed_at: null,
           processed_by: null,
           admin_notes: null,
@@ -43,9 +41,9 @@ const RegistrationRequests = () => {
           id: 2,
           name: 'Jane Smith',
           employee_number: 'EMP002',
-          department: 'IT',
+          department: 'Materials',
           status: 'pending',
-          created_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+          created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
           processed_at: null,
           processed_by: null,
           admin_notes: null,
@@ -53,39 +51,27 @@ const RegistrationRequests = () => {
         },
         {
           id: 3,
-          name: 'Bob Johnson',
+          name: 'Mike Johnson',
           employee_number: 'EMP003',
-          department: 'Materials',
-          status: 'pending',
-          created_at: new Date(Date.now() - 10800000).toISOString(), // 3 hours ago
-          processed_at: null,
-          processed_by: null,
-          admin_notes: null,
-          admin_name: null
+          department: 'IT',
+          status: 'approved',
+          created_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+          processed_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+          processed_by: 1,
+          admin_notes: 'Approved after verification',
+          admin_name: 'Admin'
         },
         {
           id: 4,
-          name: 'Alice Brown',
+          name: 'Sarah Williams',
           employee_number: 'EMP004',
-          department: 'Maintenance',
-          status: 'approved',
-          created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-          processed_at: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
-          processed_by: 1,
-          admin_notes: 'Approved by admin',
-          admin_name: 'Admin User'
-        },
-        {
-          id: 5,
-          name: 'Charlie Davis',
-          employee_number: 'EMP005',
-          department: 'IT',
+          department: 'Engineering',
           status: 'denied',
-          created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-          processed_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          created_at: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+          processed_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
           processed_by: 1,
-          admin_notes: 'Denied due to invalid information',
-          admin_name: 'Admin User'
+          admin_notes: 'Duplicate employee number',
+          admin_name: 'Admin'
         }
       ];
 
@@ -97,6 +83,7 @@ const RegistrationRequests = () => {
         filteredRequests = mockRequests.filter(req => req.status === status);
       }
 
+      console.log('Registration requests:', filteredRequests);
       setRequests(filteredRequests);
       setError(null);
     } catch (err) {
@@ -136,38 +123,33 @@ const RegistrationRequests = () => {
 
     try {
       setActionLoading(true);
-
-      // Mock API call for approving registration request
       console.log(`Approving registration request with ID: ${selectedRequest.id}`);
       console.log(`Admin notes: ${adminNotes}`);
 
-      // Simulate API delay
+      // Simulate API call with a delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Update the request in the local state
+      const updatedRequests = requests.map(req => {
+        if (req.id === selectedRequest.id) {
+          return {
+            ...req,
+            status: 'approved',
+            processed_at: new Date().toISOString(),
+            processed_by: 1, // Admin ID
+            admin_notes: adminNotes,
+            admin_name: 'Admin'
+          };
+        }
+        return req;
+      });
+
+      console.log('Updated requests after approval:', updatedRequests);
+      setRequests(updatedRequests);
       setActionSuccess('Registration request approved successfully.');
 
-      // Refresh the requests list after a short delay
-      setTimeout(() => {
-        // Update the request status in the mock data
-        const updatedRequests = requests.map(req => {
-          if (req.id === selectedRequest.id) {
-            return {
-              ...req,
-              status: 'approved',
-              processed_at: new Date().toISOString(),
-              processed_by: 1,
-              admin_notes: adminNotes,
-              admin_name: 'Admin User'
-            };
-          }
-          return req;
-        });
-
-        setRequests(updatedRequests);
-        setShowApproveModal(false);
-        setActionSuccess(null);
-      }, 1500);
-
+      // Close modal and refresh the requests list
+      setShowApproveModal(false);
     } catch (err) {
       setActionError('Failed to approve registration request. Please try again.');
       console.error('Error approving registration request:', err);
@@ -181,38 +163,33 @@ const RegistrationRequests = () => {
 
     try {
       setActionLoading(true);
-
-      // Mock API call for denying registration request
       console.log(`Denying registration request with ID: ${selectedRequest.id}`);
       console.log(`Admin notes: ${adminNotes}`);
 
-      // Simulate API delay
+      // Simulate API call with a delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Update the request in the local state
+      const updatedRequests = requests.map(req => {
+        if (req.id === selectedRequest.id) {
+          return {
+            ...req,
+            status: 'denied',
+            processed_at: new Date().toISOString(),
+            processed_by: 1, // Admin ID
+            admin_notes: adminNotes,
+            admin_name: 'Admin'
+          };
+        }
+        return req;
+      });
+
+      console.log('Updated requests after denial:', updatedRequests);
+      setRequests(updatedRequests);
       setActionSuccess('Registration request denied successfully.');
 
-      // Refresh the requests list after a short delay
-      setTimeout(() => {
-        // Update the request status in the mock data
-        const updatedRequests = requests.map(req => {
-          if (req.id === selectedRequest.id) {
-            return {
-              ...req,
-              status: 'denied',
-              processed_at: new Date().toISOString(),
-              processed_by: 1,
-              admin_notes: adminNotes,
-              admin_name: 'Admin User'
-            };
-          }
-          return req;
-        });
-
-        setRequests(updatedRequests);
-        setShowDenyModal(false);
-        setActionSuccess(null);
-      }, 1500);
-
+      // Close modal
+      setShowDenyModal(false);
     } catch (err) {
       setActionError('Failed to deny registration request. Please try again.');
       console.error('Error denying registration request:', err);
