@@ -13,8 +13,8 @@ This guide explains how to deploy the SupplyLine MRO Suite using Docker and Dock
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/PapaBear1981/Basic_inventory.git
-cd Basic_inventory
+git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
+cd SupplyLine-MRO-Suite
 ```
 
 ### 2. Configure Environment Variables

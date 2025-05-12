@@ -127,8 +127,8 @@ The application can be easily deployed using Docker and Docker Compose:
 
 ```bash
 # Clone the repository
-git clone https://github.com/PapaBear1981/Basic_inventory.git
-cd Basic_inventory
+git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
+cd SupplyLine-MRO-Suite
 
 # Create a .env file from the example
 cp .env.example .env
