@@ -15,6 +15,11 @@ All notable changes to this project will be documented in this file.
 - Improved error handling in chemical analytics endpoints
 - Enhanced UI responsiveness for reporting features
 
+### Known Issues
+- Chemical usage analytics feature is not functioning correctly
+- API endpoint for chemical usage data returns incomplete information
+- Line graphs for usage trends may display incorrect data
+
 ## [2.3.0] - 2025-05-31
 
 ### Added

@@ -4,6 +4,8 @@ A comprehensive inventory management system for tools and chemicals built with R
 
 **Current Version: 2.4.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
+> **Known Issues in 2.4.0**: Chemical usage analytics feature is currently not working properly. See [GitHub Issues](https://github.com/PapaBear1981/Basic_inventory/issues) for more details and workarounds.
+
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
