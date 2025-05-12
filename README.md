@@ -2,13 +2,22 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.0.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.1.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
 ## Key Features
+
+### Admin Dashboard (Enhanced in v3.1.0)
+- **Real-time System Overview**: Dashboard with real-time data on users, tools, and checkouts
+- **Performance Metrics**: Tool utilization rates, user activity rates, and checkout statistics
+- **System Health Monitoring**: Server status, database connection, and system version information
+- **Resource Visualization**: CPU, memory, and disk usage monitoring
+- **Department Distribution**: Visual breakdown of users by department
+- **Activity Tracking**: Recent system activities with detailed timestamps
+- **Registration Management**: Streamlined approval/denial workflow for new user registrations
 
 ### User Management
 - **Authentication & Authorization**: Secure login system with role-based access control
@@ -415,6 +424,34 @@ supplyline-mro-suite/
 ├── update_tools_schema.py        # Tool database schema update script
 └── migrate_chemicals.py          # Chemical database migration script
 ```
+
+## Enhanced Admin Dashboard (v3.1.0)
+
+Version 3.1.0 introduces significant improvements to the Admin Dashboard, providing administrators with comprehensive system insights and enhanced user management capabilities:
+
+### Real-time Data Integration
+- **Live System Metrics**: Dashboard now displays real-time data from the backend instead of fallback data
+- **Comprehensive Overview**: At-a-glance view of users, tools, checkouts, and system health
+- **Performance Analytics**: Advanced metrics including tool utilization rates and user activity rates
+
+### System Health Monitoring
+- **Server Status**: Real-time monitoring of server availability and performance
+- **Database Connection**: Database health and connection status monitoring
+- **System Version**: Current version information with update notifications
+- **Resource Utilization**: CPU, memory, and disk usage visualization
+
+### Registration Management
+- **Streamlined Workflow**: Improved interface for managing user registration requests
+- **Approval/Denial Process**: Enhanced workflow for reviewing and processing registration requests
+- **Detailed Feedback**: Better notification system for registration status changes
+- **Historical Tracking**: Complete history of registration approvals and denials
+
+### Activity Visualization
+- **Department Distribution**: Interactive pie chart showing user distribution by department
+- **Activity Timeline**: Graphical representation of system activity over time
+- **Recent Actions Log**: Detailed log of recent system activities with timestamps
+
+These enhancements provide administrators with powerful tools for monitoring system health, managing users, and optimizing resource utilization.
 
 ## Application Rebranding (v2.2.0)
 
