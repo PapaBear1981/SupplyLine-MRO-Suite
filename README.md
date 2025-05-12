@@ -2,9 +2,7 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 2.4.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
-
-> **Known Issues in 2.4.0**: Chemical usage analytics feature is currently not working properly. See [GitHub Issues](https://github.com/PapaBear1981/Basic_inventory/issues) for more details and workarounds.
+**Current Version: 3.0.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 

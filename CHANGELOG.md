@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-06-15
+
+### Added
+- Added registration request system with admin approval workflow
+- Created admin dashboard for managing registration requests
+- Implemented approval/denial process for new user registrations
+- Added system statistics and metrics in the admin dashboard
+- Added mock data support for testing admin features
+
+### Changed
+- Enhanced security by requiring admin approval for new user registrations
+- Improved user registration flow with clear status messages
+- Updated UI components for better user experience
+- Restructured backend API for registration management
+
+### Fixed
+- Fixed issues with user authentication and session management
+- Improved error handling for registration and authentication processes
+
 ## [2.4.0] - 2025-06-05
 
 ### Added

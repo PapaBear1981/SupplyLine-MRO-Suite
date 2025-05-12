@@ -22,10 +22,19 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        print(f"Admin required decorator called for {f.__name__}")
+        print(f"Session: {session}")
+        print(f"User ID in session: {session.get('user_id')}")
+        print(f"Is admin in session: {session.get('is_admin')}")
+
         if 'user_id' not in session:
+            print("Authentication required - no user_id in session")
             return jsonify({'error': 'Authentication required'}), 401
         if not session.get('is_admin', False):
+            print("Admin privileges required - user is not admin")
             return jsonify({'error': 'Admin privileges required'}), 403
+
+        print("Admin check passed")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -76,6 +85,195 @@ def register_routes(app):
             'status': 'healthy',
             'timestamp': datetime.now().isoformat()
         })
+
+    # Test endpoint for admin dashboard
+    @app.route('/api/admin/dashboard/test', methods=['GET'])
+    def admin_dashboard_test():
+        print("Admin dashboard test endpoint called")
+        return jsonify({
+            'status': 'success',
+            'message': 'Admin dashboard test endpoint works',
+            'timestamp': datetime.now().isoformat()
+        })
+
+    # Admin dashboard endpoints
+    @app.route('/api/admin/registration-requests', methods=['GET'])
+    @admin_required
+    def get_registration_requests():
+        from models import RegistrationRequest
+
+        # Get status filter (default to 'pending')
+        status = request.args.get('status', 'pending')
+
+        if status == 'all':
+            requests = RegistrationRequest.query.order_by(RegistrationRequest.created_at.desc()).all()
+        else:
+            requests = RegistrationRequest.query.filter_by(status=status).order_by(RegistrationRequest.created_at.desc()).all()
+
+        return jsonify([req.to_dict() for req in requests]), 200
+
+    @app.route('/api/admin/registration-requests/<int:id>/approve', methods=['POST'])
+    @admin_required
+    def approve_registration_request(id):
+        from models import RegistrationRequest
+
+        # Get the registration request
+        reg_request = RegistrationRequest.query.get_or_404(id)
+
+        # Check if it's already processed
+        if reg_request.status != 'pending':
+            return jsonify({'error': f'Registration request is already {reg_request.status}'}), 400
+
+        # Create a new user from the registration request
+        user = User(
+            name=reg_request.name,
+            employee_number=reg_request.employee_number,
+            department=reg_request.department,
+            password_hash=reg_request.password_hash,  # Copy the hashed password
+            is_admin=False,
+            is_active=True
+        )
+
+        # Update the registration request status
+        reg_request.status = 'approved'
+        reg_request.processed_at = datetime.utcnow()
+        reg_request.processed_by = session['user_id']
+        reg_request.admin_notes = request.json.get('notes', '')
+
+        # Save changes
+        db.session.add(user)
+        db.session.commit()
+
+        # Log the approval
+        log = AuditLog(
+            action_type='approve_registration',
+            action_details=f'Approved registration request {reg_request.id} ({reg_request.name})'
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Registration request approved',
+            'user_id': user.id,
+            'request_id': reg_request.id
+        }), 200
+
+    @app.route('/api/admin/registration-requests/<int:id>/deny', methods=['POST'])
+    @admin_required
+    def deny_registration_request(id):
+        from models import RegistrationRequest
+
+        # Get the registration request
+        reg_request = RegistrationRequest.query.get_or_404(id)
+
+        # Check if it's already processed
+        if reg_request.status != 'pending':
+            return jsonify({'error': f'Registration request is already {reg_request.status}'}), 400
+
+        # Update the registration request status
+        reg_request.status = 'denied'
+        reg_request.processed_at = datetime.utcnow()
+        reg_request.processed_by = session['user_id']
+        reg_request.admin_notes = request.json.get('notes', '')
+
+        # Save changes
+        db.session.commit()
+
+        # Log the denial
+        log = AuditLog(
+            action_type='deny_registration',
+            action_details=f'Denied registration request {reg_request.id} ({reg_request.name})'
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Registration request denied',
+            'request_id': reg_request.id
+        }), 200
+
+    @app.route('/api/admin/dashboard/stats', methods=['GET'])
+    @admin_required
+    def get_admin_dashboard_stats():
+        print("Admin dashboard stats endpoint called")
+        print(f"Session: {session}")
+        print(f"User ID in session: {session.get('user_id')}")
+        print(f"Is admin in session: {session.get('is_admin')}")
+
+        # Get counts from various tables
+        user_count = User.query.count()
+        print(f"User count: {user_count}")
+        active_user_count = User.query.filter_by(is_active=True).count()
+        print(f"Active user count: {active_user_count}")
+        tool_count = Tool.query.count()
+        print(f"Tool count: {tool_count}")
+        available_tool_count = Tool.query.filter_by(status='available').count()
+        print(f"Available tool count: {available_tool_count}")
+        checkout_count = Checkout.query.count()
+        print(f"Checkout count: {checkout_count}")
+        active_checkout_count = Checkout.query.filter(Checkout.return_date.is_(None)).count()
+        print(f"Active checkout count: {active_checkout_count}")
+
+        # Get pending registration requests count
+        from models import RegistrationRequest
+        pending_requests_count = RegistrationRequest.query.filter_by(status='pending').count()
+
+        # Get recent activity
+        recent_logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(10).all()
+
+        # Get system activity over time (last 30 days)
+        from sqlalchemy import func
+
+        start_date = datetime.utcnow() - timedelta(days=30)
+
+        # Get activity counts by day
+        daily_activity = db.session.query(
+            func.date(AuditLog.timestamp).label('date'),
+            func.count().label('count')
+        ).filter(
+            AuditLog.timestamp >= start_date
+        ).group_by(
+            func.date(AuditLog.timestamp)
+        ).all()
+
+        # Format the results
+        activity_data = [{
+            'date': str(day.date),
+            'count': day.count
+        } for day in daily_activity]
+
+        # Get department distribution
+        dept_distribution = db.session.query(
+            User.department.label('department'),
+            func.count(User.id).label('count')
+        ).group_by(
+            User.department
+        ).all()
+
+        dept_data = [{
+            'name': dept.department or 'Unknown',
+            'value': dept.count
+        } for dept in dept_distribution]
+
+        return jsonify({
+            'counts': {
+                'users': user_count,
+                'activeUsers': active_user_count,
+                'tools': tool_count,
+                'availableTools': available_tool_count,
+                'checkouts': checkout_count,
+                'activeCheckouts': active_checkout_count,
+                'pendingRegistrations': pending_requests_count
+            },
+            'recentActivity': [{
+                'id': log.id,
+                'action_type': log.action_type,
+                'action_details': log.action_details,
+                'timestamp': log.timestamp.isoformat()
+            } for log in recent_logs],
+            'activityOverTime': activity_data,
+            'departmentDistribution': dept_data
+        }), 200
 
     # Serve static files
     @app.route('/api/static/<path:filename>')
@@ -989,30 +1187,35 @@ def register_routes(app):
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        # Check if employee number already exists
+        # Check if employee number already exists in users or registration requests
         if User.query.filter_by(employee_number=data['employee_number']).first():
             return jsonify({'error': 'Employee number already registered'}), 400
 
-        # Create new user
-        user = User(
+        from models import RegistrationRequest
+        if RegistrationRequest.query.filter_by(employee_number=data['employee_number'], status='pending').first():
+            return jsonify({'error': 'A registration request with this employee number is already pending approval'}), 400
+
+        # Create new registration request instead of user
+        reg_request = RegistrationRequest(
             name=data['name'],
             employee_number=data['employee_number'],
-            department=data['department']
+            department=data['department'],
+            status='pending'
         )
-        user.set_password(data['password'])
+        reg_request.set_password(data['password'])
 
-        db.session.add(user)
+        db.session.add(reg_request)
         db.session.commit()
 
-        # Log the registration
+        # Log the registration request
         log = AuditLog(
-            action_type='user_register',
-            action_details=f'New user registered: {user.id} ({user.name})'
+            action_type='registration_request',
+            action_details=f'New registration request: {reg_request.id} ({reg_request.name})'
         )
         db.session.add(log)
         db.session.commit()
 
-        return jsonify({'message': 'Registration successful', 'user_id': user.id}), 201
+        return jsonify({'message': 'Registration request submitted. An administrator will review your request.'}), 201
 
     @app.route('/api/auth/reset-password/request', methods=['POST'])
     def request_password_reset():

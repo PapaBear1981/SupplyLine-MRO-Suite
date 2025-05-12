@@ -45,6 +45,15 @@ const RegisterForm = () => {
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
       {error && <Alert variant="danger">{error.message}</Alert>}
 
+      <Alert variant="info" className="mb-3">
+        <Alert.Heading>Registration Approval Required</Alert.Heading>
+        <p>
+          All new account registrations require administrator approval. After submitting your registration,
+          an administrator will review your request and approve or deny it. You will not be able to log in
+          until your registration is approved.
+        </p>
+      </Alert>
+
       <Form.Group className="mb-3" controlId="formName">
         <Form.Label>Full Name</Form.Label>
         <Form.Control

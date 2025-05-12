@@ -112,6 +112,7 @@ const initialState = {
   isAuthenticated: false,
   loading: false,
   error: null,
+  registrationSuccess: null,
   activityLogs: [],
 };
 
@@ -174,8 +175,12 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
+        // With the new approval system, registration doesn't log the user in automatically
+        // Instead, we show a success message but keep the user logged out
+        state.user = null;
+        state.isAuthenticated = false;
+        // We'll use the success message from the backend
+        state.registrationSuccess = action.payload.message || 'Registration request submitted successfully.';
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;

@@ -242,3 +242,36 @@ class ChemicalIssuance(db.Model):
             'purpose': self.purpose,
             'issue_date': self.issue_date.isoformat()
         }
+
+class RegistrationRequest(db.Model):
+    __tablename__ = 'registration_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    employee_number = db.Column(db.String, unique=True, nullable=False)
+    department = db.Column(db.String, nullable=False)
+    password_hash = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, nullable=False, default='pending')  # pending, approved, denied
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_at = db.Column(db.DateTime, nullable=True)
+    processed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    admin_notes = db.Column(db.String, nullable=True)
+
+    # Relationship to the admin who processed the request
+    admin = db.relationship('User', foreign_keys=[processed_by])
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'employee_number': self.employee_number,
+            'department': self.department,
+            'status': self.status,
+            'created_at': self.created_at.isoformat(),
+            'processed_at': self.processed_at.isoformat() if self.processed_at else None,
+            'processed_by': self.processed_by,
+            'admin_notes': self.admin_notes,
+            'admin_name': self.admin.name if self.admin else None
+        }

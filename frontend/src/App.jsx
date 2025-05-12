@@ -29,6 +29,7 @@ import ChemicalDetailPage from './pages/ChemicalDetailPage';
 import NewChemicalPage from './pages/NewChemicalPage';
 import EditChemicalPage from './pages/EditChemicalPage';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   const dispatch = useDispatch();
@@ -130,6 +131,14 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <ReportingPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <AdminDashboardPage />
             </MainLayout>
           </ProtectedRoute>
         } />
