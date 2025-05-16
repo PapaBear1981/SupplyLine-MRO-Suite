@@ -2,6 +2,26 @@
 
 ## Version History
 
+### Version 3.2.1 (2025-05-16)
+- Fixed issue with registration requests count in Admin Dashboard showing incorrect number of pending requests
+- Updated frontend to use actual data from backend API instead of hardcoded values
+- Improved error handling for registration requests management
+
+### Version 3.2.0 (2025-05-14)
+- Added production-ready Docker configuration with multi-stage builds
+- Implemented Nginx for serving frontend static files
+- Enhanced database initialization process for first-time setup
+- Updated frontend build process for better performance and smaller bundle size
+- Improved Docker container security and resource usage
+
+### Version 3.1.0 (2025-05-12)
+- Enhanced Admin Dashboard with real data integration instead of fallback data
+- Improved System Statistics tab with detailed metrics and visualizations
+- Added Performance Metrics section showing tool utilization and user activity rates
+- Added System Health monitoring section with server and database status
+- Added System Resources visualization with CPU, memory, and disk usage
+- Improved Registration Requests management with better UI feedback
+
 ### Version 3.0.0 (2025-06-15)
 - Added registration request system with admin approval workflow
 - Created admin dashboard for managing registration requests

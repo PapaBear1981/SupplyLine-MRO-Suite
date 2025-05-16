@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.1] - 2025-05-16
+
+### Fixed
+- Fixed issue with registration requests count in Admin Dashboard showing incorrect number of pending requests
+- Updated frontend to use actual data from backend API instead of hardcoded values
+- Improved error handling for registration requests management
+
+## [3.2.0] - 2025-05-14
+
+### Added
+- Added production-ready Docker configuration with multi-stage builds
+- Implemented Nginx for serving frontend static files
+- Enhanced database initialization process for first-time setup
+
+### Changed
+- Updated frontend build process for better performance and smaller bundle size
+- Improved Docker container security and resource usage
+
 ## [3.1.0] - 2025-05-12
 
 ### Added
