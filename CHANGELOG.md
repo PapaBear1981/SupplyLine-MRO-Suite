@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.3] - 2025-05-19
+
+### Fixed
+- Fixed issue with return tool confirmation dialog in UserCheckouts and AllCheckouts components
+- Replaced window.confirm() with proper modal dialog for better user experience
+- Improved dialog handling to prevent browser freezing when returning tools
+
 ## [3.2.2] - 2025-05-18
 
 ### Fixed

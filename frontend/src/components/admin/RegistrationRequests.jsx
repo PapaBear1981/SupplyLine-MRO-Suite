@@ -21,74 +21,17 @@ const RegistrationRequests = () => {
   const fetchRequests = async (status = 'pending') => {
     try {
       setLoading(true);
-      console.log(`Fetching registration requests with status: ${status}`);
-
-      // Use hardcoded data instead of API call
-      const mockRequests = [
-        {
-          id: 1,
-          name: 'John Doe',
-          employee_number: 'EMP001',
-          department: 'Engineering',
-          status: 'pending',
-          created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-          processed_at: null,
-          processed_by: null,
-          admin_notes: null,
-          admin_name: null
-        },
-        {
-          id: 2,
-          name: 'Jane Smith',
-          employee_number: 'EMP002',
-          department: 'Materials',
-          status: 'pending',
-          created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-          processed_at: null,
-          processed_by: null,
-          admin_notes: null,
-          admin_name: null
-        },
-        {
-          id: 3,
-          name: 'Mike Johnson',
-          employee_number: 'EMP003',
-          department: 'IT',
-          status: 'approved',
-          created_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-          processed_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-          processed_by: 1,
-          admin_notes: 'Approved after verification',
-          admin_name: 'Admin'
-        },
-        {
-          id: 4,
-          name: 'Sarah Williams',
-          employee_number: 'EMP004',
-          department: 'Engineering',
-          status: 'denied',
-          created_at: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-          processed_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-          processed_by: 1,
-          admin_notes: 'Duplicate employee number',
-          admin_name: 'Admin'
-        }
-      ];
-
-      // Filter requests based on status
-      let filteredRequests;
-      if (status === 'all') {
-        filteredRequests = mockRequests;
-      } else {
-        filteredRequests = mockRequests.filter(req => req.status === status);
-      }
-
-      console.log('Registration requests:', filteredRequests);
-      setRequests(filteredRequests);
       setError(null);
+      // Fetch registration requests from backend
+      const response = await api.get(`/admin/registration-requests`, {
+        params: { status },
+      });
+      setRequests(response.data);
     } catch (err) {
-      setError('Failed to load registration requests. Please try again later.');
-      console.error('Error fetching registration requests:', err);
+      setError(
+        err.response?.data?.error || 'Failed to load registration requests. Please try again later.'
+      );
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -120,39 +63,22 @@ const RegistrationRequests = () => {
 
   const handleApprove = async () => {
     if (!selectedRequest) return;
-
     try {
       setActionLoading(true);
-      console.log(`Approving registration request with ID: ${selectedRequest.id}`);
-      console.log(`Admin notes: ${adminNotes}`);
-
-      // Simulate API call with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update the request in the local state
-      const updatedRequests = requests.map(req => {
-        if (req.id === selectedRequest.id) {
-          return {
-            ...req,
-            status: 'approved',
-            processed_at: new Date().toISOString(),
-            processed_by: 1, // Admin ID
-            admin_notes: adminNotes,
-            admin_name: 'Admin'
-          };
-        }
-        return req;
+      setActionError(null);
+      setActionSuccess(null);
+      // Call backend to approve registration request
+      await api.post(`/admin/registration-requests/${selectedRequest.id}/approve`, {
+        notes: adminNotes,
       });
-
-      console.log('Updated requests after approval:', updatedRequests);
-      setRequests(updatedRequests);
       setActionSuccess('Registration request approved successfully.');
-
-      // Close modal and refresh the requests list
       setShowApproveModal(false);
+      // Refresh requests list
+      fetchRequests(activeTab);
     } catch (err) {
-      setActionError('Failed to approve registration request. Please try again.');
-      console.error('Error approving registration request:', err);
+      setActionError(
+        err.response?.data?.error || 'Failed to approve registration request. Please try again.'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -160,39 +86,22 @@ const RegistrationRequests = () => {
 
   const handleDeny = async () => {
     if (!selectedRequest) return;
-
     try {
       setActionLoading(true);
-      console.log(`Denying registration request with ID: ${selectedRequest.id}`);
-      console.log(`Admin notes: ${adminNotes}`);
-
-      // Simulate API call with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update the request in the local state
-      const updatedRequests = requests.map(req => {
-        if (req.id === selectedRequest.id) {
-          return {
-            ...req,
-            status: 'denied',
-            processed_at: new Date().toISOString(),
-            processed_by: 1, // Admin ID
-            admin_notes: adminNotes,
-            admin_name: 'Admin'
-          };
-        }
-        return req;
+      setActionError(null);
+      setActionSuccess(null);
+      // Call backend to deny registration request
+      await api.post(`/admin/registration-requests/${selectedRequest.id}/deny`, {
+        notes: adminNotes,
       });
-
-      console.log('Updated requests after denial:', updatedRequests);
-      setRequests(updatedRequests);
       setActionSuccess('Registration request denied successfully.');
-
-      // Close modal
       setShowDenyModal(false);
+      // Refresh requests list
+      fetchRequests(activeTab);
     } catch (err) {
-      setActionError('Failed to deny registration request. Please try again.');
-      console.error('Error denying registration request:', err);
+      setActionError(
+        err.response?.data?.error || 'Failed to deny registration request. Please try again.'
+      );
     } finally {
       setActionLoading(false);
     }

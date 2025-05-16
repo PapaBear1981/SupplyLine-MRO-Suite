@@ -2,6 +2,11 @@
 
 ## Version History
 
+### Version 3.2.3 (2025-05-19)
+- Fixed issue with return tool confirmation dialog in UserCheckouts and AllCheckouts components
+- Replaced window.confirm() with proper modal dialog for better user experience
+- Improved dialog handling to prevent browser freezing when returning tools
+
 ### Version 3.2.2 (2025-05-18)
 - Fixed chemical reporting functionality in the Reports page
 - Improved tab switching in the ReportingPage component

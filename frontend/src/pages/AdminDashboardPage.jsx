@@ -26,15 +26,17 @@ const AdminDashboardPage = () => {
         console.log('Fetching admin dashboard data...');
 
         // Fetch data from multiple endpoints to build the dashboard
-        const [toolsResponse, usersResponse, checkoutsResponse] = await Promise.all([
+        const [toolsResponse, usersResponse, checkoutsResponse, dashboardStatsResponse] = await Promise.all([
           api.get('/tools'),
           api.get('/users'),
-          api.get('/checkouts')
+          api.get('/checkouts'),
+          api.get('/admin/dashboard/stats')
         ]);
 
         const tools = toolsResponse.data || [];
         const users = usersResponse.data || [];
         const checkouts = checkoutsResponse.data || [];
+        const dashboardStats = dashboardStatsResponse.data || {};
 
         console.log('Tools data:', tools.length);
         console.log('Users data:', users.length);
@@ -93,10 +95,10 @@ const AdminDashboardPage = () => {
             availableTools,
             checkouts: checkouts.length,
             activeCheckouts,
-            pendingRegistrations: 2 // Hardcoded for now
+            pendingRegistrations: dashboardStats.counts?.pendingRegistrations || 0
           },
-          recentActivity,
-          activityOverTime,
+          recentActivity: dashboardStats.recentActivity || recentActivity,
+          activityOverTime: dashboardStats.activityOverTime || activityOverTime,
           departmentDistribution
         };
 
@@ -116,7 +118,7 @@ const AdminDashboardPage = () => {
             availableTools: 12,
             checkouts: 20,
             activeCheckouts: 5,
-            pendingRegistrations: 2
+            pendingRegistrations: 0 // Default to 0 instead of hardcoded value
           },
           recentActivity: [
             { id: 1, action_type: 'user_login', action_details: 'User logged in', timestamp: new Date().toISOString() },
@@ -372,7 +374,7 @@ const SystemStatsTab = ({ data }) => {
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>System Version</span>
-                  <span>3.0.0</span>
+                  <span>3.2.3</span>
                 </ListGroup.Item>
               </ListGroup>
             </Card.Body>
