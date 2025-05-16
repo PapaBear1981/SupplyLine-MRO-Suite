@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Alert, Tabs, Tab } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Button } from 'react-bootstrap';
 import ReportSelector from '../components/reports/ReportSelector';
 import ReportViewer from '../components/reports/ReportViewer';
 import ExportControls from '../components/reports/ExportControls';
@@ -37,17 +37,17 @@ const ReportingPage = () => {
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
-  // Redirect if user doesn't have permission
-  if (!isAdmin) {
-    return <Navigate to="/tools" replace />;
-  }
-
   // Fetch report data when report type, timeframe, or filters change
   useEffect(() => {
     if (currentReport && timeframe) {
       fetchReportData();
     }
-  }, [currentReport, timeframe, filters]);
+  }, [currentReport, timeframe, filters, dispatch]);
+
+  // Redirect if user doesn't have permission
+  if (!isAdmin) {
+    return <Navigate to="/tools" replace />;
+  }
 
   const fetchReportData = () => {
     switch (currentReport) {
@@ -113,81 +113,106 @@ const ReportingPage = () => {
         </Alert>
       )}
 
-      <Tabs
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k)}
-        className="mb-4"
-      >
-        <Tab eventKey="standard-reports" title="Tool Reports">
-          <div className="pt-4">
-            <Card className="shadow-sm mb-4">
-              <Card.Header className="bg-light">
-                <h4 className="mb-0">Report Options</h4>
-              </Card.Header>
-              <Card.Body>
-                <ReportSelector
-                  currentReport={currentReport}
-                  timeframe={timeframe}
-                  filters={filters}
-                  onReportTypeChange={handleReportTypeChange}
-                  onTimeframeChange={handleTimeframeChange}
-                  onFilterChange={handleFilterChange}
-                />
-              </Card.Body>
-            </Card>
+      <div className="btn-group mb-4">
+        <Button
+          variant={activeTab === 'standard-reports' ? 'primary' : 'outline-primary'}
+          onClick={() => setActiveTab('standard-reports')}
+        >
+          Tool Reports
+        </Button>
+        <Button
+          variant={activeTab === 'chemical-analytics' ? 'primary' : 'outline-primary'}
+          onClick={() => setActiveTab('chemical-analytics')}
+        >
+          Chemical Analytics
+        </Button>
+        <Button
+          variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
+          onClick={() => setActiveTab('part-number-analytics')}
+        >
+          Part Number Analytics
+        </Button>
+      </div>
 
-            <Card className="shadow-sm mb-4">
-              <Card.Header className="bg-light d-flex justify-content-between align-items-center">
-                <h4 className="mb-0">Report Results</h4>
-                <ExportControls
-                  onExport={handleExport}
-                  loading={exportLoading}
-                  disabled={!data || loading}
-                />
-              </Card.Header>
-              <Card.Body>
-                <ReportViewer
-                  reportType={currentReport}
-                  timeframe={timeframe}
-                  data={data}
-                  loading={loading}
-                />
-              </Card.Body>
-            </Card>
-          </div>
-        </Tab>
+      {activeTab === 'standard-reports' && (
+        <div className="pt-4">
+          <Card className="shadow-sm mb-4">
+            <Card.Header className="bg-light">
+              <h4 className="mb-0">Report Options</h4>
+            </Card.Header>
+            <Card.Body>
+              <ReportSelector
+                currentReport={currentReport}
+                timeframe={timeframe}
+                filters={filters}
+                onReportTypeChange={handleReportTypeChange}
+                onTimeframeChange={handleTimeframeChange}
+                onFilterChange={handleFilterChange}
+              />
+            </Card.Body>
+          </Card>
 
-        <Tab eventKey="chemical-analytics" title="Chemical Analytics">
-          <div className="pt-4">
-            <Card className="shadow-sm mb-4">
-              <Card.Header className="bg-light">
-                <Tabs
-                  activeKey={chemicalAnalyticsTab}
-                  onSelect={(k) => setChemicalAnalyticsTab(k)}
-                  className="mb-0"
+          <Card className="shadow-sm mb-4">
+            <Card.Header className="bg-light d-flex justify-content-between align-items-center">
+              <h4 className="mb-0">Report Results</h4>
+              <ExportControls
+                onExport={handleExport}
+                loading={exportLoading}
+                disabled={!data || loading}
+              />
+            </Card.Header>
+            <Card.Body>
+              <ReportViewer
+                reportType={currentReport}
+                timeframe={timeframe}
+                data={data}
+                loading={loading}
+              />
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'chemical-analytics' && (
+        <div className="pt-4">
+          <Card className="shadow-sm mb-4">
+            <Card.Header className="bg-light">
+              <div className="btn-group mb-3">
+                <Button
+                  variant={chemicalAnalyticsTab === 'waste' ? 'primary' : 'outline-primary'}
+                  onClick={() => setChemicalAnalyticsTab('waste')}
                 >
-                  <Tab eventKey="waste" title="Waste Analytics">
-                    <div className="pt-3">
-                      <ChemicalWasteAnalytics />
-                    </div>
-                  </Tab>
-                  <Tab eventKey="usage" title="Usage Analytics">
-                    <div className="pt-3">
-                      <ChemicalUsageAnalytics />
-                    </div>
-                  </Tab>
-                </Tabs>
-              </Card.Header>
-            </Card>
-          </div>
-        </Tab>
+                  Waste Analytics
+                </Button>
+                <Button
+                  variant={chemicalAnalyticsTab === 'usage' ? 'primary' : 'outline-primary'}
+                  onClick={() => setChemicalAnalyticsTab('usage')}
+                >
+                  Usage Analytics
+                </Button>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              {chemicalAnalyticsTab === 'waste' && (
+                <div className="pt-3">
+                  <ChemicalWasteAnalytics />
+                </div>
+              )}
+              {chemicalAnalyticsTab === 'usage' && (
+                <div className="pt-3">
+                  <ChemicalUsageAnalytics />
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </div>
+      )}
 
-        <Tab eventKey="part-number-analytics" title="Part Number Analytics">
-          <div className="pt-4">
-            <PartNumberAnalytics />
-          </div>
-        </Tab>
-      </Tabs>
+      {activeTab === 'part-number-analytics' && (
+        <div className="pt-4">
+          <PartNumberAnalytics />
+        </div>
+      )}
     </div>
   );
 };

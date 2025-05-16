@@ -2,6 +2,12 @@
 
 ## Version History
 
+### Version 3.2.2 (2025-05-18)
+- Fixed chemical reporting functionality in the Reports page
+- Improved tab switching in the ReportingPage component
+- Fixed backend implementation of the chemical usage analytics endpoint
+- Updated UI for better user experience with button-based navigation
+
 ### Version 3.2.1 (2025-05-16)
 - Fixed issue with registration requests count in Admin Dashboard showing incorrect number of pending requests
 - Updated frontend to use actual data from backend API instead of hardcoded values

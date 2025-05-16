@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.2] - 2025-05-18
+
+### Fixed
+- Fixed chemical reporting functionality in the Reports page
+- Improved tab switching in the ReportingPage component
+- Fixed backend implementation of the chemical usage analytics endpoint
+- Updated UI for better user experience with button-based navigation
+
 ## [3.2.1] - 2025-05-16
 
 ### Fixed
