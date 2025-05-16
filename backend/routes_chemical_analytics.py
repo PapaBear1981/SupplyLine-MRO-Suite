@@ -7,22 +7,18 @@ from functools import wraps
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # TEMPORARILY DISABLED FOR TESTING
-        # Just log the session info for debugging
+        # Log session info for debugging
         print(f"Session info: user_id={session.get('user_id')}, is_admin={session.get('is_admin')}, department={session.get('department')}")
 
-        # Skip authentication check for now
-        return f(*args, **kwargs)
+        # Authentication check
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
 
-        # Original code (commented out for testing)
-        # if 'user_id' not in session:
-        #     return jsonify({'error': 'Authentication required'}), 401
-        #
-        # # Check if user is admin or Materials department
-        # if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-        #     return jsonify({'error': 'Materials management privileges required'}), 403
-        #
-        # return f(*args, **kwargs)
+        # Check if user is admin or Materials department
+        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            return jsonify({'error': 'Materials management privileges required'}), 403
+
+        return f(*args, **kwargs)
     return decorated_function
 
 def register_chemical_analytics_routes(app):
