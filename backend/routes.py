@@ -793,6 +793,11 @@ def register_routes(app):
         try:
             print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
 
+            # Check if user is admin or Materials department
+            if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+                print(f"Permission denied: User is not admin or Materials department")
+                return jsonify({'error': 'Only Materials and Admin personnel can return tools'}), 403
+
             # Validate checkout exists
             c = Checkout.query.get(id)
             if not c:

@@ -50,6 +50,12 @@ const AllCheckouts = () => {
   return (
     <>
       <div className="w-100">
+        {!canReturnTools && activeCheckouts.length > 0 && (
+          <div className="alert alert-info mb-4">
+            <i className="bi bi-info-circle me-2"></i>
+            <strong>Note:</strong> Only Materials department and Admin personnel can return tools. Please contact them to return any tools.
+          </div>
+        )}
         <Card className="mb-4 shadow-sm">
           <Card.Header className="bg-light">
             <h4 className="mb-0">All Active Checkouts</h4>

@@ -9,8 +9,12 @@ import ConfirmModal from '../common/ConfirmModal';
 const UserCheckouts = () => {
   const dispatch = useDispatch();
   const { userCheckouts, loading } = useSelector((state) => state.checkouts);
+  const { user } = useSelector((state) => state.auth);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
+
+  // Check if user has permission to return tools
+  const canReturnTools = user?.is_admin || user?.department === 'Materials';
 
   useEffect(() => {
     console.log("UserCheckouts: Fetching user checkouts...");
@@ -49,6 +53,12 @@ const UserCheckouts = () => {
   return (
     <>
       <div className="w-100">
+        {!canReturnTools && activeCheckouts.length > 0 && (
+          <div className="alert alert-info mb-4">
+            <i className="bi bi-info-circle me-2"></i>
+            <strong>Note:</strong> Only Materials department and Admin personnel can return tools. Please contact them to return your tools.
+          </div>
+        )}
         <Card className="mb-4 shadow-sm">
           <Card.Header className="bg-light">
             <h4 className="mb-0">Active Checkouts</h4>
@@ -64,7 +74,9 @@ const UserCheckouts = () => {
                     <th>Checkout Date</th>
                     <th>Expected Return</th>
                     <th>Status</th>
-                    <th style={{ width: '150px' }}>Actions</th>
+                    {canReturnTools && (
+                      <th style={{ width: '150px' }}>Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -88,21 +100,23 @@ const UserCheckouts = () => {
                         <td>
                           <span className="status-badge status-checked-out">{checkout.status}</span>
                         </td>
-                        <td>
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => handleReturnTool(checkout.id)}
-                            className="w-100"
-                          >
-                            Return Tool
-                          </Button>
-                        </td>
+                        {canReturnTools && (
+                          <td>
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleReturnTool(checkout.id)}
+                              className="w-100"
+                            >
+                              Return Tool
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="text-center py-4">
+                      <td colSpan={canReturnTools ? "7" : "6"} className="text-center py-4">
                         You have no active checkouts.
                       </td>
                     </tr>
