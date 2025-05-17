@@ -2,6 +2,16 @@
 
 ## Version History
 
+### Version 3.3.2 (2025-05-17)
+- Fixed chemical management routes for reorder, on-order, expiring soon, and archived chemicals
+- Improved route handling for chemical analytics
+- Enhanced error handling for chemical management functionality
+
+### Version 3.3.1 (2025-05-17)
+- Fixed CORS issues for better API communication
+- Removed debug login section from the login page
+- Updated API service to use relative URLs for better proxy support
+
 ### Version 3.3.0 (2025-05-20)
 - Added barcode generation functionality for chemical inventory
 - Implemented barcode display with part number, lot number, and expiration date
