@@ -22,6 +22,7 @@ const MainLayout = ({ children }) => {
                 <>
                   <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                   <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
+                  <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
                   <Nav.Link as={Link} to="/users">User Management</Nav.Link>
                   <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                   {user.is_admin && (
@@ -74,7 +75,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>SupplyLine MRO Suite &copy; {new Date().getFullYear()}</span>
-            <span>Version 3.3.2</span>
+            <span>Version 3.4.0</span>
           </div>
         </Container>
       </footer>

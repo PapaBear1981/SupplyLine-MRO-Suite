@@ -17,6 +17,54 @@ class Tool(db.Model):
     status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Calibration fields
+    requires_calibration = db.Column(db.Boolean, default=False)
+    calibration_frequency_days = db.Column(db.Integer, nullable=True)
+    last_calibration_date = db.Column(db.DateTime, nullable=True)
+    next_calibration_date = db.Column(db.DateTime, nullable=True)
+    calibration_status = db.Column(db.String, nullable=True)  # current, due_soon, overdue, not_applicable
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_number': self.tool_number,
+            'serial_number': self.serial_number,
+            'description': self.description,
+            'condition': self.condition,
+            'location': self.location,
+            'category': self.category,
+            'status': self.status,
+            'status_reason': self.status_reason,
+            'created_at': self.created_at.isoformat(),
+            'requires_calibration': self.requires_calibration,
+            'calibration_frequency_days': self.calibration_frequency_days,
+            'last_calibration_date': self.last_calibration_date.isoformat() if self.last_calibration_date else None,
+            'next_calibration_date': self.next_calibration_date.isoformat() if self.next_calibration_date else None,
+            'calibration_status': self.calibration_status
+        }
+
+    def update_calibration_status(self):
+        """Update the calibration status based on next_calibration_date"""
+        if not self.requires_calibration or not self.next_calibration_date:
+            self.calibration_status = 'not_applicable'
+            return
+
+        now = datetime.utcnow()
+
+        # If calibration is overdue
+        if now > self.next_calibration_date:
+            self.calibration_status = 'overdue'
+            return
+
+        # If calibration is due within 30 days
+        due_soon_threshold = now + timedelta(days=30)
+        if now <= self.next_calibration_date <= due_soon_threshold:
+            self.calibration_status = 'due_soon'
+            return
+
+        # Calibration is current
+        self.calibration_status = 'current'
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -174,6 +222,12 @@ class Chemical(db.Model):
         is_archived = db.Column(db.Boolean, default=False)  # Whether the chemical is archived
         archived_reason = db.Column(db.String, nullable=True)  # Reason for archiving (expired, depleted, etc.)
         archived_date = db.Column(db.DateTime, nullable=True)  # When the chemical was archived
+
+        # Reordering fields
+        needs_reorder = db.Column(db.Boolean, default=False)  # Flag to indicate if the chemical needs to be reordered
+        reorder_status = db.Column(db.String, nullable=True, default='not_needed')  # not_needed, needed, ordered
+        reorder_date = db.Column(db.DateTime, nullable=True)  # When the reorder was placed
+        expected_delivery_date = db.Column(db.DateTime, nullable=True)  # Expected delivery date
     except:
         # If the columns don't exist, we'll create them later with a migration
         pass
@@ -207,12 +261,56 @@ class Chemical(db.Model):
             result['archived_reason'] = None
             result['archived_date'] = None
 
+        # Add reordering fields if they exist
+        try:
+            result['needs_reorder'] = self.needs_reorder
+            result['reorder_status'] = self.reorder_status
+            result['reorder_date'] = self.reorder_date.isoformat() if self.reorder_date else None
+            result['expected_delivery_date'] = self.expected_delivery_date.isoformat() if self.expected_delivery_date else None
+        except:
+            # If the columns don't exist, set default values
+            result['needs_reorder'] = False
+            result['reorder_status'] = 'not_needed'
+            result['reorder_date'] = None
+            result['expected_delivery_date'] = None
+
         return result
 
     def is_expired(self):
         if not self.expiration_date:
             return False
         return datetime.utcnow() > self.expiration_date
+
+    def is_expiring_soon(self, days=30):
+        """Check if the chemical is expiring within the specified number of days"""
+        if not self.expiration_date:
+            return False
+
+        # Calculate the date range
+        now = datetime.utcnow()
+        expiration_threshold = now + timedelta(days=days)
+
+        # Check if expiration date is in the future but within the threshold
+        return now < self.expiration_date <= expiration_threshold
+
+    def update_reorder_status(self):
+        """Update the reorder status based on expiration, quantity, and minimum stock level"""
+        try:
+            # If already marked for reorder, don't change
+            if self.needs_reorder and self.reorder_status == 'needed':
+                return
+
+            # If already ordered, don't change
+            if self.reorder_status == 'ordered':
+                return
+
+            # Mark for reorder if expired, out of stock, or at/below minimum stock level
+            if self.is_expired() or self.quantity <= 0 or self.is_low_stock():
+                self.needs_reorder = True
+                self.reorder_status = 'needed'
+        except:
+            # If the columns don't exist, we can't update them
+            pass
 
     def is_low_stock(self):
         if not self.minimum_stock_level:
@@ -274,4 +372,86 @@ class RegistrationRequest(db.Model):
             'processed_by': self.processed_by,
             'admin_notes': self.admin_notes,
             'admin_name': self.admin.name if self.admin else None
+        }
+
+class ToolCalibration(db.Model):
+    __tablename__ = 'tool_calibrations'
+    id = db.Column(db.Integer, primary_key=True)
+    tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=False)
+    calibration_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    next_calibration_date = db.Column(db.DateTime, nullable=True)
+    performed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    calibration_notes = db.Column(db.String, nullable=True)
+    calibration_status = db.Column(db.String, nullable=False, default='completed')  # completed, failed, in_progress
+    calibration_certificate_file = db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    tool = db.relationship('Tool')
+    performed_by = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_id': self.tool_id,
+            'tool_number': self.tool.tool_number if self.tool else None,
+            'tool_serial_number': self.tool.serial_number if self.tool else None,
+            'calibration_date': self.calibration_date.isoformat(),
+            'next_calibration_date': self.next_calibration_date.isoformat() if self.next_calibration_date else None,
+            'performed_by_user_id': self.performed_by_user_id,
+            'performed_by_name': self.performed_by.name if self.performed_by else None,
+            'calibration_notes': self.calibration_notes,
+            'calibration_status': self.calibration_status,
+            'calibration_certificate_file': self.calibration_certificate_file,
+            'created_at': self.created_at.isoformat(),
+            'standards': [standard.to_dict() for standard in self.standards] if hasattr(self, 'standards') else []
+        }
+
+class CalibrationStandard(db.Model):
+    __tablename__ = 'calibration_standards'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=True)
+    standard_number = db.Column(db.String, nullable=False)
+    certification_date = db.Column(db.DateTime, nullable=False)
+    expiration_date = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'standard_number': self.standard_number,
+            'certification_date': self.certification_date.isoformat(),
+            'expiration_date': self.expiration_date.isoformat(),
+            'created_at': self.created_at.isoformat(),
+            'is_expired': datetime.utcnow() > self.expiration_date,
+            'is_expiring_soon': self.is_expiring_soon()
+        }
+
+    def is_expiring_soon(self, days=30):
+        """Check if the standard is expiring within the specified number of days"""
+        now = datetime.utcnow()
+        expiration_threshold = now + timedelta(days=days)
+        return now < self.expiration_date <= expiration_threshold
+
+class ToolCalibrationStandard(db.Model):
+    __tablename__ = 'tool_calibration_standards'
+    id = db.Column(db.Integer, primary_key=True)
+    calibration_id = db.Column(db.Integer, db.ForeignKey('tool_calibrations.id'), nullable=False)
+    standard_id = db.Column(db.Integer, db.ForeignKey('calibration_standards.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    calibration = db.relationship('ToolCalibration', backref=db.backref('calibration_standards', lazy='dynamic'))
+    standard = db.relationship('CalibrationStandard')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'calibration_id': self.calibration_id,
+            'standard_id': self.standard_id,
+            'standard': self.standard.to_dict() if self.standard else None,
+            'created_at': self.created_at.isoformat()
         }

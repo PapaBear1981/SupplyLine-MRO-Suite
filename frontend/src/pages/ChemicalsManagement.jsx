@@ -4,7 +4,14 @@ import { Button, Tabs, Tab } from 'react-bootstrap';
 import { Link, Navigate } from 'react-router-dom';
 import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
-import { fetchChemicals, fetchArchivedChemicals } from '../store/chemicalsSlice';
+import ReorderManagement from '../components/chemicals/ReorderManagement';
+import {
+  fetchChemicals,
+  fetchArchivedChemicals,
+  fetchChemicalsNeedingReorder,
+  fetchChemicalsOnOrder,
+  fetchChemicalsExpiringSoon
+} from '../store/chemicalsSlice';
 
 const ChemicalsManagement = () => {
   const dispatch = useDispatch();
@@ -18,6 +25,10 @@ const ChemicalsManagement = () => {
       dispatch(fetchChemicals());
     } else if (activeTab === 'archived') {
       dispatch(fetchArchivedChemicals());
+    } else if (activeTab === 'reorder') {
+      dispatch(fetchChemicalsNeedingReorder());
+      dispatch(fetchChemicalsOnOrder());
+      dispatch(fetchChemicalsExpiringSoon());
     }
   }, [dispatch, activeTab]);
 
@@ -46,6 +57,9 @@ const ChemicalsManagement = () => {
         </Tab>
         <Tab eventKey="archived" title="Archived Chemicals">
           <ArchivedChemicalsList />
+        </Tab>
+        <Tab eventKey="reorder" title="Reorder Management">
+          <ReorderManagement />
         </Tab>
       </Tabs>
     </div>

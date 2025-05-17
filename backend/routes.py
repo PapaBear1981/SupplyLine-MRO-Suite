@@ -1,5 +1,6 @@
 from flask import request, jsonify, session, make_response, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
+from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
@@ -10,6 +11,7 @@ from werkzeug.utils import secure_filename
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
+from routes_calibration import register_calibration_routes
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
@@ -93,6 +95,9 @@ def register_routes(app):
 
     # Register chemical analytics routes
     register_chemical_analytics_routes(app)
+
+    # Register calibration routes
+    register_calibration_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
@@ -453,7 +458,12 @@ def register_routes(app):
                 'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
                 'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
                 'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
-                'created_at': t.created_at.isoformat()
+                'created_at': t.created_at.isoformat(),
+                'requires_calibration': getattr(t, 'requires_calibration', False),
+                'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
+                'last_calibration_date': t.last_calibration_date.isoformat() if hasattr(t, 'last_calibration_date') and t.last_calibration_date else None,
+                'next_calibration_date': t.next_calibration_date.isoformat() if hasattr(t, 'next_calibration_date') and t.next_calibration_date else None,
+                'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
             } for t in tools]
 
             print(f"Returning {len(result)} tools")
@@ -482,8 +492,16 @@ def register_routes(app):
             description=data.get('description'),
             condition=data.get('condition'),
             location=data.get('location'),
-            category=data.get('category', 'General')
+            category=data.get('category', 'General'),
+            requires_calibration=data.get('requires_calibration', False),
+            calibration_frequency_days=data.get('calibration_frequency_days')
         )
+
+        # Set calibration status based on requires_calibration
+        if t.requires_calibration:
+            t.calibration_status = 'due_soon'  # Default to due_soon until first calibration
+        else:
+            t.calibration_status = 'not_applicable'
         db.session.add(t)
         db.session.commit()
 
@@ -542,7 +560,12 @@ def register_routes(app):
                 'category': category_value,  # Use actual category value
                 'status': status,
                 'status_reason': getattr(tool, 'status_reason', None) if status in ['maintenance', 'retired'] else None,
-                'created_at': tool.created_at.isoformat()
+                'created_at': tool.created_at.isoformat(),
+                'requires_calibration': getattr(tool, 'requires_calibration', False),
+                'calibration_frequency_days': getattr(tool, 'calibration_frequency_days', None),
+                'last_calibration_date': tool.last_calibration_date.isoformat() if hasattr(tool, 'last_calibration_date') and tool.last_calibration_date else None,
+                'next_calibration_date': tool.next_calibration_date.isoformat() if hasattr(tool, 'next_calibration_date') and tool.next_calibration_date else None,
+                'calibration_status': getattr(tool, 'calibration_status', 'not_applicable')
             })
 
         # PUT - Update tool (requires tool manager privileges)
@@ -605,6 +628,34 @@ def register_routes(app):
             tool.category = data['category']
             print(f"Updated tool category from {old_category} to: {tool.category}")
 
+        # Update calibration fields
+        if 'requires_calibration' in data:
+            tool.requires_calibration = data['requires_calibration']
+            print(f"Updated requires_calibration to: {tool.requires_calibration}")
+
+            # If requires_calibration is being turned off, reset calibration status
+            if not tool.requires_calibration:
+                tool.calibration_status = 'not_applicable'
+                print(f"Reset calibration_status to: {tool.calibration_status}")
+            # If requires_calibration is being turned on, set initial calibration status
+            elif tool.requires_calibration and not tool.calibration_status:
+                tool.calibration_status = 'due_soon'
+                print(f"Set initial calibration_status to: {tool.calibration_status}")
+
+        if 'calibration_frequency_days' in data:
+            tool.calibration_frequency_days = data['calibration_frequency_days']
+            print(f"Updated calibration_frequency_days to: {tool.calibration_frequency_days}")
+
+            # If we have a last calibration date and frequency, update the next calibration date
+            if tool.last_calibration_date and tool.calibration_frequency_days:
+                tool.next_calibration_date = tool.last_calibration_date + timedelta(days=tool.calibration_frequency_days)
+                print(f"Updated next_calibration_date to: {tool.next_calibration_date}")
+
+                # Update calibration status based on new next_calibration_date
+                if hasattr(tool, 'update_calibration_status'):
+                    tool.update_calibration_status()
+                    print(f"Updated calibration_status to: {tool.calibration_status}")
+
         db.session.commit()
 
         # Verify the update in the database
@@ -631,6 +682,11 @@ def register_routes(app):
             'condition': updated_tool.condition,
             'location': updated_tool.location,
             'category': updated_tool.category,  # Use the actual category value
+            'requires_calibration': getattr(updated_tool, 'requires_calibration', False),
+            'calibration_frequency_days': getattr(updated_tool, 'calibration_frequency_days', None),
+            'last_calibration_date': updated_tool.last_calibration_date.isoformat() if hasattr(updated_tool, 'last_calibration_date') and updated_tool.last_calibration_date else None,
+            'next_calibration_date': updated_tool.next_calibration_date.isoformat() if hasattr(updated_tool, 'next_calibration_date') and updated_tool.next_calibration_date else None,
+            'calibration_status': getattr(updated_tool, 'calibration_status', 'not_applicable'),
             'message': 'Tool updated successfully'
         }
 

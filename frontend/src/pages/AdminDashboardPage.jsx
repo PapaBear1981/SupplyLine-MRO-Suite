@@ -374,7 +374,7 @@ const SystemStatsTab = ({ data }) => {
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>System Version</span>
-                  <span>3.3.0</span>
+                  <span>3.3.1</span>
                 </ListGroup.Item>
               </ListGroup>
             </Card.Body>

@@ -208,6 +208,67 @@ export const fetchUniquePartNumbers = createAsyncThunk(
   }
 );
 
+// New thunks for reordering functionality
+export const fetchChemicalsNeedingReorder = createAsyncThunk(
+  'chemicals/fetchChemicalsNeedingReorder',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getChemicalsNeedingReorder();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch chemicals needing reorder' });
+    }
+  }
+);
+
+export const fetchChemicalsOnOrder = createAsyncThunk(
+  'chemicals/fetchChemicalsOnOrder',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getChemicalsOnOrder();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch chemicals on order' });
+    }
+  }
+);
+
+export const fetchChemicalsExpiringSoon = createAsyncThunk(
+  'chemicals/fetchChemicalsExpiringSoon',
+  async (days = 30, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getChemicalsExpiringSoon(days);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch chemicals expiring soon' });
+    }
+  }
+);
+
+export const markChemicalAsOrdered = createAsyncThunk(
+  'chemicals/markChemicalAsOrdered',
+  async ({ id, expectedDeliveryDate }, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.markChemicalAsOrdered(id, expectedDeliveryDate);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to mark chemical as ordered' });
+    }
+  }
+);
+
+export const markChemicalAsDelivered = createAsyncThunk(
+  'chemicals/markChemicalAsDelivered',
+  async (id, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.markChemicalAsDelivered(id);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to mark chemical as delivered' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   chemicals: [],
@@ -233,6 +294,12 @@ const initialState = {
   uniquePartNumbers: [],
   uniquePartNumbersLoading: false,
   uniquePartNumbersError: null,
+  // New state for reordering functionality
+  chemicalsNeedingReorder: [],
+  chemicalsOnOrder: [],
+  chemicalsExpiringSoon: [],
+  reorderLoading: false,
+  reorderError: null,
 };
 
 // Slice
@@ -480,6 +547,109 @@ const chemicalsSlice = createSlice({
       .addCase(fetchUniquePartNumbers.rejected, (state, action) => {
         state.uniquePartNumbersLoading = false;
         state.uniquePartNumbersError = action.payload || { message: 'An error occurred while fetching unique part numbers' };
+      })
+
+      // fetchChemicalsNeedingReorder
+      .addCase(fetchChemicalsNeedingReorder.pending, (state) => {
+        state.reorderLoading = true;
+        state.reorderError = null;
+      })
+      .addCase(fetchChemicalsNeedingReorder.fulfilled, (state, action) => {
+        state.reorderLoading = false;
+        state.chemicalsNeedingReorder = action.payload;
+      })
+      .addCase(fetchChemicalsNeedingReorder.rejected, (state, action) => {
+        state.reorderLoading = false;
+        state.reorderError = action.payload || { message: 'An error occurred while fetching chemicals needing reorder' };
+      })
+
+      // fetchChemicalsOnOrder
+      .addCase(fetchChemicalsOnOrder.pending, (state) => {
+        state.reorderLoading = true;
+        state.reorderError = null;
+      })
+      .addCase(fetchChemicalsOnOrder.fulfilled, (state, action) => {
+        state.reorderLoading = false;
+        state.chemicalsOnOrder = action.payload;
+      })
+      .addCase(fetchChemicalsOnOrder.rejected, (state, action) => {
+        state.reorderLoading = false;
+        state.reorderError = action.payload || { message: 'An error occurred while fetching chemicals on order' };
+      })
+
+      // fetchChemicalsExpiringSoon
+      .addCase(fetchChemicalsExpiringSoon.pending, (state) => {
+        state.reorderLoading = true;
+        state.reorderError = null;
+      })
+      .addCase(fetchChemicalsExpiringSoon.fulfilled, (state, action) => {
+        state.reorderLoading = false;
+        state.chemicalsExpiringSoon = action.payload;
+      })
+      .addCase(fetchChemicalsExpiringSoon.rejected, (state, action) => {
+        state.reorderLoading = false;
+        state.reorderError = action.payload || { message: 'An error occurred while fetching chemicals expiring soon' };
+      })
+
+      // markChemicalAsOrdered
+      .addCase(markChemicalAsOrdered.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markChemicalAsOrdered.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the chemical in all relevant lists
+        const updatedChemical = action.payload.chemical;
+
+        // Update in main chemicals list
+        const chemicalIndex = state.chemicals.findIndex(c => c.id === updatedChemical.id);
+        if (chemicalIndex !== -1) {
+          state.chemicals[chemicalIndex] = updatedChemical;
+        }
+
+        // Remove from chemicals needing reorder
+        state.chemicalsNeedingReorder = state.chemicalsNeedingReorder.filter(c => c.id !== updatedChemical.id);
+
+        // Add to chemicals on order
+        state.chemicalsOnOrder.push(updatedChemical);
+
+        // Update current chemical if it's the same one
+        if (state.currentChemical && state.currentChemical.id === updatedChemical.id) {
+          state.currentChemical = updatedChemical;
+        }
+      })
+      .addCase(markChemicalAsOrdered.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while marking chemical as ordered' };
+      })
+
+      // markChemicalAsDelivered
+      .addCase(markChemicalAsDelivered.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markChemicalAsDelivered.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the chemical in all relevant lists
+        const updatedChemical = action.payload.chemical;
+
+        // Update in main chemicals list
+        const chemicalIndex = state.chemicals.findIndex(c => c.id === updatedChemical.id);
+        if (chemicalIndex !== -1) {
+          state.chemicals[chemicalIndex] = updatedChemical;
+        }
+
+        // Remove from chemicals on order
+        state.chemicalsOnOrder = state.chemicalsOnOrder.filter(c => c.id !== updatedChemical.id);
+
+        // Update current chemical if it's the same one
+        if (state.currentChemical && state.currentChemical.id === updatedChemical.id) {
+          state.currentChemical = updatedChemical;
+        }
+      })
+      .addCase(markChemicalAsDelivered.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while marking chemical as delivered' };
       });
   }
 });

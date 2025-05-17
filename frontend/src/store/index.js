@@ -7,6 +7,7 @@ import auditReducer from './auditSlice';
 import themeReducer from './themeSlice';
 import reportReducer from './reportSlice';
 import chemicalsReducer from './chemicalsSlice';
+import calibrationReducer from './calibrationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     theme: themeReducer,
     reports: reportReducer,
     chemicals: chemicalsReducer,
+    calibration: calibrationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

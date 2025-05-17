@@ -30,6 +30,7 @@ import NewChemicalPage from './pages/NewChemicalPage';
 import EditChemicalPage from './pages/EditChemicalPage';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import CalibrationManagement from './pages/CalibrationManagement';
 
 function App() {
   const dispatch = useDispatch();
@@ -186,6 +187,63 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <ChemicalIssuePage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Calibration routes */}
+        <Route path="/calibrations" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/tools/:id/calibrations/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/tools/:id/calibrations/:calibrationId" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calibration-standards" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calibration-standards/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calibration-standards/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calibration-standards/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CalibrationManagement />
             </MainLayout>
           </ProtectedRoute>
         } />

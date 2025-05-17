@@ -29,13 +29,27 @@ def create_app():
         print("Running chemical reorder fields migration...")
         migrate_database()
     except Exception as e:
-        print(f"Error running migration: {str(e)}")
+        print(f"Error running chemical reorder fields migration: {str(e)}")
+
+    try:
+        # Import and run the tool calibration migration
+        from migrate_tool_calibration import migrate_database as migrate_tool_calibration
+        print("Running tool calibration migration...")
+        migrate_tool_calibration()
+    except Exception as e:
+        print(f"Error running tool calibration migration: {str(e)}")
 
     register_routes(app)
 
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
+
+    # Print all registered routes for debugging
+    print("\n=== Registered Routes ===")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule} - {rule.methods}")
+    print("========================\n")
 
     return app
 
