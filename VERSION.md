@@ -2,6 +2,12 @@
 
 ## Version History
 
+### Version 3.3.0 (2025-05-20)
+- Added barcode generation functionality for chemical inventory
+- Implemented barcode display with part number, lot number, and expiration date
+- Added print functionality for chemical barcodes
+- Added barcode button to chemical list and detail views
+
 ### Version 3.2.3 (2025-05-19)
 - Fixed issue with return tool confirmation dialog in UserCheckouts and AllCheckouts components
 - Replaced window.confirm() with proper modal dialog for better user experience

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.0] - 2025-05-20
+
+### Added
+- Added barcode generation functionality for chemical inventory
+- Implemented barcode display with part number, lot number, and expiration date
+- Added print functionality for chemical barcodes
+- Added barcode button to chemical list and detail views
+
 ## [3.2.3] - 2025-05-19
 
 ### Fixed

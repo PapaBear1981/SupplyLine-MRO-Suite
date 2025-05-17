@@ -2,7 +2,7 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.2.3** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.3.0** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
