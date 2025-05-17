@@ -10,10 +10,14 @@ from werkzeug.utils import secure_filename
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('logged_in', False):
+        # Check if user is authenticated
+        if not session.get('user_id'):
             return jsonify({'error': 'Authentication required'}), 401
+
+        # Check if user has admin or Materials department privileges
         if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
             return jsonify({'error': 'Tool management privileges required'}), 403
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -349,6 +353,34 @@ def register_calibration_routes(app):
 
         except Exception as e:
             print(f"Error adding calibration standard: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+    # Get a specific calibration record
+    @app.route('/api/tools/<int:tool_id>/calibrations/<int:calibration_id>', methods=['GET'])
+    @tool_manager_required
+    def get_calibration_detail(tool_id, calibration_id):
+        try:
+            # Get the calibration record
+            calibration = ToolCalibration.query.filter_by(
+                tool_id=tool_id,
+                id=calibration_id
+            ).first_or_404()
+
+            # Get the calibration standards used
+            standards = []
+            for cs in calibration.calibration_standards:
+                standard = CalibrationStandard.query.get(cs.standard_id)
+                if standard:
+                    standards.append(standard.to_dict())
+
+            # Create response with standards included
+            calibration_data = calibration.to_dict()
+            calibration_data['standards'] = standards
+
+            return jsonify(calibration_data), 200
+
+        except Exception as e:
+            print(f"Error getting calibration details: {str(e)}")
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     # Get a specific calibration standard

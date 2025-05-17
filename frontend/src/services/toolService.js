@@ -14,7 +14,9 @@ const ToolService = {
   // Get tool by ID
   getToolById: async (id) => {
     try {
-      const response = await api.get(`/tools/${id}`);
+      // Ensure id is a number
+      const toolId = typeof id === 'string' ? parseInt(id, 10) : id;
+      const response = await api.get(`/tools/${toolId}`);
       return response.data;
     } catch (error) {
       throw error;

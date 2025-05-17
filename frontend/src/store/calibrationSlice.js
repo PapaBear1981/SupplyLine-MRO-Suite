@@ -42,8 +42,10 @@ export const fetchToolCalibrations = createAsyncThunk(
   'calibration/fetchToolCalibrations',
   async ({ toolId, page = 1, limit = 20 }, { rejectWithValue }) => {
     try {
-      const data = await CalibrationService.getToolCalibrations(toolId, page, limit);
-      return { toolId, data };
+      // Ensure toolId is a number
+      const id = typeof toolId === 'string' ? parseInt(toolId, 10) : toolId;
+      const data = await CalibrationService.getToolCalibrations(id, page, limit);
+      return { toolId: id, data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch tool calibrations' });
     }
@@ -54,7 +56,9 @@ export const addCalibration = createAsyncThunk(
   'calibration/addCalibration',
   async ({ toolId, calibrationData }, { rejectWithValue }) => {
     try {
-      const data = await CalibrationService.addCalibration(toolId, calibrationData);
+      // Ensure toolId is a number
+      const id = typeof toolId === 'string' ? parseInt(toolId, 10) : toolId;
+      const data = await CalibrationService.addCalibration(id, calibrationData);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to add calibration' });
@@ -78,7 +82,9 @@ export const fetchCalibrationStandard = createAsyncThunk(
   'calibration/fetchCalibrationStandard',
   async (id, { rejectWithValue }) => {
     try {
-      const data = await CalibrationService.getCalibrationStandard(id);
+      // Ensure id is a number
+      const standardId = typeof id === 'string' ? parseInt(id, 10) : id;
+      const data = await CalibrationService.getCalibrationStandard(standardId);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch calibration standard' });
@@ -102,7 +108,9 @@ export const updateCalibrationStandard = createAsyncThunk(
   'calibration/updateCalibrationStandard',
   async ({ id, standardData }, { rejectWithValue }) => {
     try {
-      const data = await CalibrationService.updateCalibrationStandard(id, standardData);
+      // Ensure id is a number
+      const standardId = typeof id === 'string' ? parseInt(id, 10) : id;
+      const data = await CalibrationService.updateCalibrationStandard(standardId, standardData);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to update calibration standard' });
@@ -158,7 +166,7 @@ const calibrationSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch calibrations' };
       })
-      
+
       // Fetch calibrations due
       .addCase(fetchCalibrationsDue.pending, (state) => {
         state.loading = true;
@@ -172,7 +180,7 @@ const calibrationSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch calibrations due' };
       })
-      
+
       // Fetch overdue calibrations
       .addCase(fetchOverdueCalibrations.pending, (state) => {
         state.loading = true;
@@ -186,7 +194,7 @@ const calibrationSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch overdue calibrations' };
       })
-      
+
       // Fetch tool calibrations
       .addCase(fetchToolCalibrations.pending, (state) => {
         state.loading = true;
@@ -200,7 +208,7 @@ const calibrationSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch tool calibrations' };
       })
-      
+
       // Add calibration
       .addCase(addCalibration.pending, (state) => {
         state.loading = true;
@@ -213,7 +221,7 @@ const calibrationSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to add calibration' };
       })
-      
+
       // Fetch calibration standards
       .addCase(fetchCalibrationStandards.pending, (state) => {
         state.standardsLoading = true;
@@ -228,7 +236,7 @@ const calibrationSlice = createSlice({
         state.standardsLoading = false;
         state.standardsError = action.payload || { message: 'Failed to fetch calibration standards' };
       })
-      
+
       // Fetch calibration standard
       .addCase(fetchCalibrationStandard.pending, (state) => {
         state.standardsLoading = true;
@@ -242,7 +250,7 @@ const calibrationSlice = createSlice({
         state.standardsLoading = false;
         state.standardsError = action.payload || { message: 'Failed to fetch calibration standard' };
       })
-      
+
       // Add calibration standard
       .addCase(addCalibrationStandard.pending, (state) => {
         state.standardsLoading = true;
@@ -255,7 +263,7 @@ const calibrationSlice = createSlice({
         state.standardsLoading = false;
         state.standardsError = action.payload || { message: 'Failed to add calibration standard' };
       })
-      
+
       // Update calibration standard
       .addCase(updateCalibrationStandard.pending, (state) => {
         state.standardsLoading = true;

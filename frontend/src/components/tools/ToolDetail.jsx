@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Row, Col, Button, Table, Badge, Tabs, Tab } from 'react-bootstrap';
+import { Card, Row, Col, Button, Table, Badge, Tabs, Tab, Alert } from 'react-bootstrap';
 import { fetchToolById } from '../../store/toolsSlice';
 import { fetchToolCheckoutHistory } from '../../store/checkoutsSlice';
+import { fetchToolCalibrations } from '../../store/calibrationSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
 import RemoveFromServiceModal from './RemoveFromServiceModal';
 import ReturnToServiceModal from './ReturnToServiceModal';
 import ServiceHistoryList from './ServiceHistoryList';
+import ToolCalibrationHistory from '../calibration/ToolCalibrationHistory';
 
 const ToolDetail = () => {
   const { id } = useParams();
@@ -24,8 +26,11 @@ const ToolDetail = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchToolById(id));
-      dispatch(fetchToolCheckoutHistory(id));
+      // Convert id to number if it's a string
+      const toolId = typeof id === 'string' ? parseInt(id, 10) : id;
+      dispatch(fetchToolById(toolId));
+      dispatch(fetchToolCheckoutHistory(toolId));
+      dispatch(fetchToolCalibrations({ toolId, page: 1, limit: 10 }));
     }
   }, [dispatch, id]);
 
@@ -33,7 +38,9 @@ const ToolDetail = () => {
     return <LoadingSpinner />;
   }
 
-  const history = checkoutHistory[id] || [];
+  // Convert id to number for lookup if it's a string
+  const toolId = typeof id === 'string' ? parseInt(id, 10) : id;
+  const history = checkoutHistory[toolId] || [];
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
   return (
@@ -98,13 +105,59 @@ const ToolDetail = () => {
                 </Row>
                 <Row className="mb-3">
                   <Col sm={4} className="fw-bold">Purchase Date:</Col>
-                  <Col sm={8}>{new Date(currentTool.purchase_date).toLocaleDateString()}</Col>
+                  <Col sm={8}>{currentTool.purchase_date ? new Date(currentTool.purchase_date).toLocaleDateString() : 'N/A'}</Col>
                 </Row>
                 {currentTool.description && (
                   <Row className="mb-3">
                     <Col sm={4} className="fw-bold">Description:</Col>
                     <Col sm={8}>{currentTool.description}</Col>
                   </Row>
+                )}
+
+                {/* Calibration Information */}
+                {currentTool.requires_calibration && (
+                  <>
+                    <hr />
+                    <h5 className="mb-3">Calibration Information</h5>
+                    <Row className="mb-3">
+                      <Col sm={4} className="fw-bold">Requires Calibration:</Col>
+                      <Col sm={8}>Yes</Col>
+                    </Row>
+                    <Row className="mb-3">
+                      <Col sm={4} className="fw-bold">Calibration Frequency:</Col>
+                      <Col sm={8}>{currentTool.calibration_frequency_days} days</Col>
+                    </Row>
+                    <Row className="mb-3">
+                      <Col sm={4} className="fw-bold">Last Calibration:</Col>
+                      <Col sm={8}>
+                        {currentTool.last_calibration_date
+                          ? new Date(currentTool.last_calibration_date).toLocaleDateString()
+                          : 'Never'}
+                      </Col>
+                    </Row>
+                    <Row className="mb-3">
+                      <Col sm={4} className="fw-bold">Next Calibration:</Col>
+                      <Col sm={8}>
+                        {currentTool.next_calibration_date
+                          ? new Date(currentTool.next_calibration_date).toLocaleDateString()
+                          : 'Not scheduled'}
+                      </Col>
+                    </Row>
+                    <Row className="mb-3">
+                      <Col sm={4} className="fw-bold">Calibration Status:</Col>
+                      <Col sm={8}>
+                        <Badge bg={
+                          currentTool.calibration_status === 'current' ? 'success' :
+                          currentTool.calibration_status === 'due_soon' ? 'warning' :
+                          currentTool.calibration_status === 'overdue' ? 'danger' : 'secondary'
+                        }>
+                          {currentTool.calibration_status === 'current' ? 'Current' :
+                           currentTool.calibration_status === 'due_soon' ? 'Due Soon' :
+                           currentTool.calibration_status === 'overdue' ? 'Overdue' : 'Not Applicable'}
+                        </Badge>
+                      </Col>
+                    </Row>
+                  </>
                 )}
               </Card.Body>
               <Card.Footer>
@@ -121,12 +174,24 @@ const ToolDetail = () => {
                         Checkout to User
                       </Button>
                       {isAdmin && (
-                        <Button
-                          variant="warning"
-                          onClick={() => setShowRemoveFromServiceModal(true)}
-                        >
-                          Remove from Service
-                        </Button>
+                        <>
+                          <Button
+                            variant="warning"
+                            onClick={() => setShowRemoveFromServiceModal(true)}
+                            className="me-2"
+                          >
+                            Remove from Service
+                          </Button>
+                          {currentTool.requires_calibration && (
+                            <Button
+                              as={Link}
+                              to={`/tools/${currentTool.id}/calibrations/new`}
+                              variant="info"
+                            >
+                              Calibrate Tool
+                            </Button>
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -167,6 +232,7 @@ const ToolDetail = () => {
                 >
                   <Tab eventKey="details" title="Checkout History" />
                   <Tab eventKey="service" title="Service History" />
+                  <Tab eventKey="calibration" title="Calibration History" />
                 </Tabs>
               </Card.Header>
               <Card.Body>
@@ -213,8 +279,10 @@ const ToolDetail = () => {
                       </tbody>
                     </Table>
                   )
-                ) : (
+                ) : activeTab === 'service' ? (
                   <ServiceHistoryList toolId={id} />
+                ) : (
+                  <ToolCalibrationHistory toolId={id} />
                 )}
               </Card.Body>
             </Card>
