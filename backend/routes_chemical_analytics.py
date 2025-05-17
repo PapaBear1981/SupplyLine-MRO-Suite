@@ -31,6 +31,114 @@ def register_chemical_analytics_routes(app):
             'timestamp': datetime.now().isoformat()
         })
 
+    # Get waste analytics
+    @app.route('/api/chemicals/waste-analytics', methods=['GET'])
+    @materials_manager_required
+    def waste_analytics_route():
+        try:
+            # Get query parameters
+            timeframe = request.args.get('timeframe', 'month')  # week, month, quarter, year, all
+            part_number = request.args.get('part_number')  # Optional part number filter
+
+            # Determine date range based on timeframe
+            end_date = datetime.utcnow()
+            if timeframe == 'week':
+                start_date = end_date - timedelta(days=7)
+            elif timeframe == 'month':
+                start_date = end_date - timedelta(days=30)
+            elif timeframe == 'quarter':
+                start_date = end_date - timedelta(days=90)
+            elif timeframe == 'year':
+                start_date = end_date - timedelta(days=365)
+            else:  # 'all'
+                start_date = datetime(1970, 1, 1)  # Beginning of time
+
+            # Return simplified analytics data for debugging
+            return jsonify({
+                'timeframe': timeframe,
+                'part_number_filter': part_number,
+                'total_archived': 5,
+                'expired_count': 2,
+                'depleted_count': 2,
+                'other_count': 1,
+                'waste_by_category': [
+                    {'category': 'Adhesives', 'count': 2},
+                    {'category': 'Lubricants', 'count': 3}
+                ],
+                'waste_by_location': [
+                    {'location': 'Hangar A', 'count': 3},
+                    {'location': 'Hangar B', 'count': 2}
+                ],
+                'waste_by_part_number': [
+                    {'part_number': 'Aeroshell 22', 'count': 2},
+                    {'part_number': 'PR1422B1/2', 'count': 3}
+                ],
+                'waste_over_time': [
+                    {'month': '2023-01', 'count': 2},
+                    {'month': '2023-02', 'count': 3}
+                ],
+                'shelf_life_analytics': {
+                    'detailed_data': [],
+                    'averages_by_part_number': []
+                }
+            })
+        except Exception as e:
+            print(f"Error in waste analytics route: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating waste analytics'}), 500
+
+    # Get part number analytics
+    @app.route('/api/chemicals/part-analytics', methods=['GET'])
+    @materials_manager_required
+    def part_analytics_route():
+        try:
+            # Get query parameters
+            part_number = request.args.get('part_number')
+
+            # Part number is required
+            if not part_number:
+                return jsonify({'error': 'Part number is required'}), 400
+
+            # Return simplified analytics data for debugging
+            return jsonify({
+                'part_number': part_number,
+                'inventory_stats': {
+                    'total_count': 5,
+                    'active_count': 3,
+                    'archived_count': 2,
+                    'current_inventory': 100
+                },
+                'usage_stats': {
+                    'total_issued': 50,
+                    'by_location': [
+                        {'location': 'Hangar A', 'quantity': 30},
+                        {'location': 'Hangar B', 'quantity': 20}
+                    ],
+                    'by_user': [
+                        {'user': 'Test User', 'quantity': 50}
+                    ],
+                    'over_time': [
+                        {'month': '2023-01', 'quantity': 25},
+                        {'month': '2023-02', 'quantity': 25}
+                    ]
+                },
+                'waste_stats': {
+                    'expired_count': 1,
+                    'depleted_count': 1,
+                    'other_archived_count': 0,
+                    'waste_percentage': 40.0
+                },
+                'shelf_life_stats': {
+                    'detailed_data': [],
+                    'avg_shelf_life_days': 365,
+                    'avg_used_life_days': 180,
+                    'avg_usage_percentage': 50.0
+                },
+                'lot_numbers': ['LOT123', 'LOT456', 'LOT789']
+            })
+        except Exception as e:
+            print(f"Error in part analytics route: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating part analytics'}), 500
+
     # Simple debug endpoint for usage analytics
     @app.route('/api/debug/chemicals/usage-analytics', methods=['GET'])
     def debug_chemical_usage_analytics_route():
