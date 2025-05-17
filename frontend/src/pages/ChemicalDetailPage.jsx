@@ -5,6 +5,7 @@ import { Button, Card, Row, Col, Badge, Alert, Tab, Tabs, Form, Modal } from 're
 import { fetchChemicalById, fetchChemicalIssuances, archiveChemical } from '../store/chemicalsSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChemicalIssuanceHistory from '../components/chemicals/ChemicalIssuanceHistory';
+import ChemicalBarcode from '../components/chemicals/ChemicalBarcode';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const ChemicalDetailPage = () => {
@@ -15,8 +16,9 @@ const ChemicalDetailPage = () => {
   const { user } = useSelector((state) => state.auth);
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
 
-  // State for archive modal
+  // State for modals
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [archiveReason, setArchiveReason] = useState('');
   const [archiveCustomReason, setArchiveCustomReason] = useState('');
 
@@ -116,6 +118,13 @@ const ChemicalDetailPage = () => {
                 disabled={currentChemical.status === 'out_of_stock' || currentChemical.status === 'expired'}
               >
                 Issue Chemical
+              </Button>
+              <Button
+                variant="info"
+                onClick={() => setShowBarcodeModal(true)}
+              >
+                <i className="bi bi-upc-scan me-2"></i>
+                Barcode
               </Button>
               <Button
                 variant="danger"
@@ -263,6 +272,15 @@ const ChemicalDetailPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Barcode Modal */}
+      {showBarcodeModal && (
+        <ChemicalBarcode
+          show={showBarcodeModal}
+          onHide={() => setShowBarcodeModal(false)}
+          chemical={currentChemical}
+        />
+      )}
     </div>
   );
 };

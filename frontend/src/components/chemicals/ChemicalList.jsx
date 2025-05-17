@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-bootstrap';
 import { fetchChemicals, searchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import ChemicalBarcode from './ChemicalBarcode';
 
 const ChemicalList = () => {
   const dispatch = useDispatch();
@@ -12,6 +13,8 @@ const ChemicalList = () => {
   const [filteredChemicals, setFilteredChemicals] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [selectedChemical, setSelectedChemical] = useState(null);
 
   // Fetch chemicals on component mount
   useEffect(() => {
@@ -103,6 +106,12 @@ const ChemicalList = () => {
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  // Handle barcode button click
+  const handleBarcodeClick = (chemical) => {
+    setSelectedChemical(chemical);
+    setShowBarcodeModal(true);
   };
 
   if (loading && !chemicals.length) {
@@ -219,6 +228,13 @@ const ChemicalList = () => {
                         >
                           Issue
                         </Button>
+                        <Button
+                          variant="info"
+                          size="sm"
+                          onClick={() => handleBarcodeClick(chemical)}
+                        >
+                          <i className="bi bi-upc-scan"></i>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -229,6 +245,15 @@ const ChemicalList = () => {
         )}
       </Card.Body>
     </Card>
+
+    {/* Barcode Modal */}
+    {showBarcodeModal && (
+      <ChemicalBarcode
+        show={showBarcodeModal}
+        onHide={() => setShowBarcodeModal(false)}
+        chemical={selectedChemical}
+      />
+    )}
   );
 };
 
