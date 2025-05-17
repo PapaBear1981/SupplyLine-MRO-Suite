@@ -7,7 +7,10 @@ import secrets
 import string
 import os
 import uuid
+import re
+import logging
 from werkzeug.utils import secure_filename
+from rate_limiter import auth_rate_limit, api_rate_limit, admin_api_rate_limit
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
@@ -1194,19 +1197,55 @@ def register_routes(app):
         } for a in logs])
 
     @app.route('/api/auth/login', methods=['POST'])
+    @auth_rate_limit()
     def login():
         data = request.get_json() or {}
 
-        if not data.get('employee_number') or not data.get('password'):
+        # Sanitize and validate input
+        employee_number = data.get('employee_number', '').strip()
+        password = data.get('password', '')
+
+        # Log login attempt (without password)
+        logging.info(f"Login attempt for employee number: {employee_number} from IP: {request.remote_addr}")
+
+        if not employee_number or not password:
             return jsonify({'error': 'Employee number and password required'}), 400
 
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
+        # Validate employee number format (alphanumeric only)
+        if not re.match(r'^[A-Za-z0-9]+$', employee_number):
+            return jsonify({'error': 'Invalid employee number format'}), 400
 
-        if not user or not user.check_password(data['password']):
+        # Find user by employee number
+        user = User.query.filter_by(employee_number=employee_number).first()
+
+        # Use constant-time comparison to prevent timing attacks
+        if not user or not user.check_password(password):
+            # Log failed login attempt
+            if user:
+                activity = UserActivity(
+                    user_id=user.id,
+                    activity_type='failed_login',
+                    description='Failed login attempt',
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
+                db.session.commit()
+
+            # Always return the same error message to prevent user enumeration
             return jsonify({'error': 'Invalid credentials'}), 401
 
         # Check if user is active
         if not user.is_active:
+            # Log inactive account login attempt
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='inactive_login',
+                description='Login attempt on inactive account',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+            db.session.commit()
+
             return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
 
         # Store user info in session
@@ -1215,6 +1254,10 @@ def register_routes(app):
         session['is_admin'] = user.is_admin
         session['department'] = user.department
         session.permanent = True
+
+        # Regenerate session ID to prevent session fixation attacks
+        if hasattr(session, 'regenerate'):
+            session.regenerate()
 
         # Create response object
         response = make_response(jsonify(user.to_dict()))
@@ -1225,11 +1268,26 @@ def register_routes(app):
             remember_token = user.generate_remember_token()
             db.session.commit()
 
-            # Set cookies
-            response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
-            response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
+            # Set cookies with secure flags
+            max_age = 30*24*60*60  # 30 days
+            response.set_cookie(
+                'remember_token',
+                remember_token,
+                max_age=max_age,
+                httponly=True,
+                secure=app.config.get('SESSION_COOKIE_SECURE', False),
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'user_id',
+                str(user.id),
+                max_age=max_age,
+                httponly=True,
+                secure=app.config.get('SESSION_COOKIE_SECURE', False),
+                samesite='Lax'
+            )
 
-        # Log the login
+        # Log the successful login
         activity = UserActivity(
             user_id=user.id,
             activity_type='login',
@@ -1245,9 +1303,13 @@ def register_routes(app):
         db.session.add(log)
         db.session.commit()
 
+        # Log successful login
+        logging.info(f"Successful login for user ID: {user.id}, employee number: {employee_number}")
+
         return response
 
     @app.route('/api/auth/logout', methods=['POST'])
+    @login_required
     def logout():
         user_id = session.get('user_id')
         if user_id:
@@ -1273,40 +1335,65 @@ def register_routes(app):
                 db.session.add(log)
                 db.session.commit()
 
+                # Log successful logout
+                logging.info(f"User ID: {user_id} logged out from IP: {request.remote_addr}")
+
         # Clear session
         session.clear()
 
-        # Create response and clear cookies
+        # Create response and clear cookies with secure flags
         response = make_response(jsonify({'message': 'Logged out successfully'}))
-        response.delete_cookie('remember_token')
-        response.delete_cookie('user_id')
+        response.delete_cookie(
+            'remember_token',
+            httponly=True,
+            secure=app.config.get('SESSION_COOKIE_SECURE', False),
+            samesite='Lax'
+        )
+        response.delete_cookie(
+            'user_id',
+            httponly=True,
+            secure=app.config.get('SESSION_COOKIE_SECURE', False),
+            samesite='Lax'
+        )
 
         return response
 
     @app.route('/api/auth/status', methods=['GET'])
+    @api_rate_limit()
     def auth_status():
         try:
-            print("Auth status check - Session:", session)
+            logging.debug("Auth status check from IP: %s", request.remote_addr)
 
             if 'user_id' not in session:
-                print("No user_id in session, checking cookies")
+                logging.debug("No user_id in session, checking cookies")
                 # Check for remember_me cookie
                 remember_token = request.cookies.get('remember_token')
                 if remember_token:
-                    print("Found remember_token cookie")
+                    logging.debug("Found remember_token cookie")
                     user_id = request.cookies.get('user_id')
                     if user_id:
-                        print(f"Found user_id cookie: {user_id}")
+                        logging.debug("Found user_id cookie: %s", user_id)
                         try:
+                            # Validate user_id is numeric
+                            if not user_id.isdigit():
+                                logging.warning("Invalid user_id cookie format: %s", user_id)
+                                return jsonify({'authenticated': False}), 200
+
                             user_id_int = int(user_id)
                             user = User.query.get(user_id_int)
+
                             if user and user.check_remember_token(remember_token):
-                                print(f"Valid remember token for user: {user.name}")
+                                logging.info("Valid remember token for user: %s (ID: %s)", user.name, user.id)
+
                                 # Valid remember token, log the user in
                                 session['user_id'] = user.id
                                 session['user_name'] = user.name
                                 session['is_admin'] = user.is_admin
                                 session['department'] = user.department
+
+                                # Regenerate session ID to prevent session fixation attacks
+                                if hasattr(session, 'regenerate'):
+                                    session.regenerate()
 
                                 # Log the auto-login
                                 activity = UserActivity(
@@ -1323,28 +1410,40 @@ def register_routes(app):
                                     'user': user.to_dict()
                                 }), 200
                             else:
-                                print("Invalid or expired remember token")
+                                if user:
+                                    logging.warning("Invalid or expired remember token for user ID: %s", user_id)
+                                else:
+                                    logging.warning("User not found for ID: %s", user_id)
                         except (ValueError, TypeError) as e:
-                            print(f"Error converting user_id to int: {e}")
+                            logging.error("Error processing remember token: %s", str(e))
 
-                print("No valid session or remember token, returning unauthenticated")
+                logging.debug("No valid session or remember token, returning unauthenticated")
                 return jsonify({'authenticated': False}), 200
 
-            print(f"User ID in session: {session['user_id']}")
-            user = User.query.get(session['user_id'])
+            # User is in session, verify they exist
+            user_id = session.get('user_id')
+            logging.debug("User ID in session: %s", user_id)
+
+            user = User.query.get(user_id)
             if not user:
-                print(f"User with ID {session['user_id']} not found in database")
+                logging.warning("User with ID %s not found in database", user_id)
                 session.clear()
                 return jsonify({'authenticated': False}), 200
 
-            print(f"User authenticated: {user.name}")
+            # Check if user is still active
+            if not user.is_active:
+                logging.warning("Inactive user %s attempted to use session", user_id)
+                session.clear()
+                return jsonify({'authenticated': False, 'error': 'Account is inactive'}), 200
+
+            logging.debug("User authenticated: %s (ID: %s)", user.name, user.id)
             return jsonify({
                 'authenticated': True,
                 'user': user.to_dict()
             }), 200
 
         except Exception as e:
-            print(f"Error in auth_status route: {str(e)}")
+            logging.error("Error in auth_status route: %s", str(e))
             # Clear session on error to prevent login loops
             session.clear()
             return jsonify({
@@ -1353,8 +1452,18 @@ def register_routes(app):
             }), 200  # Return 200 instead of 500 to prevent login loops
 
     @app.route('/api/auth/register', methods=['POST'])
+    @auth_rate_limit()
     def register():
         data = request.get_json() or {}
+
+        # Sanitize and validate input
+        name = data.get('name', '').strip()
+        employee_number = data.get('employee_number', '').strip()
+        department = data.get('department', '').strip()
+        password = data.get('password', '')
+
+        # Log registration attempt (without password)
+        logging.info(f"Registration attempt for employee number: {employee_number}, name: {name} from IP: {request.remote_addr}")
 
         # Validate required fields
         required_fields = ['name', 'employee_number', 'department', 'password']
@@ -1362,22 +1471,44 @@ def register_routes(app):
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
+        # Validate input formats
+        if not re.match(r'^[A-Za-z0-9\s\-\'\.]+$', name):
+            return jsonify({'error': 'Name contains invalid characters'}), 400
+
+        if not re.match(r'^[A-Za-z0-9]+$', employee_number):
+            return jsonify({'error': 'Employee number must contain only letters and numbers'}), 400
+
+        if not re.match(r'^[A-Za-z0-9\s\-]+$', department):
+            return jsonify({'error': 'Department contains invalid characters'}), 400
+
+        # Validate password strength
+        if len(password) < 8:
+            return jsonify({'error': 'Password must be at least 8 characters long'}), 400
+
+        # Check for common password patterns
+        if re.match(r'^[a-zA-Z]+$', password) or re.match(r'^[0-9]+$', password):
+            return jsonify({'error': 'Password must contain a mix of letters, numbers, and special characters'}), 400
+
         # Check if employee number already exists in users or registration requests
-        if User.query.filter_by(employee_number=data['employee_number']).first():
+        if User.query.filter_by(employee_number=employee_number).first():
+            logging.warning(f"Registration attempt with already registered employee number: {employee_number}")
             return jsonify({'error': 'Employee number already registered'}), 400
 
+        # Check if there's a pending registration request
         from models import RegistrationRequest
-        if RegistrationRequest.query.filter_by(employee_number=data['employee_number'], status='pending').first():
+        if RegistrationRequest.query.filter_by(employee_number=employee_number, status='pending').first():
+            logging.warning(f"Registration attempt with pending request for employee number: {employee_number}")
             return jsonify({'error': 'A registration request with this employee number is already pending approval'}), 400
 
         # Create new registration request instead of user
         reg_request = RegistrationRequest(
-            name=data['name'],
-            employee_number=data['employee_number'],
-            department=data['department'],
-            status='pending'
+            name=name,
+            employee_number=employee_number,
+            department=department,
+            status='pending',
+            ip_address=request.remote_addr
         )
-        reg_request.set_password(data['password'])
+        reg_request.set_password(password)
 
         db.session.add(reg_request)
         db.session.commit()
@@ -1390,19 +1521,41 @@ def register_routes(app):
         db.session.add(log)
         db.session.commit()
 
+        # Log successful registration request
+        logging.info(f"Registration request created for employee number: {employee_number}, name: {name}")
+
         return jsonify({'message': 'Registration request submitted. An administrator will review your request.'}), 201
 
     @app.route('/api/auth/reset-password/request', methods=['POST'])
+    @auth_rate_limit()
     def request_password_reset():
         data = request.get_json() or {}
 
-        if not data.get('employee_number'):
+        # Sanitize and validate input
+        employee_number = data.get('employee_number', '').strip()
+
+        # Log password reset request (without sensitive data)
+        logging.info(f"Password reset requested for employee number: {employee_number} from IP: {request.remote_addr}")
+
+        if not employee_number:
             return jsonify({'error': 'Employee number is required'}), 400
 
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
+        # Validate employee number format (alphanumeric only)
+        if not re.match(r'^[A-Za-z0-9]+$', employee_number):
+            return jsonify({'error': 'Invalid employee number format'}), 400
+
+        user = User.query.filter_by(employee_number=employee_number).first()
+
+        # Always return the same response regardless of whether the user exists
+        # This prevents user enumeration attacks
+        standard_response = {
+            'message': 'If your employee number is registered, a reset code will be sent'
+        }
+
         if not user:
-            # Don't reveal that the user doesn't exist
-            return jsonify({'message': 'If your employee number is registered, a reset code will be sent'}), 200
+            # Don't reveal that the user doesn't exist, but log it for security monitoring
+            logging.info(f"Password reset attempted for non-existent employee number: {employee_number}")
+            return jsonify(standard_response), 200
 
         # Generate reset token
         reset_code = user.generate_reset_token()
@@ -1421,16 +1574,30 @@ def register_routes(app):
         db.session.add(activity)
         db.session.commit()
 
+        # Log successful reset code generation
+        logging.info(f"Reset code generated for user ID: {user.id}, employee number: {employee_number}")
+
         # In a real app, you would not return the code in the response
         # This is just for demonstration purposes
-        return jsonify({
-            'message': 'Reset code generated',
-            'reset_code': reset_code  # In production, remove this line and send via email/SMS
-        }), 200
+        response_data = standard_response.copy()
+        # Only in development mode, include the reset code in the response
+        if app.config.get('FLASK_ENV') != 'production':
+            response_data['reset_code'] = reset_code
+
+        return jsonify(response_data), 200
 
     @app.route('/api/auth/reset-password/confirm', methods=['POST'])
+    @auth_rate_limit()
     def confirm_password_reset():
         data = request.get_json() or {}
+
+        # Sanitize and validate input
+        employee_number = data.get('employee_number', '').strip()
+        reset_code = data.get('reset_code', '').strip()
+        new_password = data.get('new_password', '')
+
+        # Log password reset confirmation attempt (without sensitive data)
+        logging.info(f"Password reset confirmation attempt for employee number: {employee_number} from IP: {request.remote_addr}")
 
         # Validate required fields
         required_fields = ['employee_number', 'reset_code', 'new_password']
@@ -1438,16 +1605,41 @@ def register_routes(app):
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
+        # Validate employee number format (alphanumeric only)
+        if not re.match(r'^[A-Za-z0-9]+$', employee_number):
+            return jsonify({'error': 'Invalid employee number format'}), 400
+
+        # Validate password strength
+        if len(new_password) < 8:
+            return jsonify({'error': 'Password must be at least 8 characters long'}), 400
+
+        # Check for common password patterns
+        if re.match(r'^[a-zA-Z]+$', new_password) or re.match(r'^[0-9]+$', new_password):
+            return jsonify({'error': 'Password must contain a mix of letters, numbers, and special characters'}), 400
+
+        user = User.query.filter_by(employee_number=employee_number).first()
         if not user:
-            return jsonify({'error': 'Invalid employee number'}), 400
+            # Don't reveal that the user doesn't exist
+            logging.info(f"Password reset confirmation attempted for non-existent employee number: {employee_number}")
+            return jsonify({'error': 'Invalid or expired reset code'}), 400
 
         # Verify reset code
-        if not user.check_reset_token(data['reset_code']):
+        if not user.check_reset_token(reset_code):
+            # Log failed reset attempt
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='failed_password_reset',
+                description='Failed password reset attempt - invalid code',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+            db.session.commit()
+
+            logging.info(f"Invalid reset code used for user ID: {user.id}, employee number: {employee_number}")
             return jsonify({'error': 'Invalid or expired reset code'}), 400
 
         # Update password
-        user.set_password(data['new_password'])
+        user.set_password(new_password)
         user.clear_reset_token()
         db.session.commit()
 
@@ -1459,7 +1651,16 @@ def register_routes(app):
             ip_address=request.remote_addr
         )
         db.session.add(activity)
+
+        log = AuditLog(
+            action_type='password_reset',
+            action_details=f'Password reset for user {user.id} ({user.name})'
+        )
+        db.session.add(log)
         db.session.commit()
+
+        # Log successful password reset
+        logging.info(f"Password successfully reset for user ID: {user.id}, employee number: {employee_number}")
 
         return jsonify({'message': 'Password reset successful'}), 200
 

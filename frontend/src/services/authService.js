@@ -2,11 +2,12 @@ import api from './api';
 
 const AuthService = {
   // Login user
-  login: async (username, password) => {
+  login: async (username, password, rememberMe = false) => {
     try {
       const response = await api.post('/auth/login', {
         employee_number: username,
-        password
+        password,
+        remember_me: rememberMe
       });
       return response.data;
     } catch (error) {

@@ -2,101 +2,111 @@
 Rate Limiter for Flask API
 
 This module provides a rate limiter for the Flask API to prevent
-the backend from being overwhelmed by too many requests.
+the backend from being overwhelmed by too many requests and to
+protect against brute force attacks.
 """
 
-import time
-from collections import defaultdict
+from flask import request, jsonify, current_app
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from functools import wraps
-from flask import request, jsonify
+import time
 
-class RateLimiter:
+# Create a limiter instance that will be initialized with the app
+limiter = None
+
+def init_limiter(app):
     """
-    A simple rate limiter for Flask API endpoints.
+    Initialize the Flask-Limiter with the Flask app.
 
-    This class implements a token bucket algorithm to limit the rate of requests
-    to the API. Each client (identified by IP address) has a bucket of tokens
-    that is refilled at a constant rate. Each request consumes a token, and if
-    there are no tokens available, the request is rejected.
+    Args:
+        app: The Flask application instance
     """
+    global limiter
 
-    def __init__(self, rate=10, per=1, burst=20):
-        """
-        Initialize the rate limiter.
+    # Configure the limiter with the app
+    limiter = Limiter(
+        app=app,
+        key_func=get_client_identifier,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://",
+        strategy="fixed-window-elastic-expiry",  # More efficient for high-traffic APIs
+        headers_enabled=True,  # Add rate limit headers to responses
+        swallow_errors=True,  # Don't fail if rate limiter has issues
+    )
 
-        Args:
-            rate (int): The number of tokens to add to the bucket per time period
-            per (int): The time period in seconds
-            burst (int): The maximum number of tokens that can be in the bucket
-        """
-        self.rate = rate  # tokens per second
-        self.per = per    # seconds
-        self.burst = burst  # maximum bucket size
+    # Register custom error handler
+    @limiter.request_filter
+    def health_check_filter():
+        """Don't rate limit health check endpoints"""
+        return request.path == "/api/health"
 
-        # Store the token buckets for each client
-        self.buckets = defaultdict(lambda: {"tokens": burst, "last_refill": time.time()})
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        """Custom error handler for rate limit exceeded"""
+        return jsonify({
+            "error": "Too many requests",
+            "message": "Rate limit exceeded. Please try again later.",
+            "retry_after": e.description
+        }), 429
 
-    def _get_client_id(self):
-        """Get a unique identifier for the client."""
-        return request.remote_addr
+    return limiter
 
-    def _refill_bucket(self, bucket):
-        """Refill the bucket based on the time elapsed since the last refill."""
-        now = time.time()
-        time_passed = now - bucket["last_refill"]
-        tokens_to_add = time_passed * (self.rate / self.per)
+def get_client_identifier():
+    """
+    Get a unique identifier for the client.
 
-        bucket["tokens"] = min(bucket["tokens"] + tokens_to_add, self.burst)
-        bucket["last_refill"] = now
+    Uses X-Forwarded-For header if available (for when behind a proxy),
+    falls back to remote_addr, and includes User-Agent to help prevent
+    simple spoofing.
 
-    def _consume_token(self, client_id):
-        """
-        Consume a token from the client's bucket.
+    Returns:
+        str: A string identifying the client
+    """
+    # Get the client's IP address
+    if request.headers.get('X-Forwarded-For'):
+        ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    else:
+        ip = request.remote_addr or 'unknown'
 
-        Returns:
-            bool: True if a token was consumed, False otherwise
-        """
-        bucket = self.buckets[client_id]
-        self._refill_bucket(bucket)
+    # Include a portion of the User-Agent to make the identifier more unique
+    # but not the entire string to avoid creating too many buckets
+    user_agent = request.headers.get('User-Agent', '')[:20]
 
-        if bucket["tokens"] >= 1:
-            bucket["tokens"] -= 1
-            return True
+    # For authenticated users, include their user ID for more accurate limiting
+    user_id = request.cookies.get('user_id', '')
 
-        return False
+    return f"{ip}:{user_agent}:{user_id}"
 
-    def limit(self, f):
-        """
-        Decorator to apply rate limiting to a Flask route.
+# Decorator for applying custom rate limits to specific routes
+def custom_rate_limit(limit_string):
+    """
+    Decorator to apply a custom rate limit to a Flask route.
 
-        Args:
-            f: The Flask route function to decorate
+    Args:
+        limit_string: A string specifying the rate limit (e.g., "5 per minute")
 
-        Returns:
-            The decorated function
-        """
+    Returns:
+        The decorated function
+    """
+    def decorator(f):
         @wraps(f)
-        def decorated(*args, **kwargs):
-            client_id = self._get_client_id()
-
-            if not self._consume_token(client_id):
-                response = jsonify({
-                    "error": "Too many requests",
-                    "message": "You have exceeded the rate limit. Please try again later."
-                })
-                response.status_code = 429  # Too Many Requests
-                return response
-
+        def decorated_function(*args, **kwargs):
+            if limiter:
+                return limiter.limit(limit_string)(f)(*args, **kwargs)
             return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
-        return decorated
+# Specific rate limits for sensitive operations
+def auth_rate_limit():
+    """Rate limit for authentication endpoints to prevent brute force attacks"""
+    return custom_rate_limit("5 per minute, 20 per hour")(lambda f: f)
 
+def api_rate_limit():
+    """Standard rate limit for API endpoints"""
+    return custom_rate_limit("60 per minute")(lambda f: f)
 
-# Create a global rate limiter instance
-# Allow 100 requests per second with a burst of 200 requests
-rate_limiter = RateLimiter(rate=100, per=1, burst=200)
-
-# Decorator for rate-limited routes
-def rate_limit(f):
-    """Decorator to apply rate limiting to a Flask route."""
-    return rate_limiter.limit(f)
+def admin_api_rate_limit():
+    """Rate limit for admin API endpoints"""
+    return custom_rate_limit("30 per minute")(lambda f: f)

@@ -2,20 +2,24 @@ version: '3.8'
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: supplyline-mro-backend
     restart: unless-stopped
     volumes:
-      - ./database:/database
-      - ./flask_session:/flask_session
-      - ./update_tools_schema.py:/app/update_tools_schema.py
-      - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py
+      - database_data:/database
+      - session_data:/flask_session
+      - ./update_tools_schema.py:/app/update_tools_schema.py:ro
+      - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py:ro
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
-      - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
+      - SECRET_KEY=${SECRET_KEY:-$(openssl rand -hex 32)}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:-$(openssl rand -hex 32)}
+      - TZ=UTC
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"  # Only expose to localhost
     networks:
       - app-network
     healthcheck:
@@ -24,9 +28,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    # Set resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    # Set read-only filesystem where possible
+    read_only: false  # Can't be true due to SQLite database
+    tmpfs:
+      - /tmp:size=50M
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: supplyline-mro-frontend
     restart: unless-stopped
     depends_on:
@@ -36,16 +57,48 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    # Set resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+    # Set read-only filesystem
+    read_only: true
+    tmpfs:
+      - /tmp:size=50M
+      - /var/cache/nginx:size=50M
+      - /var/run:size=50M
 
 networks:
   app-network:
     driver: bridge
+    # Enable network encryption
+    driver_opts:
+      encrypted: "true"
+    # Restrict external access
+    internal: false  # Set to true in production if no external access needed
 
 volumes:
-  database:
-  flask_session:
+  database_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/database
+      o: bind
+  session_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/flask_session
+      o: bind

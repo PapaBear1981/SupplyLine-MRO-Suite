@@ -353,6 +353,7 @@ class RegistrationRequest(db.Model):
     processed_at = db.Column(db.DateTime, nullable=True)
     processed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     admin_notes = db.Column(db.String, nullable=True)
+    ip_address = db.Column(db.String, nullable=True)  # Store IP address for security auditing
 
     # Relationship to the admin who processed the request
     admin = db.relationship('User', foreign_keys=[processed_by])
@@ -371,7 +372,8 @@ class RegistrationRequest(db.Model):
             'processed_at': self.processed_at.isoformat() if self.processed_at else None,
             'processed_by': self.processed_by,
             'admin_notes': self.admin_notes,
-            'admin_name': self.admin.name if self.admin else None
+            'admin_name': self.admin.name if self.admin else None,
+            'ip_address': self.ip_address  # Include IP address in the dictionary
         }
 
 class ToolCalibration(db.Model):

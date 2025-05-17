@@ -5,9 +5,9 @@ import UserService from '../services/userService';
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ username, password }, { rejectWithValue }) => {
+  async ({ username, password, rememberMe = false }, { rejectWithValue }) => {
     try {
-      const data = await AuthService.login(username, password);
+      const data = await AuthService.login(username, password, rememberMe);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Login failed' });
