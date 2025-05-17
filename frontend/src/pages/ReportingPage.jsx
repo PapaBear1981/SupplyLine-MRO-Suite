@@ -8,6 +8,7 @@ import ExportControls from '../components/reports/ExportControls';
 import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics';
 import ChemicalUsageAnalytics from '../components/reports/ChemicalUsageAnalytics';
 import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
+import CalibrationReports from '../components/reports/CalibrationReports';
 import {
   fetchToolInventoryReport,
   fetchCheckoutHistoryReport,
@@ -34,6 +35,7 @@ const ReportingPage = () => {
   const [exportError, setExportError] = useState(null);
   const [activeTab, setActiveTab] = useState('standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
+  const [calibrationReportsTab, setCalibrationReportsTab] = useState('due');
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
@@ -127,6 +129,12 @@ const ReportingPage = () => {
           Chemical Analytics
         </Button>
         <Button
+          variant={activeTab === 'calibration-reports' ? 'primary' : 'outline-primary'}
+          onClick={() => setActiveTab('calibration-reports')}
+        >
+          Calibration Reports
+        </Button>
+        <Button
           variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
           onClick={() => setActiveTab('part-number-analytics')}
         >
@@ -205,6 +213,12 @@ const ReportingPage = () => {
               )}
             </Card.Body>
           </Card>
+        </div>
+      )}
+
+      {activeTab === 'calibration-reports' && (
+        <div className="pt-4">
+          <CalibrationReports />
         </div>
       )}
 

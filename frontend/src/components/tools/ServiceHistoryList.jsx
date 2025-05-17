@@ -6,15 +6,19 @@ import { fetchToolServiceHistory } from '../../store/toolsSlice';
 const ServiceHistoryList = ({ toolId }) => {
   const dispatch = useDispatch();
   const { serviceHistory, serviceLoading, serviceError } = useSelector((state) => state.tools);
-  
+
   useEffect(() => {
     if (toolId) {
-      dispatch(fetchToolServiceHistory({ id: toolId }));
+      // Convert toolId to number if it's a string
+      const id = typeof toolId === 'string' ? parseInt(toolId, 10) : toolId;
+      dispatch(fetchToolServiceHistory({ id }));
     }
   }, [dispatch, toolId]);
-  
-  const history = serviceHistory[toolId] || [];
-  
+
+  // Convert toolId to number for lookup if it's a string
+  const id = typeof toolId === 'string' ? parseInt(toolId, 10) : toolId;
+  const history = serviceHistory[id] || [];
+
   const getActionTypeLabel = (actionType) => {
     switch (actionType) {
       case 'remove_maintenance':
@@ -27,7 +31,7 @@ const ServiceHistoryList = ({ toolId }) => {
         return actionType;
     }
   };
-  
+
   const getActionTypeBadge = (actionType) => {
     switch (actionType) {
       case 'remove_maintenance':
@@ -40,7 +44,7 @@ const ServiceHistoryList = ({ toolId }) => {
         return 'secondary';
     }
   };
-  
+
   if (serviceLoading) {
     return (
       <div className="text-center my-4">
@@ -49,7 +53,7 @@ const ServiceHistoryList = ({ toolId }) => {
       </div>
     );
   }
-  
+
   if (serviceError) {
     return (
       <Card className="border-danger">
@@ -59,7 +63,7 @@ const ServiceHistoryList = ({ toolId }) => {
       </Card>
     );
   }
-  
+
   return (
     <Card>
       <Card.Header>

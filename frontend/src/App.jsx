@@ -31,6 +31,9 @@ import EditChemicalPage from './pages/EditChemicalPage';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import CalibrationManagement from './pages/CalibrationManagement';
+import ToolCalibrationForm from './pages/ToolCalibrationForm';
+import CalibrationStandardForm from './pages/CalibrationStandardForm';
+import CalibrationDetailPage from './pages/CalibrationDetailPage';
 
 function App() {
   const dispatch = useDispatch();
@@ -203,7 +206,7 @@ function App() {
         <Route path="/tools/:id/calibrations/new" element={
           <ProtectedRoute>
             <MainLayout>
-              <CalibrationManagement />
+              <ToolCalibrationForm />
             </MainLayout>
           </ProtectedRoute>
         } />
@@ -211,7 +214,7 @@ function App() {
         <Route path="/tools/:id/calibrations/:calibrationId" element={
           <ProtectedRoute>
             <MainLayout>
-              <CalibrationManagement />
+              <CalibrationDetailPage />
             </MainLayout>
           </ProtectedRoute>
         } />
@@ -227,7 +230,7 @@ function App() {
         <Route path="/calibration-standards/new" element={
           <ProtectedRoute>
             <MainLayout>
-              <CalibrationManagement />
+              <CalibrationStandardForm />
             </MainLayout>
           </ProtectedRoute>
         } />
@@ -243,7 +246,7 @@ function App() {
         <Route path="/calibration-standards/:id/edit" element={
           <ProtectedRoute>
             <MainLayout>
-              <CalibrationManagement />
+              <CalibrationStandardForm />
             </MainLayout>
           </ProtectedRoute>
         } />

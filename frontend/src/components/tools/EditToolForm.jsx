@@ -17,7 +17,9 @@ const EditToolForm = () => {
     description: '',
     condition: 'New',
     location: '',
-    category: 'General'
+    category: 'General',
+    requires_calibration: false,
+    calibration_frequency_days: ''
   });
   const [validated, setValidated] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -44,16 +46,18 @@ const EditToolForm = () => {
         description: currentTool.description || '',
         condition: currentTool.condition || 'New',
         location: currentTool.location || '',
-        category: currentTool.category || 'General'
+        category: currentTool.category || 'General',
+        requires_calibration: currentTool.requires_calibration || false,
+        calibration_frequency_days: currentTool.calibration_frequency_days || ''
       });
     }
   }, [currentTool]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setToolData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -82,7 +86,9 @@ const EditToolForm = () => {
       description: toolData.description,
       condition: toolData.condition,
       location: toolData.location,
-      category: toolData.category
+      category: toolData.category,
+      requires_calibration: toolData.requires_calibration,
+      calibration_frequency_days: toolData.requires_calibration ? toolData.calibration_frequency_days : null
     };
 
     console.log('Tool data to send:', toolDataToSend);
@@ -197,6 +203,38 @@ const EditToolForm = () => {
               <option value="Sheetmetal">Sheetmetal</option>
             </Form.Select>
           </Form.Group>
+
+          <hr className="my-4" />
+          <h5 className="mb-3">Calibration Information</h5>
+
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="checkbox"
+              id="requires-calibration"
+              label="This tool requires calibration"
+              name="requires_calibration"
+              checked={toolData.requires_calibration}
+              onChange={handleChange}
+            />
+          </Form.Group>
+
+          {toolData.requires_calibration && (
+            <Form.Group className="mb-3">
+              <Form.Label>Calibration Frequency (Days)</Form.Label>
+              <Form.Control
+                type="number"
+                name="calibration_frequency_days"
+                value={toolData.calibration_frequency_days}
+                onChange={handleChange}
+                min="1"
+                max="3650"
+                placeholder="Enter number of days between calibrations"
+              />
+              <Form.Text className="text-muted">
+                Enter the number of days between required calibrations (e.g., 90, 180, 365).
+              </Form.Text>
+            </Form.Group>
+          )}
 
           <div className="d-flex justify-content-end gap-2">
             <Button variant="secondary" onClick={() => navigate(`/tools/${id}`)}>

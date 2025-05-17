@@ -2,6 +2,18 @@
 
 ## Version History
 
+### Version 3.5.0 (2025-05-17)
+- Added tool calibration management functionality
+- Implemented calibration tracking for tools requiring regular calibration
+- Added calibration standards management
+- Added calibration history tracking
+- Added due soon and overdue calibration alerts
+- Added calibration reports to the reporting system
+- Enhanced tool detail page to display calibration information
+- Updated tool forms to include calibration fields
+- Improved navigation with dedicated calibration section
+- Enhanced admin dashboard to show calibration metrics
+
 ### Version 3.3.2 (2025-05-17)
 - Fixed chemical management routes for reorder, on-order, expiring soon, and archived chemicals
 - Improved route handling for chemical analytics

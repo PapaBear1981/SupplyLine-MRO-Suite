@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.0] - 2025-05-17
+
+### Added
+- Added tool calibration management functionality
+- Implemented calibration tracking for tools requiring regular calibration
+- Added calibration standards management
+- Added calibration history tracking
+- Added due soon and overdue calibration alerts
+- Added calibration reports to the reporting system
+
+### Changed
+- Enhanced tool detail page to display calibration information
+- Updated tool forms to include calibration fields
+- Improved navigation with dedicated calibration section
+- Enhanced admin dashboard to show calibration metrics
+
 ## [3.3.0] - 2025-05-20
 
 ### Added

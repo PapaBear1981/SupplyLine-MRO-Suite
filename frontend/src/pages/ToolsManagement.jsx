@@ -2,6 +2,7 @@ import { useSelector } from 'react-redux';
 import { Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
+import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
@@ -18,6 +19,9 @@ const ToolsManagement = () => {
           </Button>
         )}
       </div>
+
+      {/* Show calibration notifications for admin and Materials department users */}
+      {isAdmin && <CalibrationNotifications />}
 
       <ToolList />
     </div>
