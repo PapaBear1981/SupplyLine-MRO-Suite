@@ -18,7 +18,29 @@ const LoginDebug = () => {
     try {
       console.log('Attempting direct login with:', { employee_number: username, password });
 
-      const response = await axios.post('/api/auth/login', {
+      // Use relative URL to work with Vite proxy
+      const apiUrl = '/api/auth/login';
+      console.log('Using fetch with URL:', apiUrl);
+
+      const fetchResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          employee_number: username,
+          password
+        }),
+        credentials: 'include'
+      });
+
+      const data = await fetchResponse.json();
+      console.log('Fetch response status:', fetchResponse.status);
+      console.log('Fetch response data:', data);
+
+      // Also try with axios as backup
+      console.log('Also trying with axios...');
+      const response = await axios.post(apiUrl, {
         employee_number: username,
         password
       }, {
@@ -93,7 +115,11 @@ const LoginDebug = () => {
     setError(null);
 
     try {
-      const statusResponse = await axios.get('/api/auth/status', {
+      // Use relative URL to work with Vite proxy
+      const apiUrl = '/api/auth/status';
+      console.log('Using URL for status check:', apiUrl);
+
+      const statusResponse = await axios.get(apiUrl, {
         withCredentials: true
       });
       console.log('Current auth status:', statusResponse.data);

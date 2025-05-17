@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api', // Use relative URL to work with Vite proxy
   headers: {
     'Content-Type': 'application/json',
   },

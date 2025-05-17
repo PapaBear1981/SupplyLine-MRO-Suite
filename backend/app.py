@@ -3,6 +3,8 @@ from routes import register_routes
 from config import Config
 from flask_session import Session
 from flask_cors import CORS
+import os
+import sys
 
 def create_app():
     # serve frontend static files from backend/static
@@ -15,15 +17,19 @@ def create_app():
     app.config.from_object(Config)
 
     # Initialize CORS with settings from config
-    CORS(app,
-         supports_credentials=app.config.get('CORS_SUPPORTS_CREDENTIALS', True),
-         origins=app.config.get('CORS_ORIGINS', ["http://localhost:5173", "http://127.0.0.1:5173"]),
-         allow_headers=["Content-Type", "Authorization"],
-         expose_headers=["Content-Type", "Authorization"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    CORS(app, resources={r"/*": {"origins": "*", "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}}, supports_credentials=True)
 
     # Initialize Flask-Session
     Session(app)
+
+    # Run database migrations
+    try:
+        # Import and run the reorder fields migration
+        from migrate_reorder_fields import migrate_database
+        print("Running chemical reorder fields migration...")
+        migrate_database()
+    except Exception as e:
+        print(f"Error running migration: {str(e)}")
 
     register_routes(app)
 
