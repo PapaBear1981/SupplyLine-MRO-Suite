@@ -40,9 +40,21 @@ export const checkoutTool = createAsyncThunk(
 
 export const returnTool = createAsyncThunk(
   'checkouts/returnTool',
-  async ({ checkoutId, condition }, { rejectWithValue }) => {
+  async ({ checkoutId, condition }, { rejectWithValue, dispatch }) => {
     try {
       const data = await CheckoutService.returnTool(checkoutId, condition);
+
+      // Update the tool status in the tools slice
+      if (data && data.tool_id) {
+        dispatch({
+          type: 'tools/updateToolStatus',
+          payload: {
+            toolId: data.tool_id,
+            status: 'available'
+          }
+        });
+      }
+
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to return tool' });

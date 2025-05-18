@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
+import { Form, Button, Card, Alert, Row, Col, Toast, ToastContainer } from 'react-bootstrap';
 import { createChemical } from '../../store/chemicalsSlice';
 
 const NewChemicalForm = () => {
@@ -23,6 +23,7 @@ const NewChemicalForm = () => {
     notes: ''
   });
   const [validated, setValidated] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,7 +55,11 @@ const NewChemicalForm = () => {
     dispatch(createChemical(formattedData))
       .unwrap()
       .then(() => {
-        navigate('/chemicals');
+        setShowSuccess(true);
+        // Navigate after showing success message for a short time
+        setTimeout(() => {
+          navigate('/chemicals');
+        }, 1500);
       })
       .catch((err) => {
         console.error('Failed to create chemical:', err);
@@ -62,12 +67,30 @@ const NewChemicalForm = () => {
   };
 
   return (
-    <Card className="shadow-sm">
-      <Card.Header>
-        <h4>Add New Chemical</h4>
-      </Card.Header>
-      <Card.Body>
-        {error && <Alert variant="danger">{error.message}</Alert>}
+    <>
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          delay={3000}
+          autohide
+          bg="success"
+        >
+          <Toast.Header>
+            <strong className="me-auto">Success</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">
+            Chemical added successfully!
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
+
+      <Card className="shadow-sm">
+        <Card.Header>
+          <h4>Add New Chemical</h4>
+        </Card.Header>
+        <Card.Body>
+          {error && <Alert variant="danger">{error.message}</Alert>}
 
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Row>
@@ -248,6 +271,7 @@ const NewChemicalForm = () => {
         </Form>
       </Card.Body>
     </Card>
+    </>
   );
 };
 

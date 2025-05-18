@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [3.5.4] - 2025-05-18
+
+### Fixed
+- Fixed "Add New Tool" functionality not working (Issue #4)
+  - Updated backend API to return complete tool data
+  - Added success message when a tool is created
+  - Improved error handling for tool creation
+  - Enhanced user feedback during form submission
+
+### Changed
+- Added comprehensive release notes documentation
+- Improved version tracking and tagging
+
+## [3.5.3] - 2025-05-18
+
+### Fixed
+- Fixed tool return functionality (Issues #3, #9)
+- Fixed issue where returned tools remained in active checkouts list and showed as "Checked Out" in tools list
+- Updated backend to properly set tool status to "available" when returned
+- Enhanced frontend to update tool status across all interfaces when a tool is returned
+
 ## [3.5.0] - 2025-05-17
 
 ### Added
