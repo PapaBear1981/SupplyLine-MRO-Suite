@@ -51,7 +51,7 @@ code {
   border-bottom-width: 2px;
 }
 
-/* Make all table headers have light background */
+/* Table header styling */
 .table thead, .table thead.bg-light, thead.bg-light {
   background-color: var(--bs-light);
 }
@@ -61,6 +61,12 @@ code {
 }
 
 /* Dark mode table styling */
+[data-bs-theme="dark"] .table thead,
+[data-bs-theme="dark"] .table thead.bg-light,
+[data-bs-theme="dark"] thead.bg-light {
+  background-color: var(--bs-light);
+}
+
 [data-bs-theme="dark"] .table th {
   border-color: #495057;
 }
@@ -171,6 +177,12 @@ code {
   --bs-light: #343a40;
   --bs-dark: #1a1d20;
   --bs-border-color: #495057;
+}
+
+/* Fix for card headers with bg-light class in dark mode */
+[data-bs-theme="dark"] .card-header.bg-light {
+  background-color: var(--bs-light) !important;
+  color: var(--bs-body-color);
 }
 
 [data-bs-theme="light"] {
