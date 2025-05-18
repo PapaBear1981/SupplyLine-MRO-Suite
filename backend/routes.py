@@ -400,12 +400,11 @@ def register_routes(app):
     def get_system_resources():
         """Get real-time system resource usage statistics"""
         import psutil
-        import os
-        from datetime import datetime, timedelta
 
         try:
-            # Get CPU usage
-            cpu_usage = psutil.cpu_percent(interval=0.5)
+            # Get CPU usage - use instantaneous value to avoid blocking
+            # Note: This will return the usage since the last call or 0.0 on first call
+            cpu_usage = psutil.cpu_percent(interval=None)
 
             # Get memory usage
             memory = psutil.virtual_memory()
@@ -417,6 +416,7 @@ def register_routes(app):
 
             # Get database size (approximate based on number of records)
             db_size_mb = 0
+            total_records = 0  # Initialize to prevent UnboundLocalError if the try block fails
             try:
                 # Count records in major tables to estimate size
                 user_count = User.query.count()
@@ -430,6 +430,7 @@ def register_routes(app):
             except Exception as e:
                 print(f"Error estimating database size: {str(e)}")
                 db_size_mb = 10  # Default fallback value
+                total_records = 0  # Ensure it's defined in case of exception
 
             # Get active user sessions (approximate based on recent activity)
             now = datetime.utcnow()
