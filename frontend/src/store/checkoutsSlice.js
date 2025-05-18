@@ -40,9 +40,9 @@ export const checkoutTool = createAsyncThunk(
 
 export const returnTool = createAsyncThunk(
   'checkouts/returnTool',
-  async ({ checkoutId, condition }, { rejectWithValue, dispatch }) => {
+  async (returnData, { rejectWithValue, dispatch }) => {
     try {
-      const data = await CheckoutService.returnTool(checkoutId, condition);
+      const data = await CheckoutService.returnTool(returnData);
 
       // Update the tool status in the tools slice
       if (data && data.tool_id) {

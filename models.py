@@ -96,8 +96,28 @@ class Checkout(db.Model):
     checkout_date = db.Column(db.DateTime, default=datetime.utcnow)
     return_date = db.Column(db.DateTime)
     expected_return_date = db.Column(db.DateTime)
+    # New fields for improved return functionality
+    return_condition = db.Column(db.String)  # Condition of the tool when returned
+    returned_by = db.Column(db.String)  # Who returned the tool (can be different from the user who checked it out)
+    found = db.Column(db.Boolean, default=False)  # Whether the tool was found on the production floor
+    return_notes = db.Column(db.String)  # Additional notes about the return
     tool = db.relationship('Tool')
     user = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_id': self.tool_id,
+            'user_id': self.user_id,
+            'checkout_date': self.checkout_date.isoformat(),
+            'return_date': self.return_date.isoformat() if self.return_date else None,
+            'expected_return_date': self.expected_return_date.isoformat() if self.expected_return_date else None,
+            'return_condition': self.return_condition,
+            'returned_by': self.returned_by,
+            'found': self.found,
+            'return_notes': self.return_notes,
+            'status': 'Returned' if self.return_date else 'Checked Out'
+        }
 
 class AuditLog(db.Model):
     __tablename__ = 'audit_log'
