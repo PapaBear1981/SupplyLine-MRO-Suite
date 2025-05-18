@@ -67,10 +67,14 @@ const CheckoutService = {
   },
 
   // Return a tool
-  returnTool: async (checkoutId, condition) => {
+  returnTool: async (returnData) => {
     try {
+      const { checkoutId, condition, returned_by, found, notes } = returnData;
       const response = await api.put(`/checkouts/${checkoutId}/return`, {
-        condition: condition
+        condition,
+        returned_by,
+        found,
+        notes
       });
       return response.data;
     } catch (error) {
