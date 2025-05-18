@@ -7,6 +7,7 @@ import secrets
 import string
 import os
 import uuid
+import time
 from werkzeug.utils import secure_filename
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
@@ -393,6 +394,92 @@ def register_routes(app):
             'activityOverTime': activity_data,
             'departmentDistribution': dept_data
         }), 200
+
+    @app.route('/api/admin/system-resources', methods=['GET'])
+    @admin_required
+    def get_system_resources():
+        """Get real-time system resource usage statistics"""
+        import psutil
+        import os
+        from datetime import datetime, timedelta
+
+        try:
+            # Get CPU usage
+            cpu_usage = psutil.cpu_percent(interval=0.5)
+
+            # Get memory usage
+            memory = psutil.virtual_memory()
+            memory_usage = memory.percent
+
+            # Get disk usage for the system drive
+            disk = psutil.disk_usage('/')
+            disk_usage = disk.percent
+
+            # Get database size (approximate based on number of records)
+            db_size_mb = 0
+            try:
+                # Count records in major tables to estimate size
+                user_count = User.query.count()
+                tool_count = Tool.query.count()
+                checkout_count = Checkout.query.count()
+                log_count = AuditLog.query.count()
+
+                # Rough estimate: 2KB per record on average
+                total_records = user_count + tool_count + checkout_count + log_count
+                db_size_mb = (total_records * 2) / 1024  # Convert KB to MB
+            except Exception as e:
+                print(f"Error estimating database size: {str(e)}")
+                db_size_mb = 10  # Default fallback value
+
+            # Get active user sessions (approximate based on recent activity)
+            now = datetime.utcnow()
+            five_minutes_ago = now - timedelta(minutes=5)
+
+            # Count users with activity in the last 5 minutes
+            active_sessions = UserActivity.query.filter(
+                UserActivity.timestamp >= five_minutes_ago
+            ).distinct(UserActivity.user_id).count()
+
+            # Get server uptime
+            uptime_seconds = int(time.time() - psutil.boot_time())
+            days, remainder = divmod(uptime_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
+            minutes, seconds = divmod(remainder, 60)
+
+            uptime_str = f"{days}d {hours}h {minutes}m"
+
+            return jsonify({
+                'cpu': {
+                    'usage': cpu_usage,
+                    'cores': psutil.cpu_count()
+                },
+                'memory': {
+                    'usage': memory_usage,
+                    'total_gb': round(memory.total / (1024**3), 1)
+                },
+                'disk': {
+                    'usage': disk_usage,
+                    'total_gb': round(disk.total / (1024**3), 1)
+                },
+                'database': {
+                    'size_mb': round(db_size_mb, 1),
+                    'tables': 4,
+                    'total_records': total_records
+                },
+                'server': {
+                    'status': 'online',
+                    'uptime': uptime_str,
+                    'active_users': active_sessions
+                },
+                'timestamp': datetime.utcnow().isoformat()
+            }), 200
+
+        except Exception as e:
+            print(f"Error getting system resources: {str(e)}")
+            return jsonify({
+                'error': 'Failed to retrieve system resources',
+                'message': str(e)
+            }), 500
 
     # Serve static files
     @app.route('/api/static/<path:filename>')
