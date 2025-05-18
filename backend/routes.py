@@ -1008,10 +1008,16 @@ def register_routes(app):
 
             print(f"Tool: {tool.tool_number if tool else 'Unknown'}, User: {user.name if user else 'Unknown'}")
 
-            # Get condition from request if provided
+            # Get data from request if provided
             data = request.get_json() or {}
             condition = data.get('condition')
+            returned_by = data.get('returned_by')
+            found = data.get('found', False)
+            notes = data.get('notes', '')
             print(f"Return condition: {condition}")
+            print(f"Returned by: {returned_by}")
+            print(f"Found: {found}")
+            print(f"Notes: {notes}")
 
             try:
                 # Mark as returned
@@ -1029,12 +1035,30 @@ def register_routes(app):
                     tool.status = 'available'
                     print(f"Updated tool status from {old_status} to available")
 
+                # Store return details in the database
+                # We'll add these as attributes to the checkout record
+                c.return_condition = condition
+                c.returned_by = returned_by
+                c.found = found
+                c.return_notes = notes
+
                 db.session.commit()
+
+                # Prepare action details for logging
+                action_details = f'User {user.name if user else "Unknown"} (ID: {c.user_id}) returned tool {tool.tool_number if tool else "Unknown"} (ID: {c.tool_id})'
+
+                # Add additional return details to the log
+                if returned_by:
+                    action_details += f', returned by: {returned_by}'
+                if found:
+                    action_details += ', tool was found on production floor'
+                if notes:
+                    action_details += f', notes: {notes}'
 
                 # Log the action
                 log = AuditLog(
                     action_type='return_tool',
-                    action_details=f'User {user.name if user else "Unknown"} (ID: {c.user_id}) returned tool {tool.tool_number if tool else "Unknown"} (ID: {c.tool_id})'
+                    action_details=action_details
                 )
                 db.session.add(log)
 
@@ -1063,6 +1087,9 @@ def register_routes(app):
                     'checkout_date': c.checkout_date.isoformat(),
                     'return_date': c.return_date.isoformat() if c.return_date else None,
                     'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
+                    'returned_by': returned_by,
+                    'found': found,
+                    'return_notes': notes,
                     'status': 'Returned',
                     'message': f'Tool {tool.tool_number if tool else "Unknown"} returned successfully'
                 }), 200

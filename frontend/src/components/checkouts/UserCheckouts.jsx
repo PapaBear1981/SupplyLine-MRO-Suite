@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Button, Card, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { fetchUserCheckouts, returnTool } from '../../store/checkoutsSlice';
+import { fetchUserCheckouts } from '../../store/checkoutsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
-import ConfirmModal from '../common/ConfirmModal';
+import ReturnToolModal from './ReturnToolModal';
 
 const UserCheckouts = () => {
   const dispatch = useDispatch();
@@ -12,6 +12,7 @@ const UserCheckouts = () => {
   const { user } = useSelector((state) => state.auth);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
+  const [selectedToolInfo, setSelectedToolInfo] = useState(null);
 
   // Check if user has permission to return tools
   const canReturnTools = user?.is_admin || user?.department === 'Materials';
@@ -27,17 +28,15 @@ const UserCheckouts = () => {
       });
   }, [dispatch]);
 
-  const handleReturnTool = (checkoutId) => {
-    setSelectedCheckoutId(checkoutId);
+  const handleReturnTool = (checkout) => {
+    setSelectedCheckoutId(checkout.id);
+    setSelectedToolInfo({
+      tool_number: checkout.tool_number,
+      serial_number: checkout.serial_number,
+      description: checkout.description,
+      user_name: user?.name || 'Current User'
+    });
     setShowReturnModal(true);
-  };
-
-  const confirmReturnTool = () => {
-    dispatch(returnTool({
-      checkoutId: selectedCheckoutId,
-      condition: 'Good' // Default condition, could be made selectable
-    }));
-    setShowReturnModal(false);
   };
 
   if (loading && !userCheckouts.length) {
@@ -105,7 +104,7 @@ const UserCheckouts = () => {
                             <Button
                               variant="success"
                               size="sm"
-                              onClick={() => handleReturnTool(checkout.id)}
+                              onClick={() => handleReturnTool(checkout)}
                               className="w-100"
                             >
                               Return Tool
@@ -176,15 +175,12 @@ const UserCheckouts = () => {
         </Card>
       </div>
 
-      {/* Return Tool Confirmation Modal */}
-      <ConfirmModal
+      {/* Return Tool Modal */}
+      <ReturnToolModal
         show={showReturnModal}
         onHide={() => setShowReturnModal(false)}
-        onConfirm={confirmReturnTool}
-        title="Return Tool"
-        message="Are you sure you want to return this tool?"
-        confirmText="Return Tool"
-        confirmVariant="success"
+        checkoutId={selectedCheckoutId}
+        toolInfo={selectedToolInfo}
       />
     </>
   );
