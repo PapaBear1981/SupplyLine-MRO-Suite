@@ -61,14 +61,15 @@ code {
 }
 
 /* Dark mode table styling */
-[data-bs-theme="dark"] .table thead,
 [data-bs-theme="dark"] .table thead.bg-light,
 [data-bs-theme="dark"] thead.bg-light {
-  background-color: var(--bs-light);
+  background-color: var(--bs-dark);
+  color: var(--bs-body-color);
 }
 
 [data-bs-theme="dark"] .table th {
   border-color: #495057;
+  color: var(--bs-body-color);
 }
 
 [data-bs-theme="dark"] .table td {
@@ -181,7 +182,7 @@ code {
 
 /* Fix for card headers with bg-light class in dark mode */
 [data-bs-theme="dark"] .card-header.bg-light {
-  background-color: var(--bs-light) !important;
+  background-color: var(--bs-dark) !important;
   color: var(--bs-body-color);
 }
 
