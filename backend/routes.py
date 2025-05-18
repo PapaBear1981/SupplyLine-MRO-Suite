@@ -1010,6 +1010,12 @@ def register_routes(app):
                     tool.condition = condition
                     print(f"Updated tool condition from {old_condition} to {condition}")
 
+                # Update tool status to available
+                if tool:
+                    old_status = tool.status
+                    tool.status = 'available'
+                    print(f"Updated tool status from {old_status} to available")
+
                 db.session.commit()
 
                 # Log the action

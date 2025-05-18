@@ -136,6 +136,18 @@ const toolsSlice = createSlice({
     clearCurrentTool: (state) => {
       state.currentTool = null;
     },
+    updateToolStatus: (state, action) => {
+      const { toolId, status } = action.payload;
+      // Update in tools array
+      const toolIndex = state.tools.findIndex(tool => tool.id === toolId);
+      if (toolIndex !== -1) {
+        state.tools[toolIndex].status = status;
+      }
+      // Update current tool if it's the one being modified
+      if (state.currentTool && state.currentTool.id === toolId) {
+        state.currentTool.status = status;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -282,5 +294,5 @@ const toolsSlice = createSlice({
   },
 });
 
-export const { clearError, clearCurrentTool } = toolsSlice.actions;
+export const { clearError, clearCurrentTool, updateToolStatus } = toolsSlice.actions;
 export default toolsSlice.reducer;
