@@ -170,16 +170,30 @@ def register_calibration_routes(app):
 
             # Parse calibration date
             try:
-                calibration_date = datetime.fromisoformat(data.get('calibration_date').replace('Z', '+00:00'))
-            except ValueError:
+                # Remove any timezone information to create naive datetime
+                cal_date_str = data.get('calibration_date')
+                if '+' in cal_date_str:
+                    cal_date_str = cal_date_str.split('+')[0]
+                if 'Z' in cal_date_str:
+                    cal_date_str = cal_date_str.replace('Z', '')
+                calibration_date = datetime.fromisoformat(cal_date_str)
+            except ValueError as e:
+                print(f"Error parsing calibration date: {str(e)}")
                 return jsonify({'error': 'Invalid calibration date format'}), 400
 
             # Parse next calibration date if provided
             next_calibration_date = None
             if data.get('next_calibration_date'):
                 try:
-                    next_calibration_date = datetime.fromisoformat(data.get('next_calibration_date').replace('Z', '+00:00'))
-                except ValueError:
+                    # Remove any timezone information to create naive datetime
+                    next_cal_date_str = data.get('next_calibration_date')
+                    if '+' in next_cal_date_str:
+                        next_cal_date_str = next_cal_date_str.split('+')[0]
+                    if 'Z' in next_cal_date_str:
+                        next_cal_date_str = next_cal_date_str.replace('Z', '')
+                    next_calibration_date = datetime.fromisoformat(next_cal_date_str)
+                except ValueError as e:
+                    print(f"Error parsing next calibration date: {str(e)}")
                     return jsonify({'error': 'Invalid next calibration date format'}), 400
             elif tool.calibration_frequency_days:
                 # Calculate next calibration date based on frequency
@@ -195,24 +209,32 @@ def register_calibration_routes(app):
                 calibration_status=data.get('calibration_status')
             )
 
-            # Add calibration standards if provided
+            # IMPORTANT: The sequence of operations below is critical for database integrity
+
+            # Step 1: Update tool calibration information
+            tool.last_calibration_date = calibration_date
+            tool.next_calibration_date = next_calibration_date
+            tool.update_calibration_status()
+
+            # Step 2: Save calibration to database first to get its ID
+            # This ensures the calibration record exists before linking standards
+            db.session.add(calibration)
+            db.session.commit()
+
+            # Step 3: Add calibration standards if provided
+            # Now that we have a valid calibration.id, we can link standards to it
             if data.get('standard_ids'):
                 for standard_id in data.get('standard_ids'):
                     standard = CalibrationStandard.query.get(standard_id)
                     if standard:
                         calibration_standard = ToolCalibrationStandard(
+                            calibration_id=calibration.id,  # This ID is now available because we committed above
                             standard_id=standard_id
                         )
-                        calibration.calibration_standards.append(calibration_standard)
+                        db.session.add(calibration_standard)
 
-            # Update tool calibration information
-            tool.last_calibration_date = calibration_date
-            tool.next_calibration_date = next_calibration_date
-            tool.update_calibration_status()
-
-            # Save to database
-            db.session.add(calibration)
-            db.session.commit()
+                # Commit the standards separately
+                db.session.commit()
 
             # Create audit log
             log = AuditLog(
@@ -229,6 +251,8 @@ def register_calibration_routes(app):
                 ip_address=request.remote_addr
             )
             db.session.add(activity)
+
+            # Final commit for audit log and user activity
             db.session.commit()
 
             return jsonify({
@@ -311,9 +335,23 @@ def register_calibration_routes(app):
 
             # Parse dates
             try:
-                certification_date = datetime.fromisoformat(data.get('certification_date').replace('Z', '+00:00'))
-                expiration_date = datetime.fromisoformat(data.get('expiration_date').replace('Z', '+00:00'))
-            except ValueError:
+                # Remove any timezone information to create naive datetime
+                cert_date_str = data.get('certification_date')
+                if '+' in cert_date_str:
+                    cert_date_str = cert_date_str.split('+')[0]
+                if 'Z' in cert_date_str:
+                    cert_date_str = cert_date_str.replace('Z', '')
+                certification_date = datetime.fromisoformat(cert_date_str)
+
+                # Remove any timezone information to create naive datetime
+                exp_date_str = data.get('expiration_date')
+                if '+' in exp_date_str:
+                    exp_date_str = exp_date_str.split('+')[0]
+                if 'Z' in exp_date_str:
+                    exp_date_str = exp_date_str.replace('Z', '')
+                expiration_date = datetime.fromisoformat(exp_date_str)
+            except ValueError as e:
+                print(f"Error parsing dates: {str(e)}")
                 return jsonify({'error': 'Invalid date format'}), 400
 
             # Create standard
@@ -416,14 +454,28 @@ def register_calibration_routes(app):
             # Parse dates if provided
             if 'certification_date' in data:
                 try:
-                    standard.certification_date = datetime.fromisoformat(data['certification_date'].replace('Z', '+00:00'))
-                except ValueError:
+                    # Remove any timezone information to create naive datetime
+                    cert_date_str = data['certification_date']
+                    if '+' in cert_date_str:
+                        cert_date_str = cert_date_str.split('+')[0]
+                    if 'Z' in cert_date_str:
+                        cert_date_str = cert_date_str.replace('Z', '')
+                    standard.certification_date = datetime.fromisoformat(cert_date_str)
+                except ValueError as e:
+                    print(f"Error parsing certification date: {str(e)}")
                     return jsonify({'error': 'Invalid certification date format'}), 400
 
             if 'expiration_date' in data:
                 try:
-                    standard.expiration_date = datetime.fromisoformat(data['expiration_date'].replace('Z', '+00:00'))
-                except ValueError:
+                    # Remove any timezone information to create naive datetime
+                    exp_date_str = data['expiration_date']
+                    if '+' in exp_date_str:
+                        exp_date_str = exp_date_str.split('+')[0]
+                    if 'Z' in exp_date_str:
+                        exp_date_str = exp_date_str.replace('Z', '')
+                    standard.expiration_date = datetime.fromisoformat(exp_date_str)
+                except ValueError as e:
+                    print(f"Error parsing expiration date: {str(e)}")
                     return jsonify({'error': 'Invalid expiration date format'}), 400
 
             # Save changes
