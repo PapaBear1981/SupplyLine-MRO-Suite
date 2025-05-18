@@ -14,10 +14,10 @@ const CalibrationReports = () => {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState([]);
   const [error, setError] = useState(null);
-  
+
   // Check if user has permission to view reports
   const hasPermission = user?.is_admin || user?.department === 'Materials';
-  
+
   useEffect(() => {
     // Reset dates when report type changes
     if (reportType === 'due' || reportType === 'overdue') {
@@ -25,15 +25,15 @@ const CalibrationReports = () => {
       setEndDate('');
     }
   }, [reportType]);
-  
+
   const fetchReportData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       let endpoint = '';
       let params = new URLSearchParams();
-      
+
       if (reportType === 'due') {
         endpoint = '/calibrations/due';
         params.append('days', dateRange);
@@ -41,26 +41,35 @@ const CalibrationReports = () => {
         endpoint = '/calibrations/overdue';
       } else if (reportType === 'history') {
         endpoint = '/calibrations';
-        
+
         if (startDate) {
           params.append('start_date', startDate);
         }
-        
+
         if (endDate) {
           params.append('end_date', endDate);
         }
-        
+
         params.append('limit', 1000); // Get a large number of records for the report
       } else if (reportType === 'compliance') {
         endpoint = '/reports/calibration-compliance';
       }
-      
+
+      console.log(`Fetching report data from: ${endpoint}?${params.toString()}`);
       const response = await api.get(`${endpoint}?${params.toString()}`);
-      
+
       // For calibrations endpoint, the data is in the calibrations property
       const data = reportType === 'history' ? response.data.calibrations : response.data;
-      
-      setReportData(data);
+
+      console.log('Report data received:', data);
+
+      if (Array.isArray(data)) {
+        setReportData(data);
+      } else {
+        console.error('Received non-array data:', data);
+        setError('Received invalid data format from server. Please try again later.');
+        setReportData([]);
+      }
     } catch (err) {
       console.error('Error fetching report data:', err);
       setError('Failed to fetch report data. Please try again later.');
@@ -68,54 +77,54 @@ const CalibrationReports = () => {
       setLoading(false);
     }
   };
-  
+
   const handleGenerateReport = (e) => {
     e.preventDefault();
     fetchReportData();
   };
-  
+
   const exportToExcel = () => {
     if (!reportData || reportData.length === 0) return;
-    
+
     // Create worksheet from report data
     const worksheet = XLSX.utils.json_to_sheet(reportData.map(item => {
       const data = { ...item };
-      
+
       // Format dates for Excel
       if (data.calibration_date) {
         data.calibration_date = new Date(data.calibration_date).toLocaleDateString();
       }
-      
+
       if (data.next_calibration_date) {
         data.next_calibration_date = new Date(data.next_calibration_date).toLocaleDateString();
       }
-      
+
       if (data.last_calibration_date) {
         data.last_calibration_date = new Date(data.last_calibration_date).toLocaleDateString();
       }
-      
+
       return data;
     }));
-    
+
     // Create workbook and add the worksheet
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Calibration Report');
-    
+
     // Generate Excel file
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    
+
     // Save file
     const fileName = `calibration-${reportType}-report-${new Date().toISOString().split('T')[0]}.xlsx`;
     saveAs(blob, fileName);
   };
-  
+
   const exportToPDF = () => {
     // In a real implementation, you would generate a PDF file
     // For now, we'll just show an alert
     alert('PDF export functionality would be implemented here');
   };
-  
+
   if (!hasPermission) {
     return (
       <Alert variant="danger">
@@ -127,7 +136,7 @@ const CalibrationReports = () => {
       </Alert>
     );
   }
-  
+
   return (
     <Card>
       <Card.Header>
@@ -150,7 +159,7 @@ const CalibrationReports = () => {
                 </Form.Select>
               </Form.Group>
             </Col>
-            
+
             {reportType === 'due' && (
               <Col md={4}>
                 <Form.Group>
@@ -167,7 +176,7 @@ const CalibrationReports = () => {
                 </Form.Group>
               </Col>
             )}
-            
+
             {reportType === 'history' && (
               <>
                 <Col md={4}>
@@ -193,7 +202,7 @@ const CalibrationReports = () => {
               </>
             )}
           </Row>
-          
+
           <div className="d-flex justify-content-between">
             <Button type="submit" variant="primary" disabled={loading}>
               {loading ? (
@@ -212,7 +221,7 @@ const CalibrationReports = () => {
                 'Generate Report'
               )}
             </Button>
-            
+
             {reportData.length > 0 && (
               <div>
                 <Button
@@ -234,13 +243,13 @@ const CalibrationReports = () => {
             )}
           </div>
         </Form>
-        
+
         {error && (
           <Alert variant="danger" className="mt-3">
             {error}
           </Alert>
         )}
-        
+
         {loading ? (
           <div className="text-center my-4">
             <Spinner animation="border" role="status" />
@@ -254,7 +263,7 @@ const CalibrationReports = () => {
               {reportType === 'history' && 'Calibration History'}
               {reportType === 'compliance' && 'Calibration Compliance'}
             </h5>
-            
+
             <Table striped bordered hover responsive className="mt-3">
               <thead>
                 <tr>
@@ -302,7 +311,13 @@ const CalibrationReports = () => {
           </div>
         ) : (
           <Alert variant="info" className="mt-3">
-            No report data to display. Generate a report to see results.
+            {error ? error : reportType === 'due'
+              ? `No calibrations are due within the next ${dateRange} days.`
+              : reportType === 'overdue'
+                ? 'No overdue calibrations found.'
+                : reportType === 'history'
+                  ? 'No calibration history records found.'
+                  : 'No calibration compliance data found.'}
           </Alert>
         )}
       </Card.Body>
