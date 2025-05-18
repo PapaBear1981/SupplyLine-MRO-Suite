@@ -45,45 +45,48 @@ const CalibrationDueList = () => {
     );
   }
 
-  if (tools.length === 0) {
-    return (
-      <Alert variant="info">
-        <Alert.Heading>No Calibrations Due</Alert.Heading>
-        <p>There are no tools due for calibration in the next {days} days.</p>
-      </Alert>
-    );
-  }
+  // Always render the timeframe selector
+  const renderTimeframeSelector = () => (
+    <div className="mb-3">
+      <div className="d-flex align-items-center mb-3">
+        <span className="me-2">Show tools due for calibration in the next:</span>
+        <div className="btn-group">
+          <Button
+            variant={days === 7 ? 'primary' : 'outline-primary'}
+            onClick={() => setDays(7)}
+            size="sm"
+          >
+            7 Days
+          </Button>
+          <Button
+            variant={days === 30 ? 'primary' : 'outline-primary'}
+            onClick={() => setDays(30)}
+            size="sm"
+          >
+            30 Days
+          </Button>
+          <Button
+            variant={days === 90 ? 'primary' : 'outline-primary'}
+            onClick={() => setDays(90)}
+            size="sm"
+          >
+            90 Days
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div>
-      <div className="mb-3">
-        <div className="d-flex align-items-center mb-3">
-          <span className="me-2">Showing tools due for calibration in the next:</span>
-          <div className="btn-group">
-            <Button
-              variant={days === 7 ? 'primary' : 'outline-primary'}
-              onClick={() => setDays(7)}
-              size="sm"
-            >
-              7 Days
-            </Button>
-            <Button
-              variant={days === 30 ? 'primary' : 'outline-primary'}
-              onClick={() => setDays(30)}
-              size="sm"
-            >
-              30 Days
-            </Button>
-            <Button
-              variant={days === 90 ? 'primary' : 'outline-primary'}
-              onClick={() => setDays(90)}
-              size="sm"
-            >
-              90 Days
-            </Button>
-          </div>
-        </div>
-      </div>
+      {renderTimeframeSelector()}
+
+      {tools.length === 0 ? (
+        <Alert variant="info">
+          <Alert.Heading>No Calibrations Due</Alert.Heading>
+          <p>There are no tools due for calibration in the next {days} days.</p>
+        </Alert>
+      ) : (
 
       <Table striped bordered hover responsive>
         <thead>
@@ -102,7 +105,7 @@ const CalibrationDueList = () => {
             const nextDate = new Date(tool.next_calibration_date);
             const today = new Date();
             const daysRemaining = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-            
+
             return (
               <tr key={tool.id}>
                 <td>{tool.tool_number}</td>
@@ -144,6 +147,7 @@ const CalibrationDueList = () => {
           })}
         </tbody>
       </Table>
+      )}
     </div>
   );
 };
