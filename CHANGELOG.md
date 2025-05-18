@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [3.5.4] - 2025-05-18
+## [3.5.1] - 2025-05-18
 
 ### Fixed
 - Fixed "Add New Tool" functionality not working (Issue #4)
@@ -12,8 +12,36 @@ All notable changes to this project will be documented in this file.
   - Added success message when a tool is created
   - Improved error handling for tool creation
   - Enhanced user feedback during form submission
+- Fixed "Add New Chemical" functionality not working (Issue #5)
+  - Added success notification when a chemical is created
+  - Improved error handling for chemical creation
+- Fixed "Add New User" functionality not working (Issue #6)
+  - Added refresh functionality after user operations
+  - Improved user feedback during user management operations
+- Fixed calibration issues (Issues #7, #8)
+  - Fixed date format handling in calibration forms
+  - Fixed the order of operations when adding calibration standards
+  - Improved error handling for calibration operations
+- Fixed tool return functionality (Issues #3, #9, #11)
+  - Updated backend to properly set tool status to "available" when returned
+  - Enhanced frontend to update tool status across all interfaces
+  - Added ability to specify the condition of the tool when returned
+  - Added field for who returned the tool
+  - Added option to mark a tool as 'found' on the production floor
+  - Added field for additional notes about the return
+- Fixed dark mode inconsistencies across pages (Issue #17)
+  - Fixed table headers with bg-light class in dark mode
+  - Fixed card headers with bg-light class in dark mode
+  - Ensured consistent styling throughout the application
+- Fixed calibration timeframe selector visibility issue (Issue #24)
+  - Modified the CalibrationDueList component to always render the timeframe selector
+  - Improved the selector text for better clarity
+- Fixed Docker configuration (Issue #26)
+  - Modified docker-compose.yml to use named volumes instead of local directory mounts
+  - Tested the application in Docker and verified that it works correctly
 
 ### Changed
+- Updated README.md to reflect the current version and features (Issue #21)
 - Added comprehensive release notes documentation
 - Improved version tracking and tagging
 
