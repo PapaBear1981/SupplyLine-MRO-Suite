@@ -26,10 +26,13 @@ const ToolService = {
   // Create new tool
   createTool: async (toolData) => {
     try {
+      console.log('Creating new tool with data:', toolData);
       const response = await api.post('/tools', toolData);
+      console.log('Tool creation response:', response.data);
       return response.data;
     } catch (error) {
-      throw error;
+      console.error('Error creating tool:', error.response?.data || error.message);
+      throw error.response?.data || error;
     }
   },
 

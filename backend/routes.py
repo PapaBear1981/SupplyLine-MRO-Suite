@@ -513,10 +513,23 @@ def register_routes(app):
         db.session.add(log)
         db.session.commit()
 
+        # Return the complete tool object for the frontend
         return jsonify({
             'id': t.id,
             'tool_number': t.tool_number,
+            'serial_number': t.serial_number,
+            'description': t.description,
+            'condition': t.condition,
+            'location': t.location,
             'category': t.category,
+            'status': getattr(t, 'status', 'available'),
+            'status_reason': getattr(t, 'status_reason', None),
+            'created_at': t.created_at.isoformat(),
+            'requires_calibration': getattr(t, 'requires_calibration', False),
+            'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
+            'last_calibration_date': t.last_calibration_date.isoformat() if hasattr(t, 'last_calibration_date') and t.last_calibration_date else None,
+            'next_calibration_date': t.next_calibration_date.isoformat() if hasattr(t, 'next_calibration_date') and t.next_calibration_date else None,
+            'calibration_status': getattr(t, 'calibration_status', 'not_applicable'),
             'message': 'Tool created successfully'
         }), 201
 
@@ -1009,6 +1022,12 @@ def register_routes(app):
                     old_condition = tool.condition
                     tool.condition = condition
                     print(f"Updated tool condition from {old_condition} to {condition}")
+
+                # Update tool status to available
+                if tool:
+                    old_status = tool.status
+                    tool.status = 'available'
+                    print(f"Updated tool status from {old_status} to available")
 
                 db.session.commit()
 
