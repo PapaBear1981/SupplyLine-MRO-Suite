@@ -8,6 +8,16 @@ A comprehensive inventory management system for tools and chemicals built with R
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
+## What's New in 3.5.0
+
+The latest version introduces comprehensive tool calibration management:
+
+- **Calibration Tracking**: Track calibration status for tools requiring regular calibration
+- **Calibration Standards**: Manage calibration standards used for tool verification
+- **Calibration History**: View complete calibration history for each tool
+- **Calibration Alerts**: Receive notifications for tools due for calibration
+- **Calibration Reports**: Generate detailed reports on calibration status and history
+
 ## Key Features
 
 ### Admin Dashboard (Enhanced in v3.1.0)
@@ -226,6 +236,27 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
 5. Add required comments
 6. Click "Confirm"
 
+#### Tool Calibration Management (New in v3.5.0)
+1. Navigate to the "Calibration" page
+2. To add a tool for calibration:
+   - Click "Add Tool to Calibration"
+   - Select the tool from the dropdown
+   - Set calibration interval (days)
+   - Set next calibration date
+   - Add calibration standards used
+   - Click "Save"
+3. To record a calibration:
+   - Find the tool in the calibration list
+   - Click "Record Calibration"
+   - Enter calibration date
+   - Select calibration standards used
+   - Add calibration results and notes
+   - Upload calibration certificate (optional)
+   - Click "Save"
+4. To view calibration history:
+   - Click on the tool name in the calibration list
+   - View complete calibration history with dates and results
+
 ### Chemical Management
 
 #### Adding a New Chemical
@@ -273,6 +304,18 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Tool Inventory Report
    - Checkout History Report
    - Department Usage Report
+   - Calibration Status Report (New in v3.5.0)
+4. Apply any filters as needed
+5. View the report or export to PDF/Excel
+
+#### Calibration Reports (New in v3.5.0)
+1. Navigate to the "Reports & Analytics" page
+2. Select "Calibration Reports" tab
+3. Choose the report type:
+   - Due Soon Report (tools due for calibration in the next 30 days)
+   - Overdue Report (tools past their calibration due date)
+   - Calibration History Report (complete calibration history)
+   - Standards Usage Report (which standards were used for calibrations)
 4. Apply any filters as needed
 5. View the report or export to PDF/Excel
 
@@ -321,7 +364,7 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Update personal details
 4. Click "Save Changes"
 
-### Updating to the Latest Version
+### Updating to the Latest Version (v3.5.0)
 If you're updating from a previous version, follow these steps:
 
 1. Pull the latest changes from the repository:
@@ -337,6 +380,11 @@ If you're updating from a previous version, follow these steps:
 3. For chemical tracking features added in v1.4.0 and later, run:
    ```bash
    python migrate_chemicals.py
+   ```
+
+4. For tool calibration features added in v3.5.0, run:
+   ```bash
+   python migrate_calibration.py
    ```
 
 4. Restart the application:
@@ -364,10 +412,12 @@ supplyline-mro-suite/
 │   ├── models.py                 # Database models
 │   ├── routes.py                 # Main API routes
 │   ├── routes_chemicals.py       # Chemical management routes
+│   ├── routes_calibration.py     # Tool calibration routes
 │   ├── routes_reports.py         # Reporting routes
 │   ├── routes_users.py           # User management routes
 │   ├── config.py                 # Configuration
 │   ├── migrate_chemicals.py      # Chemical database migration script
+│   ├── migrate_calibration.py    # Calibration database migration script
 │   ├── requirements.txt          # Python dependencies
 │   ├── Dockerfile                # Docker configuration for backend
 │   ├── .dockerignore             # Files to ignore in Docker build
@@ -379,15 +429,22 @@ supplyline-mro-suite/
 │   ├── src/                      # Source code
 │   │   ├── components/           # React components
 │   │   │   ├── auth/             # Authentication components
+│   │   │   ├── calibration/      # Tool calibration components
+│   │   │   │   ├── CalibrationList.jsx         # List of tools requiring calibration
+│   │   │   │   ├── CalibrationForm.jsx         # Form for recording calibrations
+│   │   │   │   ├── CalibrationHistory.jsx      # Calibration history view
+│   │   │   │   └── CalibrationStandards.jsx    # Calibration standards management
 │   │   │   ├── chemicals/        # Chemical management components
 │   │   │   ├── layout/           # Layout components
 │   │   │   ├── reports/          # Reporting components
 │   │   │   │   ├── ChemicalWasteAnalytics.jsx  # Chemical waste analytics
 │   │   │   │   ├── PartNumberAnalytics.jsx     # Part number analytics
+│   │   │   │   ├── CalibrationReports.jsx      # Calibration reports
 │   │   │   │   └── ...                         # Other report components
 │   │   │   ├── tools/            # Tool management components
 │   │   │   └── users/            # User management components
 │   │   ├── pages/                # Page components
+│   │   │   ├── CalibrationPage.jsx # Tool calibration management page
 │   │   │   ├── ChemicalsPage.jsx # Chemicals management page
 │   │   │   ├── ReportingPage.jsx # Reporting and analytics page
 │   │   │   ├── ToolsPage.jsx     # Tool management page
@@ -395,12 +452,14 @@ supplyline-mro-suite/
 │   │   ├── services/             # API services
 │   │   │   ├── api.js            # Base API configuration
 │   │   │   ├── authService.js    # Authentication service
+│   │   │   ├── calibrationService.js # Calibration management service
 │   │   │   ├── chemicalService.js # Chemical management service
 │   │   │   ├── reportService.js  # Reporting service
 │   │   │   ├── toolService.js    # Tool management service
 │   │   │   └── userService.js    # User management service
 │   │   ├── store/                # Redux store
 │   │   │   ├── authSlice.js      # Authentication state
+│   │   │   ├── calibrationSlice.js # Calibration management state
 │   │   │   ├── chemicalsSlice.js # Chemical management state
 │   │   │   ├── reportSlice.js    # Reporting state
 │   │   │   ├── toolsSlice.js     # Tool management state
@@ -422,7 +481,8 @@ supplyline-mro-suite/
 ├── CHANGELOG.md                  # Version history and release notes
 ├── README.md                     # This file
 ├── update_tools_schema.py        # Tool database schema update script
-└── migrate_chemicals.py          # Chemical database migration script
+├── migrate_chemicals.py          # Chemical database migration script
+└── migrate_calibration.py        # Calibration database migration script
 ```
 
 ## Enhanced Admin Dashboard (v3.1.0)
