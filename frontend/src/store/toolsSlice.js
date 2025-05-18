@@ -119,6 +119,7 @@ const initialState = {
   currentTool: null,
   loading: false,
   error: null,
+  successMessage: null,
   searchResults: [],
   serviceHistory: {},
   serviceLoading: false,
@@ -132,6 +133,9 @@ const toolsSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearSuccessMessage: (state) => {
+      state.successMessage = null;
     },
     clearCurrentTool: (state) => {
       state.currentTool = null;
@@ -181,14 +185,24 @@ const toolsSlice = createSlice({
       .addCase(createTool.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.successMessage = null;
       })
       .addCase(createTool.fulfilled, (state, action) => {
         state.loading = false;
-        state.tools.push(action.payload);
+        // Make sure we have a valid tool object with an ID before adding it to the array
+        if (action.payload && action.payload.id) {
+          state.tools.push(action.payload);
+          state.successMessage = `Tool ${action.payload.tool_number} created successfully`;
+          console.log('Tool created successfully:', action.payload);
+        } else {
+          console.error('Invalid tool data received:', action.payload);
+          state.error = { message: 'Received invalid tool data from server' };
+        }
       })
       .addCase(createTool.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        console.error('Failed to create tool:', action.payload);
       })
       // Update tool
       .addCase(updateTool.pending, (state) => {
@@ -294,5 +308,5 @@ const toolsSlice = createSlice({
   },
 });
 
-export const { clearError, clearCurrentTool, updateToolStatus } = toolsSlice.actions;
+export const { clearError, clearSuccessMessage, clearCurrentTool, updateToolStatus } = toolsSlice.actions;
 export default toolsSlice.reducer;

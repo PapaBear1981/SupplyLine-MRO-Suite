@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Form, Button, Card, Alert } from 'react-bootstrap';
-import { createTool } from '../../store/toolsSlice';
+import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
+import { createTool, clearError, clearSuccessMessage } from '../../store/toolsSlice';
 
 const NewToolForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.tools);
+  const { loading, error, successMessage } = useSelector((state) => state.tools);
+
+  // Local state for form submission status
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState(null);
 
   const [toolData, setToolData] = useState({
     tool_number: '',
@@ -21,6 +25,26 @@ const NewToolForm = () => {
   });
   const [validated, setValidated] = useState(false);
 
+  // Clear error and success messages when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccessMessage());
+    };
+  }, [dispatch]);
+
+  // Effect to handle successful tool creation
+  useEffect(() => {
+    if (successMessage && isSubmitting) {
+      // Wait a moment to show the success message before navigating
+      const timer = setTimeout(() => {
+        navigate('/tools');
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, isSubmitting, navigate]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setToolData(prev => ({
@@ -32,6 +56,7 @@ const NewToolForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
+    setLocalError(null);
 
     if (form.checkValidity() === false) {
       e.stopPropagation();
@@ -40,14 +65,30 @@ const NewToolForm = () => {
     }
 
     setValidated(true);
+    setIsSubmitting(true);
 
-    dispatch(createTool(toolData))
+    // Log the data being sent
+    console.log('Submitting tool data:', toolData);
+
+    // Create a copy of the data to ensure we're sending the right fields
+    const toolDataToSend = {
+      ...toolData,
+      // Convert calibration_frequency_days to a number if it's provided
+      calibration_frequency_days: toolData.requires_calibration && toolData.calibration_frequency_days
+        ? parseInt(toolData.calibration_frequency_days, 10)
+        : null
+    };
+
+    dispatch(createTool(toolDataToSend))
       .unwrap()
-      .then(() => {
-        navigate('/tools');
+      .then((result) => {
+        console.log('Tool created successfully:', result);
+        // Success is handled by the useEffect that watches for successMessage
       })
       .catch((err) => {
         console.error('Failed to create tool:', err);
+        setLocalError(err.message || 'Failed to create tool. Please try again.');
+        setIsSubmitting(false);
       });
   };
 
@@ -58,6 +99,8 @@ const NewToolForm = () => {
       </Card.Header>
       <Card.Body>
         {error && <Alert variant="danger">{error.message}</Alert>}
+        {localError && <Alert variant="danger">{localError}</Alert>}
+        {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
@@ -180,11 +223,33 @@ const NewToolForm = () => {
           )}
 
           <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={() => navigate('/tools')}>
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/tools')}
+              disabled={loading || isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Tool'}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={loading || isSubmitting}
+            >
+              {loading || isSubmitting ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Saving...
+                </>
+              ) : (
+                'Save Tool'
+              )}
             </Button>
           </div>
         </Form>
