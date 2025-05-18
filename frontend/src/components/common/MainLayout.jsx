@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Container, Navbar, Nav, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import ProfileModal from '../profile/ProfileModal';
+import { APP_VERSION } from '../../utils/version';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -75,7 +76,7 @@ const MainLayout = ({ children }) => {
         <Container fluid>
           <div className="d-flex justify-content-between">
             <span>SupplyLine MRO Suite &copy; {new Date().getFullYear()}</span>
-            <span>Version 3.5.0</span>
+            <span>Version {APP_VERSION}</span>
           </div>
         </Container>
       </footer>
