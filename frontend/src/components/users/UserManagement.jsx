@@ -78,9 +78,13 @@ const UserManagement = () => {
       .then(() => {
         setShowAddModal(false);
         resetForm();
+        // Refresh the user list after adding a new user
+        dispatch(fetchUsers());
       })
       .catch(err => {
         console.error('Failed to create user:', err);
+        // The error will be automatically set in the Redux store
+        // and displayed in the UI via the error Alert component
       });
   };
 
@@ -106,6 +110,8 @@ const UserManagement = () => {
       .then(() => {
         setShowEditModal(false);
         resetForm();
+        // Refresh the user list after updating a user
+        dispatch(fetchUsers());
       })
       .catch(err => {
         console.error('Failed to update user:', err);
@@ -118,6 +124,8 @@ const UserManagement = () => {
       .unwrap()
       .then(() => {
         setShowDeleteModal(false);
+        // Refresh the user list after deactivating a user
+        dispatch(fetchUsers());
       })
       .catch(err => {
         console.error('Failed to deactivate user:', err);
