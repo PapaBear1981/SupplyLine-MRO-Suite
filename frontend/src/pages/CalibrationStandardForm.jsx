@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
-import { 
-  addCalibrationStandard, 
-  fetchCalibrationStandard, 
-  updateCalibrationStandard 
+import {
+  addCalibrationStandard,
+  fetchCalibrationStandard,
+  updateCalibrationStandard
 } from '../store/calibrationSlice';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -14,10 +14,10 @@ const CalibrationStandardForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { user } = useSelector((state) => state.auth);
   const { currentCalibrationStandard, standardsLoading } = useSelector((state) => state.calibration);
-  
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [standardNumber, setStandardNumber] = useState('');
@@ -26,45 +26,45 @@ const CalibrationStandardForm = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Check if user has permission to manage calibration standards
   const hasPermission = user?.is_admin || user?.department === 'Materials';
-  
+
   // Check if we're editing an existing standard
   const isEditing = !!id;
-  
+
   useEffect(() => {
     if (isEditing) {
       dispatch(fetchCalibrationStandard(id));
     }
   }, [dispatch, id, isEditing]);
-  
+
   useEffect(() => {
     if (isEditing && currentCalibrationStandard) {
       setName(currentCalibrationStandard.name || '');
       setDescription(currentCalibrationStandard.description || '');
       setStandardNumber(currentCalibrationStandard.standard_number || '');
-      
+
       if (currentCalibrationStandard.certification_date) {
         setCertificationDate(new Date(currentCalibrationStandard.certification_date));
       }
-      
+
       if (currentCalibrationStandard.expiration_date) {
         setExpirationDate(new Date(currentCalibrationStandard.expiration_date));
       }
     }
   }, [currentCalibrationStandard, isEditing]);
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Format dates for API
-      const formattedCertificationDate = certificationDate.toISOString();
-      const formattedExpirationDate = expirationDate.toISOString();
-      
+      // Format dates for API - use ISO string without timezone information
+      const formattedCertificationDate = certificationDate.toISOString().split('T')[0] + 'T00:00:00';
+      const formattedExpirationDate = expirationDate.toISOString().split('T')[0] + 'T00:00:00';
+
       // Create standard data
       const standardData = {
         name,
@@ -73,26 +73,26 @@ const CalibrationStandardForm = () => {
         certification_date: formattedCertificationDate,
         expiration_date: formattedExpirationDate
       };
-      
+
       let resultAction;
-      
+
       if (isEditing) {
         // Update existing standard
-        resultAction = await dispatch(updateCalibrationStandard({ 
-          id, 
-          standardData 
+        resultAction = await dispatch(updateCalibrationStandard({
+          id,
+          standardData
         }));
       } else {
         // Add new standard
         resultAction = await dispatch(addCalibrationStandard(standardData));
       }
-      
+
       if (
         (isEditing && updateCalibrationStandard.fulfilled.match(resultAction)) ||
         (!isEditing && addCalibrationStandard.fulfilled.match(resultAction))
       ) {
         setSuccess(true);
-        
+
         // Navigate back to calibration standards page after a delay
         setTimeout(() => {
           navigate('/calibrations');
@@ -106,7 +106,7 @@ const CalibrationStandardForm = () => {
       setLoading(false);
     }
   };
-  
+
   if (!hasPermission) {
     return (
       <Alert variant="danger">
@@ -118,7 +118,7 @@ const CalibrationStandardForm = () => {
       </Alert>
     );
   }
-  
+
   if (isEditing && standardsLoading) {
     return (
       <div className="text-center my-5">
@@ -127,7 +127,7 @@ const CalibrationStandardForm = () => {
       </div>
     );
   }
-  
+
   if (isEditing && !currentCalibrationStandard && !standardsLoading) {
     return (
       <Alert variant="danger">
@@ -136,28 +136,28 @@ const CalibrationStandardForm = () => {
       </Alert>
     );
   }
-  
+
   return (
     <div className="w-100">
       <h1 className="mb-4">{isEditing ? 'Edit' : 'Add'} Calibration Standard</h1>
-      
+
       {error && (
         <Alert variant="danger">
           <Alert.Heading>Error</Alert.Heading>
           <p>{error}</p>
         </Alert>
       )}
-      
+
       {success && (
         <Alert variant="success">
           <Alert.Heading>Success</Alert.Heading>
           <p>
-            Calibration standard {isEditing ? 'updated' : 'added'} successfully. 
+            Calibration standard {isEditing ? 'updated' : 'added'} successfully.
             Redirecting to calibration standards page...
           </p>
         </Alert>
       )}
-      
+
       <Card>
         <Card.Header>
           <h4>Standard Information</h4>
@@ -174,7 +174,7 @@ const CalibrationStandardForm = () => {
                 required
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Standard Number</Form.Label>
               <Form.Control
@@ -185,7 +185,7 @@ const CalibrationStandardForm = () => {
                 required
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Description</Form.Label>
               <Form.Control
@@ -196,7 +196,7 @@ const CalibrationStandardForm = () => {
                 placeholder="Enter standard description"
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Certification Date</Form.Label>
               <DatePicker
@@ -207,7 +207,7 @@ const CalibrationStandardForm = () => {
                 required
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Expiration Date</Form.Label>
               <DatePicker
@@ -219,7 +219,7 @@ const CalibrationStandardForm = () => {
                 required
               />
             </Form.Group>
-            
+
             <div className="d-flex justify-content-end gap-2 mt-4">
               <Button
                 variant="secondary"

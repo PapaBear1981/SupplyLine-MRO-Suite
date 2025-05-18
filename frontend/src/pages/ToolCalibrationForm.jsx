@@ -68,9 +68,10 @@ const ToolCalibrationForm = () => {
     setError(null);
 
     try {
-      // Format dates for API - strip the timezone part to avoid offset issues
-      const formattedCalibrationDate = calibrationDate.toISOString().split('T')[0];
-      const formattedNextCalibrationDate = nextCalibrationDate ? nextCalibrationDate.toISOString().split('T')[0] : null;
+      // Format dates for API - use ISO string without timezone information
+      const formattedCalibrationDate = calibrationDate.toISOString().split('T')[0] + 'T00:00:00';
+      const formattedNextCalibrationDate = nextCalibrationDate ?
+        nextCalibrationDate.toISOString().split('T')[0] + 'T00:00:00' : null;
 
       // Create calibration data
       const calibrationData = {
