@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import api from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import RegistrationRequests from '../components/admin/RegistrationRequests';
+import { APP_VERSION } from '../utils/version';
 
 // Colors for the pie chart
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -374,7 +375,7 @@ const SystemStatsTab = ({ data }) => {
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>System Version</span>
-                  <span>3.3.1</span>
+                  <span>{APP_VERSION}</span>
                 </ListGroup.Item>
               </ListGroup>
             </Card.Body>
