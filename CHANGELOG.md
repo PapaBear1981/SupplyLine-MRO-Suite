@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Fixed tool return functionality (Issues #3, #9)
+- Fixed issue where returned tools remained in active checkouts list and showed as "Checked Out" in tools list
+- Updated backend to properly set tool status to "available" when returned
+- Enhanced frontend to update tool status across all interfaces when a tool is returned
+
 ## [3.5.0] - 2025-05-17
 
 ### Added
