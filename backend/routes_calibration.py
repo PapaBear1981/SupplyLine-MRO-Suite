@@ -209,27 +209,31 @@ def register_calibration_routes(app):
                 calibration_status=data.get('calibration_status')
             )
 
-            # Update tool calibration information
+            # IMPORTANT: The sequence of operations below is critical for database integrity
+
+            # Step 1: Update tool calibration information
             tool.last_calibration_date = calibration_date
             tool.next_calibration_date = next_calibration_date
             tool.update_calibration_status()
 
-            # Save calibration to database first to get its ID
+            # Step 2: Save calibration to database first to get its ID
+            # This ensures the calibration record exists before linking standards
             db.session.add(calibration)
             db.session.commit()
 
-            # Add calibration standards if provided
+            # Step 3: Add calibration standards if provided
+            # Now that we have a valid calibration.id, we can link standards to it
             if data.get('standard_ids'):
                 for standard_id in data.get('standard_ids'):
                     standard = CalibrationStandard.query.get(standard_id)
                     if standard:
                         calibration_standard = ToolCalibrationStandard(
-                            calibration_id=calibration.id,
+                            calibration_id=calibration.id,  # This ID is now available because we committed above
                             standard_id=standard_id
                         )
                         db.session.add(calibration_standard)
 
-                # Commit the standards
+                # Commit the standards separately
                 db.session.commit()
 
             # Create audit log
@@ -247,6 +251,8 @@ def register_calibration_routes(app):
                 ip_address=request.remote_addr
             )
             db.session.add(activity)
+
+            # Final commit for audit log and user activity
             db.session.commit()
 
             return jsonify({
