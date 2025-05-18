@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Alert, Tabs, Tab, Badge, ListGroup, ProgressBar } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Tabs, Tab, Badge, ListGroup, ProgressBar, Form, Button } from 'react-bootstrap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
          LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import api from '../services/api';
@@ -334,27 +334,141 @@ const OverviewTab = ({ data }) => {
 };
 
 const SystemStatsTab = ({ data }) => {
-  if (!data) return null;
+  const [systemResources, setSystemResources] = useState(null);
+  const [resourceLoading, setResourceLoading] = useState(true);
+  const [resourceError, setResourceError] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Calculate additional statistics
-  const toolUtilizationRate = data.counts.tools > 0
+  // Calculate additional statistics from dashboard data
+  const toolUtilizationRate = data?.counts?.tools > 0
     ? ((data.counts.tools - data.counts.availableTools) / data.counts.tools * 100).toFixed(1)
     : 0;
 
-  const userActivityRate = data.counts.users > 0
+  const userActivityRate = data?.counts?.users > 0
     ? (data.counts.activeUsers / data.counts.users * 100).toFixed(1)
     : 0;
 
-  const avgCheckoutsPerUser = data.counts.users > 0
+  const avgCheckoutsPerUser = data?.counts?.users > 0
     ? (data.counts.checkouts / data.counts.users).toFixed(1)
     : 0;
 
-  const avgActiveCheckoutsPerUser = data.counts.activeUsers > 0
+  const avgActiveCheckoutsPerUser = data?.counts?.activeUsers > 0
     ? (data.counts.activeCheckouts / data.counts.activeUsers).toFixed(1)
     : 0;
 
+  // Function to fetch system resources - wrapped in useCallback to prevent recreation on every render
+  const fetchSystemResources = useCallback(async () => {
+    try {
+      setResourceLoading(true);
+      const response = await api.get('/admin/system-resources');
+      setSystemResources(response.data);
+      setLastRefreshed(new Date());
+      setResourceError(null);
+    } catch (err) {
+      console.error('Error fetching system resources:', err);
+      setResourceError('Failed to load system resource data');
+    } finally {
+      setResourceLoading(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchSystemResources();
+  }, [fetchSystemResources]);
+
+  // Set up auto-refresh
+  useEffect(() => {
+    let intervalId;
+
+    if (autoRefresh) {
+      intervalId = setInterval(() => {
+        fetchSystemResources();
+      }, refreshInterval * 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [autoRefresh, refreshInterval, fetchSystemResources]);
+
+  // Handle refresh interval change
+  const handleRefreshIntervalChange = (e) => {
+    setRefreshInterval(Number(e.target.value));
+  };
+
+  // Handle manual refresh
+  const handleManualRefresh = () => {
+    fetchSystemResources();
+  };
+
+  if (!data) return null;
+
   return (
     <div>
+      <Row className="mb-3">
+        <Col>
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 className="mb-0">System Statistics</h5>
+              <small className="text-muted">
+                Last updated: {lastRefreshed.toLocaleTimeString()}
+              </small>
+            </div>
+            <div className="d-flex align-items-center">
+              <Form.Check
+                type="switch"
+                id="auto-refresh-switch"
+                label="Auto-refresh"
+                checked={autoRefresh}
+                onChange={() => setAutoRefresh(!autoRefresh)}
+                className="me-3"
+              />
+              <Form.Select
+                size="sm"
+                value={refreshInterval}
+                onChange={handleRefreshIntervalChange}
+                style={{ width: '120px' }}
+                className="me-2"
+                disabled={!autoRefresh}
+              >
+                <option value="10">Every 10s</option>
+                <option value="30">Every 30s</option>
+                <option value="60">Every 1m</option>
+                <option value="300">Every 5m</option>
+              </Form.Select>
+              <Button
+                size="sm"
+                variant="outline-primary"
+                onClick={handleManualRefresh}
+                disabled={resourceLoading}
+              >
+                {resourceLoading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    Refreshing...
+                  </>
+                ) : 'Refresh Now'}
+              </Button>
+            </div>
+          </div>
+        </Col>
+      </Row>
+
+      {resourceError && systemResources && (
+        <Alert variant="warning" className="mb-3" dismissible onClose={() => setResourceError(null)}>
+          <Alert.Heading>Warning</Alert.Heading>
+          <p>{resourceError}</p>
+          <div className="d-flex justify-content-end">
+            <Button variant="outline-warning" size="sm" onClick={handleManualRefresh}>
+              Try Again
+            </Button>
+          </div>
+        </Alert>
+      )}
+
       <Row className="mb-4">
         <Col md={6} className="mb-3">
           <Card className="shadow-sm h-100">
@@ -363,15 +477,21 @@ const SystemStatsTab = ({ data }) => {
               <ListGroup variant="flush">
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>Server Status</span>
-                  <Badge bg="success">Online</Badge>
+                  <Badge bg="success">
+                    {systemResources?.server?.status === 'online' ? 'Online' : 'Unknown'}
+                  </Badge>
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>Database Status</span>
                   <Badge bg="success">Connected</Badge>
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
-                  <span>Last Backup</span>
-                  <span>{new Date().toLocaleDateString()}</span>
+                  <span>Server Uptime</span>
+                  <span>{systemResources?.server?.uptime || 'Unknown'}</span>
+                </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between align-items-center">
+                  <span>Active Users</span>
+                  <span>{systemResources?.server?.active_users || 0}</span>
                 </ListGroup.Item>
                 <ListGroup.Item className="d-flex justify-content-between align-items-center">
                   <span>System Version</span>
@@ -403,6 +523,10 @@ const SystemStatsTab = ({ data }) => {
                   <span>Avg. Active Checkouts Per User</span>
                   <span>{avgActiveCheckoutsPerUser}</span>
                 </ListGroup.Item>
+                <ListGroup.Item className="d-flex justify-content-between align-items-center">
+                  <span>Database Size</span>
+                  <span>{systemResources?.database?.size_mb || 0} MB</span>
+                </ListGroup.Item>
               </ListGroup>
             </Card.Body>
           </Card>
@@ -414,20 +538,72 @@ const SystemStatsTab = ({ data }) => {
           <Card className="shadow-sm mb-4">
             <Card.Body>
               <Card.Title>System Resources</Card.Title>
-              <Row>
-                <Col md={4} className="mb-3">
-                  <h5>CPU Usage</h5>
-                  <ProgressBar now={25} label={`25%`} variant="info" className="mb-2" />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <h5>Memory Usage</h5>
-                  <ProgressBar now={40} label={`40%`} variant="info" className="mb-2" />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <h5>Disk Usage</h5>
-                  <ProgressBar now={60} label={`60%`} variant="info" className="mb-2" />
-                </Col>
-              </Row>
+              {resourceLoading && !systemResources ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-2 text-muted">Loading system resources...</p>
+                </div>
+              ) : resourceError && !systemResources ? (
+                <Alert variant="warning">
+                  {resourceError}
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="ms-2"
+                    onClick={handleManualRefresh}
+                  >
+                    Try Again
+                  </Button>
+                </Alert>
+              ) : (
+                <Row>
+                  <Col md={4} className="mb-3">
+                    <h5>CPU Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.cpu?.usage || 0}
+                      label={`${systemResources?.cpu?.usage || 0}%`}
+                      variant={systemResources?.cpu?.usage > 80 ? "danger" : systemResources?.cpu?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      {systemResources?.cpu?.cores || 0} CPU Cores Available
+                    </small>
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <h5>Memory Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.memory?.usage || 0}
+                      label={`${systemResources?.memory?.usage || 0}%`}
+                      variant={systemResources?.memory?.usage > 80 ? "danger" : systemResources?.memory?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      Total Memory: {systemResources?.memory?.total_gb || 0} GB
+                    </small>
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <h5>Disk Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.disk?.usage || 0}
+                      label={`${systemResources?.disk?.usage || 0}%`}
+                      variant={systemResources?.disk?.usage > 80 ? "danger" : systemResources?.disk?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      Total Disk Space: {systemResources?.disk?.total_gb || 0} GB
+                    </small>
+                  </Col>
+                </Row>
+              )}
+              {resourceLoading && systemResources && (
+                <div className="position-absolute top-0 end-0 p-2">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status">
+                    <span className="visually-hidden">Refreshing...</span>
+                  </div>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>
