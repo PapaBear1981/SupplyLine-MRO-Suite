@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Alert, Tabs, Tab, Badge, ListGroup, ProgressBar, Form, Button } from 'react-bootstrap';
@@ -335,8 +335,8 @@ const OverviewTab = ({ data }) => {
 
 const SystemStatsTab = ({ data }) => {
   const [systemResources, setSystemResources] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [resourceLoading, setResourceLoading] = useState(true);
+  const [resourceError, setResourceError] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -358,26 +358,26 @@ const SystemStatsTab = ({ data }) => {
     ? (data.counts.activeCheckouts / data.counts.activeUsers).toFixed(1)
     : 0;
 
-  // Function to fetch system resources
-  const fetchSystemResources = async () => {
+  // Function to fetch system resources - wrapped in useCallback to prevent recreation on every render
+  const fetchSystemResources = useCallback(async () => {
     try {
-      setLoading(true);
+      setResourceLoading(true);
       const response = await api.get('/admin/system-resources');
       setSystemResources(response.data);
       setLastRefreshed(new Date());
-      setError(null);
+      setResourceError(null);
     } catch (err) {
       console.error('Error fetching system resources:', err);
-      setError('Failed to load system resource data');
+      setResourceError('Failed to load system resource data');
     } finally {
-      setLoading(false);
+      setResourceLoading(false);
     }
-  };
+  }, []);
 
   // Initial fetch
   useEffect(() => {
     fetchSystemResources();
-  }, []);
+  }, [fetchSystemResources]);
 
   // Set up auto-refresh
   useEffect(() => {
@@ -392,7 +392,7 @@ const SystemStatsTab = ({ data }) => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, fetchSystemResources]);
 
   // Handle refresh interval change
   const handleRefreshIntervalChange = (e) => {
@@ -443,18 +443,29 @@ const SystemStatsTab = ({ data }) => {
                 size="sm"
                 variant="outline-primary"
                 onClick={handleManualRefresh}
-                disabled={loading}
+                disabled={resourceLoading}
               >
-                {loading ? 'Refreshing...' : 'Refresh Now'}
+                {resourceLoading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    Refreshing...
+                  </>
+                ) : 'Refresh Now'}
               </Button>
             </div>
           </div>
         </Col>
       </Row>
 
-      {error && (
-        <Alert variant="warning" className="mb-3">
-          {error}
+      {resourceError && systemResources && (
+        <Alert variant="warning" className="mb-3" dismissible onClose={() => setResourceError(null)}>
+          <Alert.Heading>Warning</Alert.Heading>
+          <p>{resourceError}</p>
+          <div className="d-flex justify-content-end">
+            <Button variant="outline-warning" size="sm" onClick={handleManualRefresh}>
+              Try Again
+            </Button>
+          </div>
         </Alert>
       )}
 
@@ -527,44 +538,72 @@ const SystemStatsTab = ({ data }) => {
           <Card className="shadow-sm mb-4">
             <Card.Body>
               <Card.Title>System Resources</Card.Title>
-              <Row>
-                <Col md={4} className="mb-3">
-                  <h5>CPU Usage</h5>
-                  <ProgressBar
-                    now={systemResources?.cpu?.usage || 0}
-                    label={`${systemResources?.cpu?.usage || 0}%`}
-                    variant={systemResources?.cpu?.usage > 80 ? "danger" : systemResources?.cpu?.usage > 60 ? "warning" : "info"}
-                    className="mb-2"
-                  />
-                  <small className="text-muted">
-                    {systemResources?.cpu?.cores || 0} CPU Cores Available
-                  </small>
-                </Col>
-                <Col md={4} className="mb-3">
-                  <h5>Memory Usage</h5>
-                  <ProgressBar
-                    now={systemResources?.memory?.usage || 0}
-                    label={`${systemResources?.memory?.usage || 0}%`}
-                    variant={systemResources?.memory?.usage > 80 ? "danger" : systemResources?.memory?.usage > 60 ? "warning" : "info"}
-                    className="mb-2"
-                  />
-                  <small className="text-muted">
-                    Total Memory: {systemResources?.memory?.total_gb || 0} GB
-                  </small>
-                </Col>
-                <Col md={4} className="mb-3">
-                  <h5>Disk Usage</h5>
-                  <ProgressBar
-                    now={systemResources?.disk?.usage || 0}
-                    label={`${systemResources?.disk?.usage || 0}%`}
-                    variant={systemResources?.disk?.usage > 80 ? "danger" : systemResources?.disk?.usage > 60 ? "warning" : "info"}
-                    className="mb-2"
-                  />
-                  <small className="text-muted">
-                    Total Disk Space: {systemResources?.disk?.total_gb || 0} GB
-                  </small>
-                </Col>
-              </Row>
+              {resourceLoading && !systemResources ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-2 text-muted">Loading system resources...</p>
+                </div>
+              ) : resourceError && !systemResources ? (
+                <Alert variant="warning">
+                  {resourceError}
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="ms-2"
+                    onClick={handleManualRefresh}
+                  >
+                    Try Again
+                  </Button>
+                </Alert>
+              ) : (
+                <Row>
+                  <Col md={4} className="mb-3">
+                    <h5>CPU Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.cpu?.usage || 0}
+                      label={`${systemResources?.cpu?.usage || 0}%`}
+                      variant={systemResources?.cpu?.usage > 80 ? "danger" : systemResources?.cpu?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      {systemResources?.cpu?.cores || 0} CPU Cores Available
+                    </small>
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <h5>Memory Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.memory?.usage || 0}
+                      label={`${systemResources?.memory?.usage || 0}%`}
+                      variant={systemResources?.memory?.usage > 80 ? "danger" : systemResources?.memory?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      Total Memory: {systemResources?.memory?.total_gb || 0} GB
+                    </small>
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <h5>Disk Usage</h5>
+                    <ProgressBar
+                      now={systemResources?.disk?.usage || 0}
+                      label={`${systemResources?.disk?.usage || 0}%`}
+                      variant={systemResources?.disk?.usage > 80 ? "danger" : systemResources?.disk?.usage > 60 ? "warning" : "info"}
+                      className="mb-2"
+                    />
+                    <small className="text-muted">
+                      Total Disk Space: {systemResources?.disk?.total_gb || 0} GB
+                    </small>
+                  </Col>
+                </Row>
+              )}
+              {resourceLoading && systemResources && (
+                <div className="position-absolute top-0 end-0 p-2">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status">
+                    <span className="visually-hidden">Refreshing...</span>
+                  </div>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>
