@@ -6,8 +6,8 @@ services:
     container_name: supplyline-mro-backend
     restart: unless-stopped
     volumes:
-      - ./database:/database
-      - ./flask_session:/flask_session
+      - database:/database
+      - flask_session:/flask_session
       - ./update_tools_schema.py:/app/update_tools_schema.py
       - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py
     environment:
