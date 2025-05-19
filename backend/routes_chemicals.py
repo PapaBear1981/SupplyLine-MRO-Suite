@@ -189,6 +189,107 @@ def register_chemical_routes(app):
             print(f"Error in chemical barcode route: {str(e)}")
             return jsonify({'error': 'An error occurred while generating barcode data'}), 500
 
+    # Issue a chemical
+    @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
+    def chemical_issue_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Check if chemical can be issued
+            if chemical.status == 'expired':
+                return jsonify({'error': 'Cannot issue an expired chemical'}), 400
+
+            if chemical.quantity <= 0:
+                return jsonify({'error': 'Cannot issue a chemical that is out of stock'}), 400
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Validate required fields
+            required_fields = ['quantity', 'hangar', 'user_id']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({'error': f'Missing required field: {field}'}), 400
+
+            # Validate quantity
+            quantity = float(data.get('quantity'))
+            if quantity <= 0:
+                return jsonify({'error': 'Quantity must be greater than zero'}), 400
+
+            if quantity > chemical.quantity:
+                return jsonify({'error': f'Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})'}), 400
+
+            # Create issuance record
+            issuance = ChemicalIssuance(
+                chemical_id=chemical.id,
+                user_id=data.get('user_id'),
+                quantity=quantity,
+                hangar=data.get('hangar'),
+                purpose=data.get('purpose')
+            )
+
+            # Update chemical quantity
+            chemical.quantity -= quantity
+
+            # Update chemical status based on new quantity
+            if chemical.quantity <= 0:
+                chemical.status = 'out_of_stock'
+                # Update reorder status
+                chemical.update_reorder_status()
+            elif chemical.is_low_stock():
+                chemical.status = 'low_stock'
+                # Update reorder status
+                chemical.update_reorder_status()
+
+            db.session.add(issuance)
+
+            # Log the action
+            log = AuditLog(
+                action_type='chemical_issued',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} issued: {quantity} {chemical.unit}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_issued',
+                    description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical and issuance record
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'issuance': issuance.to_dict()
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in chemical issue route: {str(e)}")
+            return jsonify({'error': 'An error occurred while issuing the chemical'}), 500
+
+    # Get issuance history for a chemical
+    @app.route('/api/chemicals/<int:id>/issuances', methods=['GET'])
+    def chemical_issuances_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Get issuance records
+            issuances = ChemicalIssuance.query.filter_by(chemical_id=id).order_by(ChemicalIssuance.issue_date.desc()).all()
+
+            # Convert to list of dictionaries
+            result = [i.to_dict() for i in issuances]
+
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error in chemical issuances route: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching chemical issuances'}), 500
+
     # Get, update, or delete a specific chemical
     @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def chemical_detail_route(id):
