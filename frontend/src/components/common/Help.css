@@ -1,0 +1,48 @@
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-icon:hover {
+  transform: scale(1.1);
+}
+
+.help-popover {
+  max-width: min(300px, 90vw);
+}
+
+.help-popover .popover-body {
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.help-section {
+  background-color: rgba(0, 123, 255, 0.1);
+  border-left: 3px solid #007bff;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.25rem;
+}
+
+.help-section h5 {
+  color: #0056b3;
+  margin-bottom: 0.75rem;
+}
+
+.help-section p:last-child {
+  margin-bottom: 0;
+}
+
+.help-link {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.help-link:hover {
+  color: #0056b3;
+}
