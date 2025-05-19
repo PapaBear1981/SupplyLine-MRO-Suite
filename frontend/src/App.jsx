@@ -22,7 +22,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
-import UserManagementPage from './pages/UserManagementPage';
+
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
 import ChemicalDetailPage from './pages/ChemicalDetailPage';
@@ -123,13 +123,6 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/users" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <UserManagementPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
 
         <Route path="/reports" element={
           <ProtectedRoute>
