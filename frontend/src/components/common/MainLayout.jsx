@@ -43,7 +43,7 @@ const MainLayout = ({ children }) => {
                   <OverlayTrigger
                     placement="bottom"
                     overlay={<Tooltip id="tooltip-help">Toggle help features</Tooltip>}
-                    show={showTooltips}
+                    trigger={showTooltips ? ['hover', 'focus'] : []}
                   >
                     <Button
                       variant={showHelp ? "info" : "outline-info"}
@@ -56,7 +56,7 @@ const MainLayout = ({ children }) => {
                   <OverlayTrigger
                     placement="bottom"
                     overlay={<Tooltip id="tooltip-tour">Start guided tour</Tooltip>}
-                    show={showTooltips}
+                    trigger={showTooltips ? ['hover', 'focus'] : []}
                   >
                     <Button
                       variant="outline-info"
