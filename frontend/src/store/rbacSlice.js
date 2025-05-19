@@ -26,6 +26,18 @@ export const fetchRole = createAsyncThunk(
   }
 );
 
+export const fetchRoleById = createAsyncThunk(
+  'rbac/fetchRoleById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/roles/${id}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: `Failed to fetch role with ID ${id}` });
+    }
+  }
+);
+
 export const createRole = createAsyncThunk(
   'rbac/createRole',
   async (roleData, { rejectWithValue }) => {
@@ -146,7 +158,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch roles' };
       })
-      
+
       // fetchRole
       .addCase(fetchRole.pending, (state) => {
         state.loading = true;
@@ -160,7 +172,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch role' };
       })
-      
+
       // createRole
       .addCase(createRole.pending, (state) => {
         state.loading = true;
@@ -174,7 +186,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to create role' };
       })
-      
+
       // updateRole
       .addCase(updateRole.pending, (state) => {
         state.loading = true;
@@ -192,7 +204,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to update role' };
       })
-      
+
       // deleteRole
       .addCase(deleteRole.pending, (state) => {
         state.loading = true;
@@ -206,7 +218,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to delete role' };
       })
-      
+
       // fetchPermissions
       .addCase(fetchPermissions.pending, (state) => {
         state.loading = true;
@@ -214,7 +226,7 @@ const rbacSlice = createSlice({
       })
       .addCase(fetchPermissions.fulfilled, (state, action) => {
         state.permissionsByCategory = action.payload;
-        
+
         // Flatten permissions for easier access
         const allPermissions = [];
         Object.keys(action.payload).forEach(category => {
@@ -222,7 +234,7 @@ const rbacSlice = createSlice({
             allPermissions.push(permission);
           });
         });
-        
+
         state.permissions = allPermissions;
         state.loading = false;
       })
@@ -230,7 +242,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch permissions' };
       })
-      
+
       // fetchUserRoles
       .addCase(fetchUserRoles.pending, (state) => {
         state.loading = true;
@@ -244,7 +256,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch user roles' };
       })
-      
+
       // updateUserRoles
       .addCase(updateUserRoles.pending, (state) => {
         state.loading = true;
@@ -258,7 +270,7 @@ const rbacSlice = createSlice({
         state.loading = false;
         state.error = action.payload || { message: 'Failed to update user roles' };
       })
-      
+
       // fetchCurrentUserPermissions
       .addCase(fetchCurrentUserPermissions.pending, (state) => {
         state.loading = true;
@@ -271,6 +283,30 @@ const rbacSlice = createSlice({
       .addCase(fetchCurrentUserPermissions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || { message: 'Failed to fetch current user permissions' };
+      })
+
+      // fetchRoleById
+      .addCase(fetchRoleById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchRoleById.fulfilled, (state, action) => {
+        // Update the role in the roles array
+        const index = state.roles.findIndex(role => role.id === action.payload.id);
+        if (index !== -1) {
+          state.roles[index] = action.payload;
+        }
+
+        // Update the selected role if it matches
+        if (state.currentRole && state.currentRole.id === action.payload.id) {
+          state.currentRole = action.payload;
+        }
+
+        state.loading = false;
+      })
+      .addCase(fetchRoleById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'Failed to fetch role details' };
       });
   }
 });
