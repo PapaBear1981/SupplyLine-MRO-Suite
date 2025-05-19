@@ -7,9 +7,6 @@ from functools import wraps
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Log session info for debugging
-        print(f"Session info: user_id={session.get('user_id')}, is_admin={session.get('is_admin')}, department={session.get('department')}")
-
         # Authentication check
         if 'user_id' not in session:
             return jsonify({'error': 'Authentication required'}), 401
@@ -22,15 +19,6 @@ def materials_manager_required(f):
     return decorated_function
 
 def register_chemical_analytics_routes(app):
-    # Debug endpoint to test chemical analytics API
-    @app.route('/api/debug/chemical-analytics-test', methods=['GET'])
-    def chemical_analytics_debug_test_route():
-        return jsonify({
-            'status': 'success',
-            'message': 'Chemical Analytics API is working',
-            'timestamp': datetime.now().isoformat()
-        })
-
     # Get waste analytics
     @app.route('/api/chemicals/waste-analytics', methods=['GET'])
     @materials_manager_required
@@ -138,51 +126,6 @@ def register_chemical_analytics_routes(app):
         except Exception as e:
             print(f"Error in part analytics route: {str(e)}")
             return jsonify({'error': 'An error occurred while generating part analytics'}), 500
-
-    # Simple debug endpoint for usage analytics
-    @app.route('/api/debug/chemicals/usage-analytics', methods=['GET'])
-    def debug_chemical_usage_analytics_route():
-        try:
-            # Get query parameters
-            timeframe = request.args.get('timeframe', 'month')
-            part_number = request.args.get('part_number', 'TEST123')
-
-            # Return simple test data
-            return jsonify({
-                'status': 'success',
-                'message': 'Debug usage analytics endpoint is working',
-                'timeframe': timeframe,
-                'part_number': part_number,
-                'timestamp': datetime.now().isoformat(),
-                'inventory_stats': {
-                    'total_count': 5,
-                    'active_count': 3,
-                    'archived_count': 2,
-                    'current_inventory': 100
-                },
-                'usage_stats': {
-                    'total_issued': 50,
-                    'by_location': [
-                        {'location': 'Hangar A', 'quantity': 30},
-                        {'location': 'Hangar B', 'quantity': 20}
-                    ],
-                    'by_user': [
-                        {'user': 'Test User', 'quantity': 50}
-                    ],
-                    'over_time': [
-                        {'month': '2023-01', 'quantity': 25},
-                        {'month': '2023-02', 'quantity': 25}
-                    ],
-                    'avg_monthly_usage': 25,
-                    'projected_depletion_days': 60
-                }
-            })
-        except Exception as e:
-            import traceback
-            error_traceback = traceback.format_exc()
-            print(f"Error in debug usage analytics route: {str(e)}")
-            print(f"Traceback: {error_traceback}")
-            return jsonify({'error': 'An error occurred in debug endpoint', 'details': str(e)}), 500
 
     # Get usage analytics
     @app.route('/api/chemicals/usage-analytics', methods=['GET'])
