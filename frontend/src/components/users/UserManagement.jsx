@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup
+  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, ListGroup
 } from 'react-bootstrap';
 import { fetchUsers, createUser, updateUser, deactivateUser } from '../../store/usersSlice';
+import { fetchRoles, fetchUserRoles, updateUserRoles } from '../../store/rbacSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
   const { users, loading, error } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
+  const { roles, userRoles, loading: rbacLoading, error: rbacError } = useSelector((state) => state.rbac);
 
   // State for search and filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +21,7 @@ const UserManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRolesModal, setShowRolesModal] = useState(false);
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -33,12 +36,16 @@ const UserManagement = () => {
   // State for selected user
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // State for role selection
+  const [selectedRoles, setSelectedRoles] = useState([]);
+
   // Form validation
   const [validated, setValidated] = useState(false);
 
-  // Load users on component mount
+  // Load users and roles on component mount
   useEffect(() => {
     dispatch(fetchUsers());
+    dispatch(fetchRoles());
   }, [dispatch]);
 
   // Filter users based on search query and active status
@@ -165,13 +172,55 @@ const UserManagement = () => {
     setShowDeleteModal(true);
   };
 
+  // Open roles modal with user data
+  const openRolesModal = (user) => {
+    setSelectedUser(user);
+
+    // Fetch user roles if not already loaded
+    if (!userRoles[user.id]) {
+      dispatch(fetchUserRoles(user.id));
+    } else {
+      // Set selected roles from existing data
+      setSelectedRoles(userRoles[user.id].map(role => role.id));
+    }
+
+    setShowRolesModal(true);
+  };
+
+  // Handle role selection
+  const handleRoleChange = (roleId) => {
+    if (selectedRoles.includes(roleId)) {
+      setSelectedRoles(selectedRoles.filter(id => id !== roleId));
+    } else {
+      setSelectedRoles([...selectedRoles, roleId]);
+    }
+  };
+
+  // Handle save roles
+  const handleSaveRoles = () => {
+    dispatch(updateUserRoles({ userId: selectedUser.id, roles: selectedRoles }))
+      .unwrap()
+      .then(() => {
+        setShowRolesModal(false);
+        // Refresh the user list after updating roles
+        dispatch(fetchUsers());
+      })
+      .catch(err => {
+        console.error('Failed to update user roles:', err);
+      });
+  };
+
   // Check if user has permission to manage users
-  const hasPermission = currentUser?.is_admin || currentUser?.department === 'Materials';
+  const hasPermission = currentUser?.permissions?.includes('user.view');
+  const canEditUsers = currentUser?.permissions?.includes('user.edit');
+  const canCreateUsers = currentUser?.permissions?.includes('user.create');
+  const canDeleteUsers = currentUser?.permissions?.includes('user.delete');
+  const canManageRoles = currentUser?.permissions?.includes('role.manage');
 
   if (!hasPermission) {
     return (
       <Alert variant="danger">
-        You do not have permission to access this page. Only administrators and Materials department users can manage users.
+        You do not have permission to access this page. Only users with user management permissions can view users.
       </Alert>
     );
   }
@@ -184,9 +233,11 @@ const UserManagement = () => {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>User Management</h2>
-        <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          Add New User
-        </Button>
+        {canCreateUsers && (
+          <Button variant="primary" onClick={() => setShowAddModal(true)}>
+            Add New User
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -239,10 +290,25 @@ const UserManagement = () => {
                       <td>{user.employee_number}</td>
                       <td>{user.department}</td>
                       <td>
-                        {user.is_admin ? (
-                          <span className="status-badge" style={{backgroundColor: 'var(--bs-primary)', color: 'white'}}>Admin</span>
+                        {user.roles && user.roles.length > 0 ? (
+                          <div className="d-flex flex-wrap gap-1">
+                            {user.roles.map(role => (
+                              <span
+                                key={role.id}
+                                className="status-badge"
+                                style={{
+                                  backgroundColor: role.name === 'Administrator' ? 'var(--bs-primary)' :
+                                                  role.name === 'Materials Manager' ? 'var(--bs-success)' :
+                                                  'var(--bs-secondary)',
+                                  color: 'white'
+                                }}
+                              >
+                                {role.name}
+                              </span>
+                            ))}
+                          </div>
                         ) : (
-                          <span className="status-badge" style={{backgroundColor: 'var(--bs-secondary)', color: 'white'}}>User</span>
+                          <span className="status-badge" style={{backgroundColor: 'var(--bs-secondary)', color: 'white'}}>No Roles</span>
                         )}
                       </td>
                       <td>
@@ -254,14 +320,25 @@ const UserManagement = () => {
                       </td>
                       <td>
                         <div className="d-flex gap-2">
-                          <Button
-                            variant="info"
-                            size="sm"
-                            onClick={() => openEditModal(user)}
-                          >
-                            Edit
-                          </Button>
-                          {user.is_active && (
+                          {canManageRoles && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => openRolesModal(user)}
+                            >
+                              Roles
+                            </Button>
+                          )}
+                          {canEditUsers && (
+                            <Button
+                              variant="info"
+                              size="sm"
+                              onClick={() => openEditModal(user)}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                          {canDeleteUsers && user.is_active && (
                             <Button
                               variant="danger"
                               size="sm"
@@ -489,6 +566,47 @@ const UserManagement = () => {
           </Button>
           <Button variant="danger" onClick={handleDeactivateUser}>
             Deactivate User
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Roles Modal */}
+      <Modal show={showRolesModal} onHide={() => setShowRolesModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Manage Roles for {selectedUser?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {rbacLoading ? (
+            <LoadingSpinner />
+          ) : rbacError ? (
+            <Alert variant="danger">
+              {rbacError.message || 'An error occurred while loading roles.'}
+            </Alert>
+          ) : (
+            <>
+              <p>Select the roles to assign to this user:</p>
+              <ListGroup>
+                {roles.map((role) => (
+                  <ListGroup.Item key={role.id}>
+                    <Form.Check
+                      type="checkbox"
+                      id={`role-${role.id}`}
+                      label={`${role.name} - ${role.description || 'No description'}`}
+                      checked={selectedRoles.includes(role.id)}
+                      onChange={() => handleRoleChange(role.id)}
+                    />
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowRolesModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSaveRoles} disabled={rbacLoading}>
+            Save Roles
           </Button>
         </Modal.Footer>
       </Modal>

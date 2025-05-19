@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import api from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import RegistrationRequests from '../components/admin/RegistrationRequests';
+import AdminDashboard from '../components/admin/AdminDashboard';
 import { APP_VERSION } from '../utils/version';
 
 // Colors for the pie chart
@@ -147,9 +148,21 @@ const AdminDashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  // Redirect if user is not an admin
-  if (!user?.is_admin) {
+  // Check if user has any admin permissions
+  const hasAdminPermissions = user?.permissions?.some(permission =>
+    permission.startsWith('user.') ||
+    permission.startsWith('role.') ||
+    permission.startsWith('system.')
+  );
+
+  // Redirect if user doesn't have admin permissions
+  if (!hasAdminPermissions) {
     return <Navigate to="/" replace />;
+  }
+
+  // If user has RBAC permissions, show the new admin dashboard
+  if (user?.permissions) {
+    return <AdminDashboard />;
   }
 
   if (loading) {

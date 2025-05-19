@@ -8,6 +8,7 @@ import themeReducer from './themeSlice';
 import reportReducer from './reportSlice';
 import chemicalsReducer from './chemicalsSlice';
 import calibrationReducer from './calibrationSlice';
+import rbacReducer from './rbacSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     reports: reportReducer,
     chemicals: chemicalsReducer,
     calibration: calibrationReducer,
+    rbac: rbacReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
