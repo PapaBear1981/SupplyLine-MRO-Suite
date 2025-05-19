@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatISODate } from '../utils/dateUtils';
 
 const ReportService = {
   // Fetch tool inventory report
@@ -44,13 +44,14 @@ const ReportService = {
   exportAsPdf: (reportData, reportType, timeframe) => {
     const doc = new jsPDF();
     const title = getReportTitle(reportType, timeframe);
-    const date = formatDate(new Date());
+    const displayDate = formatDate(new Date());
+    const fileDate = formatISODate(new Date());
 
     // Add title and date
     doc.setFontSize(18);
     doc.text(title, 14, 22);
     doc.setFontSize(11);
-    doc.text(`Generated on: ${date}`, 14, 30);
+    doc.text(`Generated on: ${displayDate}`, 14, 30);
 
     // Add report data based on report type
     if (reportType === 'tool-inventory') {
@@ -62,13 +63,14 @@ const ReportService = {
     }
 
     // Save the PDF
-    doc.save(`${reportType}-report-${date}.pdf`);
+    doc.save(`${reportType}-report-${fileDate}.pdf`);
   },
 
   // Export report as Excel
   exportAsExcel: (reportData, reportType, timeframe) => {
     const title = getReportTitle(reportType, timeframe);
-    const date = formatDate(new Date());
+    const displayDate = formatDate(new Date());
+    const fileDate = formatISODate(new Date());
     let worksheet;
 
     // Create worksheet based on report type
@@ -87,7 +89,7 @@ const ReportService = {
     // Generate Excel file and save
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${reportType}-report-${date}.xlsx`);
+    saveAs(blob, `${reportType}-report-${fileDate}.xlsx`);
   }
 };
 
