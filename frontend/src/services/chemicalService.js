@@ -244,9 +244,17 @@ const ChemicalService = {
   },
 
   // Mark a chemical as delivered
-  markChemicalAsDelivered: async (id) => {
+  markChemicalAsDelivered: async (id, receivedQuantity = null) => {
     try {
-      const response = await api.post(`/chemicals/${id}/mark-delivered`);
+      // Create request data object
+      const requestData = {};
+
+      // Add received quantity if provided
+      if (receivedQuantity !== null) {
+        requestData.received_quantity = receivedQuantity;
+      }
+
+      const response = await api.post(`/chemicals/${id}/mark-delivered`, requestData);
       return response.data;
     } catch (error) {
       console.error(`API Error [POST] /chemicals/${id}/mark-delivered:`, error);
