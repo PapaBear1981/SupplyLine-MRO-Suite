@@ -6,7 +6,6 @@ Run this script to update the database schema.
 import sqlite3
 import os
 import sys
-from datetime import datetime
 
 # Get the database path from the environment or use the default
 if os.path.exists('/database'):

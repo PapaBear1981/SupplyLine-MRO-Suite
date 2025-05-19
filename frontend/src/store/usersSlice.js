@@ -78,8 +78,8 @@ export const unlockUserAccount = createAsyncThunk(
   'users/unlockUserAccount',
   async (id, { rejectWithValue }) => {
     try {
-      const data = await UserService.unlockUserAccount(id);
-      return data;
+      const { user } = await UserService.unlockUserAccount(id);
+      return user;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to unlock user account' });
     }
@@ -204,9 +204,9 @@ const usersSlice = createSlice({
       .addCase(unlockUserAccount.fulfilled, (state, action) => {
         state.loading = false;
         // Update the user in the users array
-        const index = state.users.findIndex(user => user.id === action.payload.user.id);
+        const index = state.users.findIndex(user => user.id === action.payload.id);
         if (index !== -1) {
-          state.users[index] = action.payload.user;
+          state.users[index] = action.payload;
         }
       })
       .addCase(unlockUserAccount.rejected, (state, action) => {
