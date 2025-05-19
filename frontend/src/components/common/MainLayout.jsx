@@ -49,6 +49,7 @@ const MainLayout = ({ children }) => {
                       variant={showHelp ? "info" : "outline-info"}
                       className="me-2"
                       onClick={() => setShowHelp(!showHelp)}
+                      aria-label={showHelp ? "Hide help features" : "Show help features"}
                     >
                       <i className="bi bi-question-circle"></i>
                     </Button>
@@ -61,6 +62,7 @@ const MainLayout = ({ children }) => {
                     <Button
                       variant="outline-info"
                       onClick={() => setShowTour(true)}
+                      aria-label="Start guided tour"
                     >
                       <i className="bi bi-info-circle"></i>
                     </Button>
