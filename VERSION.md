@@ -2,6 +2,28 @@
 
 ## Version History
 
+### Version 3.5.2 (2025-05-19)
+- Fixed chemical dropdown menu issue
+- Removed dropdown menu from chemical list to simplify interface
+- Fixed chemical issuance history endpoint
+- Implemented missing API endpoints for marking chemicals as ordered and delivered
+- Implemented chemical issuance functionality
+- Enhanced Chemical Usage Analytics with real-time data
+- Removed debug login functionality and debug endpoints
+
+### Version 3.5.1 (2025-05-18)
+- Fixed "Add New Tool" functionality
+- Fixed "Add New Chemical" functionality
+- Fixed "Add New User" functionality
+- Fixed calibration issues
+- Fixed tool return functionality
+- Fixed dark mode inconsistencies across pages
+- Fixed calibration timeframe selector visibility issue
+- Fixed Docker configuration
+- Updated README.md to reflect the current version and features
+- Added comprehensive release notes documentation
+- Improved version tracking and tagging
+
 ### Version 3.5.0 (2025-05-17)
 - Added tool calibration management functionality
 - Implemented calibration tracking for tools requiring regular calibration

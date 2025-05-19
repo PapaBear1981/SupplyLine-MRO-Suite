@@ -2,7 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.5.2] - 2025-05-19
+
+### Fixed
+- Fixed chemical dropdown menu issue (Issue #83)
+  - Removed dropdown menu from chemical list to simplify interface
+  - Removed dropdown menu toggle handler
+  - Kept only essential buttons (View, Issue, and Barcode)
+  - Improved user interface clarity and intuitiveness
+- Fixed chemical issuance history endpoint (Issue #80)
+  - Moved the chemical issuance history endpoint inside the register_chemical_routes function
+  - Ensured proper API registration with the Flask application
+  - Improved endpoint reliability and data retrieval
+- Implemented missing API endpoints for marking chemicals as ordered and delivered (Issue #79)
+  - Added endpoint for marking chemicals as ordered with expected delivery date
+  - Added endpoint for marking chemicals as delivered
+  - Updated chemical reorder status tracking
+- Implemented chemical issuance functionality (Issue #77)
+  - Added missing API endpoint for issuing chemicals
+  - Implemented proper validation for chemical issuance
+  - Added logging for chemical issuance actions
+- Enhanced Chemical Usage Analytics with real-time data (Issue #41)
+  - Modified analytics to calculate usage based on actual issuance data
+  - Added calculation for projected depletion time
+  - Improved user display with actual user names
+- Removed debug login functionality and debug endpoints (Issue #67)
+  - Removed debug components and test files
+  - Removed debug endpoints from chemical analytics
+  - Enhanced application security
 
 ## [3.5.1] - 2025-05-18
 
