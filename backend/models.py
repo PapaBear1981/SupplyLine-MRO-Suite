@@ -81,6 +81,10 @@ class User(db.Model):
     remember_token = db.Column(db.String, nullable=True)
     remember_token_expiry = db.Column(db.DateTime, nullable=True)
     avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
+    # Account lockout fields
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    account_locked_until = db.Column(db.DateTime, nullable=True)
+    last_failed_login = db.Column(db.DateTime, nullable=True)
 
     # Relationships
     roles = association_proxy('user_roles', 'role')
@@ -160,7 +164,45 @@ class User(db.Model):
         """Remove a role from this user"""
         UserRole.query.filter_by(user_id=self.id, role_id=role.id).delete()
 
-    def to_dict(self, include_roles=False, include_permissions=False):
+    def increment_failed_login(self):
+        """Increment the failed login attempts counter and update the last failed login timestamp."""
+        self.failed_login_attempts += 1
+        self.last_failed_login = datetime.utcnow()
+        return self.failed_login_attempts
+
+    def reset_failed_login_attempts(self):
+        """Reset the failed login attempts counter."""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        return True
+
+    def lock_account(self, minutes=15):
+        """Lock the account for the specified number of minutes."""
+        self.account_locked_until = datetime.utcnow() + timedelta(minutes=minutes)
+        return True
+
+    def unlock_account(self):
+        """Manually unlock the account."""
+        self.account_locked_until = None
+        self.failed_login_attempts = 0
+        return True
+
+    def is_locked(self):
+        """Check if the account is currently locked."""
+        if not self.account_locked_until:
+            return False
+        return datetime.utcnow() < self.account_locked_until
+
+    def get_lockout_remaining_time(self):
+        """Get the remaining time (in seconds) until the account is unlocked."""
+        if not self.account_locked_until:
+            return 0
+        if datetime.utcnow() >= self.account_locked_until:
+            return 0
+        delta = self.account_locked_until - datetime.utcnow()
+        return delta.total_seconds()
+
+    def to_dict(self, include_roles=False, include_permissions=False, include_lockout_info=False):
         result = {
             'id': self.id,
             'name': self.name,
@@ -177,6 +219,14 @@ class User(db.Model):
 
         if include_permissions:
             result['permissions'] = self.get_permissions()
+
+        if include_lockout_info:
+            result.update({
+                'failed_login_attempts': self.failed_login_attempts,
+                'account_locked': self.is_locked(),
+                'account_locked_until': self.account_locked_until.isoformat() if self.account_locked_until else None,
+                'last_failed_login': self.last_failed_login.isoformat() if self.last_failed_login else None
+            })
 
         return result
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, ListGroup
+  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, ListGroup, OverlayTrigger, Tooltip
 } from 'react-bootstrap';
-import { fetchUsers, createUser, updateUser, deactivateUser } from '../../store/usersSlice';
+import { fetchUsers, createUser, updateUser, deactivateUser, unlockUserAccount } from '../../store/usersSlice';
 import { fetchRoles, fetchUserRoles, updateUserRoles } from '../../store/rbacSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
@@ -23,6 +23,7 @@ const UserManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRolesModal, setShowRolesModal] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -138,6 +139,26 @@ const UserManagement = () => {
       })
       .catch(err => {
         console.error('Failed to deactivate user:', err);
+      });
+  };
+
+  // Open unlock account modal
+  const openUnlockModal = (user) => {
+    setSelectedUser(user);
+    setShowUnlockModal(true);
+  };
+
+  // Handle unlock user account
+  const handleUnlockAccount = () => {
+    dispatch(unlockUserAccount(selectedUser.id))
+      .unwrap()
+      .then(() => {
+        setShowUnlockModal(false);
+        // Refresh the user list after unlocking the account
+        dispatch(fetchUsers());
+      })
+      .catch(err => {
+        console.error('Failed to unlock user account:', err);
       });
   };
 
@@ -320,10 +341,23 @@ const UserManagement = () => {
                         )}
                       </td>
                       <td>
-                        {user.is_active ? (
-                          <span className="status-badge status-active">Active</span>
-                        ) : (
+                        {!user.is_active ? (
                           <span className="status-badge status-inactive">Inactive</span>
+                        ) : user.account_locked ? (
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip>
+                                Locked until: {new Date(user.account_locked_until).toLocaleString()}
+                                <br />
+                                Failed attempts: {user.failed_login_attempts}
+                              </Tooltip>
+                            }
+                          >
+                            <span className="status-badge" style={{backgroundColor: 'var(--bs-danger)', color: 'white'}}>Locked</span>
+                          </OverlayTrigger>
+                        ) : (
+                          <span className="status-badge status-active">Active</span>
                         )}
                       </td>
                       <td>
@@ -344,6 +378,15 @@ const UserManagement = () => {
                               onClick={() => openEditModal(user)}
                             >
                               Edit
+                            </Button>
+                          )}
+                          {canEditUsers && user.is_active && user.account_locked && (
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => openUnlockModal(user)}
+                            >
+                              Unlock
                             </Button>
                           )}
                           {canDeleteUsers && user.is_active && (
@@ -632,6 +675,37 @@ const UserManagement = () => {
           </Button>
           <Button variant="primary" onClick={handleSaveRoles} disabled={rbacLoading}>
             Save Roles
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Unlock Account Modal */}
+      <Modal show={showUnlockModal} onHide={() => setShowUnlockModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Unlock User Account</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedUser && (
+            <>
+              <p>Are you sure you want to unlock the account for <strong>{selectedUser.name}</strong>?</p>
+              <Alert variant="info">
+                <p className="mb-1"><strong>Account Details:</strong></p>
+                <ul className="mb-0">
+                  <li>Employee Number: {selectedUser.employee_number}</li>
+                  <li>Failed Login Attempts: {selectedUser.failed_login_attempts}</li>
+                  <li>Locked Until: {new Date(selectedUser.account_locked_until).toLocaleString()}</li>
+                </ul>
+              </Alert>
+              <p className="mt-3">Unlocking this account will reset the failed login attempts counter and allow the user to log in immediately.</p>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowUnlockModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={handleUnlockAccount}>
+            Unlock Account
           </Button>
         </Modal.Footer>
       </Modal>
