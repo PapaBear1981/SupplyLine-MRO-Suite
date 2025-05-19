@@ -103,6 +103,16 @@ const UserService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Unlock a locked user account
+  unlockUserAccount: async (id) => {
+    try {
+      const response = await api.post(`/users/${id}/unlock`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

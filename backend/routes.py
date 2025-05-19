@@ -809,15 +809,18 @@ def register_routes(app):
             # Check if there's a search query for employee number
             search_query = request.args.get('q')
 
+            # Check if we should include lockout info (admin only)
+            include_lockout_info = session.get('is_admin', False)
+
             if search_query:
                 # Search for users by employee number
                 search_term = f'%{search_query}%'
                 users = User.query.filter(User.employee_number.like(search_term)).all()
-                return jsonify([u.to_dict() for u in users])
+                return jsonify([u.to_dict(include_lockout_info=include_lockout_info) for u in users])
             else:
                 # Get all users, including inactive ones
                 users = User.query.all()
-                return jsonify([u.to_dict() for u in users])
+                return jsonify([u.to_dict(include_lockout_info=include_lockout_info) for u in users])
 
         # POST - Create a new user
         data = request.get_json() or {}
@@ -870,8 +873,9 @@ def register_routes(app):
         user = User.query.get_or_404(id)
 
         if request.method == 'GET':
-            # Return user details
-            return jsonify(user.to_dict())
+            # Return user details with lockout info for admins
+            include_lockout_info = session.get('is_admin', False)
+            return jsonify(user.to_dict(include_lockout_info=include_lockout_info))
 
         elif request.method == 'PUT':
             # Update user
@@ -919,6 +923,43 @@ def register_routes(app):
             db.session.commit()
 
             return jsonify({'message': f'User {user.name} deactivated successfully'})
+
+    @app.route('/api/users/<int:id>/unlock', methods=['POST'])
+    @admin_required
+    def unlock_user_account(id):
+        """Unlock a user account that has been locked due to failed login attempts."""
+        # Get the user
+        user = User.query.get_or_404(id)
+
+        # Check if the account is actually locked
+        if not user.is_locked():
+            return jsonify({'message': f'Account for {user.name} is not locked'}), 400
+
+        # Unlock the account
+        user.unlock_account()
+
+        # Log the action
+        log = AuditLog(
+            action_type='account_unlocked',
+            action_details=f'Admin {session.get("user_name", "Unknown")} (ID: {session.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
+        )
+        db.session.add(log)
+
+        # Add user activity
+        activity = UserActivity(
+            user_id=user.id,
+            activity_type='account_unlocked',
+            description=f'Account unlocked by admin {session.get("user_name", "Unknown")}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(activity)
+
+        db.session.commit()
+
+        return jsonify({
+            'message': f'Account for {user.name} has been successfully unlocked',
+            'user': user.to_dict(include_lockout_info=True)
+        }), 200
 
     @app.route('/api/checkouts', methods=['GET', 'POST'])
     def checkouts_route():
@@ -1350,12 +1391,105 @@ def register_routes(app):
 
         user = User.query.filter_by(employee_number=data['employee_number']).first()
 
-        if not user or not user.check_password(data['password']):
+        # If user doesn't exist, return generic error message
+        if not user:
             return jsonify({'error': 'Invalid credentials'}), 401
+
+        # Check if account is locked
+        if user.is_locked():
+            # Calculate remaining lockout time in minutes
+            remaining_seconds = user.get_lockout_remaining_time()
+            remaining_minutes = int(remaining_seconds / 60) + 1  # Round up to the next minute
+
+            # Log the failed login attempt due to account lockout
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='login_failed',
+                description=f'Login attempt while account locked. Remaining lockout time: {remaining_minutes} minutes',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+
+            log = AuditLog(
+                action_type='login_failed',
+                action_details=f'User {user.id} ({user.name}) attempted login while account locked. Remaining lockout time: {remaining_minutes} minutes'
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({
+                'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes or contact an administrator.'
+            }), 403
+
+        # Check password
+        if not user.check_password(data['password']):
+            # Increment failed login attempts
+            user.increment_failed_login()
+
+            # Get account lockout settings from config
+            lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
+            max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
+            initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
+            lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
+            max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
+
+            # Log the failed login attempt
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='login_failed',
+                description=f'Failed login attempt ({user.failed_login_attempts}/{max_attempts})',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+
+            # Check if account should be locked
+            if user.failed_login_attempts >= max_attempts:
+                # Calculate lockout duration with exponential backoff
+                # For first lockout: initial_lockout
+                # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
+                # Number of complete lockout cycles
+                lockout_count = user.failed_login_attempts // max_attempts
+                if lockout_count == 1:
+                    lockout_minutes = initial_lockout
+                else:
+                    lockout_minutes = min(
+                        initial_lockout * (lockout_multiplier ** (lockout_count - 1)),
+                        max_lockout
+                    )
+
+                # Lock the account
+                user.lock_account(minutes=int(lockout_minutes))
+
+                # Log the account lockout
+                log = AuditLog(
+                    action_type='account_locked',
+                    action_details=f'User {user.id} ({user.name}) account locked for {lockout_minutes} minutes due to {user.failed_login_attempts} failed login attempts'
+                )
+                db.session.add(log)
+                db.session.commit()
+
+                return jsonify({
+                    'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
+                }), 403
+
+            # Calculate remaining attempts before lockout
+            remaining_attempts = max_attempts - user.failed_login_attempts
+
+            db.session.commit()
+
+            if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
+                return jsonify({
+                    'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
+                }), 401
+            else:
+                return jsonify({'error': 'Invalid credentials'}), 401
 
         # Check if user is active
         if not user.is_active:
             return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
+
+        # Reset failed login attempts on successful login
+        user.reset_failed_login_attempts()
 
         # Store user info in session
         session['user_id'] = user.id
