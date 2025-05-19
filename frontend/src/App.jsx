@@ -6,6 +6,9 @@ import { fetchCurrentUser } from './store/authSlice';
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Import Help Provider
+import { HelpProvider } from './context/HelpContext';
+
 // Import components
 import MainLayout from './components/common/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -50,8 +53,9 @@ function App() {
   }, [theme]);
 
   return (
-    <Router>
-      <Routes>
+    <HelpProvider>
+      <Router>
+        <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -247,7 +251,8 @@ function App() {
         {/* Redirect any unknown routes to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+      </Router>
+    </HelpProvider>
   );
 }
 
