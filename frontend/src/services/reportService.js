@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { formatDate, formatISODate } from '../utils/dateUtils';
 
 const ReportService = {
   // Fetch tool inventory report
@@ -43,14 +44,15 @@ const ReportService = {
   exportAsPdf: (reportData, reportType, timeframe) => {
     const doc = new jsPDF();
     const title = getReportTitle(reportType, timeframe);
-    const date = new Date().toLocaleDateString();
-    
+    const displayDate = formatDate(new Date());
+    const fileDate = formatISODate(new Date());
+
     // Add title and date
     doc.setFontSize(18);
     doc.text(title, 14, 22);
     doc.setFontSize(11);
-    doc.text(`Generated on: ${date}`, 14, 30);
-    
+    doc.text(`Generated on: ${displayDate}`, 14, 30);
+
     // Add report data based on report type
     if (reportType === 'tool-inventory') {
       exportToolInventoryPdf(doc, reportData);
@@ -59,17 +61,18 @@ const ReportService = {
     } else if (reportType === 'department-usage') {
       exportDepartmentUsagePdf(doc, reportData);
     }
-    
+
     // Save the PDF
-    doc.save(`${reportType}-report-${date}.pdf`);
+    doc.save(`${reportType}-report-${fileDate}.pdf`);
   },
 
   // Export report as Excel
   exportAsExcel: (reportData, reportType, timeframe) => {
     const title = getReportTitle(reportType, timeframe);
-    const date = new Date().toLocaleDateString();
+    const displayDate = formatDate(new Date());
+    const fileDate = formatISODate(new Date());
     let worksheet;
-    
+
     // Create worksheet based on report type
     if (reportType === 'tool-inventory') {
       worksheet = XLSX.utils.json_to_sheet(formatToolInventoryForExcel(reportData));
@@ -78,22 +81,22 @@ const ReportService = {
     } else if (reportType === 'department-usage') {
       worksheet = XLSX.utils.json_to_sheet(formatDepartmentUsageForExcel(reportData));
     }
-    
+
     // Create workbook and add worksheet
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, title);
-    
+
     // Generate Excel file and save
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${reportType}-report-${date}.xlsx`);
+    saveAs(blob, `${reportType}-report-${fileDate}.xlsx`);
   }
 };
 
 // Helper functions
 const getReportTitle = (reportType, timeframe) => {
   let title = '';
-  
+
   switch (reportType) {
     case 'tool-inventory':
       title = 'Tool Inventory Report';
@@ -107,12 +110,12 @@ const getReportTitle = (reportType, timeframe) => {
     default:
       title = 'Report';
   }
-  
+
   if (timeframe) {
     const timeframeText = timeframe.charAt(0).toUpperCase() + timeframe.slice(1);
     title += ` (${timeframeText})`;
   }
-  
+
   return title;
 };
 
@@ -127,7 +130,7 @@ const exportToolInventoryPdf = (doc, data) => {
     tool.location || 'N/A',
     tool.status || 'Available'
   ]);
-  
+
   doc.autoTable({
     head: [tableColumn],
     body: tableRows,
@@ -142,11 +145,11 @@ const exportCheckoutHistoryPdf = (doc, data) => {
   const tableRows = data.checkouts.map(checkout => [
     checkout.tool_number,
     checkout.user_name,
-    new Date(checkout.checkout_date).toLocaleDateString(),
-    checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : 'Not Returned',
+    formatDate(checkout.checkout_date),
+    checkout.return_date ? formatDate(checkout.return_date) : 'Not Returned',
     checkout.duration || 'N/A'
   ]);
-  
+
   // Add summary statistics
   doc.setFontSize(12);
   doc.text('Summary Statistics:', 14, 40);
@@ -154,7 +157,7 @@ const exportCheckoutHistoryPdf = (doc, data) => {
   doc.text(`Total Checkouts: ${data.stats.totalCheckouts}`, 14, 48);
   doc.text(`Average Checkout Duration: ${data.stats.averageDuration} days`, 14, 54);
   doc.text(`Currently Checked Out: ${data.stats.currentlyCheckedOut}`, 14, 60);
-  
+
   doc.autoTable({
     head: [tableColumn],
     body: tableRows,
@@ -172,7 +175,7 @@ const exportDepartmentUsagePdf = (doc, data) => {
     dept.averageDuration,
     dept.currentlyCheckedOut
   ]);
-  
+
   doc.autoTable({
     head: [tableColumn],
     body: tableRows,
@@ -201,8 +204,8 @@ const formatCheckoutHistoryForExcel = (data) => {
     'Serial Number': checkout.serial_number || 'N/A',
     'Description': checkout.description || 'N/A',
     'User': checkout.user_name,
-    'Checkout Date': new Date(checkout.checkout_date).toLocaleDateString(),
-    'Return Date': checkout.return_date ? new Date(checkout.return_date).toLocaleDateString() : 'Not Returned',
+    'Checkout Date': formatDate(checkout.checkout_date),
+    'Return Date': checkout.return_date ? formatDate(checkout.return_date) : 'Not Returned',
     'Duration (Days)': checkout.duration || 'N/A'
   }));
 };

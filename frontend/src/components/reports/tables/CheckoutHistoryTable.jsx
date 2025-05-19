@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Table, Form, InputGroup, Badge, Card } from 'react-bootstrap';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 const CheckoutHistoryTable = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,7 +36,7 @@ const CheckoutHistoryTable = ({ data }) => {
     if (sortField === 'checkout_date' || sortField === 'return_date') {
       const aDate = a[sortField] ? new Date(a[sortField]) : new Date(0);
       const bDate = b[sortField] ? new Date(b[sortField]) : new Date(0);
-      
+
       if (sortDirection === 'asc') {
         return aDate - bDate;
       } else {
@@ -44,7 +45,7 @@ const CheckoutHistoryTable = ({ data }) => {
     } else {
       const aValue = a[sortField] || '';
       const bValue = b[sortField] || '';
-      
+
       if (sortDirection === 'asc') {
         return aValue.localeCompare(bValue);
       } else {
@@ -63,12 +64,7 @@ const CheckoutHistoryTable = ({ data }) => {
     }
   };
 
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // Use the standardized date formatting utility
 
   // Get status badge
   const getStatusBadge = (checkout) => {
@@ -104,7 +100,7 @@ const CheckoutHistoryTable = ({ data }) => {
           <Table hover className="mb-0">
             <thead className="bg-light">
               <tr>
-                <th 
+                <th
                   onClick={() => handleSort('tool_number')}
                   className="cursor-pointer"
                 >
@@ -112,7 +108,7 @@ const CheckoutHistoryTable = ({ data }) => {
                     <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                   )}
                 </th>
-                <th 
+                <th
                   onClick={() => handleSort('description')}
                   className="cursor-pointer"
                 >
@@ -120,7 +116,7 @@ const CheckoutHistoryTable = ({ data }) => {
                     <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                   )}
                 </th>
-                <th 
+                <th
                   onClick={() => handleSort('user_name')}
                   className="cursor-pointer"
                 >
@@ -128,7 +124,7 @@ const CheckoutHistoryTable = ({ data }) => {
                     <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                   )}
                 </th>
-                <th 
+                <th
                   onClick={() => handleSort('checkout_date')}
                   className="cursor-pointer"
                 >
@@ -136,7 +132,7 @@ const CheckoutHistoryTable = ({ data }) => {
                     <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                   )}
                 </th>
-                <th 
+                <th
                   onClick={() => handleSort('return_date')}
                   className="cursor-pointer"
                 >
@@ -154,8 +150,8 @@ const CheckoutHistoryTable = ({ data }) => {
                   <td>{checkout.tool_number}</td>
                   <td>{checkout.description || 'N/A'}</td>
                   <td>{checkout.user_name}</td>
-                  <td>{formatDate(checkout.checkout_date)}</td>
-                  <td>{formatDate(checkout.return_date)}</td>
+                  <td>{formatDateTime(checkout.checkout_date)}</td>
+                  <td>{formatDateTime(checkout.return_date)}</td>
                   <td>{getStatusBadge(checkout)}</td>
                   <td>
                     {checkout.duration ? `${checkout.duration} days` : 'N/A'}

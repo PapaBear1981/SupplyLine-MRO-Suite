@@ -9,6 +9,7 @@ import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
 import { useHelp } from '../../context/HelpContext';
+import { formatDate } from '../../utils/dateUtils';
 
 const UserCheckouts = () => {
   const dispatch = useDispatch();
@@ -124,9 +125,9 @@ const UserCheckouts = () => {
                         </td>
                         <td>{checkout.serial_number}</td>
                         <td>{checkout.description}</td>
-                        <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
+                        <td>{formatDate(checkout.checkout_date)}</td>
                         <td>
-                          {checkout.expected_return_date ? new Date(checkout.expected_return_date).toLocaleDateString() : 'N/A'}
+                          {formatDate(checkout.expected_return_date)}
                           {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() && (
                             <span className="status-badge status-maintenance ms-2">Overdue</span>
                           )}
@@ -205,8 +206,8 @@ const UserCheckouts = () => {
                         </td>
                         <td>{checkout.serial_number}</td>
                         <td>{checkout.description}</td>
-                        <td>{new Date(checkout.checkout_date).toLocaleDateString()}</td>
-                        <td>{new Date(checkout.return_date).toLocaleDateString()}</td>
+                        <td>{formatDate(checkout.checkout_date)}</td>
+                        <td>{formatDate(checkout.return_date)}</td>
                         <td>
                           <span className="status-badge status-available">Returned</span>
                         </td>
