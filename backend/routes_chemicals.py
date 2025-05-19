@@ -410,6 +410,119 @@ def register_chemical_routes(app):
 
             return jsonify(chemical.to_dict())
 
+    # Archive a chemical
+    @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
+    @materials_manager_required
+    def archive_chemical_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Check if the chemical is already archived
+            try:
+                if chemical.is_archived:
+                    return jsonify({'error': 'Chemical is already archived'}), 400
+            except:
+                return jsonify({'error': 'Archive functionality not available'}), 500
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Validate required fields
+            if not data.get('reason'):
+                return jsonify({'error': 'Missing required field: reason'}), 400
+
+            # Update chemical archive status
+            try:
+                chemical.is_archived = True
+                chemical.archived_reason = data.get('reason')
+                chemical.archived_date = datetime.utcnow()
+            except Exception as e:
+                print(f"Error updating archive status: {str(e)}")
+                return jsonify({'error': 'Failed to update archive status'}), 500
+
+            # Log the action
+            user_name = session.get('user_name', 'Unknown user')
+            log = AuditLog(
+                action_type='chemical_archived',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} archived by {user_name}: {data.get('reason')}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_archived',
+                    description=f"Archived chemical {chemical.part_number} - {chemical.lot_number}: {data.get('reason')}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical archived successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in archive chemical route: {str(e)}")
+            return jsonify({'error': 'An error occurred while archiving the chemical'}), 500
+
+    # Unarchive a chemical
+    @app.route('/api/chemicals/<int:id>/unarchive', methods=['POST'])
+    @materials_manager_required
+    def unarchive_chemical_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Check if the chemical is archived
+            try:
+                if not chemical.is_archived:
+                    return jsonify({'error': 'Chemical is not archived'}), 400
+            except:
+                return jsonify({'error': 'Archive functionality not available'}), 500
+
+            # Update chemical archive status
+            try:
+                chemical.is_archived = False
+                chemical.archived_reason = None
+                chemical.archived_date = None
+            except Exception as e:
+                print(f"Error updating archive status: {str(e)}")
+                return jsonify({'error': 'Failed to update archive status'}), 500
+
+            # Log the action
+            user_name = session.get('user_name', 'Unknown user')
+            log = AuditLog(
+                action_type='chemical_unarchived',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} unarchived by {user_name}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_unarchived',
+                    description=f"Unarchived chemical {chemical.part_number} - {chemical.lot_number}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical unarchived successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in unarchive chemical route: {str(e)}")
+            return jsonify({'error': 'An error occurred while unarchiving the chemical'}), 500
+
     # Mark a chemical as delivered
     @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
     @materials_manager_required
