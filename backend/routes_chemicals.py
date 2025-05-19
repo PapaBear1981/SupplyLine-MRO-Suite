@@ -285,6 +285,7 @@ def register_chemical_routes(app):
             # Convert to list of dictionaries
             result = [i.to_dict() for i in issuances]
 
+            # Return the result
             return jsonify(result)
         except Exception as e:
             print(f"Error in chemical issuances route: {str(e)}")
