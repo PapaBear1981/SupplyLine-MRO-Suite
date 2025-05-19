@@ -11,6 +11,10 @@ import RemoveFromServiceModal from './RemoveFromServiceModal';
 import ReturnToServiceModal from './ReturnToServiceModal';
 import ServiceHistoryList from './ServiceHistoryList';
 import ToolCalibrationHistory from '../calibration/ToolCalibrationHistory';
+import Tooltip from '../common/Tooltip';
+import HelpIcon from '../common/HelpIcon';
+import HelpContent from '../common/HelpContent';
+import { useHelp } from '../../context/HelpContext';
 
 const ToolDetail = () => {
   const { id } = useParams();
@@ -18,6 +22,7 @@ const ToolDetail = () => {
   const { currentTool, loading: toolLoading } = useSelector((state) => state.tools);
   const { checkoutHistory, loading: historyLoading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
+  const { showTooltips, showHelp, getHelpContent } = useHelp();
 
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showRemoveFromServiceModal, setShowRemoveFromServiceModal] = useState(false);
@@ -46,16 +51,45 @@ const ToolDetail = () => {
   return (
     <>
       <div>
+        {showHelp && (
+          <HelpContent title="Tool Details" initialOpen={false}>
+            <p>This page displays detailed information about a specific tool, including its status, location, and history.</p>
+            <ul>
+              <li><strong>Tool Information:</strong> View basic details about the tool, including its ID, category, location, and status.</li>
+              <li><strong>Calibration Information:</strong> For tools that require calibration, view the calibration status, frequency, and history.</li>
+              <li><strong>Actions:</strong> Depending on the tool's status and your permissions, you can checkout the tool, remove it from service, or return it to service.</li>
+              <li><strong>History Tabs:</strong> View the tool's checkout history, service history, and calibration history using the tabs.</li>
+            </ul>
+          </HelpContent>
+        )}
+
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>Tool Details</h2>
+          <div className="d-flex align-items-center">
+            <h2>Tool Details</h2>
+            {showHelp && (
+              <HelpIcon
+                title="Tool Details"
+                content={
+                  <>
+                    <p>This page shows detailed information about a specific tool.</p>
+                    <p>You can view the tool's properties, status, and history, as well as perform actions like checkout or maintenance.</p>
+                  </>
+                }
+              />
+            )}
+          </div>
           <div>
-            <Button as={Link} to="/tools" variant="secondary" className="me-2">
-              Back to Tools
-            </Button>
-            {isAdmin && (
-              <Button as={Link} to={`/tools/${id}/edit`} variant="primary">
-                Edit Tool
+            <Tooltip text="Return to tool inventory" placement="top" show={showTooltips}>
+              <Button as={Link} to="/tools" variant="secondary" className="me-2">
+                Back to Tools
               </Button>
+            </Tooltip>
+            {isAdmin && (
+              <Tooltip text="Edit tool information" placement="top" show={showTooltips}>
+                <Button as={Link} to={`/tools/${id}/edit`} variant="primary">
+                  Edit Tool
+                </Button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -164,32 +198,40 @@ const ToolDetail = () => {
                 <div className="d-flex flex-wrap gap-2">
                   {currentTool.status === 'available' && (
                     <>
-                      <Button as={Link} to={`/checkout/${currentTool.id}`} variant="success">
-                        Checkout to Me
-                      </Button>
-                      <Button
-                        variant="primary"
-                        onClick={() => setShowCheckoutModal(true)}
-                      >
-                        Checkout to User
-                      </Button>
+                      <Tooltip text="Check out this tool to yourself" placement="top" show={showTooltips}>
+                        <Button as={Link} to={`/checkout/${currentTool.id}`} variant="success">
+                          Checkout to Me
+                        </Button>
+                      </Tooltip>
+                      <Tooltip text="Check out this tool to another user" placement="top" show={showTooltips}>
+                        <Button
+                          variant="primary"
+                          onClick={() => setShowCheckoutModal(true)}
+                        >
+                          Checkout to User
+                        </Button>
+                      </Tooltip>
                       {isAdmin && (
                         <>
-                          <Button
-                            variant="warning"
-                            onClick={() => setShowRemoveFromServiceModal(true)}
-                            className="me-2"
-                          >
-                            Remove from Service
-                          </Button>
-                          {currentTool.requires_calibration && (
+                          <Tooltip text="Mark this tool as under maintenance or retired" placement="top" show={showTooltips}>
                             <Button
-                              as={Link}
-                              to={`/tools/${currentTool.id}/calibrations/new`}
-                              variant="info"
+                              variant="warning"
+                              onClick={() => setShowRemoveFromServiceModal(true)}
+                              className="me-2"
                             >
-                              Calibrate Tool
+                              Remove from Service
                             </Button>
+                          </Tooltip>
+                          {currentTool.requires_calibration && (
+                            <Tooltip text="Perform calibration on this tool" placement="top" show={showTooltips}>
+                              <Button
+                                as={Link}
+                                to={`/tools/${currentTool.id}/calibrations/new`}
+                                variant="info"
+                              >
+                                Calibrate Tool
+                              </Button>
+                            </Tooltip>
                           )}
                         </>
                       )}
@@ -208,12 +250,14 @@ const ToolDetail = () => {
                         Out of Service
                       </Button>
                       {isAdmin && (
-                        <Button
-                          variant="success"
-                          onClick={() => setShowReturnToServiceModal(true)}
-                        >
-                          Return to Service
-                        </Button>
+                        <Tooltip text="Return this tool to available status" placement="top" show={showTooltips}>
+                          <Button
+                            variant="success"
+                            onClick={() => setShowReturnToServiceModal(true)}
+                          >
+                            Return to Service
+                          </Button>
+                        </Tooltip>
                       )}
                     </>
                   )}
@@ -225,15 +269,33 @@ const ToolDetail = () => {
           <Col md={6}>
             <Card>
               <Card.Header>
-                <Tabs
-                  activeKey={activeTab}
-                  onSelect={(k) => setActiveTab(k)}
-                  className="card-header-tabs"
-                >
-                  <Tab eventKey="details" title="Checkout History" />
-                  <Tab eventKey="service" title="Service History" />
-                  <Tab eventKey="calibration" title="Calibration History" />
-                </Tabs>
+                <div className="d-flex justify-content-between align-items-center">
+                  <Tabs
+                    activeKey={activeTab}
+                    onSelect={(k) => setActiveTab(k)}
+                    className="card-header-tabs"
+                  >
+                    <Tab eventKey="details" title="Checkout History" />
+                    <Tab eventKey="service" title="Service History" />
+                    <Tab eventKey="calibration" title="Calibration History" />
+                  </Tabs>
+                  {showHelp && (
+                    <HelpIcon
+                      title="Tool History"
+                      content={
+                        <>
+                          <p>This section shows the history of the tool:</p>
+                          <ul>
+                            <li><strong>Checkout History:</strong> Shows who has checked out this tool and when.</li>
+                            <li><strong>Service History:</strong> Shows maintenance and service records for this tool.</li>
+                            <li><strong>Calibration History:</strong> Shows calibration records for this tool.</li>
+                          </ul>
+                        </>
+                      }
+                      size="sm"
+                    />
+                  )}
+                </div>
               </Card.Header>
               <Card.Body>
                 {activeTab === 'details' ? (

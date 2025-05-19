@@ -5,12 +5,17 @@ import { Link } from 'react-router-dom';
 import { fetchTools, searchTools } from '../../store/toolsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
+import Tooltip from '../common/Tooltip';
+import HelpIcon from '../common/HelpIcon';
+import HelpContent from '../common/HelpContent';
+import { useHelp } from '../../context/HelpContext';
 import './ToolList.css';
 
 const ToolList = () => {
   const dispatch = useDispatch();
   const { tools, loading, searchResults } = useSelector((state) => state.tools);
   const { user } = useSelector((state) => state.auth);
+  const { showTooltips, showHelp, getHelpContent } = useHelp();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTools, setFilteredTools] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
@@ -143,10 +148,40 @@ const ToolList = () => {
 
   return (
     <>
+      {showHelp && (
+        <HelpContent title="Tool Inventory" initialOpen={false}>
+          <p>This page displays all tools in the inventory. You can search, filter, and sort tools by various criteria.</p>
+          <ul>
+            <li><strong>Search:</strong> Use the search box to find tools by number, serial, description, or location.</li>
+            <li><strong>Filter:</strong> Click the Filters button to show/hide filtering options.</li>
+            <li><strong>Sort:</strong> Click on any column header to sort the table by that column.</li>
+            <li><strong>Actions:</strong> Use the action buttons to view details or checkout tools.</li>
+          </ul>
+        </HelpContent>
+      )}
+
       <Card className="shadow-sm">
         <Card.Header className="bg-light">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <h5 className="mb-0">Tool Inventory</h5>
+            <div className="d-flex align-items-center">
+              <h5 className="mb-0">Tool Inventory</h5>
+              {showHelp && (
+                <HelpIcon
+                  title="Tool Inventory"
+                  content={
+                    <>
+                      <p>This page displays all tools in the inventory. You can:</p>
+                      <ul>
+                        <li>Search for tools by number, description, or location</li>
+                        <li>Filter tools by status, category, or location</li>
+                        <li>Sort the table by clicking on column headers</li>
+                        <li>View tool details or checkout tools using the action buttons</li>
+                      </ul>
+                    </>
+                  }
+                />
+              )}
+            </div>
             <div className="d-flex flex-grow-1 flex-md-grow-0" style={{ maxWidth: '500px' }}>
               <InputGroup>
                 <Form.Control
@@ -156,30 +191,34 @@ const ToolList = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Search tools"
                 />
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => setSearchQuery('')}
-                  style={{ display: searchQuery ? 'block' : 'none' }}
-                >
-                  Clear
-                </Button>
-                <Button
-                  variant="outline-primary"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="ms-2"
-                >
-                  <i className={`bi bi-funnel${showFilters ? '-fill' : ''}`}></i> Filters
-                  {(statusFilter || categoryFilter || locationFilter || !hideRetired) && (
-                    <Badge bg="primary" className="ms-1">
-                      {[
-                        statusFilter && 1,
-                        categoryFilter && 1,
-                        locationFilter && 1,
-                        !hideRetired && 1
-                      ].filter(Boolean).reduce((a, b) => a + b, 0)}
-                    </Badge>
-                  )}
-                </Button>
+                <Tooltip text="Clear search" placement="top" show={showTooltips}>
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => setSearchQuery('')}
+                    style={{ display: searchQuery ? 'block' : 'none' }}
+                  >
+                    Clear
+                  </Button>
+                </Tooltip>
+                <Tooltip text="Show/hide filter options" placement="top" show={showTooltips}>
+                  <Button
+                    variant="outline-primary"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="ms-2"
+                  >
+                    <i className={`bi bi-funnel${showFilters ? '-fill' : ''}`}></i> Filters
+                    {(statusFilter || categoryFilter || locationFilter || !hideRetired) && (
+                      <Badge bg="primary" className="ms-1">
+                        {[
+                          statusFilter && 1,
+                          categoryFilter && 1,
+                          locationFilter && 1,
+                          !hideRetired && 1
+                        ].filter(Boolean).reduce((a, b) => a + b, 0)}
+                      </Badge>
+                    )}
+                  </Button>
+                </Tooltip>
               </InputGroup>
             </div>
           </div>
@@ -328,32 +367,38 @@ const ToolList = () => {
                       </td>
                       <td>
                         <div className="d-flex gap-2">
-                          <Button
-                            as={Link}
-                            to={`/tools/${tool.id}`}
-                            variant="info"
-                            size="sm"
-                          >
-                            View
-                          </Button>
+                          <Tooltip text="View tool details" placement="top" show={showTooltips}>
+                            <Button
+                              as={Link}
+                              to={`/tools/${tool.id}`}
+                              variant="info"
+                              size="sm"
+                            >
+                              View
+                            </Button>
+                          </Tooltip>
                           {tool.status === 'available' && (
                             <>
-                              <Button
-                                as={Link}
-                                to={`/checkout/${tool.id}`}
-                                variant="success"
-                                size="sm"
-                              >
-                                Checkout to Me
-                              </Button>
-                              {isAdmin && (
+                              <Tooltip text="Check out this tool to yourself" placement="top" show={showTooltips}>
                                 <Button
-                                  variant="primary"
+                                  as={Link}
+                                  to={`/checkout/${tool.id}`}
+                                  variant="success"
                                   size="sm"
-                                  onClick={() => handleCheckoutClick(tool)}
                                 >
-                                  Checkout to User
+                                  Checkout to Me
                                 </Button>
+                              </Tooltip>
+                              {isAdmin && (
+                                <Tooltip text="Check out this tool to another user" placement="top" show={showTooltips}>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleCheckoutClick(tool)}
+                                  >
+                                    Checkout to User
+                                  </Button>
+                                </Tooltip>
                               )}
                             </>
                           )}
