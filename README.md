@@ -2,15 +2,26 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.5.1** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.5.2** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-## What's New in 3.5.1
+## What's New in 3.5.2
 
-The latest version includes significant bug fixes and improvements:
+The latest version includes significant improvements to chemical management functionality:
+
+- **Simplified Chemical Interface**: Removed dropdown menu from chemical list for a cleaner interface
+- **Enhanced Chemical Issuance**: Fixed and improved chemical issuance functionality
+- **Improved Chemical Reordering**: Added endpoints for marking chemicals as ordered and delivered
+- **Real-time Chemical Analytics**: Enhanced chemical usage analytics with real-time data
+- **Improved Security**: Removed debug login functionality and debug endpoints
+- **Better API Integration**: Fixed chemical issuance history endpoint
+
+### Previous Release (3.5.1)
+
+Version 3.5.1 included significant bug fixes and improvements:
 
 - **Fixed Tool Management**: Improved tool addition and return functionality
 - **Enhanced Chemical Management**: Fixed chemical creation and management
@@ -376,7 +387,7 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Update personal details
 4. Click "Save Changes"
 
-### Updating to the Latest Version (v3.5.1)
+### Updating to the Latest Version (v3.5.2)
 If you're updating from a previous version, follow these steps:
 
 1. Pull the latest changes from the repository:
