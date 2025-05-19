@@ -9,6 +9,7 @@ import reportReducer from './reportSlice';
 import chemicalsReducer from './chemicalsSlice';
 import calibrationReducer from './calibrationSlice';
 import rbacReducer from './rbacSlice';
+import adminReducer from './adminSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     chemicals: chemicalsReducer,
     calibration: calibrationReducer,
     rbac: rbacReducer,
+    admin: adminReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

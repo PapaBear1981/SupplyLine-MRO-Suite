@@ -6,6 +6,7 @@ import {
 import { fetchUsers, createUser, updateUser, deactivateUser } from '../../store/usersSlice';
 import { fetchRoles, fetchUserRoles, updateUserRoles } from '../../store/rbacSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
@@ -41,6 +42,7 @@ const UserManagement = () => {
 
   // Form validation
   const [validated, setValidated] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
 
   // Load users and roles on component mount
   useEffect(() => {
@@ -74,7 +76,7 @@ const UserManagement = () => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    if (form.checkValidity() === false) {
+    if (form.checkValidity() === false || !passwordValid) {
       e.stopPropagation();
       setValidated(true);
       return;
@@ -100,7 +102,7 @@ const UserManagement = () => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    if (form.checkValidity() === false) {
+    if (form.checkValidity() === false || (formData.password && !passwordValid)) {
       e.stopPropagation();
       setValidated(true);
       return;
@@ -150,6 +152,12 @@ const UserManagement = () => {
       is_active: true
     });
     setValidated(false);
+    setPasswordValid(false);
+  };
+
+  // Handle password validation change
+  const handlePasswordValidationChange = (isValid) => {
+    setPasswordValid(isValid);
   };
 
   // Open edit modal with user data
@@ -429,10 +437,15 @@ const UserManagement = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
+                isInvalid={validated && !passwordValid}
               />
               <Form.Control.Feedback type="invalid">
-                Password is required.
+                Please provide a valid password that meets all requirements.
               </Form.Control.Feedback>
+              <PasswordStrengthMeter
+                password={formData.password}
+                onValidationChange={handlePasswordValidationChange}
+              />
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -517,7 +530,19 @@ const UserManagement = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
+                isInvalid={validated && formData.password && !passwordValid}
               />
+              {formData.password && (
+                <>
+                  <Form.Control.Feedback type="invalid">
+                    Please provide a valid password that meets all requirements.
+                  </Form.Control.Feedback>
+                  <PasswordStrengthMeter
+                    password={formData.password}
+                    onValidationChange={handlePasswordValidationChange}
+                  />
+                </>
+              )}
             </Form.Group>
 
             <Form.Group className="mb-3">

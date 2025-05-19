@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Form, Row, Col, Button } from 'react-bootstrap';
 import { useSelector } from 'react-redux';
+import Tooltip from '../common/Tooltip';
+import HelpIcon from '../common/HelpIcon';
+import { useHelp } from '../../context/HelpContext';
 
 const ReportSelector = ({
   currentReport,
@@ -13,6 +16,7 @@ const ReportSelector = ({
   const [localFilters, setLocalFilters] = useState(filters || {});
   const { tools } = useSelector((state) => state.tools);
   const { users } = useSelector((state) => state.users);
+  const { showTooltips, showHelp } = useHelp();
 
   // Update local filters when props change
   useEffect(() => {
@@ -55,35 +59,83 @@ const ReportSelector = ({
 
   return (
     <div>
+      {showHelp && (
+        <div className="mb-3">
+          <HelpIcon
+            title="Report Options"
+            content={
+              <>
+                <p>Use these options to configure and generate reports:</p>
+                <ul>
+                  <li><strong>Report Type:</strong> Select the type of report you want to generate.</li>
+                  <li><strong>Time Period:</strong> Choose the time range for your report data.</li>
+                  <li><strong>Filters:</strong> Narrow down your report results using various filters.</li>
+                  <li><strong>Apply Filters:</strong> Click this button to generate the report with your selected options.</li>
+                </ul>
+              </>
+            }
+            size="sm"
+          />
+        </div>
+      )}
+
       <Row className="mb-3">
         <Col md={4}>
           <Form.Group>
-            <Form.Label>Report Type</Form.Label>
-            <Form.Select
-              value={currentReport}
-              onChange={(e) => onReportTypeChange(e.target.value)}
-            >
-              <option value="tool-inventory">Tool Inventory</option>
-              <option value="checkout-history">Checkout History</option>
-              <option value="department-usage">Department Usage</option>
-            </Form.Select>
+            <div className="d-flex align-items-center mb-1">
+              <Form.Label className="mb-0">Report Type</Form.Label>
+              {showHelp && (
+                <HelpIcon
+                  title="Report Type"
+                  content="Select the type of report you want to generate. Each report type provides different information and visualization options."
+                  size="sm"
+                />
+              )}
+            </div>
+            <Tooltip text="Select the type of report to generate" placement="top" show={showTooltips}>
+              <Form.Select
+                value={currentReport}
+                onChange={(e) => onReportTypeChange(e.target.value)}
+              >
+                <option value="tool-inventory">Tool Inventory</option>
+                <option value="checkout-history">Checkout History</option>
+                <option value="department-usage">Department Usage</option>
+              </Form.Select>
+            </Tooltip>
           </Form.Group>
         </Col>
 
         <Col md={4}>
           <Form.Group>
-            <Form.Label>Time Period</Form.Label>
-            <Form.Select
-              value={timeframe}
-              onChange={(e) => onTimeframeChange(e.target.value)}
-              disabled={currentReport === 'tool-inventory'}
+            <div className="d-flex align-items-center mb-1">
+              <Form.Label className="mb-0">Time Period</Form.Label>
+              {showHelp && (
+                <HelpIcon
+                  title="Time Period"
+                  content="Select the time range for your report data. This option is disabled for Tool Inventory reports since they show current inventory status."
+                  size="sm"
+                />
+              )}
+            </div>
+            <Tooltip
+              text={currentReport === 'tool-inventory' ?
+                "Time period not applicable for inventory reports" :
+                "Select the time period for your report"}
+              placement="top"
+              show={showTooltips}
             >
-              <option value="week">Last Week</option>
-              <option value="month">Last Month</option>
-              <option value="quarter">Last Quarter</option>
-              <option value="year">Last Year</option>
-              <option value="all">All Time</option>
-            </Form.Select>
+              <Form.Select
+                value={timeframe}
+                onChange={(e) => onTimeframeChange(e.target.value)}
+                disabled={currentReport === 'tool-inventory'}
+              >
+                <option value="week">Last Week</option>
+                <option value="month">Last Month</option>
+                <option value="quarter">Last Quarter</option>
+                <option value="year">Last Year</option>
+                <option value="all">All Time</option>
+              </Form.Select>
+            </Tooltip>
           </Form.Group>
         </Col>
       </Row>
@@ -198,19 +250,23 @@ const ReportSelector = ({
       )}
 
       <div className="d-flex justify-content-end mt-3">
-        <Button
-          variant="outline-secondary"
-          className="me-2"
-          onClick={resetFilters}
-        >
-          Reset Filters
-        </Button>
-        <Button
-          variant="primary"
-          onClick={applyFilters}
-        >
-          Apply Filters
-        </Button>
+        <Tooltip text="Clear all filters" placement="top" show={showTooltips}>
+          <Button
+            variant="outline-secondary"
+            className="me-2"
+            onClick={resetFilters}
+          >
+            Reset Filters
+          </Button>
+        </Tooltip>
+        <Tooltip text="Generate report with selected options" placement="top" show={showTooltips}>
+          <Button
+            variant="primary"
+            onClick={applyFilters}
+          >
+            Apply Filters
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );
