@@ -290,6 +290,73 @@ def register_chemical_routes(app):
             print(f"Error in chemical issuances route: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching chemical issuances'}), 500
 
+    # Mark a chemical as ordered
+    @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
+    @materials_manager_required
+    def mark_chemical_as_ordered_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Only allow ordering when a reorder is needed
+            if chemical.reorder_status != 'needed':
+                return jsonify({
+                    'error': f'Cannot mark chemical as ordered when reorder_status is "{chemical.reorder_status}"'
+                }), 400
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Validate required fields
+            if not data.get('expected_delivery_date'):
+                return jsonify({'error': 'Missing required field: expected_delivery_date'}), 400
+
+            # Validate that the expected delivery date is in the future
+            try:
+                expected_delivery_date = datetime.fromisoformat(data.get('expected_delivery_date'))
+                if expected_delivery_date < datetime.utcnow():
+                    return jsonify({'error': 'Expected delivery date must be in the future'}), 400
+            except ValueError:
+                return jsonify({'error': 'Invalid date format for expected_delivery_date. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+
+            # Update chemical reorder status
+            try:
+                chemical.reorder_status = 'ordered'
+                chemical.reorder_date = datetime.utcnow()
+                chemical.expected_delivery_date = expected_delivery_date
+            except Exception as e:
+                print(f"Error updating reorder status: {str(e)}")
+                return jsonify({'error': 'Failed to update reorder status'}), 500
+
+            # Log the action
+            user_name = session.get('user_name', 'Unknown user')
+            log = AuditLog(
+                action_type='chemical_ordered',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_ordered',
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical marked as ordered successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in mark chemical as ordered route: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking the chemical as ordered'}), 500
+
     # Get, update, or delete a specific chemical
     @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def chemical_detail_route(id):
@@ -342,3 +409,74 @@ def register_chemical_routes(app):
                 db.session.commit()
 
             return jsonify(chemical.to_dict())
+
+    # Mark a chemical as delivered
+    @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
+    @materials_manager_required
+    def mark_chemical_as_delivered_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Check if the chemical is currently marked as ordered
+            if chemical.reorder_status != 'ordered':
+                return jsonify({'error': 'Chemical is not currently on order'}), 400
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Check if received quantity is provided
+            quantity_log = ""
+            if 'received_quantity' in data:
+                try:
+                    received_quantity = float(data['received_quantity'])
+                    if received_quantity <= 0:
+                        return jsonify({'error': 'Received quantity must be greater than zero'}), 400
+
+                    # Update chemical quantity
+                    previous_quantity = chemical.quantity
+                    chemical.quantity += received_quantity
+
+                    # Include quantity update in log details
+                    quantity_log = f" with {received_quantity} {chemical.unit} received (previous: {previous_quantity} {chemical.unit}, new: {chemical.quantity} {chemical.unit})"
+                except ValueError:
+                    return jsonify({'error': 'Invalid received quantity format'}), 400
+
+            # Update chemical reorder status
+            try:
+                chemical.reorder_status = 'not_needed'
+                chemical.needs_reorder = False
+                chemical.reorder_date = None
+                chemical.expected_delivery_date = None
+            except Exception as e:
+                print(f"Error updating reorder status: {str(e)}")
+                return jsonify({'error': 'Failed to update reorder status'}), 500
+
+            # Log the action
+            user_name = session.get('user_name', 'Unknown user')
+            log = AuditLog(
+                action_type='chemical_delivered',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as delivered by {user_name}{quantity_log}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_delivered',
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as delivered{quantity_log}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical marked as delivered successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in mark chemical as delivered route: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking the chemical as delivered'}), 500
