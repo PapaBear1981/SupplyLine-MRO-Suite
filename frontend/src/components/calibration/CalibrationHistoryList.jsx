@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Spinner, Alert, Form, InputGroup, Pagination } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { formatDate } from '../../utils/dateUtils';
 
 const CalibrationHistoryList = () => {
   const [calibrations, setCalibrations] = useState([]);
@@ -17,20 +18,20 @@ const CalibrationHistoryList = () => {
     const fetchCalibrationHistory = async () => {
       try {
         setLoading(true);
-        
+
         // Build query parameters
         const params = new URLSearchParams();
         params.append('page', page);
         params.append('limit', 10);
-        
+
         if (toolId) {
           params.append('tool_id', toolId);
         }
-        
+
         if (status) {
           params.append('status', status);
         }
-        
+
         const response = await api.get(`/calibrations?${params.toString()}`);
         setCalibrations(response.data.calibrations);
         setTotalPages(response.data.pagination.pages);
@@ -59,37 +60,37 @@ const CalibrationHistoryList = () => {
 
   const renderPagination = () => {
     const items = [];
-    
+
     // Previous button
     items.push(
-      <Pagination.Prev 
-        key="prev" 
+      <Pagination.Prev
+        key="prev"
         onClick={() => handlePageChange(Math.max(1, page - 1))}
         disabled={page === 1}
       />
     );
-    
+
     // First page
     items.push(
-      <Pagination.Item 
-        key={1} 
+      <Pagination.Item
+        key={1}
         active={page === 1}
         onClick={() => handlePageChange(1)}
       >
         1
       </Pagination.Item>
     );
-    
+
     // Ellipsis if needed
     if (page > 3) {
       items.push(<Pagination.Ellipsis key="ellipsis1" disabled />);
     }
-    
+
     // Pages around current
     for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
       items.push(
-        <Pagination.Item 
-          key={i} 
+        <Pagination.Item
+          key={i}
           active={page === i}
           onClick={() => handlePageChange(i)}
         >
@@ -97,17 +98,17 @@ const CalibrationHistoryList = () => {
         </Pagination.Item>
       );
     }
-    
+
     // Ellipsis if needed
     if (page < totalPages - 2) {
       items.push(<Pagination.Ellipsis key="ellipsis2" disabled />);
     }
-    
+
     // Last page if not the first page
     if (totalPages > 1) {
       items.push(
-        <Pagination.Item 
-          key={totalPages} 
+        <Pagination.Item
+          key={totalPages}
           active={page === totalPages}
           onClick={() => handlePageChange(totalPages)}
         >
@@ -115,16 +116,16 @@ const CalibrationHistoryList = () => {
         </Pagination.Item>
       );
     }
-    
+
     // Next button
     items.push(
-      <Pagination.Next 
-        key="next" 
+      <Pagination.Next
+        key="next"
         onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
       />
     );
-    
+
     return <Pagination>{items}</Pagination>;
   };
 
@@ -163,10 +164,10 @@ const CalibrationHistoryList = () => {
                 </Button>
               </InputGroup>
             </div>
-            
+
             <div>
-              <Form.Select 
-                value={status} 
+              <Form.Select
+                value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-auto"
               >
@@ -206,12 +207,8 @@ const CalibrationHistoryList = () => {
                       {calibration.tool_number} - {calibration.tool_serial_number}
                     </Link>
                   </td>
-                  <td>{new Date(calibration.calibration_date).toLocaleDateString()}</td>
-                  <td>
-                    {calibration.next_calibration_date
-                      ? new Date(calibration.next_calibration_date).toLocaleDateString()
-                      : 'N/A'}
-                  </td>
+                  <td>{formatDate(calibration.calibration_date)}</td>
+                  <td>{formatDate(calibration.next_calibration_date)}</td>
                   <td>{calibration.performed_by_name}</td>
                   <td>
                     <span className={`badge bg-${
@@ -236,7 +233,7 @@ const CalibrationHistoryList = () => {
               ))}
             </tbody>
           </Table>
-          
+
           <div className="d-flex justify-content-center mt-4">
             {renderPagination()}
           </div>
