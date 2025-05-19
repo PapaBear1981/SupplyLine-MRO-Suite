@@ -5,6 +5,7 @@ import { Container, Row, Col, Card, Form, Button, Alert, Tabs, Tab, ListGroup } 
 import { updateProfile, updateAvatar, changePassword, fetchUserActivity } from '../store/authSlice';
 import MainLayout from '../components/common/MainLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
@@ -23,6 +24,7 @@ const ProfilePage = () => {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [passwordValid, setPasswordValid] = useState(false);
   const fileInputRef = useRef(null);
 
   // Redirect if not authenticated
@@ -37,7 +39,7 @@ const ProfilePage = () => {
         name: user.name || '',
         department: user.department || '',
       });
-      
+
       // Set avatar preview if user has an avatar
       if (user.avatar) {
         setAvatarPreview(user.avatar);
@@ -72,7 +74,7 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (file) {
       setAvatarFile(file);
-      
+
       // Create a preview URL
       const previewUrl = URL.createObjectURL(file);
       setAvatarPreview(previewUrl);
@@ -82,11 +84,11 @@ const ProfilePage = () => {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage('');
-    
+
     try {
       await dispatch(updateProfile(formData)).unwrap();
       setSuccessMessage('Profile updated successfully!');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('');
@@ -99,19 +101,19 @@ const ProfilePage = () => {
   const handleAvatarSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage('');
-    
+
     if (!avatarFile) {
       return;
     }
-    
+
     const formData = new FormData();
     formData.append('avatar', avatarFile);
-    
+
     try {
       await dispatch(updateAvatar(formData)).unwrap();
       setSuccessMessage('Avatar updated successfully!');
       setAvatarFile(null);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('');
@@ -125,26 +127,33 @@ const ProfilePage = () => {
     e.preventDefault();
     setSuccessMessage('');
     setPasswordError('');
-    
+
     // Validate passwords match
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordError('New passwords do not match');
       return;
     }
-    
+
+    // Validate password strength
+    if (!passwordValid) {
+      setPasswordError('Password does not meet security requirements');
+      return;
+    }
+
     try {
       await dispatch(changePassword({
         current_password: passwordData.currentPassword,
         new_password: passwordData.newPassword
       })).unwrap();
-      
+
       setSuccessMessage('Password changed successfully!');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
-      
+      setPasswordValid(false);
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('');
@@ -155,6 +164,10 @@ const ProfilePage = () => {
     }
   };
 
+  const handlePasswordValidationChange = (isValid) => {
+    setPasswordValid(isValid);
+  };
+
   const triggerFileInput = () => {
     fileInputRef.current.click();
   };
@@ -163,19 +176,19 @@ const ProfilePage = () => {
     <MainLayout>
       <Container>
         <h1 className="mb-4">My Profile</h1>
-        
+
         {error && (
           <Alert variant="danger" className="mb-4">
             {error}
           </Alert>
         )}
-        
+
         {successMessage && (
           <Alert variant="success" className="mb-4">
             {successMessage}
           </Alert>
         )}
-        
+
         <Row>
           <Col md={4} className="mb-4">
             <Card className="shadow-sm">
@@ -189,7 +202,7 @@ const ProfilePage = () => {
                       style={{ width: '150px', height: '150px', objectFit: 'cover' }}
                     />
                   ) : (
-                    <div 
+                    <div
                       className="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
                       style={{ width: '150px', height: '150px', fontSize: '4rem' }}
                     >
@@ -197,16 +210,16 @@ const ProfilePage = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <h4 className="mb-1">{user?.name}</h4>
                 <p className="text-muted mb-3">
-                  {user?.is_admin 
-                    ? 'Administrator' 
-                    : user?.department === 'Materials' 
-                      ? 'Materials (Tool Manager)' 
+                  {user?.is_admin
+                    ? 'Administrator'
+                    : user?.department === 'Materials'
+                      ? 'Materials (Tool Manager)'
                       : user?.department || 'Regular User'}
                 </p>
-                
+
                 <Form onSubmit={handleAvatarSubmit}>
                   <Form.Group controlId="avatar" className="mb-3">
                     <Form.Control
@@ -217,18 +230,18 @@ const ProfilePage = () => {
                       className="d-none"
                     />
                     <div className="d-grid gap-2">
-                      <Button 
-                        variant="outline-primary" 
+                      <Button
+                        variant="outline-primary"
                         onClick={triggerFileInput}
                         className="mb-2"
                       >
                         <i className="bi bi-camera me-2"></i>
                         Change Avatar
                       </Button>
-                      
+
                       {avatarFile && (
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           variant="primary"
                           disabled={loading}
                         >
@@ -241,7 +254,7 @@ const ProfilePage = () => {
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col md={8}>
             <Card className="shadow-sm">
               <Card.Header className="bg-light">
@@ -261,7 +274,7 @@ const ProfilePage = () => {
                   </Tab>
                 </Tabs>
               </Card.Header>
-              
+
               <Card.Body>
                 {activeTab === 'profile' && (
                   <Form onSubmit={handleProfileSubmit}>
@@ -276,7 +289,7 @@ const ProfilePage = () => {
                         Employee number cannot be changed
                       </Form.Text>
                     </Form.Group>
-                    
+
                     <Form.Group className="mb-3">
                       <Form.Label>Name</Form.Label>
                       <Form.Control
@@ -287,7 +300,7 @@ const ProfilePage = () => {
                         required
                       />
                     </Form.Group>
-                    
+
                     <Form.Group className="mb-3">
                       <Form.Label>Department</Form.Label>
                       <Form.Control
@@ -297,10 +310,10 @@ const ProfilePage = () => {
                         onChange={handleInputChange}
                       />
                     </Form.Group>
-                    
+
                     <div className="d-grid">
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         variant="primary"
                         disabled={loading}
                       >
@@ -309,7 +322,7 @@ const ProfilePage = () => {
                     </div>
                   </Form>
                 )}
-                
+
                 {activeTab === 'password' && (
                   <Form onSubmit={handlePasswordSubmit}>
                     {passwordError && (
@@ -317,7 +330,7 @@ const ProfilePage = () => {
                         {passwordError}
                       </Alert>
                     )}
-                    
+
                     <Form.Group className="mb-3">
                       <Form.Label>Current Password</Form.Label>
                       <Form.Control
@@ -328,7 +341,7 @@ const ProfilePage = () => {
                         required
                       />
                     </Form.Group>
-                    
+
                     <Form.Group className="mb-3">
                       <Form.Label>New Password</Form.Label>
                       <Form.Control
@@ -338,8 +351,12 @@ const ProfilePage = () => {
                         onChange={handlePasswordChange}
                         required
                       />
+                      <PasswordStrengthMeter
+                        password={passwordData.newPassword}
+                        onValidationChange={handlePasswordValidationChange}
+                      />
                     </Form.Group>
-                    
+
                     <Form.Group className="mb-3">
                       <Form.Label>Confirm New Password</Form.Label>
                       <Form.Control
@@ -350,10 +367,10 @@ const ProfilePage = () => {
                         required
                       />
                     </Form.Group>
-                    
+
                     <div className="d-grid">
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         variant="primary"
                         disabled={loading}
                       >
@@ -362,7 +379,7 @@ const ProfilePage = () => {
                     </div>
                   </Form>
                 )}
-                
+
                 {activeTab === 'activity' && (
                   <>
                     {loading ? (

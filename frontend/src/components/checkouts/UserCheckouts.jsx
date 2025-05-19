@@ -5,11 +5,16 @@ import { Link } from 'react-router-dom';
 import { fetchUserCheckouts } from '../../store/checkoutsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ReturnToolModal from './ReturnToolModal';
+import Tooltip from '../common/Tooltip';
+import HelpIcon from '../common/HelpIcon';
+import HelpContent from '../common/HelpContent';
+import { useHelp } from '../../context/HelpContext';
 
 const UserCheckouts = () => {
   const dispatch = useDispatch();
   const { userCheckouts, loading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
+  const { showTooltips, showHelp } = useHelp();
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
   const [selectedToolInfo, setSelectedToolInfo] = useState(null);
@@ -52,6 +57,21 @@ const UserCheckouts = () => {
   return (
     <>
       <div className="w-100">
+        {showHelp && (
+          <HelpContent title="My Checkouts" initialOpen={false}>
+            <p>This page displays all tools that you currently have checked out, as well as your checkout history.</p>
+            <ul>
+              <li><strong>Active Checkouts:</strong> Tools that you currently have checked out. These tools are assigned to you until they are returned.</li>
+              <li><strong>Checkout History:</strong> Tools that you have previously checked out and returned.</li>
+              <li><strong>Return Tool:</strong> {canReturnTools ?
+                "You can return a tool by clicking the 'Return Tool' button next to the checkout." :
+                "Only Materials department and Admin personnel can return tools. Please contact them to return your tools."}
+              </li>
+              <li><strong>Overdue:</strong> Tools that have passed their expected return date will be marked as overdue.</li>
+            </ul>
+          </HelpContent>
+        )}
+
         {!canReturnTools && activeCheckouts.length > 0 && (
           <div className="alert alert-info mb-4">
             <i className="bi bi-info-circle me-2"></i>
@@ -60,7 +80,22 @@ const UserCheckouts = () => {
         )}
         <Card className="mb-4 shadow-sm">
           <Card.Header className="bg-light">
-            <h4 className="mb-0">Active Checkouts</h4>
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="mb-0">Active Checkouts</h4>
+              {showHelp && (
+                <HelpIcon
+                  title="Active Checkouts"
+                  content={
+                    <>
+                      <p>This section shows tools that you currently have checked out.</p>
+                      <p>Tools remain in this list until they are returned to inventory.</p>
+                      {canReturnTools && <p>You can return a tool by clicking the "Return Tool" button.</p>}
+                    </>
+                  }
+                  size="sm"
+                />
+              )}
+            </div>
           </Card.Header>
           <Card.Body className="p-0">
             <div className="table-responsive">
@@ -101,14 +136,16 @@ const UserCheckouts = () => {
                         </td>
                         {canReturnTools && (
                           <td>
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => handleReturnTool(checkout)}
-                              className="w-100"
-                            >
-                              Return Tool
-                            </Button>
+                            <Tooltip text="Return this tool to inventory" placement="left" show={showTooltips}>
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleReturnTool(checkout)}
+                                className="w-100"
+                              >
+                                Return Tool
+                              </Button>
+                            </Tooltip>
                           </td>
                         )}
                       </tr>
@@ -128,7 +165,21 @@ const UserCheckouts = () => {
 
         <Card className="shadow-sm">
           <Card.Header className="bg-light">
-            <h4 className="mb-0">Checkout History</h4>
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="mb-0">Checkout History</h4>
+              {showHelp && (
+                <HelpIcon
+                  title="Checkout History"
+                  content={
+                    <>
+                      <p>This section shows tools that you have previously checked out and returned.</p>
+                      <p>This history helps you track which tools you've used in the past.</p>
+                    </>
+                  }
+                  size="sm"
+                />
+              )}
+            </div>
           </Card.Header>
           <Card.Body className="p-0">
             <div className="table-responsive">

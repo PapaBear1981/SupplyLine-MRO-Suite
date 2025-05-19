@@ -14,6 +14,7 @@ from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
+from utils import validate_password_strength
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
@@ -831,6 +832,11 @@ def register_routes(app):
         if User.query.filter_by(employee_number=data['employee_number']).first():
             return jsonify({'error': 'Employee number already exists'}), 400
 
+        # Validate password strength
+        is_valid, errors = validate_password_strength(data.get('password'))
+        if not is_valid:
+            return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
+
         # Create new user
         u = User(
             name=data.get('name'),
@@ -881,6 +887,10 @@ def register_routes(app):
             if 'is_active' in data:
                 user.is_active = data['is_active']
             if 'password' in data and data['password']:
+                # Validate password strength
+                is_valid, errors = validate_password_strength(data['password'])
+                if not is_valid:
+                    return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
                 user.set_password(data['password'])
 
             db.session.commit()
@@ -1516,6 +1526,11 @@ def register_routes(app):
         if RegistrationRequest.query.filter_by(employee_number=data['employee_number'], status='pending').first():
             return jsonify({'error': 'A registration request with this employee number is already pending approval'}), 400
 
+        # Validate password strength
+        is_valid, errors = validate_password_strength(data.get('password'))
+        if not is_valid:
+            return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
+
         # Create new registration request instead of user
         reg_request = RegistrationRequest(
             name=data['name'],
@@ -1591,6 +1606,11 @@ def register_routes(app):
         # Verify reset code
         if not user.check_reset_token(data['reset_code']):
             return jsonify({'error': 'Invalid or expired reset code'}), 400
+
+        # Validate password strength
+        is_valid, errors = validate_password_strength(data['new_password'])
+        if not is_valid:
+            return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
         # Update password
         user.set_password(data['new_password'])
@@ -1712,6 +1732,11 @@ def register_routes(app):
         # Verify current password
         if not user.check_password(data['current_password']):
             return jsonify({'error': 'Current password is incorrect'}), 400
+
+        # Validate password strength
+        is_valid, errors = validate_password_strength(data['new_password'])
+        if not is_valid:
+            return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
         # Update password
         user.set_password(data['new_password'])
