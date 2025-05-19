@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Badge, Button, Modal, Form, Alert, Tabs, Tab } from 'react-bootstrap';
-import api from '../../services/api';
+import { fetchRegistrationRequests, approveRegistrationRequest, denyRegistrationRequest } from '../../store/adminSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const RegistrationRequests = () => {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const {
+    registrationRequests,
+    loading,
+    error
+  } = useSelector((state) => state.admin);
+
   const [activeTab, setActiveTab] = useState('pending');
 
   // Modal state
@@ -14,32 +19,13 @@ const RegistrationRequests = () => {
   const [showDenyModal, setShowDenyModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
 
-  const fetchRequests = async (status = 'pending') => {
-    try {
-      setLoading(true);
-      setError(null);
-      // Fetch registration requests from backend
-      const response = await api.get(`/admin/registration-requests`, {
-        params: { status },
-      });
-      setRequests(response.data);
-    } catch (err) {
-      setError(
-        err.response?.data?.error || 'Failed to load registration requests. Please try again later.'
-      );
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch registration requests when component mounts or tab changes
   useEffect(() => {
-    fetchRequests(activeTab);
-  }, [activeTab]);
+    dispatch(fetchRegistrationRequests(activeTab));
+  }, [dispatch, activeTab]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -61,53 +47,67 @@ const RegistrationRequests = () => {
     setShowDenyModal(true);
   };
 
-  const handleApprove = async () => {
+  const handleApprove = () => {
     if (!selectedRequest) return;
-    try {
-      setActionLoading(true);
-      setActionError(null);
-      setActionSuccess(null);
-      // Call backend to approve registration request
-      await api.post(`/admin/registration-requests/${selectedRequest.id}/approve`, {
-        notes: adminNotes,
+    setActionError(null);
+    setActionSuccess(null);
+
+    dispatch(approveRegistrationRequest({
+      requestId: selectedRequest.id,
+      adminNotes
+    }))
+      .unwrap()
+      .then(() => {
+        setActionSuccess('Registration request approved successfully.');
+        setShowApproveModal(false);
+        // Refresh the list
+        dispatch(fetchRegistrationRequests(activeTab));
+      })
+      .catch((err) => {
+        setActionError(err.message || 'Failed to approve registration request.');
       });
-      setActionSuccess('Registration request approved successfully.');
-      setShowApproveModal(false);
-      // Refresh requests list
-      fetchRequests(activeTab);
-    } catch (err) {
-      setActionError(
-        err.response?.data?.error || 'Failed to approve registration request. Please try again.'
-      );
-    } finally {
-      setActionLoading(false);
+  };
+
+  const handleDeny = () => {
+    if (!selectedRequest) return;
+    setActionError(null);
+    setActionSuccess(null);
+
+    dispatch(denyRegistrationRequest({
+      requestId: selectedRequest.id,
+      adminNotes
+    }))
+      .unwrap()
+      .then(() => {
+        setActionSuccess('Registration request denied successfully.');
+        setShowDenyModal(false);
+        // Refresh the list
+        dispatch(fetchRegistrationRequests(activeTab));
+      })
+      .catch((err) => {
+        setActionError(err.message || 'Failed to deny registration request.');
+      });
+  };
+
+  // Get the appropriate requests based on the active tab
+  const getRequests = () => {
+    switch (activeTab) {
+      case 'pending':
+        return registrationRequests?.pending || [];
+      case 'approved':
+        return registrationRequests?.approved || [];
+      case 'denied':
+        return registrationRequests?.denied || [];
+      case 'all':
+        return registrationRequests?.all || [];
+      default:
+        return [];
     }
   };
 
-  const handleDeny = async () => {
-    if (!selectedRequest) return;
-    try {
-      setActionLoading(true);
-      setActionError(null);
-      setActionSuccess(null);
-      // Call backend to deny registration request
-      await api.post(`/admin/registration-requests/${selectedRequest.id}/deny`, {
-        notes: adminNotes,
-      });
-      setActionSuccess('Registration request denied successfully.');
-      setShowDenyModal(false);
-      // Refresh requests list
-      fetchRequests(activeTab);
-    } catch (err) {
-      setActionError(
-        err.response?.data?.error || 'Failed to deny registration request. Please try again.'
-      );
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const requests = getRequests();
 
-  if (loading && requests.length === 0) {
+  if (loading?.registrationRequests && requests.length === 0) {
     return <LoadingSpinner />;
   }
 
@@ -117,7 +117,17 @@ const RegistrationRequests = () => {
         <Card.Body>
           <Card.Title>Registration Requests</Card.Title>
 
-          {error && <Alert variant="danger">{error}</Alert>}
+          {error?.registrationRequests && (
+            <Alert variant="danger">
+              {error.registrationRequests.message || 'Failed to load registration requests.'}
+            </Alert>
+          )}
+
+          {actionSuccess && (
+            <Alert variant="success" onClose={() => setActionSuccess(null)} dismissible>
+              {actionSuccess}
+            </Alert>
+          )}
 
           <Tabs
             activeKey={activeTab}
@@ -193,9 +203,9 @@ const RegistrationRequests = () => {
           <Button
             variant="success"
             onClick={handleApprove}
-            disabled={actionLoading || actionSuccess}
+            disabled={loading?.approveRequest || actionSuccess}
           >
-            {actionLoading ? 'Approving...' : 'Approve'}
+            {loading?.approveRequest ? 'Approving...' : 'Approve'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -237,9 +247,9 @@ const RegistrationRequests = () => {
           <Button
             variant="danger"
             onClick={handleDeny}
-            disabled={actionLoading || actionSuccess}
+            disabled={loading?.denyRequest || actionSuccess || !adminNotes.trim()}
           >
-            {actionLoading ? 'Denying...' : 'Deny'}
+            {loading?.denyRequest ? 'Denying...' : 'Deny'}
           </Button>
         </Modal.Footer>
       </Modal>

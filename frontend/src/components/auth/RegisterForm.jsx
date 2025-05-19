@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { register } from '../../store/authSlice';
+import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const RegisterForm = () => {
     department: '',
   });
   const [validated, setValidated] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
 
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
@@ -28,7 +30,9 @@ const RegisterForm = () => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    if (form.checkValidity() === false || formData.password !== formData.confirmPassword) {
+    if (form.checkValidity() === false ||
+        formData.password !== formData.confirmPassword ||
+        !passwordValid) {
       e.stopPropagation();
       setValidated(true);
       return;
@@ -39,6 +43,10 @@ const RegisterForm = () => {
     // Remove confirmPassword before sending to API
     const { confirmPassword, ...userData } = formData;
     dispatch(register(userData));
+  };
+
+  const handlePasswordValidationChange = (isValid) => {
+    setPasswordValid(isValid);
   };
 
   return (
@@ -112,11 +120,15 @@ const RegisterForm = () => {
           value={formData.password}
           onChange={handleChange}
           required
-          minLength={8}
+          isInvalid={validated && !passwordValid}
         />
         <Form.Control.Feedback type="invalid">
-          Password must be at least 8 characters.
+          Please provide a valid password that meets all requirements.
         </Form.Control.Feedback>
+        <PasswordStrengthMeter
+          password={formData.password}
+          onValidationChange={handlePasswordValidationChange}
+        />
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formConfirmPassword">

@@ -5,11 +5,16 @@ import { Link } from 'react-router-dom';
 import { fetchCheckouts } from '../../store/checkoutsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ReturnToolModal from './ReturnToolModal';
+import Tooltip from '../common/Tooltip';
+import HelpIcon from '../common/HelpIcon';
+import HelpContent from '../common/HelpContent';
+import { useHelp } from '../../context/HelpContext';
 
 const AllCheckouts = () => {
   const dispatch = useDispatch();
   const { checkouts, loading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
+  const { showTooltips, showHelp } = useHelp();
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
   const [selectedToolInfo, setSelectedToolInfo] = useState(null);
@@ -49,6 +54,18 @@ const AllCheckouts = () => {
   return (
     <>
       <div className="w-100">
+        {showHelp && (
+          <HelpContent title="All Active Checkouts" initialOpen={false}>
+            <p>This page displays all tools that are currently checked out across the organization.</p>
+            <ul>
+              <li><strong>Tool Information:</strong> View details about each checked out tool, including its number, serial number, and description.</li>
+              <li><strong>User Information:</strong> See who has checked out each tool and when it was checked out.</li>
+              <li><strong>Expected Return:</strong> The date when the tool is expected to be returned. Overdue tools are highlighted.</li>
+              <li><strong>Return Tool:</strong> As an admin or Materials department member, you can return tools on behalf of users.</li>
+            </ul>
+          </HelpContent>
+        )}
+
         {!canReturnTools && activeCheckouts.length > 0 && (
           <div className="alert alert-info mb-4">
             <i className="bi bi-info-circle me-2"></i>
@@ -57,7 +74,22 @@ const AllCheckouts = () => {
         )}
         <Card className="mb-4 shadow-sm">
           <Card.Header className="bg-light">
-            <h4 className="mb-0">All Active Checkouts</h4>
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="mb-0">All Active Checkouts</h4>
+              {showHelp && (
+                <HelpIcon
+                  title="All Active Checkouts"
+                  content={
+                    <>
+                      <p>This table shows all tools currently checked out across the organization.</p>
+                      <p>As an admin or Materials department member, you can return tools on behalf of users.</p>
+                      <p>Overdue tools are marked with an "Overdue" badge.</p>
+                    </>
+                  }
+                  size="sm"
+                />
+              )}
+            </div>
           </Card.Header>
           <Card.Body className="p-0">
             <div className="table-responsive">
@@ -98,14 +130,16 @@ const AllCheckouts = () => {
                         </td>
                         {canReturnTools && (
                           <td>
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => handleReturnTool(checkout)}
-                              className="w-100"
-                            >
-                              Return Tool
-                            </Button>
+                            <Tooltip text="Return this tool to inventory" placement="left" show={showTooltips}>
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleReturnTool(checkout)}
+                                className="w-100"
+                              >
+                                Return Tool
+                              </Button>
+                            </Tooltip>
                           </td>
                         )}
                       </tr>
