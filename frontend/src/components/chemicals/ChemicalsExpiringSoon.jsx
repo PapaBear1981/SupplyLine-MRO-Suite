@@ -18,6 +18,9 @@ const ChemicalsExpiringSoon = () => {
 
   // Get badge variant based on days until expiration
   const getExpirationBadgeVariant = (days) => {
+    // Handle non-numeric values
+    if (typeof days !== 'number' || isNaN(days)) return 'secondary';
+
     if (days <= 7) return 'danger';
     if (days <= 14) return 'warning';
     return 'info';
@@ -85,7 +88,7 @@ const ChemicalsExpiringSoon = () => {
                     <td>{formatDate(chemical.expiration_date)}</td>
                     <td>
                       <Badge bg={getExpirationBadgeVariant(daysUntilExpiration)}>
-                        {daysUntilExpiration} days
+                        {typeof daysUntilExpiration === 'number' ? `${daysUntilExpiration} days` : daysUntilExpiration}
                       </Badge>
                     </td>
                     <td>
