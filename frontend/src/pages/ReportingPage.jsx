@@ -9,6 +9,10 @@ import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics
 import ChemicalUsageAnalytics from '../components/reports/ChemicalUsageAnalytics';
 import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
 import CalibrationReports from '../components/reports/CalibrationReports';
+import Tooltip from '../components/common/Tooltip';
+import HelpIcon from '../components/common/HelpIcon';
+import HelpContent from '../components/common/HelpContent';
+import { useHelp } from '../context/HelpContext';
 import {
   fetchToolInventoryReport,
   fetchCheckoutHistoryReport,
@@ -36,6 +40,7 @@ const ReportingPage = () => {
   const [activeTab, setActiveTab] = useState('standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
   const [calibrationReportsTab, setCalibrationReportsTab] = useState('due');
+  const { showTooltips, showHelp } = useHelp();
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
@@ -103,6 +108,19 @@ const ReportingPage = () => {
     <div className="w-100">
       <h1 className="mb-4">Reports & Analytics</h1>
 
+      {showHelp && (
+        <HelpContent title="Reports & Analytics" initialOpen={false}>
+          <p>This page provides access to various reports and analytics tools to help you analyze tool usage, chemical consumption, and calibration data.</p>
+          <ul>
+            <li><strong>Tool Reports:</strong> Generate reports on tool inventory, checkout history, and department usage.</li>
+            <li><strong>Chemical Analytics:</strong> Analyze chemical waste and usage patterns.</li>
+            <li><strong>Calibration Reports:</strong> Track calibration status, history, and compliance.</li>
+            <li><strong>Part Number Analytics:</strong> Analyze part number usage and trends.</li>
+          </ul>
+          <p>Use the tabs at the top to switch between different report types. Each report type has its own set of options and filters.</p>
+        </HelpContent>
+      )}
+
       {error && (
         <Alert variant="danger" className="mb-4">
           {error.message || 'An error occurred while fetching report data'}
@@ -116,37 +134,63 @@ const ReportingPage = () => {
       )}
 
       <div className="btn-group mb-4">
-        <Button
-          variant={activeTab === 'standard-reports' ? 'primary' : 'outline-primary'}
-          onClick={() => setActiveTab('standard-reports')}
-        >
-          Tool Reports
-        </Button>
-        <Button
-          variant={activeTab === 'chemical-analytics' ? 'primary' : 'outline-primary'}
-          onClick={() => setActiveTab('chemical-analytics')}
-        >
-          Chemical Analytics
-        </Button>
-        <Button
-          variant={activeTab === 'calibration-reports' ? 'primary' : 'outline-primary'}
-          onClick={() => setActiveTab('calibration-reports')}
-        >
-          Calibration Reports
-        </Button>
-        <Button
-          variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
-          onClick={() => setActiveTab('part-number-analytics')}
-        >
-          Part Number Analytics
-        </Button>
+        <Tooltip text="View tool inventory and usage reports" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'standard-reports' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('standard-reports')}
+          >
+            Tool Reports
+          </Button>
+        </Tooltip>
+        <Tooltip text="Analyze chemical waste and usage patterns" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'chemical-analytics' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('chemical-analytics')}
+          >
+            Chemical Analytics
+          </Button>
+        </Tooltip>
+        <Tooltip text="View calibration status and history reports" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'calibration-reports' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('calibration-reports')}
+          >
+            Calibration Reports
+          </Button>
+        </Tooltip>
+        <Tooltip text="Analyze part number usage and trends" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('part-number-analytics')}
+          >
+            Part Number Analytics
+          </Button>
+        </Tooltip>
       </div>
 
       {activeTab === 'standard-reports' && (
         <div className="pt-4">
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-light">
-              <h4 className="mb-0">Report Options</h4>
+              <div className="d-flex justify-content-between align-items-center">
+                <h4 className="mb-0">Report Options</h4>
+                {showHelp && (
+                  <HelpIcon
+                    title="Report Options"
+                    content={
+                      <>
+                        <p>Configure your report using these options:</p>
+                        <ul>
+                          <li>Select the report type (Tool Inventory, Checkout History, etc.)</li>
+                          <li>Choose a time period for time-based reports</li>
+                          <li>Apply filters to narrow down your results</li>
+                        </ul>
+                      </>
+                    }
+                    size="sm"
+                  />
+                )}
+              </div>
             </Card.Header>
             <Card.Body>
               <ReportSelector
@@ -162,7 +206,22 @@ const ReportingPage = () => {
 
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-light d-flex justify-content-between align-items-center">
-              <h4 className="mb-0">Report Results</h4>
+              <div className="d-flex align-items-center">
+                <h4 className="mb-0">Report Results</h4>
+                {showHelp && (
+                  <HelpIcon
+                    title="Report Results"
+                    content={
+                      <>
+                        <p>This section displays the results of your report based on the selected options and filters.</p>
+                        <p>Different report types will display different visualizations and data tables.</p>
+                        <p>Use the export buttons to download the report in PDF or Excel format.</p>
+                      </>
+                    }
+                    size="sm"
+                  />
+                )}
+              </div>
               <ExportControls
                 onExport={handleExport}
                 loading={exportLoading}
