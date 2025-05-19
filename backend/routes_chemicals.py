@@ -290,6 +290,58 @@ def register_chemical_routes(app):
             print(f"Error in chemical issuances route: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching chemical issuances'}), 500
 
+    # Mark a chemical as ordered
+    @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
+    @materials_manager_required
+    def mark_chemical_as_ordered_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Validate required fields
+            if not data.get('expected_delivery_date'):
+                return jsonify({'error': 'Missing required field: expected_delivery_date'}), 400
+
+            # Update chemical reorder status
+            try:
+                chemical.reorder_status = 'ordered'
+                chemical.reorder_date = datetime.utcnow()
+                chemical.expected_delivery_date = datetime.fromisoformat(data.get('expected_delivery_date'))
+            except Exception as e:
+                print(f"Error updating reorder status: {str(e)}")
+                return jsonify({'error': 'Failed to update reorder status'}), 500
+
+            # Log the action
+            log = AuditLog(
+                action_type='chemical_ordered',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_ordered',
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical marked as ordered successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in mark chemical as ordered route: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking the chemical as ordered'}), 500
+
     # Get, update, or delete a specific chemical
     @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def chemical_detail_route(id):
@@ -342,3 +394,49 @@ def register_chemical_routes(app):
                 db.session.commit()
 
             return jsonify(chemical.to_dict())
+
+    # Mark a chemical as delivered
+    @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
+    @materials_manager_required
+    def mark_chemical_as_delivered_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Update chemical reorder status
+            try:
+                chemical.reorder_status = 'not_needed'
+                chemical.needs_reorder = False
+                chemical.reorder_date = None
+                chemical.expected_delivery_date = None
+            except Exception as e:
+                print(f"Error updating reorder status: {str(e)}")
+                return jsonify({'error': 'Failed to update reorder status'}), 500
+
+            # Log the action
+            log = AuditLog(
+                action_type='chemical_delivered',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as delivered"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if 'user_id' in session:
+                activity = UserActivity(
+                    user_id=session['user_id'],
+                    activity_type='chemical_delivered',
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as delivered"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                'chemical': chemical.to_dict(),
+                'message': 'Chemical marked as delivered successfully'
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in mark chemical as delivered route: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking the chemical as delivered'}), 500
