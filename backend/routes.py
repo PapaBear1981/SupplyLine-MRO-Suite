@@ -941,7 +941,7 @@ def register_routes(app):
         # Log the action
         log = AuditLog(
             action_type='account_unlocked',
-            action_details=f'Admin {session.get("user_name")} (ID: {session.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
+            action_details=f'Admin {session.get("user_name", "Unknown")} (ID: {session.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
         )
         db.session.add(log)
 
@@ -949,7 +949,7 @@ def register_routes(app):
         activity = UserActivity(
             user_id=user.id,
             activity_type='account_unlocked',
-            description=f'Account unlocked by admin {session.get("user_name")}',
+            description=f'Account unlocked by admin {session.get("user_name", "Unknown")}',
             ip_address=request.remote_addr
         )
         db.session.add(activity)
@@ -1427,10 +1427,11 @@ def register_routes(app):
             user.increment_failed_login()
 
             # Get account lockout settings from config
-            max_attempts = current_app.config['ACCOUNT_LOCKOUT']['MAX_FAILED_ATTEMPTS']
-            initial_lockout = current_app.config['ACCOUNT_LOCKOUT']['INITIAL_LOCKOUT_MINUTES']
-            lockout_multiplier = current_app.config['ACCOUNT_LOCKOUT']['LOCKOUT_MULTIPLIER']
-            max_lockout = current_app.config['ACCOUNT_LOCKOUT']['MAX_LOCKOUT_MINUTES']
+            lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
+            max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
+            initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
+            lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
+            max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
 
             # Log the failed login attempt
             activity = UserActivity(
@@ -1446,8 +1447,9 @@ def register_routes(app):
                 # Calculate lockout duration with exponential backoff
                 # For first lockout: initial_lockout
                 # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
-                lockout_count = user.failed_login_attempts / max_attempts
-                if lockout_count <= 1:
+                # Number of complete lockout cycles
+                lockout_count = user.failed_login_attempts // max_attempts
+                if lockout_count == 1:
                     lockout_minutes = initial_lockout
                 else:
                     lockout_minutes = min(
