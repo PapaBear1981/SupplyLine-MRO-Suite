@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import api from '../../services/api';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
+import { formatDate } from '../../utils/dateUtils';
 
 const CalibrationReports = () => {
   const { user } = useSelector((state) => state.auth);
@@ -90,17 +91,17 @@ const CalibrationReports = () => {
     const worksheet = XLSX.utils.json_to_sheet(reportData.map(item => {
       const data = { ...item };
 
-      // Format dates for Excel
+      // Format dates for Excel using our standardized date formatter
       if (data.calibration_date) {
-        data.calibration_date = new Date(data.calibration_date).toLocaleDateString();
+        data.calibration_date = formatDate(data.calibration_date);
       }
 
       if (data.next_calibration_date) {
-        data.next_calibration_date = new Date(data.next_calibration_date).toLocaleDateString();
+        data.next_calibration_date = formatDate(data.next_calibration_date);
       }
 
       if (data.last_calibration_date) {
-        data.last_calibration_date = new Date(data.last_calibration_date).toLocaleDateString();
+        data.last_calibration_date = formatDate(data.last_calibration_date);
       }
 
       return data;
@@ -288,14 +289,12 @@ const CalibrationReports = () => {
                     {(reportType === 'history' || reportType === 'compliance') && (
                       <td>
                         {item.last_calibration_date || item.calibration_date
-                          ? new Date(item.last_calibration_date || item.calibration_date).toLocaleDateString()
+                          ? formatDate(item.last_calibration_date || item.calibration_date)
                           : 'Never'}
                       </td>
                     )}
                     <td>
-                      {item.next_calibration_date
-                        ? new Date(item.next_calibration_date).toLocaleDateString()
-                        : 'N/A'}
+                      {formatDate(item.next_calibration_date)}
                     </td>
                     {reportType === 'compliance' && (
                       <td>
