@@ -1470,8 +1470,17 @@ def register_routes(app):
                     'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
                 }), 403
 
+            # Calculate remaining attempts before lockout
+            remaining_attempts = max_attempts - user.failed_login_attempts
+
             db.session.commit()
-            return jsonify({'error': 'Invalid credentials'}), 401
+
+            if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
+                return jsonify({
+                    'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
+                }), 401
+            else:
+                return jsonify({'error': 'Invalid credentials'}), 401
 
         # Check if user is active
         if not user.is_active:

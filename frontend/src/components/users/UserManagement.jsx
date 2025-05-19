@@ -45,10 +45,18 @@ const UserManagement = () => {
   const [validated, setValidated] = useState(false);
   const [passwordValid, setPasswordValid] = useState(false);
 
-  // Load users and roles on component mount
+  // Load users and roles on component mount and refresh every 30 seconds
   useEffect(() => {
     dispatch(fetchUsers());
     dispatch(fetchRoles());
+
+    // Set up periodic refresh of user list
+    const refreshInterval = setInterval(() => {
+      dispatch(fetchUsers());
+    }, 30000); // Refresh every 30 seconds
+
+    // Clean up interval on component unmount
+    return () => clearInterval(refreshInterval);
   }, [dispatch]);
 
   // Filter users based on search query and active status
