@@ -1,5 +1,6 @@
 import { Card } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatChartDate } from '../../../utils/dateUtils';
 
 const CheckoutTrendsChart = ({ data, timeframe }) => {
   // Check if we have the necessary data
@@ -38,6 +39,12 @@ const CheckoutTrendsChart = ({ data, timeframe }) => {
       timeframeTitle = 'Over Time';
   }
 
+  // Format the dates for the chart
+  const formattedData = data.checkoutsByDay.map(item => ({
+    ...item,
+    formattedDate: formatChartDate(item.date)
+  }));
+
   return (
     <Card className="shadow-sm">
       <Card.Header className="bg-light">
@@ -46,26 +53,26 @@ const CheckoutTrendsChart = ({ data, timeframe }) => {
       <Card.Body>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart
-            data={data.checkoutsByDay}
+            data={formattedData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+            <XAxis dataKey="formattedDate" />
             <YAxis />
-            <Tooltip />
+            <Tooltip labelFormatter={(value) => `Date: ${value}`} />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="checkouts" 
-              stroke="#8884d8" 
-              activeDot={{ r: 8 }} 
-              name="Checkouts" 
+            <Line
+              type="monotone"
+              dataKey="checkouts"
+              stroke="#8884d8"
+              activeDot={{ r: 8 }}
+              name="Checkouts"
             />
-            <Line 
-              type="monotone" 
-              dataKey="returns" 
-              stroke="#82ca9d" 
-              name="Returns" 
+            <Line
+              type="monotone"
+              dataKey="returns"
+              stroke="#82ca9d"
+              name="Returns"
             />
           </LineChart>
         </ResponsiveContainer>

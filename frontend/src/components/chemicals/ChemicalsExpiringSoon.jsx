@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Table, Button, Badge, Alert, Modal, Form } from 'react-bootstrap';
 import { markChemicalAsOrdered, fetchChemicalsExpiringSoon } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { formatDate, getDaysFromToday } from '../../utils/dateUtils';
 
 const ChemicalsExpiringSoon = () => {
   const dispatch = useDispatch();
@@ -13,30 +14,13 @@ const ChemicalsExpiringSoon = () => {
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  // Calculate days until expiration
-  const getDaysUntilExpiration = (expirationDate) => {
-    if (!expirationDate) return 'N/A';
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const expDate = new Date(expirationDate);
-    expDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = expDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
+  // Using standardized date formatting utilities from dateUtils.js
 
   // Get badge variant based on days until expiration
   const getExpirationBadgeVariant = (days) => {
+    // Handle non-numeric values
+    if (typeof days !== 'number' || isNaN(days)) return 'secondary';
+
     if (days <= 7) return 'danger';
     if (days <= 14) return 'warning';
     return 'info';
@@ -59,7 +43,7 @@ const ChemicalsExpiringSoon = () => {
         id: selectedChemical.id,
         expectedDeliveryDate
       })).unwrap();
-      
+
       // Refresh the list
       dispatch(fetchChemicalsExpiringSoon());
       setShowOrderModal(false);
@@ -94,7 +78,7 @@ const ChemicalsExpiringSoon = () => {
             </thead>
             <tbody>
               {chemicalsExpiringSoon.map((chemical) => {
-                const daysUntilExpiration = getDaysUntilExpiration(chemical.expiration_date);
+                const daysUntilExpiration = getDaysFromToday(chemical.expiration_date);
                 return (
                   <tr key={chemical.id}>
                     <td>{chemical.part_number}</td>
@@ -104,7 +88,7 @@ const ChemicalsExpiringSoon = () => {
                     <td>{formatDate(chemical.expiration_date)}</td>
                     <td>
                       <Badge bg={getExpirationBadgeVariant(daysUntilExpiration)}>
-                        {daysUntilExpiration} days
+                        {typeof daysUntilExpiration === 'number' ? `${daysUntilExpiration} days` : daysUntilExpiration}
                       </Badge>
                     </td>
                     <td>
@@ -172,8 +156,8 @@ const ChemicalsExpiringSoon = () => {
           <Button variant="secondary" onClick={() => setShowOrderModal(false)}>
             Cancel
           </Button>
-          <Button 
-            variant="success" 
+          <Button
+            variant="success"
             onClick={handleMarkAsOrdered}
             disabled={!expectedDeliveryDate || submitting}
           >
