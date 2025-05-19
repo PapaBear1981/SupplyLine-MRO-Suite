@@ -13,6 +13,7 @@ from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
+from routes_rbac import register_rbac_routes, permission_required
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
@@ -99,6 +100,9 @@ def register_routes(app):
 
     # Register calibration routes
     register_calibration_routes(app)
+
+    # Register RBAC routes
+    register_rbac_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
@@ -1350,8 +1354,12 @@ def register_routes(app):
         session['department'] = user.department
         session.permanent = True
 
-        # Create response object
-        response = make_response(jsonify(user.to_dict()))
+        # Get user permissions for session
+        permissions = user.get_permissions()
+        session['permissions'] = permissions
+
+        # Create response object with roles and permissions
+        response = make_response(jsonify(user.to_dict(include_roles=True, include_permissions=True)))
 
         # Handle remember me
         if data.get('remember_me'):
@@ -1442,6 +1450,10 @@ def register_routes(app):
                                 session['is_admin'] = user.is_admin
                                 session['department'] = user.department
 
+                                # Get user permissions for session
+                                permissions = user.get_permissions()
+                                session['permissions'] = permissions
+
                                 # Log the auto-login
                                 activity = UserActivity(
                                     user_id=user.id,
@@ -1454,7 +1466,7 @@ def register_routes(app):
 
                                 return jsonify({
                                     'authenticated': True,
-                                    'user': user.to_dict()
+                                    'user': user.to_dict(include_roles=True, include_permissions=True)
                                 }), 200
                             else:
                                 print("Invalid or expired remember token")
@@ -1474,7 +1486,7 @@ def register_routes(app):
             print(f"User authenticated: {user.name}")
             return jsonify({
                 'authenticated': True,
-                'user': user.to_dict()
+                'user': user.to_dict(include_roles=True, include_permissions=True)
             }), 200
 
         except Exception as e:
@@ -1601,7 +1613,7 @@ def register_routes(app):
     @login_required
     def get_profile():
         user = User.query.get(session['user_id'])
-        return jsonify(user.to_dict()), 200
+        return jsonify(user.to_dict(include_roles=True, include_permissions=True)), 200
 
     @app.route('/api/user/profile', methods=['PUT'])
     @login_required

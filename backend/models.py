@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.ext.associationproxy import association_proxy
 
 db = SQLAlchemy()
 
@@ -81,6 +82,9 @@ class User(db.Model):
     remember_token_expiry = db.Column(db.DateTime, nullable=True)
     avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
 
+    # Relationships
+    roles = association_proxy('user_roles', 'role')
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -126,8 +130,38 @@ class User(db.Model):
         self.remember_token = None
         self.remember_token_expiry = None
 
-    def to_dict(self):
-        return {
+    def has_role(self, role_name):
+        """Check if user has a specific role by name"""
+        return any(role.name == role_name for role in self.roles)
+
+    def has_permission(self, permission_name):
+        """Check if user has a specific permission through any of their roles"""
+        for role in self.roles:
+            for permission in role.permissions:
+                if permission.name == permission_name:
+                    return True
+        return False
+
+    def get_permissions(self):
+        """Get all permissions for this user from all roles"""
+        permissions = set()
+        for role in self.roles:
+            for permission in role.permissions:
+                permissions.add(permission.name)
+        return list(permissions)
+
+    def add_role(self, role):
+        """Add a role to this user"""
+        if not any(r.id == role.id for r in self.roles):
+            user_role = UserRole(user_id=self.id, role_id=role.id)
+            db.session.add(user_role)
+
+    def remove_role(self, role):
+        """Remove a role from this user"""
+        UserRole.query.filter_by(user_id=self.id, role_id=role.id).delete()
+
+    def to_dict(self, include_roles=False, include_permissions=False):
+        result = {
             'id': self.id,
             'name': self.name,
             'employee_number': self.employee_number,
@@ -137,6 +171,14 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'avatar': self.avatar
         }
+
+        if include_roles:
+            result['roles'] = [role.to_dict() for role in self.roles]
+
+        if include_permissions:
+            result['permissions'] = self.get_permissions()
+
+        return result
 
 class Checkout(db.Model):
     __tablename__ = 'checkouts'
@@ -455,3 +497,77 @@ class ToolCalibrationStandard(db.Model):
             'standard': self.standard.to_dict() if self.standard else None,
             'created_at': self.created_at.isoformat()
         }
+
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    description = db.Column(db.String)
+    category = db.Column(db.String)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    roles = association_proxy('role_permissions', 'role')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'category': self.category,
+            'created_at': self.created_at.isoformat()
+        }
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    description = db.Column(db.String)
+    is_system_role = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    permissions = association_proxy('role_permissions', 'permission')
+    users = association_proxy('user_roles', 'user')
+
+    def to_dict(self, include_permissions=False):
+        result = {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'is_system_role': self.is_system_role,
+            'created_at': self.created_at.isoformat()
+        }
+
+        if include_permissions:
+            result['permissions'] = [rp.permission.to_dict() for rp in self.role_permissions]
+
+        return result
+
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    role = db.relationship('Role', backref=db.backref('role_permissions', cascade='all, delete-orphan'))
+    permission = db.relationship('Permission', backref=db.backref('role_permissions', cascade='all, delete-orphan'))
+
+    # Ensure uniqueness of role-permission pairs
+    __table_args__ = (db.UniqueConstraint('role_id', 'permission_id', name='_role_permission_uc'),)
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('user_roles', cascade='all, delete-orphan'))
+    role = db.relationship('Role', backref=db.backref('user_roles', cascade='all, delete-orphan'))
+
+    # Ensure uniqueness of user-role pairs
+    __table_args__ = (db.UniqueConstraint('user_id', 'role_id', name='_user_role_uc'),)
