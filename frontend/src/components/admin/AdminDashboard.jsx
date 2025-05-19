@@ -1,20 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Nav, Tab, Alert } from 'react-bootstrap';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
 import SystemSettings from './SystemSettings';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
-  const { user: currentUser } = useSelector((state) => state.auth);
+  const { user: currentUser, isLoading } = useSelector((state) => state.auth);
 
-  // Check permissions for each tab
-  const canViewUsers = currentUser?.permissions?.includes('user.view');
-  const canManageRoles = currentUser?.permissions?.includes('role.manage');
-  const canViewAudit = currentUser?.permissions?.includes('system.audit');
-  const canManageSettings = currentUser?.permissions?.includes('system.settings');
+  // Memoize permission checks to prevent unnecessary recalculations
+  const { canViewUsers, canManageRoles, canViewAudit, canManageSettings } = useMemo(() => ({
+    canViewUsers: currentUser?.permissions?.includes('user.view'),
+    canManageRoles: currentUser?.permissions?.includes('role.manage'),
+    canViewAudit: currentUser?.permissions?.includes('system.audit'),
+    canManageSettings: currentUser?.permissions?.includes('system.settings')
+  }), [currentUser?.permissions]);
+
+  // Show loading indicator while fetching user data
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   // If user doesn't have permission for any tabs, show an error
   if (!canViewUsers && !canManageRoles && !canViewAudit && !canManageSettings) {
@@ -26,16 +40,18 @@ const AdminDashboard = () => {
   }
 
   // Set the active tab to the first one the user has permission for
-  if (activeTab === 'users' && !canViewUsers) {
-    if (canManageRoles) setActiveTab('roles');
-    else if (canViewAudit) setActiveTab('audit');
-    else if (canManageSettings) setActiveTab('settings');
-  }
+  useEffect(() => {
+    if (activeTab === 'users' && !canViewUsers) {
+      if (canManageRoles) setActiveTab('roles');
+      else if (canViewAudit) setActiveTab('audit');
+      else if (canManageSettings) setActiveTab('settings');
+    }
+  }, [canViewUsers, canManageRoles, canViewAudit, canManageSettings, activeTab]);
 
   return (
     <div>
       <h2 className="mb-4">Admin Dashboard</h2>
-      
+
       <Card>
         <Card.Header>
           <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>

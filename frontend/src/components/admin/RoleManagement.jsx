@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, Tabs, Tab, ListGroup
 } from 'react-bootstrap';
-import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions } from '../../store/rbacSlice';
+import { fetchRoles, createRole, updateRole, deleteRole, fetchPermissions, fetchRoleById } from '../../store/rbacSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const RoleManagement = () => {
@@ -58,7 +58,7 @@ const RoleManagement = () => {
   // Handle permission selection
   const handlePermissionChange = (permissionId) => {
     const updatedPermissions = [...formData.permissions];
-    
+
     if (updatedPermissions.includes(permissionId)) {
       // Remove permission if already selected
       const index = updatedPermissions.indexOf(permissionId);
@@ -67,7 +67,7 @@ const RoleManagement = () => {
       // Add permission if not selected
       updatedPermissions.push(permissionId);
     }
-    
+
     setFormData({
       ...formData,
       permissions: updatedPermissions
@@ -153,10 +153,25 @@ const RoleManagement = () => {
     setShowDeleteModal(true);
   };
 
+  // Fetch role permissions
+  const fetchRolePermissions = (roleId) => {
+    dispatch(fetchRoleById(roleId))
+      .unwrap()
+      .then((updatedRole) => {
+        setSelectedRole(updatedRole);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch role permissions:', err);
+      });
+  };
+
   // Open permissions modal with role data
   const openPermissionsModal = (role) => {
     setSelectedRole(role);
     setShowPermissionsModal(true);
+
+    // Fetch the latest role data to ensure we have the most up-to-date permissions
+    fetchRolePermissions(role.id);
   };
 
   // Check if user has permission to manage roles
@@ -422,7 +437,33 @@ const RoleManagement = () => {
           <Modal.Title>Permissions for {selectedRole?.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {selectedRole?.permissions?.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Loading permissions...</span>
+              </div>
+              <p className="mt-2">Loading permissions...</p>
+            </div>
+          ) : error ? (
+            <Alert variant="danger">
+              <Alert.Heading>Error Loading Permissions</Alert.Heading>
+              <p>{error}</p>
+              <div className="d-flex justify-content-end">
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => {
+                    // Retry loading permissions
+                    if (selectedRole) {
+                      fetchRolePermissions(selectedRole.id);
+                    }
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            </Alert>
+          ) : selectedRole?.permissions?.length > 0 ? (
             <div>
               <Tabs defaultActiveKey="all" id="permissions-view-tabs">
                 <Tab eventKey="all" title="All Permissions">
@@ -439,7 +480,7 @@ const RoleManagement = () => {
                     (p) => p.category === category
                   );
                   if (categoryPermissions.length === 0) return null;
-                  
+
                   return (
                     <Tab key={category} eventKey={category} title={category}>
                       <ListGroup variant="flush" className="mt-3">
@@ -465,10 +506,14 @@ const RoleManagement = () => {
             Close
           </Button>
           {!selectedRole?.is_system_role && (
-            <Button variant="primary" onClick={() => {
-              setShowPermissionsModal(false);
-              openEditModal(selectedRole);
-            }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setShowPermissionsModal(false);
+                openEditModal(selectedRole);
+              }}
+              disabled={loading || error}
+            >
               Edit Permissions
             </Button>
           )}
