@@ -204,15 +204,23 @@ def register_chemical_analytics_routes(app):
 
                 location_list = [{'location': loc, 'quantity': qty} for loc, qty in locations.items()]
 
-                # Basic user data
+                # Basic user data with actual user names
                 users = {}
+                user_names = {}
+
                 for i in issuances:
                     user_id = i.user_id
                     if user_id not in users:
                         users[user_id] = 0
+                        # Get the user's name from the database
+                        user = User.query.get(user_id)
+                        if user:
+                            user_names[user_id] = f"{user.first_name} {user.last_name}"
+                        else:
+                            user_names[user_id] = f"User {user_id}"
                     users[user_id] += i.quantity
 
-                user_list = [{'user': f"User {user_id}", 'quantity': qty} for user_id, qty in users.items()]
+                user_list = [{'user': user_names.get(user_id, f"User {user_id}"), 'quantity': qty} for user_id, qty in users.items()]
 
                 # Basic time data
                 time_data = {}
@@ -224,6 +232,29 @@ def register_chemical_analytics_routes(app):
 
                 time_list = [{'month': month, 'quantity': qty} for month, qty in time_data.items()]
 
+                # Calculate average monthly usage
+                avg_monthly_usage = 0
+                projected_depletion_days = None
+
+                if issuances:
+                    # Get the date range of issuances
+                    if len(issuances) > 0:
+                        earliest_date = min(i.issue_date for i in issuances)
+                        latest_date = max(i.issue_date for i in issuances)
+
+                        # Calculate the number of months between earliest and latest issuance
+                        months_diff = (latest_date.year - earliest_date.year) * 12 + (latest_date.month - earliest_date.month)
+                        months_diff = max(1, months_diff)  # Ensure at least 1 month to avoid division by zero
+
+                        # Calculate average monthly usage
+                        avg_monthly_usage = total_issued / months_diff
+
+                        # Calculate projected depletion time in days
+                        if avg_monthly_usage > 0:
+                            projected_depletion_days = int((current_inventory / avg_monthly_usage) * 30)
+                        else:
+                            projected_depletion_days = None
+
             except Exception as e:
                 print(f"Error processing issuances: {str(e)}")
                 issuances = []
@@ -231,8 +262,10 @@ def register_chemical_analytics_routes(app):
                 location_list = []
                 user_list = []
                 time_list = []
+                avg_monthly_usage = 0
+                projected_depletion_days = None
 
-            # Return simplified analytics data
+            # Return analytics data with real calculations
             return jsonify({
                 'timeframe': timeframe,
                 'part_number': part_number,
@@ -247,8 +280,8 @@ def register_chemical_analytics_routes(app):
                     'by_location': location_list,
                     'by_user': user_list,
                     'over_time': time_list,
-                    'avg_monthly_usage': 0,  # Simplified
-                    'projected_depletion_days': None  # Simplified
+                    'avg_monthly_usage': round(avg_monthly_usage, 2),  # Rounded to 2 decimal places
+                    'projected_depletion_days': projected_depletion_days
                 },
                 'efficiency_stats': {
                     'usage_efficiency_data': []  # Simplified
