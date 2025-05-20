@@ -100,11 +100,15 @@ const PastDueTools = () => {
 
   return (
     <Card className="shadow-sm mb-4">
-      <Card.Header className="bg-light d-flex justify-content-between align-items-center">     
+      <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Past Due Tools</h4>
         <Badge bg="danger" pill>{pastDueTools.length}</Badge>
       </Card.Header>
       <Card.Body className="p-0">
+        <Alert variant="info" className="m-2 mb-0">
+          This section shows tools checked out to <strong>all users</strong> that are past their due date.
+          To see only your checkouts, check the "My Checked Out Tools" section below.
+        </Alert>
         <ListGroup variant="flush">
           {pastDueTools.map((tool) => (
             <ListGroup.Item key={tool.id} className="d-flex justify-content-between align-items-center">
