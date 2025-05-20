@@ -11,7 +11,7 @@ import { HelpProvider } from './context/HelpContext';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
@@ -137,11 +137,11 @@ function App() {
         } />
 
         <Route path="/admin/dashboard" element={
-          <ProtectedRoute>
+          <AdminRoute>
             <MainLayout>
               <AdminDashboardPage />
             </MainLayout>
-          </ProtectedRoute>
+          </AdminRoute>
         } />
 
         <Route path="/profile" element={

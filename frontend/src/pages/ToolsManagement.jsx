@@ -1,15 +1,27 @@
 import { useSelector } from 'react-redux';
-import { Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Button, Alert } from 'react-bootstrap';
+import { Link, useLocation } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
   const isAdmin = user?.is_admin || user?.department === 'Materials';
+  const unauthorized = location.state?.unauthorized;
 
   return (
     <div className="w-100">
+      {/* Show unauthorized message if redirected from admin page */}
+      {unauthorized && (
+        <Alert variant="danger" className="mb-4">
+          <Alert.Heading>Access Denied</Alert.Heading>
+          <p>
+            You do not have permission to access the Admin Dashboard. This area is restricted to administrators only.
+          </p>
+        </Alert>
+      )}
+
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <h1 className="mb-0">Tool Inventory</h1>
         {isAdmin && (

@@ -816,11 +816,11 @@ def register_routes(app):
                 # Search for users by employee number
                 search_term = f'%{search_query}%'
                 users = User.query.filter(User.employee_number.like(search_term)).all()
-                return jsonify([u.to_dict(include_lockout_info=include_lockout_info) for u in users])
+                return jsonify([u.to_dict(include_roles=True, include_lockout_info=include_lockout_info) for u in users])
             else:
                 # Get all users, including inactive ones
                 users = User.query.all()
-                return jsonify([u.to_dict(include_lockout_info=include_lockout_info) for u in users])
+                return jsonify([u.to_dict(include_roles=True, include_lockout_info=include_lockout_info) for u in users])
 
         # POST - Create a new user
         data = request.get_json() or {}
@@ -873,9 +873,9 @@ def register_routes(app):
         user = User.query.get_or_404(id)
 
         if request.method == 'GET':
-            # Return user details with lockout info for admins
+            # Return user details with roles and lockout info for admins
             include_lockout_info = session.get('is_admin', False)
-            return jsonify(user.to_dict(include_lockout_info=include_lockout_info))
+            return jsonify(user.to_dict(include_roles=True, include_lockout_info=include_lockout_info))
 
         elif request.method == 'PUT':
             # Update user
@@ -907,7 +907,7 @@ def register_routes(app):
             db.session.add(log)
             db.session.commit()
 
-            return jsonify(user.to_dict())
+            return jsonify(user.to_dict(include_roles=True))
 
         elif request.method == 'DELETE':
             # Deactivate user instead of deleting
@@ -958,7 +958,7 @@ def register_routes(app):
 
         return jsonify({
             'message': f'Account for {user.name} has been successfully unlocked',
-            'user': user.to_dict(include_lockout_info=True)
+            'user': user.to_dict(include_roles=True, include_lockout_info=True)
         }), 200
 
     @app.route('/api/checkouts', methods=['GET', 'POST'])
