@@ -80,12 +80,18 @@ def register_calibration_routes(app):
             threshold_date = now + timedelta(days=days)
 
             # Find tools that require calibration and are due within the specified days
+            # Use the calibration_status field to ensure consistency across the application
             tools = Tool.query.filter(
                 Tool.requires_calibration == True,
                 Tool.next_calibration_date.isnot(None),
-                Tool.next_calibration_date <= threshold_date,
-                Tool.next_calibration_date >= now
+                Tool.calibration_status == 'due_soon' if days == 30 else
+                    ((Tool.next_calibration_date <= threshold_date) & (Tool.next_calibration_date >= now))
             ).all()
+
+            # Log the query results for debugging
+            print(f"Found {len(tools)} tools due for calibration in the next {days} days")
+            for tool in tools:
+                print(f"Tool ID: {tool.id}, Tool Number: {tool.tool_number}, Next Calibration Date: {tool.next_calibration_date}, Status: {tool.calibration_status}")
 
             return jsonify([tool.to_dict() for tool in tools]), 200
 
