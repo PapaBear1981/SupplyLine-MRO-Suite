@@ -40,7 +40,10 @@ export const fetchActivityMetrics = createAsyncThunk(
 
 // Initial state
 const initialState = {
-  logs: [],
+  logs: {
+    items: [],
+    total: 0
+  },
   userLogs: [],
   metrics: null,
   loading: false,
@@ -65,7 +68,20 @@ const auditSlice = createSlice({
       })
       .addCase(fetchAuditLogs.fulfilled, (state, action) => {
         state.loading = false;
-        state.logs = action.payload;
+        // Format the response to include items and total for pagination
+        if (Array.isArray(action.payload)) {
+          state.logs = {
+            items: action.payload,
+            total: action.payload.length
+          };
+        } else {
+          // Ensure payload has expected properties
+          const { items = [], total = 0 } = action.payload;
+          state.logs = {
+            items,
+            total
+          };
+        }
       })
       .addCase(fetchAuditLogs.rejected, (state, action) => {
         state.loading = false;
