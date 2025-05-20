@@ -2,15 +2,28 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.5.2** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.5.3** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-## What's New in 3.5.2
+## What's New in 3.5.3
 
-The latest version includes significant improvements to chemical management functionality:
+The latest version includes significant improvements to user experience and fixes several important issues:
+
+- **Improved Admin Dashboard**: Fixed tab switching in Admin Dashboard for User Management, Role Management, System Settings, and Help Settings
+- **Enhanced Chemical Management**: Added alerts for overdue chemical deliveries and fixed chemical reorder delivery functionality
+- **Improved Reporting**: Connected Chemical Waste Analytics to real data and fixed Part Number Analytics
+- **Fixed Login Issues**: Resolved login functionality for non-admin users
+- **UI Enhancements**: Removed redundant UI elements and the Activity Log tab from profile page
+- **Standardized Date Formats**: Implemented consistent date formatting across the application
+- **Fixed Calibration Reports**: Added serial numbers and descriptions to Calibration History reports
+- **Improved Tool Status Display**: Enhanced status indicators for overdue tools
+
+### Previous Release (3.5.2)
+
+Version 3.5.2 included significant improvements to chemical management functionality:
 
 - **Simplified Chemical Interface**: Removed dropdown menu from chemical list for a cleaner interface
 - **Enhanced Chemical Issuance**: Fixed and improved chemical issuance functionality
@@ -20,8 +33,6 @@ The latest version includes significant improvements to chemical management func
 - **Better API Integration**: Fixed chemical issuance history endpoint
 
 ### Previous Release (3.5.1)
-
-Version 3.5.1 included significant bug fixes and improvements:
 
 - **Fixed Tool Management**: Improved tool addition and return functionality
 - **Enhanced Chemical Management**: Fixed chemical creation and management
@@ -387,7 +398,7 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Update personal details
 4. Click "Save Changes"
 
-### Updating to the Latest Version (v3.5.2)
+### Updating to the Latest Version (v3.5.3)
 If you're updating from a previous version, follow these steps:
 
 1. Pull the latest changes from the repository:

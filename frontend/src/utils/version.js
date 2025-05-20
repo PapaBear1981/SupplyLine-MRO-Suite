@@ -3,6 +3,6 @@
  * This file should be the single source of truth for the application version
  */
 
-export const APP_VERSION = '3.5.2';
+export const APP_VERSION = '3.5.3';
 
 export default APP_VERSION;
