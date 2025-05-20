@@ -7,34 +7,34 @@ import { formatDate } from '../../utils/dateUtils';
 
 const UserCheckoutStatus = () => {
   const dispatch = useDispatch();
-  const { checkouts, loading, error } = useSelector((state) => state.checkouts);
+  const { userCheckouts, loading, error } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
-  
+
   useEffect(() => {
     dispatch(fetchUserCheckouts());
   }, [dispatch]);
 
   // Filter active checkouts (not returned)
-  const activeCheckouts = checkouts.filter(checkout => !checkout.return_date);
+  const activeCheckouts = userCheckouts.filter(checkout => !checkout.return_date);
 
   // Function to determine badge variant based on due date
   const getStatusBadgeVariant = (dueDate) => {
     if (!dueDate) return 'secondary';
-    
+
     const today = new Date();
     const due = new Date(dueDate);
-    
+
     if (due < today) return 'danger'; // Overdue
-    
+
     // Calculate days until due
     const diffTime = Math.abs(due - today);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays <= 2) return 'warning'; // Due soon
     return 'success'; // Not due soon
   };
 
-  if (loading && !checkouts.length) {
+  if (loading && !userCheckouts.length) {
     return (
       <Card className="shadow-sm mb-4">
         <Card.Header className="bg-light">
@@ -83,13 +83,13 @@ const UserCheckoutStatus = () => {
             {activeCheckouts.map((checkout) => {
               const dueDate = checkout.expected_return_date;
               const badgeVariant = getStatusBadgeVariant(dueDate);
-              
+
               return (
                 <ListGroup.Item key={checkout.id} className="d-flex justify-content-between align-items-center">
                   <div>
                     <div className="fw-bold">{checkout.tool_number} - {checkout.description}</div>
                     <div className="text-muted small">
-                      Checked out: {formatDate(checkout.checkout_date)} | 
+                      Checked out: {formatDate(checkout.checkout_date)} |
                       Due: {formatDate(checkout.expected_return_date)}
                     </div>
                   </div>
@@ -98,7 +98,7 @@ const UserCheckoutStatus = () => {
                       bg={badgeVariant}
                       className="me-2"
                     >
-                      {badgeVariant === 'danger' ? 'Overdue' : 
+                      {badgeVariant === 'danger' ? 'Overdue' :
                        badgeVariant === 'warning' ? 'Due Soon' : 'Checked Out'}
                     </Badge>
                     <Button
