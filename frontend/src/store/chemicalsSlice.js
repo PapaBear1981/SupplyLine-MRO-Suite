@@ -259,9 +259,9 @@ export const markChemicalAsOrdered = createAsyncThunk(
 
 export const markChemicalAsDelivered = createAsyncThunk(
   'chemicals/markChemicalAsDelivered',
-  async (id, { rejectWithValue }) => {
+  async ({ id, receivedQuantity }, { rejectWithValue }) => {
     try {
-      const data = await ChemicalService.markChemicalAsDelivered(id);
+      const data = await ChemicalService.markChemicalAsDelivered(id, receivedQuantity);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to mark chemical as delivered' });
@@ -637,6 +637,9 @@ const chemicalsSlice = createSlice({
         const chemicalIndex = state.chemicals.findIndex(c => c.id === updatedChemical.id);
         if (chemicalIndex !== -1) {
           state.chemicals[chemicalIndex] = updatedChemical;
+        } else {
+          // If the chemical doesn't exist in the main list, add it
+          state.chemicals.push(updatedChemical);
         }
 
         // Remove from chemicals on order
