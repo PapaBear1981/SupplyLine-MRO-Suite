@@ -244,30 +244,136 @@ def register_chemical_analytics_routes(app):
             else:  # 'all'
                 start_date = datetime(1970, 1, 1)  # Beginning of time
 
-            # Return analytics data with the correct structure for the frontend tables
+            # Build query for archived chemicals
+            query = Chemical.query.filter(Chemical.is_archived == True)
+
+            # Apply date filter based on archived_date
+            query = query.filter(Chemical.archived_date >= start_date, Chemical.archived_date <= end_date)
+
+            # Apply part number filter if provided
+            if part_number:
+                query = query.filter(Chemical.part_number == part_number)
+
+            # Execute query
+            archived_chemicals = query.all()
+
+            # Calculate summary statistics
+            total_archived = len(archived_chemicals)
+            expired_count = 0
+            depleted_count = 0
+            other_count = 0
+
+            # Categorize archived chemicals by reason
+            for chemical in archived_chemicals:
+                archived_reason = getattr(chemical, 'archived_reason', '').lower()
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    expired_count += 1
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    depleted_count += 1
+                else:
+                    other_count += 1
+
+            # Group by category
+            categories = {}
+            for chemical in archived_chemicals:
+                category = chemical.category or 'Uncategorized'
+                if category not in categories:
+                    categories[category] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+
+                categories[category]['total'] += 1
+
+                archived_reason = getattr(chemical, 'archived_reason', '').lower()
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    categories[category]['expired'] += 1
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    categories[category]['depleted'] += 1
+                else:
+                    categories[category]['other'] += 1
+
+            # Group by location
+            locations = {}
+            for chemical in archived_chemicals:
+                location = chemical.location or 'Unknown'
+                if location not in locations:
+                    locations[location] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+
+                locations[location]['total'] += 1
+
+                archived_reason = getattr(chemical, 'archived_reason', '').lower()
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    locations[location]['expired'] += 1
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    locations[location]['depleted'] += 1
+                else:
+                    locations[location]['other'] += 1
+
+            # Group by part number
+            part_numbers = {}
+            for chemical in archived_chemicals:
+                part_num = chemical.part_number
+                if part_num not in part_numbers:
+                    part_numbers[part_num] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+
+                part_numbers[part_num]['total'] += 1
+
+                archived_reason = getattr(chemical, 'archived_reason', '').lower()
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    part_numbers[part_num]['expired'] += 1
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    part_numbers[part_num]['depleted'] += 1
+                else:
+                    part_numbers[part_num]['other'] += 1
+
+            # Group by time (month)
+            time_data = {}
+            for chemical in archived_chemicals:
+                month = chemical.archived_date.strftime('%Y-%m')
+                if month not in time_data:
+                    time_data[month] = {'expired': 0, 'depleted': 0, 'other': 0}
+
+                archived_reason = getattr(chemical, 'archived_reason', '').lower()
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    time_data[month]['expired'] += 1
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    time_data[month]['depleted'] += 1
+                else:
+                    time_data[month]['other'] += 1
+
+            # Convert dictionaries to lists for the response
+            waste_by_category = [
+                {'category': category, **stats}
+                for category, stats in categories.items()
+            ]
+
+            waste_by_location = [
+                {'location': location, **stats}
+                for location, stats in locations.items()
+            ]
+
+            waste_by_part_number = [
+                {'part_number': part_num, **stats}
+                for part_num, stats in part_numbers.items()
+            ]
+
+            # Sort time data chronologically
+            sorted_months = sorted(time_data.keys())
+            waste_over_time = [
+                {'month': month, **time_data[month]}
+                for month in sorted_months
+            ]
+
+            # Return the analytics data
             return jsonify({
                 'timeframe': timeframe,
                 'part_number_filter': part_number,
-                'total_archived': 5,
-                'expired_count': 2,
-                'depleted_count': 2,
-                'other_count': 1,
-                'waste_by_category': [
-                    {'category': 'Adhesives', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0},
-                    {'category': 'Lubricants', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1}
-                ],
-                'waste_by_location': [
-                    {'location': 'Hangar A', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1},
-                    {'location': 'Hangar B', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0}
-                ],
-                'waste_by_part_number': [
-                    {'part_number': 'Aeroshell 22', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0},
-                    {'part_number': 'PR1422B1/2', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1}
-                ],
-                'waste_over_time': [
-                    {'month': '2023-01', 'expired': 1, 'depleted': 1, 'other': 0},
-                    {'month': '2023-02', 'expired': 1, 'depleted': 1, 'other': 1}
-                ],
+                'total_archived': total_archived,
+                'expired_count': expired_count,
+                'depleted_count': depleted_count,
+                'other_count': other_count,
+                'waste_by_category': waste_by_category,
+                'waste_by_location': waste_by_location,
+                'waste_by_part_number': waste_by_part_number,
+                'waste_over_time': waste_over_time,
                 'shelf_life_analytics': {
                     'detailed_data': [],
                     'averages_by_part_number': []
