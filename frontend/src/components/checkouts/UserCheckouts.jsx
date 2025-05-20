@@ -133,7 +133,11 @@ const UserCheckouts = () => {
                           )}
                         </td>
                         <td>
-                          <span className="status-badge status-checked-out">{checkout.status}</span>
+                          {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() ? (
+                            <span className="status-badge status-maintenance">Overdue</span>
+                          ) : (
+                            <span className="status-badge status-checked-out">Checked Out</span>
+                          )}
                         </td>
                         {canReturnTools && (
                           <td>
