@@ -1,8 +1,9 @@
 import { useSelector } from 'react-redux';
-import { Button, Alert } from 'react-bootstrap';
+import { Button, Alert, Row, Col } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
+import OverdueChemicals from '../components/dashboard/OverdueChemicals';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
@@ -34,6 +35,9 @@ const ToolsManagement = () => {
 
       {/* Show calibration notifications for admin and Materials department users */}
       {isAdmin && <CalibrationNotifications />}
+
+      {/* Show overdue chemicals notifications for admin and Materials department users */}
+      {isAdmin && <OverdueChemicals />}
 
       <ToolList />
     </div>
