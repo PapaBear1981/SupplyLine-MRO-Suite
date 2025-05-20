@@ -164,7 +164,6 @@ const ToolList = () => {
         <Card.Header className="bg-light">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div className="d-flex align-items-center">
-              <h5 className="mb-0">Tool Inventory</h5>
               {showHelp && (
                 <HelpIcon
                   title="Tool Inventory"
