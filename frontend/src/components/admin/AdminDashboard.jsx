@@ -86,81 +86,83 @@ const AdminDashboard = () => {
     <div>
       <h2 className="mb-4">Admin Dashboard</h2>
 
-      <Card>
-        <Card.Header>
-          <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
-            {canViewDashboard && (
-              <Nav.Item>
-                <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
-              </Nav.Item>
-            )}
-            {canViewUsers && (
-              <Nav.Item>
-                <Nav.Link eventKey="users">User Management</Nav.Link>
-              </Nav.Item>
-            )}
-            {canManageRoles && (
-              <Nav.Item>
-                <Nav.Link eventKey="roles">Role Management</Nav.Link>
-              </Nav.Item>
-            )}
-            {canViewRegistrations && (
-              <Nav.Item>
-                <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
-              </Nav.Item>
-            )}
-            {canViewAudit && (
-              <Nav.Item>
-                <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
-              </Nav.Item>
-            )}
-            {canManageSettings && (
-              <Nav.Item>
-                <Nav.Link eventKey="settings">System Settings</Nav.Link>
-              </Nav.Item>
-            )}
-            {canManageHelp && (
-              <Nav.Item>
-                <Nav.Link eventKey="help">Help Settings</Nav.Link>
-              </Nav.Item>
-            )}
-          </Nav>
-        </Card.Header>
-        <Card.Body>
-          <Tab.Content>
-            <Tab.Pane active={activeTab === 'dashboard'}>
+      <Tab.Container id="admin-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
+        <Card>
+          <Card.Header>
+            <Nav variant="tabs">
               {canViewDashboard && (
-                <Row>
-                  <Col md={8}>
-                    <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
-                  </Col>
-                  <Col md={4}>
-                    <SystemResources resources={systemResources} loading={adminLoading.systemResources} />
-                  </Col>
-                </Row>
+                <Nav.Item>
+                  <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
+                </Nav.Item>
               )}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'users'}>
-              {canViewUsers && <UserManagement />}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'roles'}>
-              {canManageRoles && <RoleManagement />}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'registrations'}>
-              {canViewRegistrations && <RegistrationRequests />}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'audit'}>
-              {canViewAudit && <AuditLogViewer />}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'settings'}>
-              {canManageSettings && <SystemSettings />}
-            </Tab.Pane>
-            <Tab.Pane active={activeTab === 'help'}>
-              {canManageHelp && <HelpSettings />}
-            </Tab.Pane>
-          </Tab.Content>
-        </Card.Body>
-      </Card>
+              {canViewUsers && (
+                <Nav.Item>
+                  <Nav.Link eventKey="users">User Management</Nav.Link>
+                </Nav.Item>
+              )}
+              {canManageRoles && (
+                <Nav.Item>
+                  <Nav.Link eventKey="roles">Role Management</Nav.Link>
+                </Nav.Item>
+              )}
+              {canViewRegistrations && (
+                <Nav.Item>
+                  <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
+                </Nav.Item>
+              )}
+              {canViewAudit && (
+                <Nav.Item>
+                  <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
+                </Nav.Item>
+              )}
+              {canManageSettings && (
+                <Nav.Item>
+                  <Nav.Link eventKey="settings">System Settings</Nav.Link>
+                </Nav.Item>
+              )}
+              {canManageHelp && (
+                <Nav.Item>
+                  <Nav.Link eventKey="help">Help Settings</Nav.Link>
+                </Nav.Item>
+              )}
+            </Nav>
+          </Card.Header>
+          <Card.Body>
+            <Tab.Content>
+              <Tab.Pane eventKey="dashboard">
+                {canViewDashboard && (
+                  <Row>
+                    <Col md={8}>
+                      <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
+                    </Col>
+                    <Col md={4}>
+                      <SystemResources resources={systemResources} loading={adminLoading.systemResources} />
+                    </Col>
+                  </Row>
+                )}
+              </Tab.Pane>
+              <Tab.Pane eventKey="users">
+                {canViewUsers && <UserManagement />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="roles">
+                {canManageRoles && <RoleManagement />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="registrations">
+                {canViewRegistrations && <RegistrationRequests />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="audit">
+                {canViewAudit && <AuditLogViewer />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="settings">
+                {canManageSettings && <SystemSettings />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="help">
+                {canManageHelp && <HelpSettings />}
+              </Tab.Pane>
+            </Tab.Content>
+          </Card.Body>
+        </Card>
+      </Tab.Container>
     </div>
   );
 };
