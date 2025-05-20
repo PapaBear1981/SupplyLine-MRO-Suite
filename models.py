@@ -119,7 +119,37 @@ class User(db.Model):
         delta = self.account_locked_until - datetime.utcnow()
         return delta.total_seconds()
 
-    def to_dict(self, include_lockout_info=False):
+    def get_permissions(self):
+        """Get the user's permissions.
+        For admin users, return all permissions.
+        For non-admin users, return a basic set of permissions.
+        """
+        # Default permissions for all users
+        permissions = [
+            'view_tools',
+            'checkout_tools',
+            'return_tools',
+            'view_profile',
+            'edit_profile'
+        ]
+
+        # Admin users get additional permissions
+        if self.is_admin:
+            admin_permissions = [
+                'manage_tools',
+                'manage_users',
+                'view_reports',
+                'manage_chemicals',
+                'manage_calibrations',
+                'view_admin_dashboard',
+                'approve_registrations',
+                'unlock_users'
+            ]
+            permissions.extend(admin_permissions)
+
+        return permissions
+
+    def to_dict(self, include_lockout_info=False, include_roles=False, include_permissions=False):
         data = {
             'id': self.id,
             'name': self.name,
@@ -127,7 +157,8 @@ class User(db.Model):
             'department': self.department,
             'is_admin': self.is_admin,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'avatar': getattr(self, 'avatar', None)
         }
 
         if include_lockout_info:
@@ -137,6 +168,18 @@ class User(db.Model):
                 'account_locked_until': self.account_locked_until.isoformat() if self.account_locked_until else None,
                 'last_failed_login': self.last_failed_login.isoformat() if self.last_failed_login else None
             })
+
+        if include_roles:
+            try:
+                data['roles'] = [role.to_dict() for role in self.roles]
+            except (AttributeError, Exception):
+                data['roles'] = []
+
+        if include_permissions:
+            try:
+                data['permissions'] = self.get_permissions()
+            except (AttributeError, Exception):
+                data['permissions'] = []
 
         return data
 
