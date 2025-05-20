@@ -75,7 +75,12 @@ const auditSlice = createSlice({
             total: action.payload.length
           };
         } else {
-          state.logs = action.payload;
+          // Ensure payload has expected properties
+          const { items = [], total = 0 } = action.payload;
+          state.logs = {
+            items,
+            total
+          };
         }
       })
       .addCase(fetchAuditLogs.rejected, (state, action) => {
