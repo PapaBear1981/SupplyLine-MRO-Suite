@@ -227,6 +227,51 @@ def register_chemical_analytics_routes(app):
     @materials_manager_required
     def waste_analytics_route():
         try:
+            # Helper function to categorize waste based on archived reason
+            def categorize_waste(archived_reason):
+                """Categorize waste based on archived reason."""
+                archived_reason = archived_reason.lower() if archived_reason else ""
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    return 'expired'
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    return 'depleted'
+                else:
+                    return 'other'
+
+            # Helper function to group chemicals by a dimension
+            def group_by_dimension(chemicals, dimension_getter, dimension_name_default='Unknown'):
+                """
+                Group chemicals by a dimension (category, location, part_number)
+
+                Args:
+                    chemicals: List of chemicals
+                    dimension_getter: Function to extract dimension value from a chemical
+                    dimension_name_default: Default value if dimension is None
+
+                Returns:
+                    Dictionary of dimension values to stats
+                """
+                result = {}
+                for chemical in chemicals:
+                    dimension_value = dimension_getter(chemical) or dimension_name_default
+                    if dimension_value not in result:
+                        result[dimension_value] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+
+                    result[dimension_value]['total'] += 1
+
+                    waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                    result[dimension_value][waste_category] += 1
+
+                return result
+
+            # Helper function to convert dictionary to list for response
+            def dict_to_list(data_dict, key_name):
+                """Convert a dictionary to a list of dictionaries with the key as a named field."""
+                return [
+                    {key_name: key, **stats}
+                    for key, stats in data_dict.items()
+                ]
+
             # Get query parameters
             timeframe = request.args.get('timeframe', 'month')  # week, month, quarter, year, all
             part_number = request.args.get('part_number')  # Optional part number filter
@@ -245,7 +290,7 @@ def register_chemical_analytics_routes(app):
                 start_date = datetime(1970, 1, 1)  # Beginning of time
 
             # Build query for archived chemicals
-            query = Chemical.query.filter(Chemical.is_archived == True)
+            query = Chemical.query.filter(Chemical.is_archived)
 
             # Apply date filter based on archived_date
             query = query.filter(Chemical.archived_date >= start_date, Chemical.archived_date <= end_date)
@@ -265,64 +310,18 @@ def register_chemical_analytics_routes(app):
 
             # Categorize archived chemicals by reason
             for chemical in archived_chemicals:
-                archived_reason = getattr(chemical, 'archived_reason', '').lower()
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                if category == 'expired':
                     expired_count += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                elif category == 'depleted':
                     depleted_count += 1
                 else:
                     other_count += 1
 
-            # Group by category
-            categories = {}
-            for chemical in archived_chemicals:
-                category = chemical.category or 'Uncategorized'
-                if category not in categories:
-                    categories[category] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
-
-                categories[category]['total'] += 1
-
-                archived_reason = getattr(chemical, 'archived_reason', '').lower()
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
-                    categories[category]['expired'] += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
-                    categories[category]['depleted'] += 1
-                else:
-                    categories[category]['other'] += 1
-
-            # Group by location
-            locations = {}
-            for chemical in archived_chemicals:
-                location = chemical.location or 'Unknown'
-                if location not in locations:
-                    locations[location] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
-
-                locations[location]['total'] += 1
-
-                archived_reason = getattr(chemical, 'archived_reason', '').lower()
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
-                    locations[location]['expired'] += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
-                    locations[location]['depleted'] += 1
-                else:
-                    locations[location]['other'] += 1
-
-            # Group by part number
-            part_numbers = {}
-            for chemical in archived_chemicals:
-                part_num = chemical.part_number
-                if part_num not in part_numbers:
-                    part_numbers[part_num] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
-
-                part_numbers[part_num]['total'] += 1
-
-                archived_reason = getattr(chemical, 'archived_reason', '').lower()
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
-                    part_numbers[part_num]['expired'] += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
-                    part_numbers[part_num]['depleted'] += 1
-                else:
-                    part_numbers[part_num]['other'] += 1
+            # Group by different dimensions
+            categories = group_by_dimension(archived_chemicals, lambda c: c.category, 'Uncategorized')
+            locations = group_by_dimension(archived_chemicals, lambda c: c.location, 'Unknown')
+            part_numbers = group_by_dimension(archived_chemicals, lambda c: c.part_number, 'Unknown')
 
             # Group by time (month)
             time_data = {}
@@ -331,29 +330,13 @@ def register_chemical_analytics_routes(app):
                 if month not in time_data:
                     time_data[month] = {'expired': 0, 'depleted': 0, 'other': 0}
 
-                archived_reason = getattr(chemical, 'archived_reason', '').lower()
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
-                    time_data[month]['expired'] += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
-                    time_data[month]['depleted'] += 1
-                else:
-                    time_data[month]['other'] += 1
+                waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                time_data[month][waste_category] += 1
 
             # Convert dictionaries to lists for the response
-            waste_by_category = [
-                {'category': category, **stats}
-                for category, stats in categories.items()
-            ]
-
-            waste_by_location = [
-                {'location': location, **stats}
-                for location, stats in locations.items()
-            ]
-
-            waste_by_part_number = [
-                {'part_number': part_num, **stats}
-                for part_num, stats in part_numbers.items()
-            ]
+            waste_by_category = dict_to_list(categories, 'category')
+            waste_by_location = dict_to_list(locations, 'location')
+            waste_by_part_number = dict_to_list(part_numbers, 'part_number')
 
             # Sort time data chronologically
             sorted_months = sorted(time_data.keys())
