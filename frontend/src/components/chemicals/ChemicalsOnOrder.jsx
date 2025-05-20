@@ -1,24 +1,57 @@
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Table, Button, Alert } from 'react-bootstrap';
-import { markChemicalAsDelivered, fetchChemicalsOnOrder } from '../../store/chemicalsSlice';
+import { Table, Button, Alert, Modal, Form } from 'react-bootstrap';
+import { markChemicalAsDelivered, fetchChemicalsOnOrder, fetchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const ChemicalsOnOrder = () => {
   const dispatch = useDispatch();
   const { chemicalsOnOrder, loading } = useSelector((state) => state.chemicals);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [selectedChemical, setSelectedChemical] = useState(null);
+  const [receivedQuantity, setReceivedQuantity] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Open the delivery modal
+  const openDeliveryModal = (chemical) => {
+    setSelectedChemical(chemical);
+    setReceivedQuantity('');
+    setShowDeliveryModal(true);
+  };
+
+  // Close the delivery modal
+  const closeDeliveryModal = () => {
+    setShowDeliveryModal(false);
+    setSelectedChemical(null);
+    setReceivedQuantity('');
+  };
 
   // Handle marking a chemical as delivered
-  const handleMarkAsDelivered = async (id) => {
-    if (!window.confirm('Are you sure you want to mark this chemical as delivered?')) return;
-    
+  const handleMarkAsDelivered = async () => {
+    if (!selectedChemical || !receivedQuantity || parseFloat(receivedQuantity) <= 0) {
+      alert('Please enter a valid quantity greater than 0');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await dispatch(markChemicalAsDelivered(id)).unwrap();
-      
-      // Refresh the list
+      await dispatch(markChemicalAsDelivered({
+        id: selectedChemical.id,
+        receivedQuantity: parseFloat(receivedQuantity)
+      })).unwrap();
+
+      // Refresh the lists
       dispatch(fetchChemicalsOnOrder());
+      // Also refresh the main chemicals list to ensure the delivered chemical appears there
+      dispatch(fetchChemicals());
+
+      // Close the modal
+      closeDeliveryModal();
     } catch (error) {
       console.error('Failed to mark chemical as delivered:', error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -72,7 +105,7 @@ const ChemicalsOnOrder = () => {
                       <Button
                         variant="success"
                         size="sm"
-                        onClick={() => handleMarkAsDelivered(chemical.id)}
+                        onClick={() => openDeliveryModal(chemical)}
                       >
                         Mark as Delivered
                       </Button>
@@ -84,6 +117,53 @@ const ChemicalsOnOrder = () => {
           </Table>
         </div>
       )}
+
+      {/* Delivery Modal */}
+      <Modal show={showDeliveryModal} onHide={closeDeliveryModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Mark Chemical as Delivered</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedChemical && (
+            <>
+              <p>
+                <strong>Part Number:</strong> {selectedChemical.part_number}
+                <br />
+                <strong>Lot Number:</strong> {selectedChemical.lot_number}
+                <br />
+                <strong>Description:</strong> {selectedChemical.description}
+              </p>
+              <Form.Group className="mb-3">
+                <Form.Label>Received Quantity ({selectedChemical.unit})</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={receivedQuantity}
+                  onChange={(e) => setReceivedQuantity(e.target.value)}
+                  placeholder={`Enter quantity in ${selectedChemical.unit}`}
+                  required
+                />
+                <Form.Text className="text-muted">
+                  Enter the quantity received in {selectedChemical.unit}
+                </Form.Text>
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeDeliveryModal}>
+            Cancel
+          </Button>
+          <Button
+            variant="success"
+            onClick={handleMarkAsDelivered}
+            disabled={submitting || !receivedQuantity || parseFloat(receivedQuantity) <= 0}
+          >
+            {submitting ? 'Processing...' : 'Mark as Delivered'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };

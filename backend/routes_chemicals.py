@@ -556,15 +556,29 @@ def register_chemical_routes(app):
                 except ValueError:
                     return jsonify({'error': 'Invalid received quantity format'}), 400
 
-            # Update chemical reorder status
+            # Update chemical reorder status and ensure it's properly added to active inventory
             try:
+                # Update reorder status
                 chemical.reorder_status = 'not_needed'
                 chemical.needs_reorder = False
                 chemical.reorder_date = None
                 chemical.expected_delivery_date = None
+
+                # Update chemical status to available if it's not already
+                if chemical.status != 'available' and chemical.quantity > 0:
+                    chemical.status = 'available'
+                elif chemical.quantity <= 0:
+                    chemical.status = 'out_of_stock'
+                elif chemical.is_low_stock():
+                    chemical.status = 'low_stock'
+
+                # Make sure the chemical is not archived
+                chemical.is_archived = False
+                chemical.archived_reason = None
+                chemical.archived_date = None
             except Exception as e:
-                print(f"Error updating reorder status: {str(e)}")
-                return jsonify({'error': 'Failed to update reorder status'}), 500
+                print(f"Error updating chemical status: {str(e)}")
+                return jsonify({'error': 'Failed to update chemical status'}), 500
 
             # Log the action
             user_name = session.get('user_name', 'Unknown user')
