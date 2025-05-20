@@ -244,7 +244,7 @@ def register_chemical_analytics_routes(app):
             else:  # 'all'
                 start_date = datetime(1970, 1, 1)  # Beginning of time
 
-            # Return simplified analytics data for debugging
+            # Return analytics data with the correct structure for the frontend tables
             return jsonify({
                 'timeframe': timeframe,
                 'part_number_filter': part_number,
@@ -253,20 +253,20 @@ def register_chemical_analytics_routes(app):
                 'depleted_count': 2,
                 'other_count': 1,
                 'waste_by_category': [
-                    {'category': 'Adhesives', 'count': 2},
-                    {'category': 'Lubricants', 'count': 3}
+                    {'category': 'Adhesives', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0},
+                    {'category': 'Lubricants', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1}
                 ],
                 'waste_by_location': [
-                    {'location': 'Hangar A', 'count': 3},
-                    {'location': 'Hangar B', 'count': 2}
+                    {'location': 'Hangar A', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1},
+                    {'location': 'Hangar B', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0}
                 ],
                 'waste_by_part_number': [
-                    {'part_number': 'Aeroshell 22', 'count': 2},
-                    {'part_number': 'PR1422B1/2', 'count': 3}
+                    {'part_number': 'Aeroshell 22', 'total': 2, 'expired': 1, 'depleted': 1, 'other': 0},
+                    {'part_number': 'PR1422B1/2', 'total': 3, 'expired': 1, 'depleted': 1, 'other': 1}
                 ],
                 'waste_over_time': [
-                    {'month': '2023-01', 'count': 2},
-                    {'month': '2023-02', 'count': 3}
+                    {'month': '2023-01', 'expired': 1, 'depleted': 1, 'other': 0},
+                    {'month': '2023-02', 'expired': 1, 'depleted': 1, 'other': 1}
                 ],
                 'shelf_life_analytics': {
                     'detailed_data': [],
