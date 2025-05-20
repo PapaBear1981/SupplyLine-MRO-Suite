@@ -17,6 +17,7 @@ import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
+import UserDashboardPage from './pages/UserDashboardPage';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
@@ -60,8 +61,22 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes - Redirect from dashboard to tools */}
-        <Route path="/" element={<Navigate to="/tools" replace />} />
+        {/* Protected routes - Dashboard as default landing page */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <UserDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <UserDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
 
         <Route path="/tools" element={
           <ProtectedRoute>
