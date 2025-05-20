@@ -122,9 +122,6 @@ const AllCheckouts = () => {
                         <td>{formatDate(checkout.checkout_date)}</td>
                         <td>
                           {formatDate(checkout.expected_return_date)}
-                          {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() && (
-                            <span className="status-badge status-maintenance ms-2">Overdue</span>
-                          )}
                         </td>
                         <td>
                           {checkout.expected_return_date && new Date(checkout.expected_return_date) < new Date() ? (
