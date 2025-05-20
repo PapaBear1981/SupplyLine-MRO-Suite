@@ -35,7 +35,7 @@ const ToolInventoryTable = ({ data }) => {
   const sortedTools = [...filteredTools].sort((a, b) => {
     const aValue = a[sortField] || '';
     const bValue = b[sortField] || '';
-    
+
     if (sortDirection === 'asc') {
       return aValue.localeCompare(bValue);
     } else {
@@ -133,7 +133,7 @@ const ToolInventoryTable = ({ data }) => {
       <Card className="shadow-sm">
         <Card.Header className="bg-light">
           <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">Tool Inventory</h5>
+            <h5 className="mb-0">Details</h5>
             <InputGroup style={{ width: '300px' }}>
               <InputGroup.Text>
                 <i className="bi bi-search"></i>
@@ -152,7 +152,7 @@ const ToolInventoryTable = ({ data }) => {
             <Table hover className="mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th 
+                  <th
                     onClick={() => handleSort('tool_number')}
                     className="cursor-pointer"
                   >
@@ -160,7 +160,7 @@ const ToolInventoryTable = ({ data }) => {
                       <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                     )}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('serial_number')}
                     className="cursor-pointer"
                   >
@@ -168,7 +168,7 @@ const ToolInventoryTable = ({ data }) => {
                       <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                     )}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('description')}
                     className="cursor-pointer"
                   >
@@ -176,7 +176,7 @@ const ToolInventoryTable = ({ data }) => {
                       <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                     )}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('category')}
                     className="cursor-pointer"
                   >
@@ -184,7 +184,7 @@ const ToolInventoryTable = ({ data }) => {
                       <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                     )}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('location')}
                     className="cursor-pointer"
                   >
@@ -192,7 +192,7 @@ const ToolInventoryTable = ({ data }) => {
                       <i className={`bi bi-arrow-${sortDirection === 'asc' ? 'up' : 'down'}`}></i>
                     )}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('status')}
                     className="cursor-pointer"
                   >

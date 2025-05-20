@@ -46,7 +46,7 @@ const CalibrationManagement = () => {
           <Col md={3} lg={2} className="mb-4">
             <Card>
               <Card.Header>
-                <h5 className="mb-0">Calibration</h5>
+                <h5 className="mb-0">Navigation</h5>
               </Card.Header>
               <Card.Body className="p-0">
                 <Nav variant="pills" className="flex-column">
