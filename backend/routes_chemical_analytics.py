@@ -227,6 +227,51 @@ def register_chemical_analytics_routes(app):
     @materials_manager_required
     def waste_analytics_route():
         try:
+            # Helper function to categorize waste based on archived reason
+            def categorize_waste(archived_reason):
+                """Categorize waste based on archived reason."""
+                archived_reason = archived_reason.lower() if archived_reason else ""
+                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                    return 'expired'
+                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                    return 'depleted'
+                else:
+                    return 'other'
+
+            # Helper function to group chemicals by a dimension
+            def group_by_dimension(chemicals, dimension_getter, dimension_name_default='Unknown'):
+                """
+                Group chemicals by a dimension (category, location, part_number)
+
+                Args:
+                    chemicals: List of chemicals
+                    dimension_getter: Function to extract dimension value from a chemical
+                    dimension_name_default: Default value if dimension is None
+
+                Returns:
+                    Dictionary of dimension values to stats
+                """
+                result = {}
+                for chemical in chemicals:
+                    dimension_value = dimension_getter(chemical) or dimension_name_default
+                    if dimension_value not in result:
+                        result[dimension_value] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+
+                    result[dimension_value]['total'] += 1
+
+                    waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                    result[dimension_value][waste_category] += 1
+
+                return result
+
+            # Helper function to convert dictionary to list for response
+            def dict_to_list(data_dict, key_name):
+                """Convert a dictionary to a list of dictionaries with the key as a named field."""
+                return [
+                    {key_name: key, **stats}
+                    for key, stats in data_dict.items()
+                ]
+
             # Get query parameters
             timeframe = request.args.get('timeframe', 'month')  # week, month, quarter, year, all
             part_number = request.args.get('part_number')  # Optional part number filter
@@ -244,30 +289,74 @@ def register_chemical_analytics_routes(app):
             else:  # 'all'
                 start_date = datetime(1970, 1, 1)  # Beginning of time
 
-            # Return simplified analytics data for debugging
+            # Build query for archived chemicals
+            query = Chemical.query.filter(Chemical.is_archived)
+
+            # Apply date filter based on archived_date
+            query = query.filter(Chemical.archived_date >= start_date, Chemical.archived_date <= end_date)
+
+            # Apply part number filter if provided
+            if part_number:
+                query = query.filter(Chemical.part_number == part_number)
+
+            # Execute query
+            archived_chemicals = query.all()
+
+            # Calculate summary statistics
+            total_archived = len(archived_chemicals)
+            expired_count = 0
+            depleted_count = 0
+            other_count = 0
+
+            # Categorize archived chemicals by reason
+            for chemical in archived_chemicals:
+                category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                if category == 'expired':
+                    expired_count += 1
+                elif category == 'depleted':
+                    depleted_count += 1
+                else:
+                    other_count += 1
+
+            # Group by different dimensions
+            categories = group_by_dimension(archived_chemicals, lambda c: c.category, 'Uncategorized')
+            locations = group_by_dimension(archived_chemicals, lambda c: c.location, 'Unknown')
+            part_numbers = group_by_dimension(archived_chemicals, lambda c: c.part_number, 'Unknown')
+
+            # Group by time (month)
+            time_data = {}
+            for chemical in archived_chemicals:
+                month = chemical.archived_date.strftime('%Y-%m')
+                if month not in time_data:
+                    time_data[month] = {'expired': 0, 'depleted': 0, 'other': 0}
+
+                waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                time_data[month][waste_category] += 1
+
+            # Convert dictionaries to lists for the response
+            waste_by_category = dict_to_list(categories, 'category')
+            waste_by_location = dict_to_list(locations, 'location')
+            waste_by_part_number = dict_to_list(part_numbers, 'part_number')
+
+            # Sort time data chronologically
+            sorted_months = sorted(time_data.keys())
+            waste_over_time = [
+                {'month': month, **time_data[month]}
+                for month in sorted_months
+            ]
+
+            # Return the analytics data
             return jsonify({
                 'timeframe': timeframe,
                 'part_number_filter': part_number,
-                'total_archived': 5,
-                'expired_count': 2,
-                'depleted_count': 2,
-                'other_count': 1,
-                'waste_by_category': [
-                    {'category': 'Adhesives', 'count': 2},
-                    {'category': 'Lubricants', 'count': 3}
-                ],
-                'waste_by_location': [
-                    {'location': 'Hangar A', 'count': 3},
-                    {'location': 'Hangar B', 'count': 2}
-                ],
-                'waste_by_part_number': [
-                    {'part_number': 'Aeroshell 22', 'count': 2},
-                    {'part_number': 'PR1422B1/2', 'count': 3}
-                ],
-                'waste_over_time': [
-                    {'month': '2023-01', 'count': 2},
-                    {'month': '2023-02', 'count': 3}
-                ],
+                'total_archived': total_archived,
+                'expired_count': expired_count,
+                'depleted_count': depleted_count,
+                'other_count': other_count,
+                'waste_by_category': waste_by_category,
+                'waste_by_location': waste_by_location,
+                'waste_by_part_number': waste_by_part_number,
+                'waste_over_time': waste_over_time,
                 'shelf_life_analytics': {
                     'detailed_data': [],
                     'averages_by_part_number': []
