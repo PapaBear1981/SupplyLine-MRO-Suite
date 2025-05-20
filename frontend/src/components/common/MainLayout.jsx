@@ -23,14 +23,20 @@ const MainLayout = ({ children }) => {
             <Nav className="me-auto">
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
               <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
-              {user && (user.is_admin || user.department === 'Materials') && (
+              {user && (
                 <>
-                  <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
-                  <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
-                  <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                  {/* Show these links to admins and Materials department users */}
+                  {(user.is_admin || user.department === 'Materials') && (
+                    <>
+                      <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
+                      <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
+                      <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                      <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
+                    </>
+                  )}
 
-                  <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
-                  {user.is_admin && (
+                  {/* Only show Admin Dashboard to admin users */}
+                  {user.is_admin === true && (
                     <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
                   )}
                 </>

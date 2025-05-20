@@ -4,7 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { fetchCurrentUser } from '../../store/authSlice';
 import { Spinner } from 'react-bootstrap';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -36,7 +36,18 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check if admin access is required but user is not an admin
+  if (requireAdmin && !user?.is_admin) {
+    // Redirect to tools page with an unauthorized message
+    return <Navigate to="/tools" state={{ unauthorized: true }} replace />;
+  }
+
   return children;
+};
+
+// Specialized component for admin-only routes
+export const AdminRoute = ({ children }) => {
+  return <ProtectedRoute requireAdmin={true}>{children}</ProtectedRoute>;
 };
 
 export default ProtectedRoute;
