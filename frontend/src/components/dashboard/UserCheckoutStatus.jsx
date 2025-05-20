@@ -75,9 +75,19 @@ const UserCheckoutStatus = () => {
       </Card.Header>
       <Card.Body className="p-0">
         {activeCheckouts.length === 0 ? (
-          <Alert variant="success" className="m-3">
-            You don't have any tools checked out.
-          </Alert>
+          <>
+            <Alert variant="success" className="m-3">
+              You don't have any tools checked out.
+            </Alert>
+            {user?.is_admin && (
+              <Alert variant="info" className="mx-3 mb-3">
+                <small>
+                  <i className="bi bi-info-circle me-1"></i>
+                  As an admin, you can see tools checked out to other users in the "Past Due Tools" section above.
+                </small>
+              </Alert>
+            )}
+          </>
         ) : (
           <ListGroup variant="flush">
             {activeCheckouts.map((checkout) => {
