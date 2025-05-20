@@ -123,7 +123,27 @@ class User(db.Model):
         """Get the user's permissions.
         For admin users, return all permissions.
         For non-admin users, return a basic set of permissions.
+
+        This method first checks for permissions from the RBAC system.
+        If no RBAC permissions are found, it falls back to a default set based on admin status.
         """
+        # Try to get permissions from RBAC system first
+        try:
+            # Check if the user has roles with permissions
+            if hasattr(self, 'roles'):
+                permissions = set()
+                for role in self.roles:
+                    if hasattr(role, 'permissions'):
+                        for permission in role.permissions:
+                            permissions.add(permission.name)
+
+                # If we found permissions through RBAC, return them
+                if permissions:
+                    return list(permissions)
+        except AttributeError:
+            # If RBAC is not set up, continue with default permissions
+            pass
+
         # Default permissions for all users
         permissions = [
             'view_tools',
@@ -158,8 +178,15 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
-            'avatar': getattr(self, 'avatar', None)
+            'avatar': None  # Default value if avatar attribute doesn't exist
         }
+
+        # Try to get avatar if it exists as an attribute
+        try:
+            if hasattr(self, 'avatar'):
+                data['avatar'] = self.avatar
+        except AttributeError:
+            pass
 
         if include_lockout_info:
             data.update({
@@ -172,14 +199,11 @@ class User(db.Model):
         if include_roles:
             try:
                 data['roles'] = [role.to_dict() for role in self.roles]
-            except (AttributeError, Exception):
+            except AttributeError:
                 data['roles'] = []
 
         if include_permissions:
-            try:
-                data['permissions'] = self.get_permissions()
-            except (AttributeError, Exception):
-                data['permissions'] = []
+            data['permissions'] = self.get_permissions()
 
         return data
 
