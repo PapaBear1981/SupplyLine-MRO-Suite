@@ -16,7 +16,7 @@ import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
 // Import pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ProfilePage from './pages/ProfilePage';
+import ProfilePageNew from './pages/ProfilePageNew';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
@@ -146,7 +146,7 @@ function App() {
 
         <Route path="/profile" element={
           <ProtectedRoute>
-            <ProfilePage />
+            <ProfilePageNew />
           </ProtectedRoute>
         } />
 
