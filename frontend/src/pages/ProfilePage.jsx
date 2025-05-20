@@ -7,6 +7,139 @@ import MainLayout from '../components/common/MainLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
 
+// Profile Information Tab Component
+const ProfileInfoTab = ({ user, formData, handleInputChange, handleProfileSubmit, loading }) => (
+  <Form onSubmit={handleProfileSubmit}>
+    <Form.Group className="mb-3">
+      <Form.Label>Employee Number</Form.Label>
+      <Form.Control
+        type="text"
+        value={user?.employee_number || ''}
+        disabled
+      />
+      <Form.Text className="text-muted">
+        Employee number cannot be changed
+      </Form.Text>
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>Name</Form.Label>
+      <Form.Control
+        type="text"
+        name="name"
+        value={formData.name}
+        onChange={handleInputChange}
+        required
+      />
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>Department</Form.Label>
+      <Form.Control
+        type="text"
+        name="department"
+        value={formData.department}
+        onChange={handleInputChange}
+      />
+    </Form.Group>
+
+    <div className="d-grid">
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={loading}
+      >
+        {loading ? 'Saving...' : 'Save Changes'}
+      </Button>
+    </div>
+  </Form>
+);
+
+// Password Tab Component
+const PasswordTab = ({ passwordData, passwordError, handlePasswordChange, handlePasswordSubmit, loading, passwordValid, handlePasswordValidationChange }) => (
+  <Form onSubmit={handlePasswordSubmit}>
+    {passwordError && (
+      <Alert variant="danger" className="mb-3">
+        {passwordError}
+      </Alert>
+    )}
+
+    <Form.Group className="mb-3">
+      <Form.Label>Current Password</Form.Label>
+      <Form.Control
+        type="password"
+        name="currentPassword"
+        value={passwordData.currentPassword}
+        onChange={handlePasswordChange}
+        required
+      />
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>New Password</Form.Label>
+      <Form.Control
+        type="password"
+        name="newPassword"
+        value={passwordData.newPassword}
+        onChange={handlePasswordChange}
+        required
+      />
+      <PasswordStrengthMeter
+        password={passwordData.newPassword}
+        onValidationChange={handlePasswordValidationChange}
+      />
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>Confirm New Password</Form.Label>
+      <Form.Control
+        type="password"
+        name="confirmPassword"
+        value={passwordData.confirmPassword}
+        onChange={handlePasswordChange}
+        required
+      />
+    </Form.Group>
+
+    <div className="d-grid">
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={loading}
+      >
+        {loading ? 'Changing...' : 'Change Password'}
+      </Button>
+    </div>
+  </Form>
+);
+
+// Activity Log Tab Component
+const ActivityLogTab = ({ loading, activityLogs }) => (
+  <>
+    {loading ? (
+      <LoadingSpinner />
+    ) : activityLogs && activityLogs.length > 0 ? (
+      <ListGroup variant="flush">
+        {activityLogs.map((log) => (
+          <ListGroup.Item key={log.id} className="py-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 className="mb-1">{log.activity_type.replace('_', ' ')}</h6>
+                <p className="text-muted mb-0 small">{log.description}</p>
+              </div>
+              <small className="text-muted">
+                {new Date(log.timestamp).toLocaleString()}
+              </small>
+            </div>
+          </ListGroup.Item>
+        ))}
+      </ListGroup>
+    ) : (
+      <p className="text-center py-4">No activity logs found.</p>
+    )}
+  </>
+);
+
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { user, loading, error, activityLogs } = useSelector((state) => state.auth);
@@ -27,13 +160,8 @@ const ProfilePage = () => {
   const [passwordValid, setPasswordValid] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Redirect if not authenticated
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
+  // Initialize form with user data
   useEffect(() => {
-    // Initialize form with user data
     if (user) {
       setFormData({
         name: user.name || '',
@@ -47,12 +175,18 @@ const ProfilePage = () => {
     }
   }, [user]);
 
+  // Fetch user activity logs when the activity tab is active
   useEffect(() => {
-    // Fetch user activity logs when the activity tab is active
     if (activeTab === 'activity' && user) {
+      console.log("Fetching user activity for tab:", activeTab);
       dispatch(fetchUserActivity());
     }
   }, [activeTab, dispatch, user]);
+
+  // Redirect if not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -259,151 +393,45 @@ const ProfilePage = () => {
             <Card className="shadow-sm">
               <Card.Header className="bg-light">
                 <Tabs
+                  id="profile-tabs"
                   activeKey={activeTab}
-                  onSelect={(k) => setActiveTab(k)}
+                  onSelect={setActiveTab}
                   className="mb-0"
                 >
-                  <Tab eventKey="profile" title="Profile Information">
-                    {/* Profile tab content is rendered below */}
-                  </Tab>
-                  <Tab eventKey="password" title="Change Password">
-                    {/* Password tab content is rendered below */}
-                  </Tab>
-                  <Tab eventKey="activity" title="Activity Log">
-                    {/* Activity tab content is rendered below */}
-                  </Tab>
+                  <Tab eventKey="profile" title="Profile Information" />
+                  <Tab eventKey="password" title="Change Password" />
+                  <Tab eventKey="activity" title="Activity Log" />
                 </Tabs>
               </Card.Header>
 
               <Card.Body>
                 {activeTab === 'profile' && (
-                  <Form onSubmit={handleProfileSubmit}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Employee Number</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={user?.employee_number || ''}
-                        disabled
-                      />
-                      <Form.Text className="text-muted">
-                        Employee number cannot be changed
-                      </Form.Text>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>Name</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>Department</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="department"
-                        value={formData.department}
-                        onChange={handleInputChange}
-                      />
-                    </Form.Group>
-
-                    <div className="d-grid">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={loading}
-                      >
-                        {loading ? 'Saving...' : 'Save Changes'}
-                      </Button>
-                    </div>
-                  </Form>
+                  <ProfileInfoTab
+                    user={user}
+                    formData={formData}
+                    handleInputChange={handleInputChange}
+                    handleProfileSubmit={handleProfileSubmit}
+                    loading={loading}
+                  />
                 )}
 
                 {activeTab === 'password' && (
-                  <Form onSubmit={handlePasswordSubmit}>
-                    {passwordError && (
-                      <Alert variant="danger" className="mb-3">
-                        {passwordError}
-                      </Alert>
-                    )}
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>Current Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        required
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>New Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        required
-                      />
-                      <PasswordStrengthMeter
-                        password={passwordData.newPassword}
-                        onValidationChange={handlePasswordValidationChange}
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>Confirm New Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        required
-                      />
-                    </Form.Group>
-
-                    <div className="d-grid">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={loading}
-                      >
-                        {loading ? 'Changing...' : 'Change Password'}
-                      </Button>
-                    </div>
-                  </Form>
+                  <PasswordTab
+                    passwordData={passwordData}
+                    passwordError={passwordError}
+                    handlePasswordChange={handlePasswordChange}
+                    handlePasswordSubmit={handlePasswordSubmit}
+                    loading={loading}
+                    passwordValid={passwordValid}
+                    handlePasswordValidationChange={handlePasswordValidationChange}
+                  />
                 )}
 
                 {activeTab === 'activity' && (
-                  <>
-                    {loading ? (
-                      <LoadingSpinner />
-                    ) : activityLogs && activityLogs.length > 0 ? (
-                      <ListGroup variant="flush">
-                        {activityLogs.map((log) => (
-                          <ListGroup.Item key={log.id} className="py-3">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <div>
-                                <h6 className="mb-1">{log.activity_type.replace('_', ' ')}</h6>
-                                <p className="text-muted mb-0 small">{log.description}</p>
-                              </div>
-                              <small className="text-muted">
-                                {new Date(log.timestamp).toLocaleString()}
-                              </small>
-                            </div>
-                          </ListGroup.Item>
-                        ))}
-                      </ListGroup>
-                    ) : (
-                      <p className="text-center py-4">No activity logs found.</p>
-                    )}
-                  </>
+                  <ActivityLogTab
+                    loading={loading}
+                    activityLogs={activityLogs}
+                  />
                 )}
               </Card.Body>
             </Card>

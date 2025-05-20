@@ -2,6 +2,21 @@
 
 ## Version History
 
+### Version 3.5.3 (2025-05-20)
+- Fixed login functionality for non-admin users
+- Fixed Admin Dashboard tab switching for User Management, Role Management, System Settings, and Help Settings
+- Fixed calibration due alert discrepancy between Tools and Calibration Reports pages
+- Fixed Chemical Waste Analytics report to display real data
+- Fixed Part Number Analytics to use real-time data instead of mock data
+- Fixed Calibration History report to show serial numbers and descriptions
+- Fixed Chemical Reorder Management delivery functionality
+- Fixed Audit Logs display in Admin Dashboard
+- Added alerts for chemicals past their expected delivery date
+- Improved tool status display for overdue tools
+- Removed redundant UI elements from several pages
+- Removed Activity Log tab from profile page
+- Standardized date formats across the application
+
 ### Version 3.5.2 (2025-05-19)
 - Fixed chemical dropdown menu issue
 - Removed dropdown menu from chemical list to simplify interface
