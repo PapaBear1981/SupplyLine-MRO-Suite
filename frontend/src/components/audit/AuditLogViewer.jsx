@@ -228,7 +228,7 @@ const AuditLogViewer = () => {
                         </Badge>
                       </td>
                       <td>{log.action_details}</td>
-                      <td>{formatDate(log.created_at)}</td>
+                      <td>{formatDate(log.timestamp)}</td>
                     </tr>
                   ))
                 ) : (
@@ -254,7 +254,7 @@ const AuditLogViewer = () => {
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 />
-                
+
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
                   if (totalPages <= 5) {
@@ -266,7 +266,7 @@ const AuditLogViewer = () => {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <Pagination.Item
                       key={pageNum}
@@ -277,7 +277,7 @@ const AuditLogViewer = () => {
                     </Pagination.Item>
                   );
                 })}
-                
+
                 <Pagination.Next
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
