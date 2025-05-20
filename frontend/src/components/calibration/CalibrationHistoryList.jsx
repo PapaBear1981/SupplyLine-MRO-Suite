@@ -204,7 +204,7 @@ const CalibrationHistoryList = () => {
                 <tr key={calibration.id}>
                   <td>
                     <Link to={`/tools/${calibration.tool_id}`}>
-                      {calibration.tool_number} - {calibration.tool_serial_number}
+                      {calibration.tool_number} - {calibration.serial_number}
                     </Link>
                   </td>
                   <td>{formatDate(calibration.calibration_date)}</td>
