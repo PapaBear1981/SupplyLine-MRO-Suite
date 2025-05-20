@@ -41,6 +41,16 @@ const ProfilePageNew = () => {
     }
   }, [user]);
 
+  // Clean up object URLs when component unmounts or when avatarPreview changes
+  useEffect(() => {
+    return () => {
+      // Only revoke if it's an object URL (not a server URL)
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
   // Redirect if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -65,6 +75,20 @@ const ProfilePageNew = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, or GIF)');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        alert('File size exceeds 5MB limit');
+        return;
+      }
+
       setAvatarFile(file);
 
       // Create a preview URL
@@ -73,18 +97,21 @@ const ProfilePageNew = () => {
     }
   };
 
+  // Reusable function for showing temporary success messages
+  const showTemporarySuccessMessage = (message) => {
+    setSuccessMessage(message);
+    setTimeout(() => {
+      setSuccessMessage('');
+    }, 3000);
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage('');
 
     try {
       await dispatch(updateProfile(formData)).unwrap();
-      setSuccessMessage('Profile updated successfully!');
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
+      showTemporarySuccessMessage('Profile updated successfully!');
     } catch (err) {
       console.error('Failed to update profile:', err);
     }
@@ -103,13 +130,8 @@ const ProfilePageNew = () => {
 
     try {
       await dispatch(updateAvatar(formData)).unwrap();
-      setSuccessMessage('Avatar updated successfully!');
+      showTemporarySuccessMessage('Avatar updated successfully!');
       setAvatarFile(null);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (err) {
       console.error('Failed to update avatar:', err);
     }
@@ -138,18 +160,13 @@ const ProfilePageNew = () => {
         new_password: passwordData.newPassword
       })).unwrap();
 
-      setSuccessMessage('Password changed successfully!');
+      showTemporarySuccessMessage('Password changed successfully!');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
       setPasswordValid(false);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (err) {
       console.error('Failed to change password:', err);
       setPasswordError(err.message || 'Failed to change password');
@@ -313,11 +330,11 @@ const ProfilePageNew = () => {
 
                 <h4 className="mb-1">{user?.name}</h4>
                 <p className="text-muted mb-3">
-                  {user?.is_admin
-                    ? 'Administrator'
-                    : user?.department === 'Materials'
-                      ? 'Materials (Tool Manager)'
-                      : user?.department || 'Regular User'}
+                  {(() => {
+                    if (user?.is_admin) return 'Administrator';
+                    if (user?.department === 'Materials') return 'Materials (Tool Manager)';
+                    return user?.department || 'Regular User';
+                  })()}
                 </p>
 
                 <Form onSubmit={handleAvatarSubmit}>
