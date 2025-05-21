@@ -15,8 +15,15 @@ const AdminService = {
   getSystemResources: async () => {
     try {
       const response = await api.get('/admin/system-resources');
+      console.log('System resources data - CPU:', response.data.cpu);
+      console.log('System resources data - Memory:', response.data.memory);
+      console.log('System resources data - Disk:', response.data.disk);
+      console.log('System resources data - Database:', response.data.database);
+      console.log('System resources data - Server:', response.data.server);
+      console.log('System resources data - Timestamp:', response.data.timestamp);
       return response.data;
     } catch (error) {
+      console.error('Error fetching system resources:', error);
       throw error;
     }
   },

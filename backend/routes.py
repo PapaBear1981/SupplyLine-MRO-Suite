@@ -14,6 +14,7 @@ from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
+from routes_announcements import register_announcement_routes
 from utils import validate_password_strength
 
 # Decorator to check if user is admin or in Materials department
@@ -104,6 +105,9 @@ def register_routes(app):
 
     # Register RBAC routes
     register_rbac_routes(app)
+
+    # Register announcement routes
+    register_announcement_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
@@ -405,14 +409,6 @@ def register_routes(app):
     def get_system_resources():
         """Get real-time system resource usage statistics"""
         try:
-            # Try to import psutil
-            try:
-                import psutil
-                psutil_available = True
-            except ImportError:
-                print("psutil module not available. Using mock data for system resources.")
-                psutil_available = False
-
             # Get database size (approximate based on number of records)
             db_size_mb = 0
             total_records = 0  # Initialize to prevent UnboundLocalError if the try block fails
@@ -440,41 +436,97 @@ def register_routes(app):
                 UserActivity.timestamp >= five_minutes_ago
             ).distinct(UserActivity.user_id).count()
 
-            if psutil_available:
+            # Try to import psutil
+            try:
+                print("Attempting to import psutil module...")
+                import psutil
+                print("Successfully imported psutil module")
+
                 # Get CPU usage - use instantaneous value to avoid blocking
                 # Note: This will return the usage since the last call or 0.0 on first call
+                print("Getting CPU usage...")
                 cpu_usage = psutil.cpu_percent(interval=None)
+                print(f"CPU usage: {cpu_usage}")
+
+                print("Getting CPU cores...")
                 cpu_cores = psutil.cpu_count()
+                print(f"CPU cores: {cpu_cores}")
 
                 # Get memory usage
+                print("Getting memory usage...")
                 memory = psutil.virtual_memory()
                 memory_usage = memory.percent
+                print(f"Memory usage: {memory_usage}")
                 memory_total_gb = round(memory.total / (1024**3), 1)
+                print(f"Memory total: {memory_total_gb} GB")
 
                 # Get disk usage for the system drive
-                disk = psutil.disk_usage('/')
+                print("Getting disk usage...")
+                # On Windows, use 'C:\\' instead of '/'
+                disk_path = 'C:\\' if os.name == 'nt' else '/'
+                print(f"Using disk path: {disk_path}")
+                disk = psutil.disk_usage(disk_path)
                 disk_usage = disk.percent
+                print(f"Disk usage: {disk_usage}")
                 disk_total_gb = round(disk.total / (1024**3), 1)
+                print(f"Disk total: {disk_total_gb} GB")
 
                 # Get server uptime
+                print("Getting server uptime...")
                 uptime_seconds = int(time.time() - psutil.boot_time())
                 days, remainder = divmod(uptime_seconds, 86400)
                 hours, remainder = divmod(remainder, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 uptime_str = f"{days}d {hours}h {minutes}m"
-            else:
+                print(f"Server uptime: {uptime_str}")
+
+                print("Using real system resource data from psutil")
+            except ImportError as e:
+                print(f"ImportError: {str(e)}")
+                print("psutil module not available. Using mock data for system resources.")
                 # Use mock data when psutil is not available
                 cpu_usage = 45.2  # Mock CPU usage percentage
+                print(f"Mock CPU usage: {cpu_usage}")
                 cpu_cores = 8     # Mock number of CPU cores
+                print(f"Mock CPU cores: {cpu_cores}")
 
                 memory_usage = 62.7  # Mock memory usage percentage
+                print(f"Mock memory usage: {memory_usage}")
                 memory_total_gb = 16.0  # Mock total memory in GB
+                print(f"Mock memory total: {memory_total_gb} GB")
 
                 disk_usage = 58.3  # Mock disk usage percentage
+                print(f"Mock disk usage: {disk_usage}")
                 disk_total_gb = 512.0  # Mock total disk space in GB
+                print(f"Mock disk total: {disk_total_gb} GB")
 
                 # Mock uptime (3 days, 7 hours, 22 minutes)
                 uptime_str = "3d 7h 22m"
+                print(f"Mock server uptime: {uptime_str}")
+            except Exception as e:
+                print(f"Unexpected error when using psutil: {str(e)}")
+                print(f"Error type: {type(e)}")
+                print(f"Error details: {repr(e)}")
+                print("Falling back to mock data for system resources.")
+                # Use mock data when psutil has an error
+                cpu_usage = 45.2  # Mock CPU usage percentage
+                print(f"Mock CPU usage: {cpu_usage}")
+                cpu_cores = 8     # Mock number of CPU cores
+                print(f"Mock CPU cores: {cpu_cores}")
+
+                memory_usage = 62.7  # Mock memory usage percentage
+                print(f"Mock memory usage: {memory_usage}")
+                memory_total_gb = 16.0  # Mock total memory in GB
+                print(f"Mock memory total: {memory_total_gb} GB")
+
+                disk_usage = 58.3  # Mock disk usage percentage
+                print(f"Mock disk usage: {disk_usage}")
+                disk_total_gb = 512.0  # Mock total disk space in GB
+                print(f"Mock disk total: {disk_total_gb} GB")
+
+                # Mock uptime (3 days, 7 hours, 22 minutes)
+                uptime_str = "3d 7h 22m"
+                print(f"Mock server uptime: {uptime_str}")
 
             return jsonify({
                 'cpu': {

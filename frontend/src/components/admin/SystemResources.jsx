@@ -1,8 +1,17 @@
 import React from 'react';
-import { Card, ProgressBar, ListGroup, Alert } from 'react-bootstrap';
+import { Card, ProgressBar, ListGroup, Alert, Button } from 'react-bootstrap';
+import { useDispatch } from 'react-redux';
+import { fetchSystemResources } from '../../store/adminSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { FaSync } from 'react-icons/fa';
 
 const SystemResources = ({ resources, loading }) => {
+  const dispatch = useDispatch();
+
+  const handleRefresh = () => {
+    dispatch(fetchSystemResources());
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -11,6 +20,15 @@ const SystemResources = ({ resources, loading }) => {
     return (
       <Alert variant="info">
         System resource information is not available. Please try again later.
+        <Button
+          variant="outline-primary"
+          size="sm"
+          className="ms-2"
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <FaSync className={loading ? 'spin' : ''} /> Refresh
+        </Button>
       </Alert>
     );
   }
@@ -24,16 +42,26 @@ const SystemResources = ({ resources, loading }) => {
 
   return (
     <Card className="mb-4">
-      <Card.Header as="h5">System Resources</Card.Header>
+      <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
+        System Resources
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <FaSync className={loading ? 'spin' : ''} /> Refresh
+        </Button>
+      </Card.Header>
       <Card.Body>
         <div className="mb-3">
           <div className="d-flex justify-content-between">
             <span>CPU Usage</span>
             <span>{resources.cpu?.usage}%</span>
           </div>
-          <ProgressBar 
-            variant={getVariant(resources.cpu?.usage)} 
-            now={resources.cpu?.usage} 
+          <ProgressBar
+            variant={getVariant(resources.cpu?.usage)}
+            now={resources.cpu?.usage}
             className="mt-1"
           />
           <small className="text-muted">
@@ -46,9 +74,9 @@ const SystemResources = ({ resources, loading }) => {
             <span>Memory Usage</span>
             <span>{resources.memory?.usage}%</span>
           </div>
-          <ProgressBar 
-            variant={getVariant(resources.memory?.usage)} 
-            now={resources.memory?.usage} 
+          <ProgressBar
+            variant={getVariant(resources.memory?.usage)}
+            now={resources.memory?.usage}
             className="mt-1"
           />
           <small className="text-muted">
@@ -61,9 +89,9 @@ const SystemResources = ({ resources, loading }) => {
             <span>Disk Usage</span>
             <span>{resources.disk?.usage}%</span>
           </div>
-          <ProgressBar 
-            variant={getVariant(resources.disk?.usage)} 
-            now={resources.disk?.usage} 
+          <ProgressBar
+            variant={getVariant(resources.disk?.usage)}
+            now={resources.disk?.usage}
             className="mt-1"
           />
           <small className="text-muted">
