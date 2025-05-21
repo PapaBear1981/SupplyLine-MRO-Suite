@@ -4,8 +4,8 @@ This guide explains how to deploy the SupplyLine MRO Suite using Docker and Dock
 
 ## Prerequisites
 
-- Docker Engine (version 20.10.0 or higher)
-- Docker Compose (version 2.0.0 or higher)
+- Docker Engine (version 24.0.0 or higher)
+- Docker Compose (version 2.20.0 or higher)
 - Git (to clone the repository)
 
 ## Getting Started
@@ -32,9 +32,17 @@ Edit the `.env` file to set your environment variables:
 FLASK_ENV=production
 SECRET_KEY=your-secure-secret-key
 CORS_ORIGINS=http://localhost,http://localhost:80
+PYTHONDONTWRITEBYTECODE=1
+PYTHONUNBUFFERED=1
 
 # Frontend Environment Variables
 VITE_API_URL=http://localhost:5000
+
+# Docker Compose Resource Limits (optional)
+BACKEND_CPU_LIMIT=0.5
+BACKEND_MEMORY_LIMIT=512M
+FRONTEND_CPU_LIMIT=0.3
+FRONTEND_MEMORY_LIMIT=256M
 ```
 
 ### 3. Build and Start the Containers
@@ -76,6 +84,19 @@ docker-compose logs
 # View logs for a specific container
 docker-compose logs backend
 docker-compose logs frontend
+
+# Follow logs in real-time
+docker-compose logs -f
+```
+
+### Check Container Health Status
+
+```bash
+# Check health status of all containers
+docker-compose ps
+
+# Get detailed health status
+docker inspect --format "{{.Name}} - {{.State.Health.Status}}" $(docker-compose ps -q)
 ```
 
 ### Stop the Containers
@@ -133,12 +154,17 @@ If the backend cannot connect to the database:
 
 1. Check if the database volume is properly mounted:
    ```bash
-   docker-compose exec backend ls -la /app/database
+   docker-compose exec backend ls -la /database
    ```
 
 2. Verify the database file exists:
    ```bash
-   docker-compose exec backend ls -la /app/database/tools.db
+   docker-compose exec backend ls -la /database/tools.db
+   ```
+
+3. Check database permissions:
+   ```bash
+   docker-compose exec backend ls -la /database/tools.db
    ```
 
 ### CORS Issues
@@ -147,6 +173,10 @@ If you encounter CORS errors:
 
 1. Check the CORS settings in the `.env` file
 2. Make sure the frontend is accessing the backend using the correct URL
+3. Verify the CORS headers in the backend response:
+   ```bash
+   curl -I -X OPTIONS http://localhost:5000/api/health
+   ```
 
 ### Container Health Checks
 
@@ -155,6 +185,22 @@ Check the health status of your containers:
 ```bash
 docker-compose ps
 ```
+
+### Permission Issues
+
+If you encounter permission issues:
+
+1. Check the ownership of the mounted volumes:
+   ```bash
+   docker-compose exec backend ls -la /database
+   docker-compose exec backend ls -la /flask_session
+   ```
+
+2. Verify that the application has write access to the necessary directories:
+   ```bash
+   docker-compose exec backend touch /database/test.txt
+   docker-compose exec backend rm /database/test.txt
+   ```
 
 ## Production Deployment Considerations
 
@@ -166,3 +212,17 @@ For production deployment, consider the following additional steps:
 4. Implement proper logging and monitoring
 5. Set up automatic backups for your data
 6. Use Docker Swarm or Kubernetes for container orchestration in larger deployments
+7. Implement container resource limits based on your server capacity
+8. Set up a CI/CD pipeline for automated testing and deployment
+9. Use Docker content trust for image verification
+10. Implement proper secrets management (Docker secrets or Kubernetes secrets)
+
+## Security Considerations
+
+1. Never use the default admin credentials in production
+2. Regularly update all dependencies and base images
+3. Scan container images for vulnerabilities using tools like Trivy or Snyk
+4. Implement proper network segmentation
+5. Use read-only file systems where possible
+6. Limit container capabilities and resources
+7. Monitor container logs for suspicious activities
