@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, Tabs, Tab, ListGroup } from 'react-bootstrap';
-import { updateProfile, updateAvatar, changePassword, fetchUserActivity } from '../store/authSlice';
+import { updateProfile, updateAvatar, changePassword } from '../store/authSlice';
 import MainLayout from '../components/common/MainLayout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
@@ -113,36 +113,11 @@ const PasswordTab = ({ passwordData, passwordError, handlePasswordChange, handle
   </Form>
 );
 
-// Activity Log Tab Component
-const ActivityLogTab = ({ loading, activityLogs }) => (
-  <>
-    {loading ? (
-      <LoadingSpinner />
-    ) : activityLogs && activityLogs.length > 0 ? (
-      <ListGroup variant="flush">
-        {activityLogs.map((log) => (
-          <ListGroup.Item key={log.id} className="py-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <h6 className="mb-1">{log.activity_type.replace('_', ' ')}</h6>
-                <p className="text-muted mb-0 small">{log.description}</p>
-              </div>
-              <small className="text-muted">
-                {new Date(log.timestamp).toLocaleString()}
-              </small>
-            </div>
-          </ListGroup.Item>
-        ))}
-      </ListGroup>
-    ) : (
-      <p className="text-center py-4">No activity logs found.</p>
-    )}
-  </>
-);
+
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
-  const { user, loading, error, activityLogs } = useSelector((state) => state.auth);
+  const { user, loading, error } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('profile');
   const [formData, setFormData] = useState({
     name: '',
@@ -175,13 +150,7 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  // Fetch user activity logs when the activity tab is active
-  useEffect(() => {
-    if (activeTab === 'activity' && user) {
-      console.log("Fetching user activity for tab:", activeTab);
-      dispatch(fetchUserActivity());
-    }
-  }, [activeTab, dispatch, user]);
+
 
   // Redirect if not authenticated
   if (!user) {
@@ -400,7 +369,6 @@ const ProfilePage = () => {
                 >
                   <Tab eventKey="profile" title="Profile Information" />
                   <Tab eventKey="password" title="Change Password" />
-                  <Tab eventKey="activity" title="Activity Log" />
                 </Tabs>
               </Card.Header>
 
@@ -424,13 +392,6 @@ const ProfilePage = () => {
                     loading={loading}
                     passwordValid={passwordValid}
                     handlePasswordValidationChange={handlePasswordValidationChange}
-                  />
-                )}
-
-                {activeTab === 'activity' && (
-                  <ActivityLogTab
-                    loading={loading}
-                    activityLogs={activityLogs}
                   />
                 )}
               </Card.Body>

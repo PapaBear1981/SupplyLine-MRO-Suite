@@ -28,10 +28,14 @@ api.interceptors.request.use(
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => {
-    // Only log non-GET responses or enable for debugging
-    if (response.config.method.toUpperCase() !== 'GET') {
-      console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
+    // Log all responses for debugging
+    console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
+
+    // Special logging for system resources
+    if (response.config.url === '/admin/system-resources') {
+      console.log('System resources API response:', response.data);
     }
+
     return response;
   },
   (error) => {
