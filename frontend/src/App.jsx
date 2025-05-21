@@ -27,6 +27,7 @@ import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import ScannerPage from './pages/ScannerPage';
+import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -269,6 +270,39 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <ScannerPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Cycle Count routes */}
+        <Route path="/cycle-counts" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/schedules" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/discrepancies" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
             </MainLayout>
           </ProtectedRoute>
         } />
