@@ -4,7 +4,7 @@ import { Modal, Button, Card } from 'react-bootstrap';
 
 /**
  * Component for displaying and printing a QR code
- * 
+ *
  * @param {Object} props - Component props
  * @param {boolean} props.show - Whether to show the modal
  * @param {Function} props.onHide - Function to call when hiding the modal
@@ -16,11 +16,18 @@ import { Modal, Button, Card } from 'react-bootstrap';
 const QRCodeGenerator = ({ show, onHide, data, title, itemDetails, size = 256 }) => {
   const qrCodeContainerRef = useRef(null);
 
+  // Helper function to format item details
+  const formatItemDetails = (details) => {
+    return Object.entries(details || {}).map(([key, value]) =>
+      `<p><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value || 'N/A'}</p>`
+    ).join('');
+  };
+
   // Handle print button click
   const handlePrint = () => {
     if (qrCodeContainerRef.current) {
       const printWindow = window.open('', '_blank');
-      
+
       printWindow.document.write(`
         <html>
           <head>
@@ -58,15 +65,13 @@ const QRCodeGenerator = ({ show, onHide, data, title, itemDetails, size = 256 })
               ${qrCodeContainerRef.current.innerHTML}
             </div>
             <div class="item-info">
-              ${Object.entries(itemDetails || {}).map(([key, value]) => 
-                `<p><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value || 'N/A'}</p>`
-              ).join('')}
+              ${formatItemDetails(itemDetails)}
             </div>
             <button onclick="window.print(); window.close();">Print</button>
           </body>
         </html>
       `);
-      
+
       printWindow.document.close();
     }
   };

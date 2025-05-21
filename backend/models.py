@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
-from time_utils import get_utc_timestamp, format_datetime, days_between
+from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime, days_between
 
 db = SQLAlchemy()
 
@@ -76,7 +76,7 @@ class User(db.Model):
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
     reset_token = db.Column(db.String, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     remember_token = db.Column(db.String, nullable=True)
@@ -103,13 +103,13 @@ class User(db.Model):
         # Generate a 6-digit code
         code = ''.join(secrets.choice(string.digits) for _ in range(6))
         self.reset_token = generate_password_hash(code)  # Store hash of code
-        self.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)  # Valid for 1 hour
+        self.reset_token_expiry = get_utc_timestamp() + timedelta(hours=1)  # Valid for 1 hour
         return code
 
     def check_reset_token(self, token):
         if not self.reset_token or not self.reset_token_expiry:
             return False
-        if datetime.utcnow() > self.reset_token_expiry:
+        if get_utc_timestamp() > self.reset_token_expiry:
             return False
         return check_password_hash(self.reset_token, token)
 
@@ -121,13 +121,13 @@ class User(db.Model):
         import secrets
         token = secrets.token_hex(32)
         self.remember_token = generate_password_hash(token)
-        self.remember_token_expiry = datetime.utcnow() + timedelta(days=30)  # Valid for 30 days
+        self.remember_token_expiry = get_utc_timestamp() + timedelta(days=30)  # Valid for 30 days
         return token
 
     def check_remember_token(self, token):
         if not self.remember_token or not self.remember_token_expiry:
             return False
-        if datetime.utcnow() > self.remember_token_expiry:
+        if get_utc_timestamp() > self.remember_token_expiry:
             return False
         return check_password_hash(self.remember_token, token)
 
@@ -168,7 +168,7 @@ class User(db.Model):
     def increment_failed_login(self):
         """Increment the failed login attempts counter and update the last failed login timestamp."""
         self.failed_login_attempts += 1
-        self.last_failed_login = datetime.utcnow()
+        self.last_failed_login = get_utc_timestamp()
         return self.failed_login_attempts
 
     def reset_failed_login_attempts(self):
@@ -179,7 +179,7 @@ class User(db.Model):
 
     def lock_account(self, minutes=15):
         """Lock the account for the specified number of minutes."""
-        self.account_locked_until = datetime.utcnow() + timedelta(minutes=minutes)
+        self.account_locked_until = get_utc_timestamp() + timedelta(minutes=minutes)
         return True
 
     def unlock_account(self):
@@ -192,15 +192,15 @@ class User(db.Model):
         """Check if the account is currently locked."""
         if not self.account_locked_until:
             return False
-        return datetime.utcnow() < self.account_locked_until
+        return get_utc_timestamp() < self.account_locked_until
 
     def get_lockout_remaining_time(self):
         """Get the remaining time (in seconds) until the account is unlocked."""
         if not self.account_locked_until:
             return 0
-        if datetime.utcnow() >= self.account_locked_until:
+        if get_utc_timestamp() >= self.account_locked_until:
             return 0
-        delta = self.account_locked_until - datetime.utcnow()
+        delta = self.account_locked_until - get_utc_timestamp()
         return delta.total_seconds()
 
     def to_dict(self, include_roles=False, include_permissions=False, include_lockout_info=False):
@@ -236,7 +236,7 @@ class Checkout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    checkout_date = db.Column(db.DateTime, default=datetime.utcnow)
+    checkout_date = db.Column(db.DateTime, default=get_utc_timestamp)
     return_date = db.Column(db.DateTime)
     expected_return_date = db.Column(db.DateTime)
     tool = db.relationship('Tool')
@@ -247,7 +247,7 @@ class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     action_type = db.Column(db.String, nullable=False)
     action_details = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc_timestamp)
 
 class UserActivity(db.Model):
     __tablename__ = 'user_activity'
@@ -256,7 +256,7 @@ class UserActivity(db.Model):
     activity_type = db.Column(db.String, nullable=False)
     description = db.Column(db.String)
     ip_address = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc_timestamp)
     user = db.relationship('User')
 
     def to_dict(self):
@@ -277,7 +277,7 @@ class ToolServiceRecord(db.Model):
     action_type = db.Column(db.String, nullable=False)  # 'remove_maintenance', 'remove_permanent', 'return_service'
     reason = db.Column(db.String, nullable=False)
     comments = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_utc_timestamp)
     tool = db.relationship('Tool')
     user = db.relationship('User')
 
@@ -305,7 +305,7 @@ class Chemical(db.Model):
     location = db.Column(db.String)
     category = db.Column(db.String, nullable=True, default='General')  # Sealant, Paint, Adhesive, etc.
     status = db.Column(db.String, nullable=False, default='available')  # available, low_stock, out_of_stock, expired
-    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    date_added = db.Column(db.DateTime, default=get_utc_timestamp)
     expiration_date = db.Column(db.DateTime, nullable=True)
     minimum_stock_level = db.Column(db.Float, nullable=True)  # Threshold for low stock alert
     notes = db.Column(db.String)
@@ -418,7 +418,7 @@ class ChemicalIssuance(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     hangar = db.Column(db.String, nullable=False)  # Location where chemical is being used
     purpose = db.Column(db.String)  # What the chemical is being used for
-    issue_date = db.Column(db.DateTime, default=datetime.utcnow)
+    issue_date = db.Column(db.DateTime, default=get_utc_timestamp)
     chemical = db.relationship('Chemical')
     user = db.relationship('User')
 
@@ -442,7 +442,7 @@ class RegistrationRequest(db.Model):
     department = db.Column(db.String, nullable=False)
     password_hash = db.Column(db.String, nullable=False)
     status = db.Column(db.String, nullable=False, default='pending')  # pending, approved, denied
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
     processed_at = db.Column(db.DateTime, nullable=True)
     processed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     admin_notes = db.Column(db.String, nullable=True)
@@ -471,13 +471,13 @@ class ToolCalibration(db.Model):
     __tablename__ = 'tool_calibrations'
     id = db.Column(db.Integer, primary_key=True)
     tool_id = db.Column(db.Integer, db.ForeignKey('tools.id'), nullable=False)
-    calibration_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    calibration_date = db.Column(db.DateTime, nullable=False, default=get_utc_timestamp)
     next_calibration_date = db.Column(db.DateTime, nullable=True)
     performed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     calibration_notes = db.Column(db.String, nullable=True)
     calibration_status = db.Column(db.String, nullable=False, default='completed')  # completed, failed, in_progress
     calibration_certificate_file = db.Column(db.String, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     tool = db.relationship('Tool')
@@ -509,7 +509,7 @@ class CalibrationStandard(db.Model):
     standard_number = db.Column(db.String, nullable=False)
     certification_date = db.Column(db.DateTime, nullable=False)
     expiration_date = db.Column(db.DateTime, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     def to_dict(self):
         return {
@@ -520,13 +520,13 @@ class CalibrationStandard(db.Model):
             'certification_date': self.certification_date.isoformat(),
             'expiration_date': self.expiration_date.isoformat(),
             'created_at': self.created_at.isoformat(),
-            'is_expired': datetime.utcnow() > self.expiration_date,
+            'is_expired': get_utc_timestamp() > self.expiration_date,
             'is_expiring_soon': self.is_expiring_soon()
         }
 
     def is_expiring_soon(self, days=30):
         """Check if the standard is expiring within the specified number of days"""
-        now = datetime.utcnow()
+        now = get_utc_timestamp()
         expiration_threshold = now + timedelta(days=days)
         return now < self.expiration_date <= expiration_threshold
 
@@ -535,7 +535,7 @@ class ToolCalibrationStandard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     calibration_id = db.Column(db.Integer, db.ForeignKey('tool_calibrations.id'), nullable=False)
     standard_id = db.Column(db.Integer, db.ForeignKey('calibration_standards.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     calibration = db.relationship('ToolCalibration', backref=db.backref('calibration_standards', lazy='dynamic'))
@@ -556,7 +556,7 @@ class Permission(db.Model):
     name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String)
     category = db.Column(db.String)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     roles = association_proxy('role_permissions', 'role')
@@ -576,7 +576,7 @@ class Role(db.Model):
     name = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.String)
     is_system_role = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     permissions = association_proxy('role_permissions', 'permission')
@@ -601,7 +601,7 @@ class RolePermission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     role = db.relationship('Role', backref=db.backref('role_permissions', cascade='all, delete-orphan'))
@@ -615,7 +615,7 @@ class UserRole(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     user = db.relationship('User', backref=db.backref('user_roles', cascade='all, delete-orphan'))
@@ -631,8 +631,8 @@ class Announcement(db.Model):
     content = db.Column(db.Text, nullable=False)
     priority = db.Column(db.String, nullable=False, default='medium')  # high, medium, low
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
+    updated_at = db.Column(db.DateTime, default=get_utc_timestamp, onupdate=get_utc_timestamp)
     expiration_date = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
 
@@ -664,7 +664,7 @@ class AnnouncementRead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     announcement_id = db.Column(db.Integer, db.ForeignKey('announcements.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    read_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Relationships
     announcement = db.relationship('Announcement', backref=db.backref('reads', lazy='dynamic'))
