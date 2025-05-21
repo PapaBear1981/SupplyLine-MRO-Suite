@@ -15,8 +15,8 @@ services:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
     ports:
       - "5000:5000"
     networks:
@@ -27,6 +27,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # Note: deploy.resources.limits are only applied in Swarm mode
+    # For standalone Docker, these are informational only
     deploy:
       resources:
         limits:
@@ -53,6 +55,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # Note: deploy.resources.limits are only applied in Swarm mode
+    # For standalone Docker, these are informational only
     deploy:
       resources:
         limits:

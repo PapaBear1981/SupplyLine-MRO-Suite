@@ -157,12 +157,7 @@ If the backend cannot connect to the database:
    docker-compose exec backend ls -la /database
    ```
 
-2. Verify the database file exists:
-   ```bash
-   docker-compose exec backend ls -la /database/tools.db
-   ```
-
-3. Check database permissions:
+2. Verify the database file exists and check permissions:
    ```bash
    docker-compose exec backend ls -la /database/tools.db
    ```
