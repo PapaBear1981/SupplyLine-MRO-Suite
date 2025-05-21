@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { fetchTools, searchTools } from '../../store/toolsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
+import ToolBarcode from './ToolBarcode';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -20,6 +21,7 @@ const ToolList = () => {
   const [filteredTools, setFilteredTools] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [selectedTool, setSelectedTool] = useState(null);
 
   // Filter states
@@ -135,6 +137,12 @@ const ToolList = () => {
   const handleCheckoutClick = (tool) => {
     setSelectedTool(tool);
     setShowCheckoutModal(true);
+  };
+
+  // Handle barcode button click
+  const handleBarcodeClick = (tool) => {
+    setSelectedTool(tool);
+    setShowBarcodeModal(true);
   };
 
   const resetFilters = () => {
@@ -401,6 +409,15 @@ const ToolList = () => {
                               )}
                             </>
                           )}
+                          <Tooltip text="Generate barcode/QR code for this tool" placement="top" show={showTooltips}>
+                            <Button
+                              variant="info"
+                              size="sm"
+                              onClick={() => handleBarcodeClick(tool)}
+                            >
+                              <i className="bi bi-upc-scan"></i>
+                            </Button>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>
@@ -423,6 +440,15 @@ const ToolList = () => {
         <CheckoutModal
           show={showCheckoutModal}
           onHide={() => setShowCheckoutModal(false)}
+          tool={selectedTool}
+        />
+      )}
+
+      {/* Barcode Modal */}
+      {selectedTool && (
+        <ToolBarcode
+          show={showBarcodeModal}
+          onHide={() => setShowBarcodeModal(false)}
           tool={selectedTool}
         />
       )}
