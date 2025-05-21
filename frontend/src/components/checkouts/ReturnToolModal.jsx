@@ -1,31 +1,32 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import { Modal, Button, Form, Alert, Toast, ToastContainer } from 'react-bootstrap';
 import { returnTool } from '../../store/checkoutsSlice';
 
 const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.checkouts);
-  
+
   // Form state
   const [condition, setCondition] = useState('Good');
   const [returnedBy, setReturnedBy] = useState('');
   const [found, setFound] = useState(false);
   const [notes, setNotes] = useState('');
   const [validated, setValidated] = useState(false);
-  
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
-    
+
     const returnData = {
       checkoutId,
       condition,
@@ -33,18 +34,22 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
       found,
       notes
     };
-    
+
     dispatch(returnTool(returnData))
       .unwrap()
       .then(() => {
         resetForm();
-        onHide();
+        setShowSuccess(true);
+        // Don't hide the modal immediately, let the user see the success message
+        setTimeout(() => {
+          onHide();
+        }, 1500);
       })
       .catch((err) => {
         console.error('Failed to return tool:', err);
       });
   };
-  
+
   const resetForm = () => {
     setCondition('Good');
     setReturnedBy('');
@@ -52,19 +57,43 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
     setNotes('');
     setValidated(false);
   };
-  
+
   return (
-    <Modal show={show} onHide={onHide} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Return Tool</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && (
-          <Alert variant="danger">
-            {error.error || 'Failed to return tool'}
-          </Alert>
-        )}
-        
+    <>
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          delay={1500}
+          autohide
+          bg="success"
+        >
+          <Toast.Header>
+            <strong className="me-auto">Success</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">
+            Tool returned successfully!
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
+
+      <Modal show={show} onHide={onHide} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Return Tool</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {error && (
+            <Alert variant="danger">
+              {error.error || 'Failed to return tool'}
+            </Alert>
+          )}
+
+          {showSuccess && (
+            <Alert variant="success">
+              Tool returned successfully!
+            </Alert>
+          )}
+
         {toolInfo && (
           <div className="mb-3">
             <p className="mb-1">
@@ -78,7 +107,7 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
             </p>
           </div>
         )}
-        
+
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Condition</Form.Label>
@@ -94,7 +123,7 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
               <option value="Damaged">Damaged</option>
             </Form.Select>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Returned By</Form.Label>
             <Form.Control
@@ -107,7 +136,7 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
               Leave blank if returned by the person who checked it out
             </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Check
               type="checkbox"
@@ -116,7 +145,7 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
               onChange={(e) => setFound(e.target.checked)}
             />
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Notes</Form.Label>
             <Form.Control
@@ -133,8 +162,8 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
         <Button variant="secondary" onClick={onHide}>
           Cancel
         </Button>
-        <Button 
-          variant="primary" 
+        <Button
+          variant="primary"
           onClick={handleSubmit}
           disabled={loading}
         >
@@ -142,6 +171,7 @@ const ReturnToolModal = ({ show, onHide, checkoutId, toolInfo }) => {
         </Button>
       </Modal.Footer>
     </Modal>
+    </>
   );
 };
 
