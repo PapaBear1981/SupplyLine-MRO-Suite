@@ -1,7 +1,7 @@
 from flask import request, jsonify, session, make_response, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import secrets
 import string
@@ -9,6 +9,7 @@ import os
 import uuid
 import time
 from werkzeug.utils import secure_filename
+from sqlalchemy import func, extract
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
@@ -225,6 +226,33 @@ def register_routes(app):
                 'status': 'healthy',
                 'timestamp': datetime.now().isoformat(),
                 'timezone': 'local'
+            })
+
+    # Time check endpoint for monitoring system time
+    @app.route('/api/time', methods=['GET'])
+    def time_check():
+        # Import time utilities
+        try:
+            # Use absolute import path
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+            from time_utils import get_utc_timestamp, format_datetime
+            # Use the time utility functions
+            return jsonify({
+                'status': 'ok',
+                'utc_time': format_datetime(get_utc_timestamp()),
+                'local_time': datetime.now().isoformat(),
+                'timezone': str(time.tzname)
+            })
+        except ImportError as e:
+            print(f"Error importing time_utils: {str(e)}")
+            # Fall back to standard datetime if time_utils is not available
+            return jsonify({
+                'status': 'ok',
+                'utc_time': datetime.now(timezone.utc).isoformat(),
+                'local_time': datetime.now().isoformat(),
+                'timezone': 'unknown'
             })
 
     # Test endpoint for admin dashboard

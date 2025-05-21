@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
+from time_utils import get_utc_timestamp, format_datetime, days_between
 
 db = SQLAlchemy()
 
@@ -16,7 +17,7 @@ class Tool(db.Model):
     category = db.Column(db.String, nullable=True, default='General')
     status = db.Column(db.String, nullable=True, default='available')  # available, checked_out, maintenance, retired
     status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_utc_timestamp)
 
     # Calibration fields
     requires_calibration = db.Column(db.Boolean, default=False)
@@ -50,7 +51,7 @@ class Tool(db.Model):
             self.calibration_status = 'not_applicable'
             return
 
-        now = datetime.utcnow()
+        now = get_utc_timestamp()
 
         # If calibration is overdue
         if now > self.next_calibration_date:
@@ -371,7 +372,7 @@ class Chemical(db.Model):
     def is_expired(self):
         if not self.expiration_date:
             return False
-        return datetime.utcnow() > self.expiration_date
+        return get_utc_timestamp() > self.expiration_date
 
     def is_expiring_soon(self, days=30):
         """Check if the chemical is expiring within the specified number of days"""
@@ -379,7 +380,7 @@ class Chemical(db.Model):
             return False
 
         # Calculate the date range
-        now = datetime.utcnow()
+        now = get_utc_timestamp()
         expiration_threshold = now + timedelta(days=days)
 
         # Check if expiration date is in the future but within the threshold
