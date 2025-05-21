@@ -8,25 +8,25 @@ const CalibrationNotifications = () => {
   const dispatch = useDispatch();
   const { calibrationsDue, overdueCalibrations, loading } = useSelector((state) => state.calibration);
   const { user } = useSelector((state) => state.auth);
-  
+
   const [showDueNotification, setShowDueNotification] = useState(true);
   const [showOverdueNotification, setShowOverdueNotification] = useState(true);
-  
+
   // Check if user has permission to see calibration notifications
   const hasPermission = user?.is_admin || user?.department === 'Materials';
-  
+
   useEffect(() => {
     if (hasPermission) {
       dispatch(fetchCalibrationsDue(30)); // Get tools due for calibration in the next 30 days
       dispatch(fetchOverdueCalibrations());
     }
   }, [dispatch, hasPermission]);
-  
+
   // Don't show notifications if user doesn't have permission
   if (!hasPermission) {
     return null;
   }
-  
+
   // Don't show notifications if there are no tools due or overdue for calibration
   if (
     (!calibrationsDue || calibrationsDue.length === 0) &&
@@ -34,13 +34,13 @@ const CalibrationNotifications = () => {
   ) {
     return null;
   }
-  
+
   return (
     <div className="mb-4">
       {showOverdueNotification && overdueCalibrations && overdueCalibrations.length > 0 && (
-        <Alert 
-          variant="danger" 
-          dismissible 
+        <Alert
+          variant="danger"
+          dismissible
           onClose={() => setShowOverdueNotification(false)}
           className="d-flex justify-content-between align-items-center"
         >
@@ -54,7 +54,7 @@ const CalibrationNotifications = () => {
           <div>
             <Button
               as={Link}
-              to="/calibrations"
+              to="/calibrations?tab=overdue"
               variant="outline-danger"
               size="sm"
             >
@@ -63,11 +63,11 @@ const CalibrationNotifications = () => {
           </div>
         </Alert>
       )}
-      
+
       {showDueNotification && calibrationsDue && calibrationsDue.length > 0 && (
-        <Alert 
-          variant="warning" 
-          dismissible 
+        <Alert
+          variant="warning"
+          dismissible
           onClose={() => setShowDueNotification(false)}
           className="d-flex justify-content-between align-items-center"
         >
@@ -80,7 +80,7 @@ const CalibrationNotifications = () => {
           <div>
             <Button
               as={Link}
-              to="/calibrations"
+              to="/calibrations?tab=due"
               variant="outline-warning"
               size="sm"
             >

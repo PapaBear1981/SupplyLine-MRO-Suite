@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Row, Col, Nav, Tab, Alert, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import CalibrationDueList from '../components/calibration/CalibrationDueList';
 import CalibrationOverdueList from '../components/calibration/CalibrationOverdueList';
 import CalibrationHistoryList from '../components/calibration/CalibrationHistoryList';
@@ -10,7 +10,17 @@ import CalibrationStandardsList from '../components/calibration/CalibrationStand
 const CalibrationManagement = () => {
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin || user?.department === 'Materials';
-  const [activeTab, setActiveTab] = useState('due');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabParam || 'due');
+
+  // Update active tab when URL query parameter changes
+  useEffect(() => {
+    if (tabParam && ['due', 'overdue', 'history', 'standards'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   if (!isAdmin) {
     return (
