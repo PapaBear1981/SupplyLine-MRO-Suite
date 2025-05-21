@@ -32,6 +32,7 @@ const MainLayout = ({ children }) => {
                       <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                       <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
                       <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                      <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link>
                       <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                     </>
                   )}
@@ -159,6 +160,10 @@ const MainLayout = ({ children }) => {
           {
             title: 'Checkout System',
             content: 'The Checkouts section shows tools that are currently checked out to users. You can return tools, view checkout history, and manage your checkouts.'
+          },
+          {
+            title: 'Cycle Count',
+            content: 'The Cycle Count section allows you to manage inventory counts, create count schedules, and track discrepancies to maintain accurate inventory records.'
           },
           {
             title: 'Help Features',

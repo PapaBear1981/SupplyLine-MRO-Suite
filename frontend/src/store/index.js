@@ -11,6 +11,7 @@ import calibrationReducer from './calibrationSlice';
 import rbacReducer from './rbacSlice';
 import adminReducer from './adminSlice';
 import announcementsReducer from './announcementSlice';
+import cycleCountReducer from './cycleCountSlice';
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     rbac: rbacReducer,
     admin: adminReducer,
     announcements: announcementsReducer,
+    cycleCount: cycleCountReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
