@@ -28,6 +28,8 @@ import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import ScannerPage from './pages/ScannerPage';
 import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
+import CycleCountScheduleForm from './components/cycleCount/CycleCountScheduleForm';
+import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -303,6 +305,22 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/schedules/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchForm />
             </MainLayout>
           </ProtectedRoute>
         } />
