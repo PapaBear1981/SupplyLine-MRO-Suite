@@ -58,6 +58,22 @@ const CycleCountScheduleForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Handle special cases for specific fields
+    if (name === 'method') {
+      // If method changes, we could potentially adjust other fields
+      // For example, we might want to update a dependent field or show additional options
+      console.log(`Method changed to ${value}`);
+      // For now, we'll just log the change, but this could be expanded
+    }
+
+    // Handle frequency changes
+    if (name === 'frequency') {
+      // We could adjust other settings based on frequency
+      // For example, if frequency is 'daily', we might want to set a different default for another field
+      console.log(`Frequency changed to ${value}`);
+    }
+
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
