@@ -10,6 +10,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import DashboardStats from './DashboardStats';
 import SystemResources from './SystemResources';
 import RegistrationRequests from './RegistrationRequests';
+import AnnouncementManagement from './AnnouncementManagement';
 import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
@@ -30,7 +31,8 @@ const AdminDashboard = () => {
     canViewAudit,
     canManageSettings,
     canManageHelp,
-    canViewRegistrations
+    canViewRegistrations,
+    canManageAnnouncements
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
     canViewUsers: currentUser?.permissions?.includes('user.view'),
@@ -38,7 +40,8 @@ const AdminDashboard = () => {
     canViewAudit: currentUser?.permissions?.includes('system.audit'),
     canManageSettings: currentUser?.permissions?.includes('system.settings'),
     canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
-    canViewRegistrations: currentUser?.is_admin
+    canViewRegistrations: currentUser?.is_admin,
+    canManageAnnouncements: currentUser?.is_admin
   }), [currentUser?.permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
@@ -62,7 +65,7 @@ const AdminDashboard = () => {
   }
 
   // If user doesn't have permission for any tabs, show an error
-  if (!canViewDashboard && !canViewUsers && !canManageRoles && !canViewAudit && !canManageSettings && !canManageHelp && !canViewRegistrations) {
+  if (!canViewDashboard && !canViewUsers && !canManageRoles && !canViewAudit && !canManageSettings && !canManageHelp && !canViewRegistrations && !canManageAnnouncements) {
     return (
       <Alert variant="danger">
         You do not have permission to access the Admin Dashboard. Please contact your administrator.
@@ -79,8 +82,9 @@ const AdminDashboard = () => {
       else if (canManageSettings) setActiveTab('settings');
       else if (canManageHelp) setActiveTab('help');
       else if (canViewRegistrations) setActiveTab('registrations');
+      else if (canManageAnnouncements) setActiveTab('announcements');
     }
-  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, activeTab]);
+  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, activeTab]);
 
   return (
     <div>
@@ -125,6 +129,11 @@ const AdminDashboard = () => {
                   <Nav.Link eventKey="help">Help Settings</Nav.Link>
                 </Nav.Item>
               )}
+              {canManageAnnouncements && (
+                <Nav.Item>
+                  <Nav.Link eventKey="announcements">Announcements</Nav.Link>
+                </Nav.Item>
+              )}
             </Nav>
           </Card.Header>
           <Card.Body>
@@ -158,6 +167,9 @@ const AdminDashboard = () => {
               </Tab.Pane>
               <Tab.Pane eventKey="help">
                 {canManageHelp && <HelpSettings />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="announcements">
+                {canManageAnnouncements && <AnnouncementManagement />}
               </Tab.Pane>
             </Tab.Content>
           </Card.Body>
