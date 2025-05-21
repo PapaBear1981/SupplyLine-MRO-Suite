@@ -16,6 +16,7 @@ from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
+from routes_scanner import register_scanner_routes
 from utils import validate_password_strength
 
 # Decorator to check if user is admin or in Materials department
@@ -109,6 +110,9 @@ def register_routes(app):
 
     # Register announcement routes
     register_announcement_routes(app)
+
+    # Register scanner routes
+    register_scanner_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
@@ -213,12 +217,13 @@ def register_routes(app):
     def health_check():
         # Import time utilities
         try:
-            from time_utils import get_utc_timestamp, format_datetime
+            # Use direct import
+            from time_utils import get_local_timestamp, format_datetime
             # Use the time utility functions
             return jsonify({
                 'status': 'healthy',
-                'timestamp': format_datetime(get_utc_timestamp()),
-                'timezone': 'UTC'
+                'timestamp': format_datetime(get_local_timestamp()),
+                'timezone': str(time.tzname)
             })
         except ImportError:
             # Fall back to standard datetime if time_utils is not available
@@ -226,33 +231,6 @@ def register_routes(app):
                 'status': 'healthy',
                 'timestamp': datetime.now().isoformat(),
                 'timezone': 'local'
-            })
-
-    # Time check endpoint for monitoring system time
-    @app.route('/api/time', methods=['GET'])
-    def time_check():
-        # Import time utilities
-        try:
-            # Use absolute import path
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            from time_utils import get_utc_timestamp, format_datetime
-            # Use the time utility functions
-            return jsonify({
-                'status': 'ok',
-                'utc_time': format_datetime(get_utc_timestamp()),
-                'local_time': datetime.now().isoformat(),
-                'timezone': str(time.tzname)
-            })
-        except ImportError as e:
-            print(f"Error importing time_utils: {str(e)}")
-            # Fall back to standard datetime if time_utils is not available
-            return jsonify({
-                'status': 'ok',
-                'utc_time': datetime.now(timezone.utc).isoformat(),
-                'local_time': datetime.now().isoformat(),
-                'timezone': 'unknown'
             })
 
     # Test endpoint for admin dashboard
