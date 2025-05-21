@@ -11,6 +11,7 @@ import RemoveFromServiceModal from './RemoveFromServiceModal';
 import ReturnToServiceModal from './ReturnToServiceModal';
 import ServiceHistoryList from './ServiceHistoryList';
 import ToolCalibrationHistory from '../calibration/ToolCalibrationHistory';
+import ToolBarcode from './ToolBarcode';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -27,6 +28,7 @@ const ToolDetail = () => {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showRemoveFromServiceModal, setShowRemoveFromServiceModal] = useState(false);
   const [showReturnToServiceModal, setShowReturnToServiceModal] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
@@ -82,6 +84,11 @@ const ToolDetail = () => {
             <Tooltip text="Return to tool inventory" placement="top" show={showTooltips}>
               <Button as={Link} to="/tools" variant="secondary" className="me-2">
                 Back to Tools
+              </Button>
+            </Tooltip>
+            <Tooltip text="Generate barcode/QR code" placement="top" show={showTooltips}>
+              <Button variant="info" className="me-2" onClick={() => setShowBarcodeModal(true)}>
+                <i className="bi bi-upc-scan me-1"></i> Barcode/QR
               </Button>
             </Tooltip>
             {isAdmin && (
@@ -367,6 +374,12 @@ const ToolDetail = () => {
         <ReturnToServiceModal
           show={showReturnToServiceModal}
           onHide={() => setShowReturnToServiceModal(false)}
+          tool={currentTool}
+        />
+
+        <ToolBarcode
+          show={showBarcodeModal}
+          onHide={() => setShowBarcodeModal(false)}
           tool={currentTool}
         />
       </div>

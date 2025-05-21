@@ -1,4 +1,4 @@
-from flask import Flask, session
+from flask import Flask, session, jsonify
 from routes import register_routes
 from config import Config
 from flask_session import Session
@@ -54,13 +54,51 @@ def create_app():
     except Exception as e:
         print(f"Error running tool calibration migration: {str(e)}")
 
+    # Register main routes
     register_routes(app)
+
+    # Direct time endpoints
+    @app.route('/api/time')
+    def time_endpoint():
+        try:
+            from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
+            return jsonify({
+                'status': 'ok',
+                'utc_time': format_datetime(get_utc_timestamp()),
+                'local_time': format_datetime(get_local_timestamp()),
+                'timezone': str(time.tzname),
+                'using_time_utils': True
+            })
+        except ImportError:
+            return jsonify({
+                'status': 'ok',
+                'utc_time': datetime.datetime.now().isoformat(),
+                'local_time': datetime.datetime.now().isoformat(),
+                'timezone': str(time.tzname),
+                'using_time_utils': False
+            })
+
+    @app.route('/api/time-test')
+    def time_test():
+        return jsonify({
+            'status': 'ok',
+            'utc_time': datetime.datetime.now().isoformat(),
+            'local_time': datetime.datetime.now().isoformat(),
+            'timezone': str(time.tzname),
+            'message': 'This is a test endpoint for time functionality'
+        })
+
+    # Try to register time API blueprint (but we have direct endpoints as backup)
+    try:
+        from time_api import time_api
+        app.register_blueprint(time_api)
+        print("Registered time_api blueprint")
+    except ImportError as e:
+        print(f"Error importing time_api blueprint: {str(e)}")
 
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
-
-    # Time endpoint is now defined in routes.py
 
     # Print all registered routes for debugging
     print("\n=== Registered Routes ===")

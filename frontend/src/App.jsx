@@ -26,6 +26,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
+import ScannerPage from './pages/ScannerPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -259,6 +260,15 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <CalibrationStandardForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Scanner route */}
+        <Route path="/scanner" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ScannerPage />
             </MainLayout>
           </ProtectedRoute>
         } />
