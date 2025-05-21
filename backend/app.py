@@ -60,18 +60,7 @@ def create_app():
     def index():
         return app.send_static_file('index.html')
 
-    @app.route('/api/time')
-    def time_check():
-        from flask import jsonify
-        from time_utils import get_utc_timestamp, format_datetime
-
-        # Return system time information for monitoring
-        return jsonify({
-            'status': 'ok',
-            'utc_time': format_datetime(get_utc_timestamp()),
-            'local_time': datetime.datetime.now().isoformat(),
-            'timezone': time.tzname
-        })
+    # Time endpoint is now defined in routes.py
 
     # Print all registered routes for debugging
     print("\n=== Registered Routes ===")
