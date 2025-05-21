@@ -49,7 +49,7 @@ const CycleCountDashboardPage = () => {
         <Alert variant="info" className="mb-4">
           <Alert.Heading>Cycle Count Management</Alert.Heading>
           <p>
-            This dashboard allows you to manage inventory cycle counts. You can create count schedules, 
+            This dashboard allows you to manage inventory cycle counts. You can create count schedules,
             generate count batches, assign counters, and review discrepancies.
           </p>
           <hr />
@@ -79,7 +79,7 @@ const CycleCountDashboardPage = () => {
             <Tab eventKey="overview" title="Overview">
               <div className="p-3">
                 <p className="text-muted">
-                  The cycle count system helps maintain accurate inventory records by systematically counting 
+                  The cycle count system helps maintain accurate inventory records by systematically counting
                   portions of inventory on a regular basis. Select a tab to manage schedules, batches, or review discrepancies.
                 </p>
               </div>
@@ -125,17 +125,17 @@ const CycleCountDashboardPage = () => {
                             </span>
                           </td>
                           <td>
-                            {batch.item_count > 0 ? (
-                              `${batch.completed_count}/${batch.item_count} (${Math.round((batch.completed_count / batch.item_count) * 100)}%)`
+                            {batch.item_count && batch.item_count > 0 ? (
+                              `${batch.completed_count || 0}/${batch.item_count} (${Math.round(((batch.completed_count || 0) / batch.item_count) * 100)}%)`
                             ) : (
                               'No items'
                             )}
                           </td>
                           <td>
-                            <Button 
-                              as={Link} 
-                              to={`/cycle-counts/batches/${batch.id}`} 
-                              variant="outline-primary" 
+                            <Button
+                              as={Link}
+                              to={`/cycle-counts/batches/${batch.id}`}
+                              variant="outline-primary"
                               size="sm"
                             >
                               View
@@ -151,10 +151,10 @@ const CycleCountDashboardPage = () => {
               )}
             </Card.Body>
             <Card.Footer className="bg-white">
-              <Button 
-                as={Link} 
-                to="/cycle-counts/batches" 
-                variant="outline-secondary" 
+              <Button
+                as={Link}
+                to="/cycle-counts/batches"
+                variant="outline-secondary"
                 size="sm"
                 className="w-100"
               >
@@ -187,7 +187,7 @@ const CycleCountDashboardPage = () => {
                     </span>
                   )}
                 </Button>
-                <Button as={Link} to="/cycle-counts/reports" variant="outline-info">
+                <Button as={Link} to="/reports" variant="outline-info">
                   <i className="bi bi-graph-up me-2"></i>
                   View Count Reports
                 </Button>

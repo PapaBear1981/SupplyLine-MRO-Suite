@@ -31,19 +31,19 @@ const CycleCountDiscrepancyList = () => {
 
   const filteredDiscrepancies = items.filter((discrepancy) => {
     if (!searchTerm) return true;
-    
-    // Search in item details if available
+
+    // Safely access nested properties
     const itemDetails = discrepancy.item?.item_details || {};
-    
+
     return (
-      discrepancy.discrepancy_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      discrepancy.discrepancy_notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      discrepancy.actual_location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      itemDetails.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      itemDetails.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      itemDetails.serial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      itemDetails.part_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      itemDetails.lot_number?.toLowerCase().includes(searchTerm.toLowerCase())
+      (discrepancy.discrepancy_type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (discrepancy.discrepancy_notes || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (discrepancy.actual_location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemDetails.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemDetails.number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemDetails.serial || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemDetails.part_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (itemDetails.lot_number || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -52,8 +52,18 @@ const CycleCountDiscrepancyList = () => {
     let bValue = b[sortField];
 
     if (sortField === 'counted_at') {
-      aValue = new Date(aValue);
-      bValue = new Date(bValue);
+      try {
+        aValue = aValue ? new Date(aValue) : new Date(0);
+        bValue = bValue ? new Date(bValue) : new Date(0);
+
+        // Check if dates are valid
+        if (isNaN(aValue.getTime())) aValue = new Date(0);
+        if (isNaN(bValue.getTime())) bValue = new Date(0);
+      } catch (error) {
+        console.error('Error parsing date:', error);
+        aValue = new Date(0);
+        bValue = new Date(0);
+      }
     }
 
     if (aValue < bValue) {
@@ -136,14 +146,17 @@ const CycleCountDiscrepancyList = () => {
               {sortedDiscrepancies.map((discrepancy) => {
                 const itemDetails = discrepancy.item?.item_details || {};
                 const itemType = discrepancy.item?.item_type;
-                
+
                 let itemName = 'Unknown Item';
                 if (itemType === 'tool') {
                   itemName = `${itemDetails.number || ''} - ${itemDetails.serial || ''}`;
                 } else if (itemType === 'chemical') {
                   itemName = `${itemDetails.part_number || ''} - ${itemDetails.lot_number || ''}`;
+                } else {
+                  // For any other item type, use best available identifier
+                  itemName = `${itemDetails.number || itemDetails.part_number || itemDetails.description || 'Unknown Item'}`;
                 }
-                
+
                 return (
                   <tr key={discrepancy.id}>
                     <td>
