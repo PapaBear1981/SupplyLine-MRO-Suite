@@ -11,10 +11,10 @@ const CycleCountScheduleForm = () => {
   const { id } = useParams();
   const { showHelp } = useHelp();
   const isEditMode = !!id;
-  
-  const { data: currentSchedule, loading: scheduleLoading, error: scheduleError } = 
+
+  const { data: currentSchedule, loading: scheduleLoading, error: scheduleError } =
     useSelector((state) => state.cycleCount.currentSchedule);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -22,7 +22,7 @@ const CycleCountScheduleForm = () => {
     method: 'random',
     is_active: true
   });
-  
+
   const [validated, setValidated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -36,7 +36,7 @@ const CycleCountScheduleForm = () => {
       // Clear any existing schedule data when creating new
       dispatch(clearCurrentSchedule());
     }
-    
+
     // Cleanup on unmount
     return () => {
       dispatch(clearCurrentSchedule());
@@ -67,19 +67,31 @@ const CycleCountScheduleForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
     setSubmitting(true);
     setError(null);
-    
+
     try {
       if (isEditMode) {
+        // Check if data has actually changed before submitting
+        const hasChanges = Object.keys(formData).some(key =>
+          formData[key] !== currentSchedule[key]
+        );
+
+        if (!hasChanges) {
+          setSuccess(true);
+          setTimeout(() => {
+            navigate('/cycle-counts/schedules');
+          }, 1500);
+          return;
+        }
         await dispatch(updateCycleCountSchedule({ id, scheduleData: formData })).unwrap();
       } else {
         await dispatch(createCycleCountSchedule(formData)).unwrap();
@@ -135,6 +147,13 @@ const CycleCountScheduleForm = () => {
           <p className="mb-0">
             <strong>Frequency</strong> determines how often counts occur.
             <strong>Method</strong> determines which items are selected for counting.
+
+            <ul className="mt-2">
+              <li><strong>ABC Analysis:</strong> Prioritizes counting items based on value and importance</li>
+              <li><strong>Random Sampling:</strong> Selects a random set of items for counting</li>
+              <li><strong>By Location:</strong> Counts items in specific storage locations</li>
+              <li><strong>By Category:</strong> Counts items within specific product categories</li>
+            </ul>
           </p>
         </Alert>
       )}
@@ -177,7 +196,7 @@ const CycleCountScheduleForm = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Status</Form.Label>
@@ -226,7 +245,7 @@ const CycleCountScheduleForm = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Count Method</Form.Label>
