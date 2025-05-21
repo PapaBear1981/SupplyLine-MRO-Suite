@@ -1,8 +1,8 @@
-version: '3.8'
-
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: supplyline-mro-backend
     restart: unless-stopped
     volumes:
@@ -10,10 +10,13 @@ services:
       - flask_session:/flask_session
       - ./update_tools_schema.py:/app/update_tools_schema.py
       - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py
+      - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
     ports:
       - "5000:5000"
     networks:
@@ -23,29 +26,50 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+    # Note: deploy.resources.limits are only applied in Swarm mode
+    # For standalone Docker, these are informational only
+    deploy:
+      resources:
+        limits:
+          cpus: ${BACKEND_CPU_LIMIT:-0.5}
+          memory: ${BACKEND_MEMORY_LIMIT:-512M}
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: supplyline-mro-frontend
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
     ports:
       - "80:80"
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+    # Note: deploy.resources.limits are only applied in Swarm mode
+    # For standalone Docker, these are informational only
+    deploy:
+      resources:
+        limits:
+          cpus: ${FRONTEND_CPU_LIMIT:-0.3}
+          memory: ${FRONTEND_MEMORY_LIMIT:-256M}
 
 networks:
   app-network:
     driver: bridge
+    name: supplyline-network
 
 volumes:
   database:
+    name: supplyline-database
   flask_session:
+    name: supplyline-flask-session
