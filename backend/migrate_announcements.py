@@ -1,6 +1,5 @@
 import sqlite3
 import os
-from datetime import datetime
 import sys
 
 # Get the database path from the environment or use the default
@@ -9,11 +8,11 @@ DB_PATH = os.environ.get('DATABASE_PATH', os.path.join('..', 'database', 'tools.
 def create_announcements_tables():
     """Create the announcements and announcement_reads tables if they don't exist."""
     print(f"Using database path: {os.path.abspath(DB_PATH)}")
-    
+
     # Connect to the database
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         # Check if the announcements table already exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='announcements'")
@@ -36,7 +35,7 @@ def create_announcements_tables():
             print("Announcements table created successfully.")
         else:
             print("Announcements table already exists.")
-        
+
         # Check if the announcement_reads table already exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='announcement_reads'")
         if not cursor.fetchone():
@@ -55,11 +54,11 @@ def create_announcements_tables():
             print("Announcement_reads table created successfully.")
         else:
             print("Announcement_reads table already exists.")
-        
+
         # Commit the changes
         conn.commit()
         print("Migration completed successfully!")
-        
+
     except Exception as e:
         conn.rollback()
         print(f"Error during migration: {str(e)}")

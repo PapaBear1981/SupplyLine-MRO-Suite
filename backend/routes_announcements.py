@@ -1,6 +1,6 @@
 from flask import request, jsonify, session
-from models import db, Announcement, AnnouncementRead, User, AuditLog, UserActivity
-from datetime import datetime
+from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
+from datetime import datetime, timezone
 from functools import wraps
 
 # Decorator to check if user is admin
@@ -42,9 +42,9 @@ def register_announcement_routes(app):
 
             if active_only:
                 # Only show active announcements that haven't expired
-                now = datetime.utcnow()
-                query = query.filter(Announcement.is_active == True)
-                query = query.filter((Announcement.expiration_date == None) | (Announcement.expiration_date > now))
+                now = datetime.now(timezone.utc)
+                query = query.filter(Announcement.is_active.is_(True))
+                query = query.filter((Announcement.expiration_date.is_(None)) | (Announcement.expiration_date > now))
 
             # Order by created_at (newest first)
             query = query.order_by(Announcement.created_at.desc())
@@ -58,18 +58,22 @@ def register_announcement_routes(app):
             # Check if user is logged in to determine read status
             user_id = session.get('user_id')
 
-            # Convert to dict and add read status if user is logged in
+            read_map = {}
+            if user_id:
+                read_map = {
+                    r.announcement_id: r for r in
+                    AnnouncementRead.query
+                        .filter_by(user_id=user_id)
+                        .filter(AnnouncementRead.announcement_id.in_([a.id for a in announcements]))
+                        .all()
+                }
+
             result = []
             for announcement in announcements:
                 announcement_dict = announcement.to_dict()
 
                 if user_id:
-                    # Check if user has read this announcement
-                    read = AnnouncementRead.query.filter_by(
-                        announcement_id=announcement.id,
-                        user_id=user_id
-                    ).first()
-
+                    read = read_map.get(announcement.id)
                     announcement_dict['read'] = read is not None
                     if read:
                         announcement_dict['read_at'] = read.read_at.isoformat()

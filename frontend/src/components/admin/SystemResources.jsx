@@ -7,22 +7,10 @@ import { FaSync } from 'react-icons/fa';
 
 const SystemResources = ({ resources, loading }) => {
   const dispatch = useDispatch();
-  console.log('SystemResources component - loading:', loading);
 
   const handleRefresh = () => {
     dispatch(fetchSystemResources());
   };
-
-  if (resources) {
-    console.log('SystemResources component - CPU:', resources.cpu);
-    console.log('SystemResources component - Memory:', resources.memory);
-    console.log('SystemResources component - Disk:', resources.disk);
-    console.log('SystemResources component - Database:', resources.database);
-    console.log('SystemResources component - Server:', resources.server);
-    console.log('SystemResources component - Timestamp:', resources.timestamp);
-  } else {
-    console.log('SystemResources component - resources is null or undefined');
-  }
 
   if (loading) {
     return <LoadingSpinner />;

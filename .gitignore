@@ -54,6 +54,8 @@ flask_session/
 .env.test.local
 .env.production.local
 .env
+cookies.txt
+*/cookies.txt
 
 # Logs
 npm-debug.log*

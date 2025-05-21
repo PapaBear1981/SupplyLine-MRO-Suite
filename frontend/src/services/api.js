@@ -13,8 +13,9 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // You could add auth token here if using JWT
-    // Only log non-GET requests or enable for debugging
-    if (config.method.toUpperCase() !== 'GET') {
+    // Only log non-GET requests in development environment or when debugging is enabled
+    if (config.method.toUpperCase() !== 'GET' &&
+        (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true')) {
       console.log(`API Request [${config.method.toUpperCase()}] ${config.url}:`, config.data);
     }
     return config;
@@ -28,12 +29,9 @@ api.interceptors.request.use(
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => {
-    // Log all responses for debugging
-    console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
-
-    // Special logging for system resources
-    if (response.config.url === '/admin/system-resources') {
-      console.log('System resources API response:', response.data);
+    // Only log responses in development environment or when debugging is enabled
+    if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true') {
+      console.log(`API Response [${response.config.method.toUpperCase()}] ${response.config.url}:`, response.data);
     }
 
     return response;

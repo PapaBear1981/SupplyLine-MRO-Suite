@@ -653,8 +653,8 @@ class Announcement(db.Model):
         }
 
         if include_reads and hasattr(self, 'reads'):
-            data['reads'] = [read.to_dict() for read in self.reads]
-            data['read_count'] = len(self.reads)
+            data['reads'] = [r.to_dict() for r in self.reads.all()]
+            data['read_count'] = self.reads.count()
 
         return data
 
@@ -668,6 +668,14 @@ class AnnouncementRead(db.Model):
     # Relationships
     announcement = db.relationship('Announcement', backref=db.backref('reads', lazy='dynamic'))
     user = db.relationship('User')
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'announcement_id',
+            'user_id',
+            name='_announcement_user_uc'
+        ),
+    )
 
     def to_dict(self):
         return {
