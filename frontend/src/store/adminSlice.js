@@ -122,21 +122,24 @@ const adminSlice = createSlice({
         state.loading.dashboardStats = false;
         state.error.dashboardStats = action.payload || { message: 'Failed to fetch dashboard statistics' };
       })
-      
+
       // System resources
       .addCase(fetchSystemResources.pending, (state) => {
+        console.log('fetchSystemResources.pending');
         state.loading.systemResources = true;
         state.error.systemResources = null;
       })
       .addCase(fetchSystemResources.fulfilled, (state, action) => {
+        console.log('fetchSystemResources.fulfilled - payload:', action.payload);
         state.loading.systemResources = false;
         state.systemResources = action.payload;
       })
       .addCase(fetchSystemResources.rejected, (state, action) => {
+        console.log('fetchSystemResources.rejected - error:', action.payload);
         state.loading.systemResources = false;
         state.error.systemResources = action.payload || { message: 'Failed to fetch system resources' };
       })
-      
+
       // Registration requests
       .addCase(fetchRegistrationRequests.pending, (state) => {
         state.loading.registrationRequests = true;
@@ -145,7 +148,7 @@ const adminSlice = createSlice({
       .addCase(fetchRegistrationRequests.fulfilled, (state, action) => {
         state.loading.registrationRequests = false;
         const { data, status } = action.payload;
-        
+
         // Update the appropriate list based on status
         if (status === 'all') {
           state.registrationRequests.all = data;
@@ -161,7 +164,7 @@ const adminSlice = createSlice({
         state.loading.registrationRequests = false;
         state.error.registrationRequests = action.payload || { message: 'Failed to fetch registration requests' };
       })
-      
+
       // Approve request
       .addCase(approveRegistrationRequest.pending, (state) => {
         state.loading.approveRequest = true;
@@ -174,7 +177,7 @@ const adminSlice = createSlice({
         state.loading.approveRequest = false;
         state.error.approveRequest = action.payload || { message: 'Failed to approve registration request' };
       })
-      
+
       // Deny request
       .addCase(denyRegistrationRequest.pending, (state) => {
         state.loading.denyRequest = true;

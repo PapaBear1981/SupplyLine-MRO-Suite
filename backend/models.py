@@ -622,3 +622,58 @@ class UserRole(db.Model):
 
     # Ensure uniqueness of user-role pairs
     __table_args__ = (db.UniqueConstraint('user_id', 'role_id', name='_user_role_uc'),)
+
+class Announcement(db.Model):
+    __tablename__ = 'announcements'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.String, nullable=False, default='medium')  # high, medium, low
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    expiration_date = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+
+    # Relationships
+    author = db.relationship('User', foreign_keys=[created_by])
+
+    def to_dict(self, include_reads=False):
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'priority': self.priority,
+            'created_by': self.created_by,
+            'author_name': self.author.name if self.author else 'Unknown',
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
+            'is_active': self.is_active
+        }
+
+        if include_reads and hasattr(self, 'reads'):
+            data['reads'] = [read.to_dict() for read in self.reads]
+            data['read_count'] = len(self.reads)
+
+        return data
+
+class AnnouncementRead(db.Model):
+    __tablename__ = 'announcement_reads'
+    id = db.Column(db.Integer, primary_key=True)
+    announcement_id = db.Column(db.Integer, db.ForeignKey('announcements.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    read_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    announcement = db.relationship('Announcement', backref=db.backref('reads', lazy='dynamic'))
+    user = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'announcement_id': self.announcement_id,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'read_at': self.read_at.isoformat()
+        }

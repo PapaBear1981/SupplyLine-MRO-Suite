@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, ListGroup, Badge, Alert, Spinner } from 'react-bootstrap';
 import api from '../../services/api';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const RecentActivity = () => {
   const [activities, setActivities] = useState([]);
@@ -25,11 +26,8 @@ const RecentActivity = () => {
     fetchUserActivity();
   }, []);
 
-  // Function to format timestamp
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
+  // Function to format timestamp using shared utility
+  const formatTimestamp = (timestamp) => formatDateTime(timestamp);
 
   // Function to get badge color based on activity type
   const getActivityBadgeVariant = (activityType) => {
