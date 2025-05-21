@@ -57,7 +57,7 @@ export const deleteCycleCountSchedule = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(`/api/cycle-counts/schedules/${id}`);
-      return { id, ...response.data };
+      return { id, ...(response.data || {}) };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to delete cycle count schedule ${id}` });
     }
@@ -119,7 +119,7 @@ export const deleteCycleCountBatch = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(`/api/cycle-counts/batches/${id}`);
-      return { id, ...response.data };
+      return { id, ...(response.data || {}) };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to delete cycle count batch ${id}` });
     }
@@ -155,7 +155,7 @@ export const submitCountResult = createAsyncThunk(
   async ({ itemId, resultData }, { rejectWithValue }) => {
     try {
       const response = await axios.post(`/api/cycle-counts/items/${itemId}/count`, resultData);
-      return { itemId, ...response.data };
+      return { itemId, ...(response.data || {}) };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to submit count result for item ${itemId}` });
     }
@@ -179,7 +179,7 @@ export const approveCountAdjustment = createAsyncThunk(
   async ({ resultId, adjustmentData }, { rejectWithValue }) => {
     try {
       const response = await axios.post(`/api/cycle-counts/results/${resultId}/adjust`, adjustmentData);
-      return { resultId, ...response.data };
+      return { resultId, ...(response.data || {}) };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to approve count adjustment for result ${resultId}` });
     }
@@ -222,8 +222,8 @@ const initialState = {
   },
   items: {
     byBatchId: {},
-    loading: false,
-    error: null
+    loadingByBatchId: {},   // { [batchId]: true | false }
+    errorByBatchId: {}
   },
   discrepancies: {
     items: [],
@@ -344,17 +344,20 @@ const cycleCountSlice = createSlice({
 
     // Items
     builder
-      .addCase(fetchCycleCountItems.pending, (state) => {
-        state.items.loading = true;
-        state.items.error = null;
+      .addCase(fetchCycleCountItems.pending, (state, action) => {
+        const batchId = action.meta.arg.batchId;
+        state.items.loadingByBatchId[batchId] = true;
+        state.items.errorByBatchId[batchId] = null;
       })
       .addCase(fetchCycleCountItems.fulfilled, (state, action) => {
-        state.items.loading = false;
-        state.items.byBatchId[action.payload.batchId] = action.payload.items;
+        const batchId = action.payload.batchId;
+        state.items.loadingByBatchId[batchId] = false;
+        state.items.byBatchId[batchId] = action.payload.items;
       })
       .addCase(fetchCycleCountItems.rejected, (state, action) => {
-        state.items.loading = false;
-        state.items.error = action.payload || { error: 'Failed to fetch items' };
+        const batchId = action.meta.arg.batchId;
+        state.items.loadingByBatchId[batchId] = false;
+        state.items.errorByBatchId[batchId] = action.payload || { error: 'Failed to fetch items' };
       })
       .addCase(updateCycleCountItem.fulfilled, (state, action) => {
         // Update item in all relevant places

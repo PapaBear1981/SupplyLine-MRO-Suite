@@ -27,10 +27,10 @@ const CycleCountScheduleList = () => {
 
   const filteredSchedules = items.filter((schedule) => {
     return (
-      schedule.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.frequency.toLowerCase().includes(searchTerm.toLowerCase())
+      (schedule.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (schedule.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (schedule.method || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (schedule.frequency || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -39,8 +39,15 @@ const CycleCountScheduleList = () => {
     let bValue = b[sortField];
 
     if (sortField === 'created_at' || sortField === 'updated_at') {
-      aValue = new Date(aValue);
-      bValue = new Date(bValue);
+      // Handle invalid or missing dates
+      try {
+        aValue = aValue ? new Date(aValue) : new Date(0);
+        bValue = bValue ? new Date(bValue) : new Date(0);
+      } catch (error) {
+        console.error('Error parsing date:', error);
+        aValue = new Date(0);
+        bValue = new Date(0);
+      }
     }
 
     if (aValue < bValue) {

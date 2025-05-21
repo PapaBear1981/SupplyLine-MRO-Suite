@@ -31,8 +31,8 @@ const CycleCountBatchList = () => {
 
   const filteredBatches = items.filter((batch) => {
     return (
-      batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      (batch.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (batch.notes || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -144,12 +144,12 @@ const CycleCountBatchList = () => {
                     {batch.start_date ? new Date(batch.start_date).toLocaleDateString() : 'Not started'}
                   </td>
                   <td>
-                    {batch.item_count > 0 ? (
+                    {batch.item_count && batch.item_count > 0 ? (
                       <div>
-                        <ProgressBar 
-                          now={Math.round((batch.completed_count / batch.item_count) * 100)} 
-                          label={`${batch.completed_count}/${batch.item_count}`}
-                          variant={getProgressBarVariant(batch.completed_count, batch.item_count)}
+                        <ProgressBar
+                          now={Math.round(((batch.completed_count || 0) / batch.item_count) * 100)}
+                          label={`${batch.completed_count || 0}/${batch.item_count}`}
+                          variant={getProgressBarVariant(batch.completed_count || 0, batch.item_count)}
                         />
                       </div>
                     ) : (
