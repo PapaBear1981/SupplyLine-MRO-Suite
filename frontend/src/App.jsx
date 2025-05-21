@@ -277,14 +277,24 @@ function App() {
         } />
 
         {/* Cycle Count routes */}
-        <Route path="/cycle-counts" element={
+        {/* Cycle Count Form Routes - More specific routes first */}
+        <Route path="/cycle-counts/schedules/new" element={
           <ProtectedRoute>
             <MainLayout>
-              <CycleCountDashboardPage />
+              <CycleCountScheduleForm />
             </MainLayout>
           </ProtectedRoute>
         } />
 
+        <Route path="/cycle-counts/batches/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* General Cycle Count routes */}
         <Route path="/cycle-counts/schedules" element={
           <ProtectedRoute>
             <MainLayout>
@@ -309,18 +319,10 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/cycle-counts/schedules/new" element={
+        <Route path="/cycle-counts" element={
           <ProtectedRoute>
             <MainLayout>
-              <CycleCountScheduleForm />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/cycle-counts/batches/new" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <CycleCountBatchForm />
+              <CycleCountDashboardPage />
             </MainLayout>
           </ProtectedRoute>
         } />
