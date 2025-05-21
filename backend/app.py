@@ -5,8 +5,19 @@ from flask_session import Session
 from flask_cors import CORS
 import os
 import sys
+import time
+import datetime
 
 def create_app():
+    # Set the system timezone to UTC
+    os.environ['TZ'] = 'UTC'
+    try:
+        time.tzset()
+        print("System timezone set to UTC")
+    except AttributeError:
+        # Windows doesn't have time.tzset()
+        print("Running on Windows, cannot set system timezone. Ensure system time is correct.")
+
     # serve frontend static files from backend/static
     app = Flask(
         __name__,
@@ -21,6 +32,10 @@ def create_app():
 
     # Initialize Flask-Session
     Session(app)
+
+    # Log current time information for debugging
+    print(f"Current UTC time: {datetime.datetime.now(datetime.timezone.utc)}")
+    print(f"Current local time: {datetime.datetime.now()}")
 
     # Run database migrations
     try:
@@ -44,6 +59,19 @@ def create_app():
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
+
+    @app.route('/api/time')
+    def time_check():
+        from flask import jsonify
+        from time_utils import get_utc_timestamp, format_datetime
+
+        # Return system time information for monitoring
+        return jsonify({
+            'status': 'ok',
+            'utc_time': format_datetime(get_utc_timestamp()),
+            'local_time': datetime.datetime.now().isoformat(),
+            'timezone': time.tzname
+        })
 
     # Print all registered routes for debugging
     print("\n=== Registered Routes ===")
