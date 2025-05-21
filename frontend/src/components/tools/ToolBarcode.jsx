@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 /**
  * Component for displaying and printing a tool barcode and QR code
- * 
+ *
  * @param {Object} props - Component props
  * @param {boolean} props.show - Whether to show the modal
  * @param {Function} props.onHide - Function to call when hiding the modal
@@ -21,7 +21,7 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     if (show && tool && barcodeRef.current) {
       // Create barcode data string: tool_number-serial_number
       const barcodeData = `${tool.tool_number}-${tool.serial_number}`;
-      
+
       // Generate barcode
       JsBarcode(barcodeRef.current, barcodeData, {
         format: "CODE128",
@@ -47,22 +47,23 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     status: tool.status
   }) : '';
 
-  // Handle print button click for barcode
-  const handlePrintBarcode = () => {
-    if (barcodeContainerRef.current) {
+  // Generic print function to handle both barcode and QR code printing
+  const handlePrint = (type, containerRef) => {
+    if (containerRef.current) {
       const printWindow = window.open('', '_blank');
-      
+      const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
+
       printWindow.document.write(`
         <html>
           <head>
-            <title>Tool Barcode - ${tool.tool_number}</title>
+            <title>Tool ${typeCapitalized} - ${tool.tool_number}</title>
             <style>
               body {
                 font-family: Arial, sans-serif;
                 margin: 0;
                 padding: 20px;
               }
-              .barcode-container {
+              .code-container {
                 text-align: center;
                 margin-bottom: 20px;
               }
@@ -85,8 +86,8 @@ const ToolBarcode = ({ show, onHide, tool }) => {
             </style>
           </head>
           <body>
-            <div class="barcode-container">
-              ${barcodeContainerRef.current.innerHTML}
+            <div class="code-container">
+              ${containerRef.current.innerHTML}
             </div>
             <div class="tool-info">
               <p><strong>Tool Number:</strong> ${tool.tool_number}</p>
@@ -99,67 +100,16 @@ const ToolBarcode = ({ show, onHide, tool }) => {
           </body>
         </html>
       `);
-      
+
       printWindow.document.close();
     }
   };
 
+  // Handle print button click for barcode
+  const handlePrintBarcode = () => handlePrint('barcode', barcodeContainerRef);
+
   // Handle print button click for QR code
-  const handlePrintQRCode = () => {
-    if (qrCodeContainerRef.current) {
-      const printWindow = window.open('', '_blank');
-      
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Tool QR Code - ${tool.tool_number}</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-              }
-              .qrcode-container {
-                text-align: center;
-                margin-bottom: 20px;
-              }
-              .tool-info {
-                margin-top: 20px;
-                font-size: 14px;
-              }
-              .tool-info p {
-                margin: 5px 0;
-              }
-              @media print {
-                body {
-                  margin: 0;
-                  padding: 0;
-                }
-                button {
-                  display: none;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="qrcode-container">
-              ${qrCodeContainerRef.current.innerHTML}
-            </div>
-            <div class="tool-info">
-              <p><strong>Tool Number:</strong> ${tool.tool_number}</p>
-              <p><strong>Serial Number:</strong> ${tool.serial_number}</p>
-              <p><strong>Description:</strong> ${tool.description || 'N/A'}</p>
-              <p><strong>Category:</strong> ${tool.category || 'N/A'}</p>
-              <p><strong>Location:</strong> ${tool.location || 'N/A'}</p>
-            </div>
-            <button onclick="window.print(); window.close();">Print</button>
-          </body>
-        </html>
-      `);
-      
-      printWindow.document.close();
-    }
-  };
+  const handlePrintQRCode = () => handlePrint('qr code', qrCodeContainerRef);
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
