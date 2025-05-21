@@ -10,14 +10,14 @@ const CycleCountBatchForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showHelp } = useHelp();
-  
+
   // Get schedule ID from query params if available
   const queryParams = new URLSearchParams(location.search);
   const scheduleIdFromQuery = queryParams.get('schedule');
-  
-  const { items: schedules, loading: schedulesLoading } = 
+
+  const { items: schedules, loading: schedulesLoading } =
     useSelector((state) => state.cycleCount.schedules);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     schedule_id: scheduleIdFromQuery || '',
@@ -30,7 +30,7 @@ const CycleCountBatchForm = () => {
     category: '', // Only used if item_selection is 'category'
     location: '' // Only used if item_selection is 'location'
   });
-  
+
   const [validated, setValidated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +43,31 @@ const CycleCountBatchForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // If changing start_date and there's an end_date, validate the relationship
+    if (name === 'start_date' && formData.end_date && value > formData.end_date) {
+      setFormData({
+        ...formData,
+        [name]: value,
+        end_date: '' // Reset end_date if it's now before start_date
+      });
+      return;
+    }
+
+    // If changing item selection method, reset related fields
+    if (name === 'item_selection') {
+      const updatedFormData = {
+        ...formData,
+        [name]: value,
+        // Reset all selection-specific fields
+        item_count: value === 'random' ? 50 : '',
+        category: value === 'category' ? '' : '',
+        location: value === 'location' ? '' : ''
+      };
+      setFormData(updatedFormData);
+      return;
+    }
+
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
@@ -52,17 +77,17 @@ const CycleCountBatchForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
     setSubmitting(true);
     setError(null);
-    
+
     try {
       // Prepare data for submission
       const batchData = {
@@ -72,7 +97,7 @@ const CycleCountBatchForm = () => {
         ...(formData.item_selection === 'category' ? { category: formData.category } : {}),
         ...(formData.item_selection === 'location' ? { location: formData.location } : {})
       };
-      
+
       await dispatch(createCycleCountBatch(batchData)).unwrap();
       setSuccess(true);
       setTimeout(() => {
@@ -140,7 +165,7 @@ const CycleCountBatchForm = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Schedule (Optional)</Form.Label>
@@ -148,13 +173,18 @@ const CycleCountBatchForm = () => {
                     name="schedule_id"
                     value={formData.schedule_id}
                     onChange={handleChange}
+                    disabled={schedulesLoading}
                   >
                     <option value="">-- No Schedule --</option>
-                    {schedules.map((schedule) => (
-                      <option key={schedule.id} value={schedule.id}>
-                        {schedule.name}
-                      </option>
-                    ))}
+                    {schedulesLoading ? (
+                      <option value="" disabled>Loading schedules...</option>
+                    ) : (
+                      schedules.map((schedule) => (
+                        <option key={schedule.id} value={schedule.id}>
+                          {schedule.name}
+                        </option>
+                      ))
+                    )}
                   </Form.Select>
                   <Form.Text className="text-muted">
                     Link this batch to a schedule or leave blank for a one-time count
@@ -179,7 +209,7 @@ const CycleCountBatchForm = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>End Date (Optional)</Form.Label>
@@ -188,7 +218,11 @@ const CycleCountBatchForm = () => {
                     name="end_date"
                     value={formData.end_date}
                     onChange={handleChange}
+                    min={formData.start_date}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    End date must be after start date.
+                  </Form.Control.Feedback>
                   <Form.Text className="text-muted">
                     Target completion date for this count batch
                   </Form.Text>
@@ -223,7 +257,7 @@ const CycleCountBatchForm = () => {
               <Card className="mb-3 bg-light">
                 <Card.Body>
                   <h5>Item Selection Criteria</h5>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Selection Method</Form.Label>
                     <Form.Select
