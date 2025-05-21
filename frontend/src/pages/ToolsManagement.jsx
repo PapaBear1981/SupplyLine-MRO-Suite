@@ -1,8 +1,7 @@
 import { useSelector } from 'react-redux';
-import { Button, Alert } from 'react-bootstrap';
+import { Button, Alert, Badge } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
-import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
@@ -24,16 +23,21 @@ const ToolsManagement = () => {
 
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <h1 className="mb-0">Tool Inventory</h1>
-        {isAdmin && (
-          <Button as={Link} to="/tools/new" variant="success" size="lg">
-            <i className="bi bi-plus-circle me-2"></i>
-            Add New Tool
-          </Button>
-        )}
+        <div className="d-flex gap-2">
+          {isAdmin && (
+            <Button as={Link} to="/calibrations" variant="outline-primary" size="lg">
+              <i className="bi bi-tools me-2"></i>
+              Calibration Management
+            </Button>
+          )}
+          {isAdmin && (
+            <Button as={Link} to="/tools/new" variant="success" size="lg">
+              <i className="bi bi-plus-circle me-2"></i>
+              Add New Tool
+            </Button>
+          )}
+        </div>
       </div>
-
-      {/* Show calibration notifications for admin and Materials department users */}
-      {isAdmin && <CalibrationNotifications />}
 
       <ToolList />
     </div>
