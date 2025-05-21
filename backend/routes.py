@@ -215,23 +215,12 @@ def register_routes(app):
     # Health check endpoint for Docker
     @app.route('/api/health', methods=['GET'])
     def health_check():
-        # Import time utilities
-        try:
-            # Use direct import
-            from time_utils import get_local_timestamp, format_datetime
-            # Use the time utility functions
-            return jsonify({
-                'status': 'healthy',
-                'timestamp': format_datetime(get_local_timestamp()),
-                'timezone': str(time.tzname)
-            })
-        except ImportError:
-            # Fall back to standard datetime if time_utils is not available
-            return jsonify({
-                'status': 'healthy',
-                'timestamp': datetime.now().isoformat(),
-                'timezone': 'local'
-            })
+        # Use standard datetime
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'timezone': str(time.tzname)
+        })
 
     # Test endpoint for admin dashboard
     @app.route('/api/admin/dashboard/test', methods=['GET'])
