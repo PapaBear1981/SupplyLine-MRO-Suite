@@ -528,6 +528,13 @@ def register_cycle_count_routes(app):
             if 'name' not in data:
                 return jsonify({'error': 'Missing required field: name'}), 400
 
+            # Validate dates
+            if 'start_date' in data and 'end_date' in data and data['start_date'] and data['end_date']:
+                start_date = datetime.fromisoformat(data['start_date'])
+                end_date = datetime.fromisoformat(data['end_date'])
+                if end_date < start_date:
+                    return jsonify({'error': 'End date cannot be before start date'}), 400
+
             # Create new batch
             batch = CycleCountBatch(
                 schedule_id=data.get('schedule_id'),
@@ -574,15 +581,34 @@ def register_cycle_count_routes(app):
             # Get batch
             batch = CycleCountBatch.query.get_or_404(id)
 
+            # Validate dates
+            start_date = None
+            end_date = None
+
+            if 'start_date' in data and data['start_date']:
+                start_date = datetime.fromisoformat(data['start_date'])
+            else:
+                start_date = batch.start_date
+
+            if 'end_date' in data and data['end_date']:
+                end_date = datetime.fromisoformat(data['end_date'])
+            else:
+                end_date = batch.end_date
+
+            if start_date and end_date and end_date < start_date:
+                return jsonify({'error': 'End date cannot be before start date'}), 400
+
             # Update fields
             if 'name' in data:
                 batch.name = data['name']
             if 'status' in data:
                 batch.status = data['status']
+            if 'schedule_id' in data:
+                batch.schedule_id = data['schedule_id']
             if 'start_date' in data:
-                batch.start_date = datetime.fromisoformat(data['start_date']) if data['start_date'] else None
+                batch.start_date = start_date
             if 'end_date' in data:
-                batch.end_date = datetime.fromisoformat(data['end_date']) if data['end_date'] else None
+                batch.end_date = end_date
             if 'notes' in data:
                 batch.notes = data['notes']
 
