@@ -9,26 +9,35 @@ const CheckoutHistoryDetailModal = ({ show, onHide, checkoutId }) => {
   const [checkoutDetails, setCheckoutDetails] = useState(null);
 
   useEffect(() => {
-    if (show && checkoutId) {
-      fetchCheckoutDetails();
-    }
+    if (!show || !checkoutId) return;
+
+    const controller = new AbortController();
+    fetchCheckoutDetails(controller.signal);
+
+    return () => controller.abort();
   }, [show, checkoutId]);
 
-  const fetchCheckoutDetails = async () => {
+  const fetchCheckoutDetails = async (signal) => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await fetch(`/api/checkouts/${checkoutId}/details`);
-      const data = await response.json();
-      
+      const response = await fetch(
+        `/api/checkouts/${checkoutId}/details`,
+        { credentials: 'include', signal }
+      );
+
+      const data = await response.clone().json().catch(() => ({}));
+
       if (response.ok) {
         setCheckoutDetails(data);
       } else {
-        setError(data.error || 'Failed to fetch checkout details');
+        setError(data.error || `Failed to fetch checkout details (HTTP ${response.status})`);
       }
     } catch (err) {
-      setError('Network error occurred');
+      if (err.name !== 'AbortError') {
+        setError('Network error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -67,14 +76,14 @@ const CheckoutHistoryDetailModal = ({ show, onHide, checkoutId }) => {
 
   const getConditionBadge = (condition) => {
     if (!condition) return <span className="text-muted">Not specified</span>;
-    
+
     const badgeVariant = {
       'New': 'success',
       'Good': 'success',
       'Fair': 'warning',
       'Poor': 'danger'
     }[condition] || 'secondary';
-    
+
     return <Badge bg={badgeVariant}>{condition}</Badge>;
   };
 
@@ -221,14 +230,14 @@ const CheckoutHistoryDetailModal = ({ show, onHide, checkoutId }) => {
                       <p><strong>Returned By:</strong> {checkoutDetails.returned_by || 'Not specified'}</p>
                     </Col>
                     <Col md={6}>
-                      <p><strong>Found/Lost Status:</strong> 
+                      <p><strong>Found/Lost Status:</strong>
                         {checkoutDetails.found === true && <Badge bg="success" className="ms-2">Found</Badge>}
                         {checkoutDetails.found === false && <Badge bg="danger" className="ms-2">Lost</Badge>}
                         {checkoutDetails.found === null && <span className="text-muted ms-2">Not specified</span>}
                       </p>
                     </Col>
                   </Row>
-                  
+
                   {checkoutDetails.return_notes && (
                     <div className="mt-3">
                       <strong>Return Notes:</strong>
