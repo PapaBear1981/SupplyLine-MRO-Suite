@@ -168,12 +168,12 @@ class CycleCountResult(db.Model):
     counter = db.relationship('User', foreign_keys=[counted_by])
     adjustments = db.relationship('CycleCountAdjustment', backref='result', lazy=True)
 
-    def to_dict(self, include_adjustments=False):
+    def to_dict(self, include_adjustments=False, include_item=False):
         data = {
             'id': self.id,
             'item_id': self.item_id,
             'counted_by': self.counted_by,
-            'counter_name': self.counter.name if self.counter else 'Unknown',
+            'counted_by_name': self.counter.name if self.counter else 'Unknown',
             'counted_at': self.counted_at.isoformat(),
             'actual_quantity': self.actual_quantity,
             'actual_location': self.actual_location,
@@ -186,6 +186,17 @@ class CycleCountResult(db.Model):
 
         if include_adjustments:
             data['adjustments'] = [adjustment.to_dict() for adjustment in self.adjustments]
+
+        if include_item:
+            data['item'] = self.item.to_dict() if self.item else None
+
+            # Add batch information
+            if self.item and self.item.batch:
+                data['batch'] = {
+                    'id': self.item.batch.id,
+                    'name': self.item.batch.name,
+                    'status': self.item.batch.status
+                }
 
         return data
 
