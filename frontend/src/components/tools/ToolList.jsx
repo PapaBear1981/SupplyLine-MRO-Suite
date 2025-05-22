@@ -6,6 +6,8 @@ import { fetchTools, searchTools } from '../../store/toolsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
 import ToolBarcode from './ToolBarcode';
+import DeleteToolModal from './DeleteToolModal';
+import CalibrationStatusIndicator from './CalibrationStatusIndicator';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -22,6 +24,7 @@ const ToolList = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTool, setSelectedTool] = useState(null);
 
   // Filter states
@@ -143,6 +146,24 @@ const ToolList = () => {
   const handleBarcodeClick = (tool) => {
     setSelectedTool(tool);
     setShowBarcodeModal(true);
+  };
+
+  // Handle delete button click
+  const handleDeleteClick = (tool) => {
+    setSelectedTool(tool);
+    setShowDeleteModal(true);
+  };
+
+  // Handle tool deletion
+  const handleToolDelete = (toolId) => {
+    // Remove the tool from the local state
+    dispatch(fetchTools()); // Refresh the tools list
+  };
+
+  // Handle tool retirement
+  const handleToolRetire = (updatedTool) => {
+    // Refresh the tools list to show the updated status
+    dispatch(fetchTools());
   };
 
   const resetFilters = () => {
@@ -335,7 +356,8 @@ const ToolList = () => {
                   <th onClick={() => handleSort('status')} className="cursor-pointer">
                     Status {getSortIcon('status')}
                   </th>
-                  <th style={{ width: '200px' }}>Actions</th>
+                  <th>Calibration</th>
+                  <th style={{ width: '250px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,7 +395,10 @@ const ToolList = () => {
                         </span>
                       </td>
                       <td>
-                        <div className="d-flex gap-2">
+                        <CalibrationStatusIndicator tool={tool} />
+                      </td>
+                      <td>
+                        <div className="d-flex gap-1 flex-wrap">
                           <Tooltip text="View tool details" placement="top" show={showTooltips}>
                             <Button
                               as={Link}
@@ -418,6 +443,17 @@ const ToolList = () => {
                               <i className="bi bi-upc-scan"></i>
                             </Button>
                           </Tooltip>
+                          {user?.is_admin && (
+                            <Tooltip text="Delete or retire this tool" placement="top" show={showTooltips}>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleDeleteClick(tool)}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </Button>
+                            </Tooltip>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -450,6 +486,17 @@ const ToolList = () => {
           show={showBarcodeModal}
           onHide={() => setShowBarcodeModal(false)}
           tool={selectedTool}
+        />
+      )}
+
+      {/* Delete Modal */}
+      {selectedTool && (
+        <DeleteToolModal
+          show={showDeleteModal}
+          onHide={() => setShowDeleteModal(false)}
+          tool={selectedTool}
+          onDelete={handleToolDelete}
+          onRetire={handleToolRetire}
         />
       )}
     </>
