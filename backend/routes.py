@@ -846,8 +846,11 @@ def register_routes(app):
             if not session.get('is_admin', False):
                 return jsonify({'error': 'Admin privileges required to delete tools'}), 403
 
-            data = request.get_json() or {}
-            force_delete = data.get('force_delete', False)
+            # Accept force_delete from query parameters or JSON body
+            force_delete = (
+                request.args.get('force_delete', '').lower() in ('1', 'true')
+                or (request.get_json(silent=True) or {}).get('force_delete', False)
+            )
 
             # Check if tool has history (checkouts, calibrations, service records)
             has_checkouts = Checkout.query.filter_by(tool_id=id).count() > 0
@@ -2627,7 +2630,7 @@ def register_routes(app):
             'checkout_date': c.checkout_date.isoformat(),
             'return_date': c.return_date.isoformat() if c.return_date else None,
             'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
-            'condition_at_return': getattr(c, 'condition_at_return', None),
+            'condition_at_return': getattr(c, 'return_condition', None),
             'returned_by': getattr(c, 'returned_by', None),
             'found': getattr(c, 'found', None),
             'return_notes': getattr(c, 'return_notes', None),
@@ -2674,7 +2677,7 @@ def register_routes(app):
             'checkout_date': checkout.checkout_date.isoformat(),
             'return_date': checkout.return_date.isoformat() if checkout.return_date else None,
             'expected_return_date': checkout.expected_return_date.isoformat() if checkout.expected_return_date else None,
-            'condition_at_return': getattr(checkout, 'condition_at_return', None),
+            'condition_at_return': getattr(checkout, 'return_condition', None),
             'returned_by': getattr(checkout, 'returned_by', None),
             'found': getattr(checkout, 'found', None),
             'return_notes': getattr(checkout, 'return_notes', None),

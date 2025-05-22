@@ -85,6 +85,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .calibration-status-badge.pulse {
+    animation: none;
+  }
+}
+
 .cursor-pointer {
   cursor: pointer;
 }

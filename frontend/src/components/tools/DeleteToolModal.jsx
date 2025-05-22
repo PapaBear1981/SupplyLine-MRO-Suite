@@ -26,30 +26,30 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
   const checkToolHistory = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await fetch(`/api/tools/${tool.id}`, {
+      const response = await fetch(`/api/tools/${tool.id}?force_delete=false`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ force_delete: false })
+        credentials: 'include'
       });
 
-      const data = await response.json();
-      
+      const data = await response.clone().json().catch(() => ({}));
+
       if (response.ok) {
         // Tool can be deleted without issues
         setStep(3);
-      } else if (data.has_history) {
+      } else if (response.status === 400 && data.has_history) {
         // Tool has history, show options
         setToolHistory(data);
         setStep(2);
       } else {
-        setError(data.error || 'Failed to check tool history');
+        setError(data.error || `Failed to check tool history (HTTP ${response.status})`);
       }
     } catch (err) {
-      setError('Network error occurred');
+      setError(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -58,26 +58,26 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
   const handleDelete = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await fetch(`/api/tools/${tool.id}`, {
+      const response = await fetch(`/api/tools/${tool.id}?force_delete=${forceDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ force_delete: forceDelete })
+        credentials: 'include'
       });
 
-      const data = await response.json();
-      
+      const data = await response.clone().json().catch(() => ({}));
+
       if (response.ok) {
         onDelete(tool.id);
         handleClose();
       } else {
-        setError(data.error || 'Failed to delete tool');
+        setError(data.error || `Failed to delete tool (HTTP ${response.status})`);
       }
     } catch (err) {
-      setError('Network error occurred');
+      setError(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -91,29 +91,30 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await fetch(`/api/tools/${tool.id}/retire`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
-          reason: retireReason,
-          comments: retireComments
+          reason: retireReason.trim(),
+          comments: retireComments.trim()
         })
       });
 
-      const data = await response.json();
-      
+      const data = await response.clone().json().catch(() => ({}));
+
       if (response.ok) {
         onRetire(data.tool);
         handleClose();
       } else {
-        setError(data.error || 'Failed to retire tool');
+        setError(data.error || `Failed to retire tool (HTTP ${response.status})`);
       }
     } catch (err) {
-      setError('Network error occurred');
+      setError(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -150,8 +151,8 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
         <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
-        <Button 
-          variant="warning" 
+        <Button
+          variant="warning"
           onClick={checkToolHistory}
           disabled={loading}
         >
@@ -179,7 +180,7 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
           <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
           This tool has history and cannot be safely deleted without losing data.
         </Alert>
-        
+
         <p><strong>Tool History Found:</strong></p>
         <ul>
           {toolHistory?.has_checkouts && <li>Checkout history</li>}
@@ -198,15 +199,15 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
         <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
-        <Button 
-          variant="info" 
+        <Button
+          variant="info"
           onClick={() => setStep(4)}
         >
           <FontAwesomeIcon icon={faArchive} className="me-1" />
           Retire Tool (Recommended)
         </Button>
-        <Button 
-          variant="danger" 
+        <Button
+          variant="danger"
           onClick={() => {
             setForceDelete(true);
             setStep(3);
@@ -232,7 +233,7 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
           <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
           <strong>FINAL WARNING!</strong> This action cannot be undone.
         </Alert>
-        
+
         {forceDelete && (
           <Alert variant="warning">
             <strong>Force Delete:</strong> This will permanently delete the tool and ALL its history including:
@@ -254,8 +255,8 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
         <Button variant="secondary" onClick={() => setStep(forceDelete ? 2 : 1)}>
           Go Back
         </Button>
-        <Button 
-          variant="danger" 
+        <Button
+          variant="danger"
           onClick={handleDelete}
           disabled={loading}
         >
@@ -288,7 +289,7 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
           <FontAwesomeIcon icon={faArchive} className="me-2" />
           Retiring the tool will preserve all history while marking it as no longer in service.
         </Alert>
-        
+
         <Form>
           <Form.Group className="mb-3">
             <Form.Label>Reason for Retirement <span className="text-danger">*</span></Form.Label>
@@ -298,9 +299,13 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
               onChange={(e) => setRetireReason(e.target.value)}
               placeholder="e.g., End of life, Replaced by newer model, Damaged beyond repair"
               required
+              aria-describedby="retireReasonHelp"
             />
+            <Form.Text id="retireReasonHelp" muted>
+              Please provide a specific reason that explains why this tool is being retired.
+            </Form.Text>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Additional Comments</Form.Label>
             <Form.Control
@@ -319,8 +324,8 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
         <Button variant="secondary" onClick={() => setStep(2)}>
           Go Back
         </Button>
-        <Button 
-          variant="info" 
+        <Button
+          variant="info"
           onClick={handleRetire}
           disabled={loading || !retireReason.trim()}
         >

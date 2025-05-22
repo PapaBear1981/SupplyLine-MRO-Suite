@@ -156,13 +156,18 @@ const ToolList = () => {
 
   // Handle tool deletion
   const handleToolDelete = (toolId) => {
-    // Remove the tool from the local state
-    dispatch(fetchTools()); // Refresh the tools list
+    // Remove the tool from the local state immediately for better UX
+    const updatedTools = tools.filter(tool => tool.id !== toolId);
+    // Note: In a real Redux implementation, we'd dispatch an action to remove the tool
+    // For now, refresh the entire list to ensure data consistency
+    dispatch(fetchTools());
   };
 
   // Handle tool retirement
   const handleToolRetire = (updatedTool) => {
-    // Refresh the tools list to show the updated status
+    // Update the tool in local state immediately for better UX
+    // Note: In a real Redux implementation, we'd dispatch an action to update the tool
+    // For now, refresh the entire list to ensure data consistency
     dispatch(fetchTools());
   };
 

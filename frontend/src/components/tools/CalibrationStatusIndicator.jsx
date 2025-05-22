@@ -1,9 +1,9 @@
 import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faCheckCircle, 
-  faExclamationTriangle, 
-  faClock, 
+import {
+  faCheckCircle,
+  faExclamationTriangle,
+  faClock,
   faTimesCircle,
   faCertificate
 } from '@fortawesome/free-solid-svg-icons';
@@ -39,25 +39,31 @@ const CalibrationStatusIndicator = ({ tool, showText = true, size = 'sm' }) => {
           text: 'Current',
           tooltip: `Calibration is current. ${nextCalDate ? `Next due: ${nextCalDate.toLocaleDateString()}` : ''}`
         };
-      
-      case 'due_soon':
-        const daysUntilDue = nextCalDate ? Math.ceil((nextCalDate - now) / (1000 * 60 * 60 * 24)) : null;
+
+      case 'due_soon': {
+        const daysUntilDue = nextCalDate
+          ? Math.max(0, Math.ceil((nextCalDate - now) / (1000 * 60 * 60 * 24)))
+          : null; // prevent negative values
         return {
           variant: 'warning',
           icon: faClock,
           text: daysUntilDue ? `Due in ${daysUntilDue}d` : 'Due Soon',
           tooltip: `Calibration due soon. ${nextCalDate ? `Due date: ${nextCalDate.toLocaleDateString()}` : ''}`
         };
-      
-      case 'overdue':
-        const daysOverdue = nextCalDate ? Math.ceil((now - nextCalDate) / (1000 * 60 * 60 * 24)) : null;
+      }
+
+      case 'overdue': {
+        const daysOverdue = nextCalDate
+          ? Math.max(1, Math.ceil((now - nextCalDate) / (1000 * 60 * 60 * 24)))
+          : null;
         return {
           variant: 'danger',
           icon: faExclamationTriangle,
           text: daysOverdue ? `${daysOverdue}d overdue` : 'Overdue',
           tooltip: `Calibration is overdue! ${nextCalDate ? `Was due: ${nextCalDate.toLocaleDateString()}` : ''}`
         };
-      
+      }
+
       case 'never_calibrated':
         return {
           variant: 'warning',
@@ -65,7 +71,7 @@ const CalibrationStatusIndicator = ({ tool, showText = true, size = 'sm' }) => {
           text: 'Never Cal.',
           tooltip: 'This tool has never been calibrated and requires initial calibration'
         };
-      
+
       default:
         return {
           variant: 'secondary',
@@ -91,8 +97,8 @@ const CalibrationStatusIndicator = ({ tool, showText = true, size = 'sm' }) => {
 
   return (
     <OverlayTrigger placement="top" overlay={tooltip}>
-      <Badge 
-        bg={statusInfo.variant} 
+      <Badge
+        bg={statusInfo.variant}
         className={`calibration-status-badge ${size} ${statusInfo.variant === 'danger' ? 'pulse' : ''}`}
       >
         <FontAwesomeIcon icon={statusInfo.icon} className={showText ? "me-1" : ""} />

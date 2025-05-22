@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Row, Col, Button, Table, Badge, Tabs, Tab, Alert } from 'react-bootstrap';
 import { fetchToolById } from '../../store/toolsSlice';
@@ -23,6 +23,7 @@ import { useHelp } from '../../context/HelpContext';
 const ToolDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { currentTool, loading: toolLoading } = useSelector((state) => state.tools);
   const { checkoutHistory, loading: historyLoading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
@@ -65,7 +66,7 @@ const ToolDetail = () => {
   // Handle tool deletion
   const handleToolDelete = () => {
     // Navigate back to tools list after deletion
-    window.location.href = '/tools';
+    navigate('/tools');
   };
 
   // Handle tool retirement
