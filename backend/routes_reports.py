@@ -1,9 +1,27 @@
 from flask import request, jsonify, session
+from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout, AuditLog
 from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
-from datetime import datetime, timedelta
+
+def calculate_date_range(timeframe):
+    """Calculate start date based on timeframe parameter."""
+    now = datetime.now()
+    if timeframe == 'day':
+        return now - timedelta(days=1)
+    elif timeframe == 'week':
+        return now - timedelta(weeks=1)
+    elif timeframe == 'month':
+        return now - timedelta(days=30)
+    elif timeframe == 'quarter':
+        return now - timedelta(days=90)
+    elif timeframe == 'year':
+        return now - timedelta(days=365)
+    elif timeframe == 'all':
+        return datetime(1970, 1, 1)  # Beginning of time for database purposes
+    else:
+        return now - timedelta(days=30)  # Default to month
 from sqlalchemy import func, extract
 from functools import wraps
 
@@ -401,21 +419,7 @@ def register_report_routes(app):
                 return jsonify(result), 200
 
             # Calculate date range based on timeframe
-            now = datetime.now()
-            if timeframe == 'day':
-                start_date = now - timedelta(days=1)
-            elif timeframe == 'week':
-                start_date = now - timedelta(weeks=1)
-            elif timeframe == 'month':
-                start_date = now - timedelta(days=30)
-            elif timeframe == 'quarter':
-                start_date = now - timedelta(days=90)
-            elif timeframe == 'year':
-                start_date = now - timedelta(days=365)
-            elif timeframe == 'all':
-                start_date = datetime(1970, 1, 1)
-            else:
-                start_date = now - timedelta(days=30)
+            start_date = calculate_date_range(timeframe)
 
             # Get all cycle count results within the timeframe
             query = CycleCountResult.query.filter(CycleCountResult.counted_at >= start_date)
@@ -526,21 +530,7 @@ def register_report_routes(app):
             location = request.args.get('location')
 
             # Calculate date range based on timeframe
-            now = datetime.now()
-            if timeframe == 'day':
-                start_date = now - timedelta(days=1)
-            elif timeframe == 'week':
-                start_date = now - timedelta(weeks=1)
-            elif timeframe == 'month':
-                start_date = now - timedelta(days=30)
-            elif timeframe == 'quarter':
-                start_date = now - timedelta(days=90)
-            elif timeframe == 'year':
-                start_date = now - timedelta(days=365)
-            elif timeframe == 'all':
-                start_date = datetime(1970, 1, 1)
-            else:
-                start_date = now - timedelta(days=30)
+            start_date = calculate_date_range(timeframe)
 
             # Get all discrepancy results within the timeframe
             query = CycleCountResult.query.filter(
@@ -555,9 +545,8 @@ def register_report_routes(app):
             if location:
                 query = query.filter(CycleCountItem.expected_location.ilike(f'%{location}%'))
 
-            query.order_by(CycleCountResult.counted_at.desc()).all()
-
-            # Format response with empty data
+            # TODO: Complete implementation to include actual discrepancies data from query
+            # For now, return empty data structure
             result = {
                 'discrepancies': [],
                 'summary': {
@@ -612,21 +601,7 @@ def register_report_routes(app):
             timeframe = request.args.get('timeframe', 'month')
 
             # Calculate date range based on timeframe
-            now = datetime.now()
-            if timeframe == 'day':
-                start_date = now - timedelta(days=1)
-            elif timeframe == 'week':
-                start_date = now - timedelta(weeks=1)
-            elif timeframe == 'month':
-                start_date = now - timedelta(days=30)
-            elif timeframe == 'quarter':
-                start_date = now - timedelta(days=90)
-            elif timeframe == 'year':
-                start_date = now - timedelta(days=365)
-            elif timeframe == 'all':
-                start_date = datetime(1970, 1, 1)
-            else:
-                start_date = now - timedelta(days=30)
+            start_date = calculate_date_range(timeframe)
 
             # Get all batches within the timeframe
             batches = CycleCountBatch.query.filter(
@@ -774,26 +749,13 @@ def register_report_routes(app):
                     'trends': []
                 }
                 return jsonify(result), 200
+
             # Get filter parameters
             timeframe = request.args.get('timeframe', 'month')
             item_type = request.args.get('item_type', 'tool')  # tool or chemical
 
             # Calculate date range based on timeframe
-            now = datetime.now()
-            if timeframe == 'day':
-                start_date = now - timedelta(days=1)
-            elif timeframe == 'week':
-                start_date = now - timedelta(weeks=1)
-            elif timeframe == 'month':
-                start_date = now - timedelta(days=30)
-            elif timeframe == 'quarter':
-                start_date = now - timedelta(days=90)
-            elif timeframe == 'year':
-                start_date = now - timedelta(days=365)
-            elif timeframe == 'all':
-                start_date = datetime(1970, 1, 1)
-            else:
-                start_date = now - timedelta(days=30)
+            start_date = calculate_date_range(timeframe)
 
             # Get total inventory count based on item type
             if item_type == 'tool':
@@ -817,16 +779,22 @@ def register_report_routes(app):
             coverage_count = len(counted_item_ids)
             coverage_rate = (coverage_count / total_inventory * 100) if total_inventory > 0 else 0
 
+            # Get last count dates for all items in a single query
+            last_counts = {}
+            all_last_counts = db.session.query(
+                CycleCountItem.item_id,
+                func.max(CycleCountResult.counted_at).label('last_counted')
+            ).join(CycleCountResult).filter(
+                CycleCountItem.item_type == item_type
+            ).group_by(CycleCountItem.item_id).all()
+
+            for item_id, last_counted in all_last_counts:
+                last_counts[item_id] = last_counted
+
             # Get items that haven't been counted recently
             uncounted_items = []
             for item in inventory_items:
                 if item.id not in counted_item_ids:
-                    # Check when this item was last counted
-                    last_count = db.session.query(CycleCountResult.counted_at).join(CycleCountItem).filter(
-                        CycleCountItem.item_type == item_type,
-                        CycleCountItem.item_id == item.id
-                    ).order_by(CycleCountResult.counted_at.desc()).first()
-
                     uncounted_items.append({
                         'id': item.id,
                         'number': getattr(item, 'tool_number', 'N/A'),
@@ -834,7 +802,7 @@ def register_report_routes(app):
                         'description': item.description,
                         'location': getattr(item, 'location', 'Unknown'),
                         'category': getattr(item, 'category', 'General'),
-                        'last_counted': last_count[0].isoformat() if last_count else None
+                        'last_counted': last_counts.get(item.id).isoformat() if last_counts.get(item.id) else None
                     })
 
             # Sort uncounted items by last counted date (oldest first)
