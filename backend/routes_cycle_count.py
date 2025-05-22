@@ -1,11 +1,10 @@
 from flask import request, jsonify, session
-from models import db, Tool, User, Checkout, AuditLog, Chemical
+from models import db, Tool, Checkout, AuditLog, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
     CycleCountResult, CycleCountAdjustment
 )
-from datetime import datetime, timedelta
-from sqlalchemy import func, extract, or_
+from datetime import datetime
 from functools import wraps
 import random
 

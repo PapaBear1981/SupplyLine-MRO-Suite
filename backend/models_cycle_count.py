@@ -1,6 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from models import db, User, Tool, Chemical
+from models import db, Tool, Chemical
 
 class CycleCountSchedule(db.Model):
     __tablename__ = 'cycle_count_schedules'
@@ -102,7 +101,7 @@ class CycleCountItem(db.Model):
         item_details = None
         if self.item_type == 'tool':
             tool = Tool.query.get(self.item_id)
-            if tool:
+            if tool is not None:
                 item_details = {
                     'id': tool.id,
                     'number': tool.tool_number,
@@ -112,9 +111,11 @@ class CycleCountItem(db.Model):
                     'category': tool.category,
                     'status': tool.status
                 }
+            else:
+                item_details = {'error': 'Tool not found'}
         elif self.item_type == 'chemical':
             chemical = Chemical.query.get(self.item_id)
-            if chemical:
+            if chemical is not None:
                 item_details = {
                     'id': chemical.id,
                     'part_number': chemical.part_number,
@@ -126,6 +127,8 @@ class CycleCountItem(db.Model):
                     'category': chemical.category,
                     'status': chemical.status
                 }
+            else:
+                item_details = {'error': 'Chemical not found'}
 
         data = {
             'id': self.id,
