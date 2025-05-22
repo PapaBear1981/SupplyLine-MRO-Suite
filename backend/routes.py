@@ -242,7 +242,7 @@ def register_routes(app):
         """
         print("Time API endpoint called!")  # Debug log
         try:
-            from backend.time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
+            from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
             result = {
                 'status': 'ok',
                 'utc_time': format_datetime(get_utc_timestamp()),
@@ -262,6 +262,40 @@ def register_routes(app):
                 'using_time_utils': False
             }
             print(f"Time API endpoint fallback returning: {result}")  # Debug log
+            return jsonify(result)
+
+    # Time test endpoint
+    @app.route('/api/time-test', methods=['GET'])
+    def time_test_endpoint():
+        """
+        Time test endpoint for debugging time functionality.
+        """
+        print("Time test endpoint called!")  # Debug log
+        try:
+            from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
+            result = {
+                'status': 'ok',
+                'message': 'Time test endpoint working',
+                'utc_time': format_datetime(get_utc_timestamp()),
+                'local_time': format_datetime(get_local_timestamp()),
+                'timezone': str(time.tzname),
+                'using_time_utils': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            print(f"Time test endpoint returning: {result}")  # Debug log
+            return jsonify(result)
+        except ImportError as e:
+            print(f"Error importing time_utils in time_test_endpoint: {str(e)}")
+            result = {
+                'status': 'ok',
+                'message': 'Time test endpoint working (fallback)',
+                'utc_time': datetime.now(timezone.utc).isoformat(),
+                'local_time': datetime.now().isoformat(),
+                'timezone': str(time.tzname),
+                'using_time_utils': False,
+                'timestamp': datetime.now().isoformat()
+            }
+            print(f"Time test endpoint fallback returning: {result}")  # Debug log
             return jsonify(result)
 
     # Test endpoint for admin dashboard
@@ -402,7 +436,7 @@ def register_routes(app):
         # Get system activity over time (last 30 days)
         from sqlalchemy import func
 
-        start_date = datetime.utcnow() - timedelta(days=30)
+        start_date = datetime.now() - timedelta(days=30)
 
         # Get activity counts by day
         daily_activity = db.session.query(
@@ -457,6 +491,7 @@ def register_routes(app):
     @admin_required
     def get_system_resources():
         """Get real-time system resource usage statistics"""
+        print("System resources endpoint called")  # Debug log
         try:
             # Get database size (approximate based on number of records)
             db_size_mb = 0
@@ -477,7 +512,7 @@ def register_routes(app):
                 total_records = 0  # Ensure it's defined in case of exception
 
             # Get active user sessions (approximate based on recent activity)
-            now = datetime.utcnow()
+            now = datetime.now()
             five_minutes_ago = now - timedelta(minutes=5)
 
             # Count users with activity in the last 5 minutes
@@ -530,6 +565,11 @@ def register_routes(app):
                 print(f"Server uptime: {uptime_str}")
 
                 print("Using real system resource data from psutil")
+
+                # Ensure all values are properly formatted numbers
+                cpu_usage = round(float(cpu_usage), 1)
+                memory_usage = round(float(memory_usage), 1)
+                disk_usage = round(float(disk_usage), 1)
             except ImportError as e:
                 print(f"ImportError: {str(e)}")
                 print("psutil module not available. Using mock data for system resources.")
@@ -577,7 +617,8 @@ def register_routes(app):
                 uptime_str = "3d 7h 22m"
                 print(f"Mock server uptime: {uptime_str}")
 
-            return jsonify({
+            # Prepare the response data
+            response_data = {
                 'cpu': {
                     'usage': cpu_usage,
                     'cores': cpu_cores
@@ -600,8 +641,11 @@ def register_routes(app):
                     'uptime': uptime_str,
                     'active_users': active_sessions
                 },
-                'timestamp': datetime.utcnow().isoformat()
-            }), 200
+                'timestamp': datetime.now().isoformat()
+            }
+
+            print(f"System resources response data: {response_data}")  # Debug log
+            return jsonify(response_data), 200
 
         except Exception as e:
             print(f"Error getting system resources: {str(e)}")
@@ -1404,7 +1448,7 @@ def register_routes(app):
         timeframe = request.args.get('timeframe', 'week')
 
         # Calculate date range based on timeframe
-        now = datetime.utcnow()
+        now = datetime.now()
         if timeframe == 'day':
             start_date = now - timedelta(days=1)
         elif timeframe == 'week':
