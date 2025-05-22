@@ -1,6 +1,6 @@
 from flask import request, jsonify, session
 from datetime import datetime, timedelta
-from models import db, Tool, User, Checkout, AuditLog
+from models import db, Tool, User, Checkout
 from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
@@ -758,14 +758,14 @@ def register_report_routes(app):
             start_date = calculate_date_range(timeframe)
 
             # Get total inventory count based on item type
-            if item_type == 'tool':
-                total_inventory = Tool.query.count()
-                inventory_items = Tool.query.all()
-            else:
-                # For chemicals, we would need to import Chemical model
-                # For now, assume tools only
-                total_inventory = Tool.query.count()
-                inventory_items = Tool.query.all()
+            if item_type != 'tool':
+                # Currently only tools are supported
+                return jsonify({
+                    'error': f'Unsupported item_type: {item_type}. Only "tool" is currently supported.'
+                }), 400
+
+            total_inventory = Tool.query.count()
+            inventory_items = Tool.query.all()
 
             # Get items that have been counted within the timeframe
             counted_items = db.session.query(

@@ -32,7 +32,12 @@ const CycleCountCoverageReport = ({ data }) => {
     );
   }
 
-  const { summary, uncounted_items, by_location, trends } = data;
+  const {
+    summary = {},
+    uncounted_items = [],
+    by_location = [],
+    trends = [],
+  } = data;
 
   // Chart data for coverage trends
   const trendChartData = {
@@ -67,22 +72,20 @@ const CycleCountCoverageReport = ({ data }) => {
   };
 
   // Chart data for location coverage
+  const colors = by_location.map(l =>
+    l.coverage_rate >= 80 ? { bg: 'rgba(34, 197, 94, 0.8)', border: 'rgb(34, 197, 94)' } :
+    l.coverage_rate >= 50 ? { bg: 'rgba(251, 191, 36, 0.8)', border: 'rgb(251, 191, 36)' } :
+    { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgb(239, 68, 68)' }
+  );
+
   const locationChartData = {
     labels: by_location.map(l => l.location),
     datasets: [
       {
         label: 'Coverage Rate (%)',
         data: by_location.map(l => l.coverage_rate),
-        backgroundColor: by_location.map(l => 
-          l.coverage_rate >= 80 ? 'rgba(34, 197, 94, 0.8)' :
-          l.coverage_rate >= 50 ? 'rgba(251, 191, 36, 0.8)' :
-          'rgba(239, 68, 68, 0.8)'
-        ),
-        borderColor: by_location.map(l => 
-          l.coverage_rate >= 80 ? 'rgb(34, 197, 94)' :
-          l.coverage_rate >= 50 ? 'rgb(251, 191, 36)' :
-          'rgb(239, 68, 68)'
-        ),
+        backgroundColor: colors.map(c => c.bg),
+        borderColor: colors.map(c => c.border),
         borderWidth: 1,
       },
     ],
@@ -171,10 +174,10 @@ const CycleCountCoverageReport = ({ data }) => {
           <h5>Overall Coverage Progress</h5>
         </Card.Header>
         <Card.Body>
-          <ProgressBar 
-            now={summary.coverage_rate} 
+          <ProgressBar
+            now={summary.coverage_rate}
             label={`${summary.coverage_rate}%`}
-            variant={summary.coverage_rate >= 80 ? 'success' : 
+            variant={summary.coverage_rate >= 80 ? 'success' :
                     summary.coverage_rate >= 50 ? 'warning' : 'danger'}
             style={{ height: '30px', fontSize: '16px' }}
           />
@@ -200,7 +203,7 @@ const CycleCountCoverageReport = ({ data }) => {
             </Card>
           </Col>
         )}
-        
+
         {by_location.length > 0 && (
           <Col md={4}>
             <Card>
@@ -240,10 +243,10 @@ const CycleCountCoverageReport = ({ data }) => {
                     <td>{location.counted_items}</td>
                     <td>
                       <div>
-                        <ProgressBar 
-                          now={location.coverage_rate} 
+                        <ProgressBar
+                          now={location.coverage_rate}
                           label={`${location.coverage_rate}%`}
-                          variant={location.coverage_rate >= 80 ? 'success' : 
+                          variant={location.coverage_rate >= 80 ? 'success' :
                                   location.coverage_rate >= 50 ? 'warning' : 'danger'}
                           style={{ height: '20px' }}
                         />
@@ -289,10 +292,13 @@ const CycleCountCoverageReport = ({ data }) => {
               </thead>
               <tbody>
                 {uncounted_items.map((item, index) => {
-                  const daysSince = item.last_counted ? 
-                    Math.ceil((new Date() - new Date(item.last_counted)) / (1000 * 60 * 60 * 24)) : 
-                    999;
-                  
+                  const daysSince = item.last_counted
+                    ? Math.ceil(
+                        (Date.now() - new Date(item.last_counted).getTime()) /
+                        (1000 * 60 * 60 * 24)
+                      )
+                    : 999;
+
                   return (
                     <tr key={index}>
                       <td>
@@ -313,7 +319,7 @@ const CycleCountCoverageReport = ({ data }) => {
                           {formatDate(item.last_counted)}
                           <br />
                           <small className="text-muted">
-                            {getDaysSinceLastCount(item.last_counted)}
+                            {daysSince === 999 ? 'Never counted' : `${daysSince} days ago`}
                           </small>
                         </div>
                       </td>

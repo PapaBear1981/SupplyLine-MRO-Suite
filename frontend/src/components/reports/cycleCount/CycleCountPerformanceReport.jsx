@@ -74,12 +74,13 @@ const CycleCountPerformanceReport = ({ data }) => {
   };
 
   // Chart data for user performance
+  const topUsers = user_performance.slice(0, 10);
   const userChartData = {
-    labels: user_performance.slice(0, 10).map(u => u.name),
+    labels: topUsers.map(u => u.name),
     datasets: [
       {
         label: 'Counts Performed',
-        data: user_performance.slice(0, 10).map(u => u.counts_performed),
+        data: topUsers.map(u => u.counts_performed),
         backgroundColor: 'rgba(59, 130, 246, 0.8)',
         borderColor: 'rgb(59, 130, 246)',
         borderWidth: 1,
@@ -110,7 +111,11 @@ const CycleCountPerformanceReport = ({ data }) => {
       case 'completed': return 'success';
       case 'in_progress': return 'primary';
       case 'pending': return 'warning';
-      default: return 'secondary';
+      case 'failed': return 'danger';
+      case 'archived': return 'dark';
+      default:
+        console.warn(`Unknown status: ${status}`);
+        return 'secondary';
     }
   };
 
@@ -150,7 +155,7 @@ const CycleCountPerformanceReport = ({ data }) => {
           <Card className="text-center">
             <Card.Body>
               <h3 className="text-warning">
-                {summary.total_batches > 0 ? 
+                {summary.total_batches > 0 ?
                   Math.round((summary.completed_batches / summary.total_batches) * 100) : 0}%
               </h3>
               <p className="mb-0">Completion Rate</p>
@@ -173,7 +178,7 @@ const CycleCountPerformanceReport = ({ data }) => {
             </Card>
           </Col>
         )}
-        
+
         {user_performance.length > 0 && (
           <Col md={4}>
             <Card>
@@ -222,10 +227,10 @@ const CycleCountPerformanceReport = ({ data }) => {
                     </td>
                     <td>
                       <div>
-                        <ProgressBar 
-                          now={batch.completion_rate} 
+                        <ProgressBar
+                          now={batch.completion_rate}
                           label={`${batch.completion_rate}%`}
-                          variant={batch.completion_rate === 100 ? 'success' : 
+                          variant={batch.completion_rate === 100 ? 'success' :
                                   batch.completion_rate >= 50 ? 'primary' : 'warning'}
                         />
                         <small className="text-muted">
@@ -236,8 +241,8 @@ const CycleCountPerformanceReport = ({ data }) => {
                     <td>{formatDate(batch.start_date)}</td>
                     <td>{formatDate(batch.end_date)}</td>
                     <td>
-                      {batch.completion_time_days ? 
-                        `${batch.completion_time_days} days` : 
+                      {batch.completion_time_days ?
+                        `${batch.completion_time_days} days` :
                         'In Progress'}
                     </td>
                     <td>{batch.created_by}</td>
