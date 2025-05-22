@@ -5,45 +5,51 @@ import { submitCountResult } from '../../../store/cycleCountSlice';
 
 const MobileCycleCountItem = ({ item, onComplete }) => {
   const dispatch = useDispatch();
-  
+
   const [formData, setFormData] = useState({
     actual_quantity: item.expected_quantity,
     actual_location: item.expected_location,
     condition: '',
     notes: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [validated, setValidated] = useState(false);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'actual_quantity' ? parseFloat(value) || 0 : value
+      [name]: value
     }));
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const form = e.currentTarget;
     if (!form.checkValidity()) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
+      // Create a copy of form data with parsed quantity
+      const submissionData = {
+        ...formData,
+        actual_quantity: parseFloat(formData.actual_quantity) || 0
+      };
+
       await dispatch(submitCountResult({
         itemId: item.id,
-        resultData: formData
+        resultData: submissionData
       })).unwrap();
-      
+
       if (onComplete) {
         onComplete(item.id);
       }
@@ -53,7 +59,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
       setLoading(false);
     }
   };
-  
+
   // Helper function to get item details
   const getItemDetails = () => {
     if (item.item_type === 'tool') {
@@ -71,7 +77,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
         showCondition: false
       };
     }
-    
+
     return {
       title: 'Unknown Item',
       description: 'No description available',
@@ -79,9 +85,9 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
       showCondition: false
     };
   };
-  
+
   const itemDetails = getItemDetails();
-  
+
   return (
     <Card className="mb-3">
       <Card.Header className="d-flex justify-content-between align-items-center">
@@ -94,13 +100,13 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
       </Card.Header>
       <Card.Body>
         <p>{itemDetails.description}</p>
-        
+
         {error && (
           <Alert variant="danger" className="mb-3">
             {error}
           </Alert>
         )}
-        
+
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Expected Location</Form.Label>
@@ -111,7 +117,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               className="bg-light"
             />
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Expected Quantity</Form.Label>
             <Form.Control
@@ -121,9 +127,9 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               className="bg-light"
             />
           </Form.Group>
-          
+
           <hr />
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Actual Location</Form.Label>
             <Form.Control
@@ -137,7 +143,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               Please enter the actual location
             </Form.Control.Feedback>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Actual Quantity</Form.Label>
             <Form.Control
@@ -152,7 +158,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               Please enter the actual quantity
             </Form.Control.Feedback>
           </Form.Group>
-          
+
           {itemDetails.showCondition && (
             <Form.Group className="mb-3">
               <Form.Label>Condition</Form.Label>
@@ -170,7 +176,7 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               </Form.Select>
             </Form.Group>
           )}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Notes</Form.Label>
             <Form.Control
@@ -182,11 +188,11 @@ const MobileCycleCountItem = ({ item, onComplete }) => {
               placeholder="Add any notes about this item..."
             />
           </Form.Group>
-          
+
           <div className="d-grid">
-            <Button 
-              type="submit" 
-              variant="primary" 
+            <Button
+              type="submit"
+              variant="primary"
               disabled={loading}
               className="py-2"
             >

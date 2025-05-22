@@ -41,7 +41,6 @@ const ReportingPage = () => {
   const [activeTab, setActiveTab] = useState('standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
   const [calibrationReportsTab, setCalibrationReportsTab] = useState('due');
-  const [cycleCountReportsTab, setCycleCountReportsTab] = useState('accuracy');
   const { showTooltips, showHelp } = useHelp();
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';

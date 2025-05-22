@@ -740,9 +740,15 @@ def register_cycle_count_routes(app):
                 if not assignment.get('item_id') or not assignment.get('user_id'):
                     continue
 
-                # Get item
-                item = CycleCountItem.query.get(assignment.get('item_id'))
+                # Validate item
+                item = CycleCountItem.query.get(assignment["item_id"])
                 if not item or item.batch_id != batch.id:
+                    continue
+
+                # Validate user
+                assignee = User.query.get(assignment["user_id"])
+                if not assignee or getattr(assignee, 'is_disabled', False):
+                    # Skip invalid users instead of committing bad data
                     continue
 
                 # Assign user
@@ -753,9 +759,6 @@ def register_cycle_count_routes(app):
                 if user_id not in assignments_by_user:
                     assignments_by_user[user_id] = []
                 assignments_by_user[user_id].append(item)
-
-            # Save to database
-            db.session.commit()
 
             # Create notifications for assigned users
             for user_id, items in assignments_by_user.items():
@@ -775,7 +778,7 @@ def register_cycle_count_routes(app):
                 action_details=f"Items assigned for batch {id}"
             )
             db.session.add(log)
-            db.session.commit()
+            db.session.commit()   # <-- one and only commit
 
             # Return success
             return jsonify({'message': 'Items assigned successfully'}), 200
