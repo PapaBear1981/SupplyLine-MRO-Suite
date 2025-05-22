@@ -17,6 +17,7 @@ from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
+from routes_cycle_count import register_cycle_count_routes
 from utils import validate_password_strength
 
 # Decorator to check if user is admin or in Materials department
@@ -113,6 +114,9 @@ def register_routes(app):
 
     # Register scanner routes
     register_scanner_routes(app)
+
+    # Register cycle count routes
+    register_cycle_count_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
