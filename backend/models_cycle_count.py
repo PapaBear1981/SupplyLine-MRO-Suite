@@ -13,11 +13,11 @@ class CycleCountSchedule(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
+
     # Relationships
     creator = db.relationship('User', foreign_keys=[created_by])
     batches = db.relationship('CycleCountBatch', backref='schedule', lazy=True)
-    
+
     def to_dict(self, include_batches=False):
         data = {
             'id': self.id,
@@ -31,10 +31,10 @@ class CycleCountSchedule(db.Model):
             'updated_at': self.updated_at.isoformat(),
             'is_active': self.is_active
         }
-        
+
         if include_batches:
             data['batches'] = [batch.to_dict() for batch in self.batches]
-            
+
         return data
 
 class CycleCountBatch(db.Model):
@@ -42,18 +42,22 @@ class CycleCountBatch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     schedule_id = db.Column(db.Integer, db.ForeignKey('cycle_count_schedules.id'), nullable=True)
     name = db.Column(db.String, nullable=False)
-    status = db.Column(db.String, nullable=False)  # pending, in_progress, completed, cancelled
+    status = db.Column(
+        db.String,
+        nullable=False,
+        default='pending'
+    )  # pending, in_progress, completed, cancelled
     start_date = db.Column(db.DateTime)
     end_date = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     notes = db.Column(db.String)
-    
+
     # Relationships
     creator = db.relationship('User', foreign_keys=[created_by])
     items = db.relationship('CycleCountItem', backref='batch', lazy=True)
-    
+
     def to_dict(self, include_items=False):
         data = {
             'id': self.id,
@@ -70,10 +74,10 @@ class CycleCountBatch(db.Model):
             'item_count': len(self.items) if self.items else 0,
             'completed_count': sum(1 for item in self.items if item.status == 'counted') if self.items else 0
         }
-        
+
         if include_items:
             data['items'] = [item.to_dict() for item in self.items]
-            
+
         return data
 
 class CycleCountItem(db.Model):
@@ -88,11 +92,11 @@ class CycleCountItem(db.Model):
     status = db.Column(db.String, nullable=False)  # pending, counted, skipped
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     assignee = db.relationship('User', foreign_keys=[assigned_to])
     results = db.relationship('CycleCountResult', backref='item', lazy=True)
-    
+
     def to_dict(self, include_results=False):
         # Get the actual item (tool or chemical)
         item_details = None
@@ -122,7 +126,7 @@ class CycleCountItem(db.Model):
                     'category': chemical.category,
                     'status': chemical.status
                 }
-        
+
         data = {
             'id': self.id,
             'batch_id': self.batch_id,
@@ -137,10 +141,10 @@ class CycleCountItem(db.Model):
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
-        
+
         if include_results:
             data['results'] = [result.to_dict() for result in self.results]
-            
+
         return data
 
 class CycleCountResult(db.Model):
@@ -156,11 +160,11 @@ class CycleCountResult(db.Model):
     has_discrepancy = db.Column(db.Boolean, default=False)
     discrepancy_type = db.Column(db.String)  # quantity, location, condition, missing, extra
     discrepancy_notes = db.Column(db.String)
-    
+
     # Relationships
     counter = db.relationship('User', foreign_keys=[counted_by])
     adjustments = db.relationship('CycleCountAdjustment', backref='result', lazy=True)
-    
+
     def to_dict(self, include_adjustments=False):
         data = {
             'id': self.id,
@@ -176,10 +180,10 @@ class CycleCountResult(db.Model):
             'discrepancy_type': self.discrepancy_type,
             'discrepancy_notes': self.discrepancy_notes
         }
-        
+
         if include_adjustments:
             data['adjustments'] = [adjustment.to_dict() for adjustment in self.adjustments]
-            
+
         return data
 
 class CycleCountAdjustment(db.Model):
@@ -192,10 +196,10 @@ class CycleCountAdjustment(db.Model):
     old_value = db.Column(db.String)
     new_value = db.Column(db.String)
     notes = db.Column(db.String)
-    
+
     # Relationships
     approver = db.relationship('User', foreign_keys=[approved_by])
-    
+
     def to_dict(self):
         return {
             'id': self.id,

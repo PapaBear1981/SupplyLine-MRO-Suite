@@ -89,7 +89,11 @@ def generate_batch_items(batch_id, data):
 
             # B items - include 50%
             b_tools = sorted_tools[a_count:a_count+b_count]
-            b_sample = random.sample(b_tools, max(1, int(len(b_tools) * 0.5)))
+            if b_tools:
+                sample_size = max(1, int(len(b_tools) * 0.5))
+                b_sample = random.sample(b_tools, min(sample_size, len(b_tools)))
+            else:
+                b_sample = []
             for tool in b_sample:
                 items_to_add.append({
                     'batch_id': batch_id,
@@ -102,7 +106,11 @@ def generate_batch_items(batch_id, data):
 
             # C items - include 20%
             c_tools = sorted_tools[a_count+b_count:]
-            c_sample = random.sample(c_tools, max(1, int(len(c_tools) * 0.2)))
+            if c_tools:
+                sample_size = max(1, int(len(c_tools) * 0.2))
+                c_sample = random.sample(c_tools, min(sample_size, len(c_tools)))
+            else:
+                c_sample = []
             for tool in c_sample:
                 items_to_add.append({
                     'batch_id': batch_id,
@@ -115,7 +123,9 @@ def generate_batch_items(batch_id, data):
 
         elif method == 'random':
             # Random sampling
-            if sample_size and sample_size < len(tools):
+            if len(tools) == 0:
+                sampled_tools = []
+            elif sample_size and sample_size < len(tools):
                 # Take a random sample of specified size
                 sampled_tools = random.sample(tools, sample_size)
             elif sample_percentage:
@@ -198,7 +208,11 @@ def generate_batch_items(batch_id, data):
 
             # B items - include 50%
             b_chemicals = sorted_chemicals[a_count:a_count+b_count]
-            b_sample = random.sample(b_chemicals, max(1, int(len(b_chemicals) * 0.5)))
+            if b_chemicals:
+                sample_size = max(1, int(len(b_chemicals) * 0.5))
+                b_sample = random.sample(b_chemicals, min(sample_size, len(b_chemicals)))
+            else:
+                b_sample = []
             for chemical in b_sample:
                 items_to_add.append({
                     'batch_id': batch_id,
@@ -211,7 +225,11 @@ def generate_batch_items(batch_id, data):
 
             # C items - include 20%
             c_chemicals = sorted_chemicals[a_count+b_count:]
-            c_sample = random.sample(c_chemicals, max(1, int(len(c_chemicals) * 0.2)))
+            if c_chemicals:
+                sample_size = max(1, int(len(c_chemicals) * 0.2))
+                c_sample = random.sample(c_chemicals, min(sample_size, len(c_chemicals)))
+            else:
+                c_sample = []
             for chemical in c_sample:
                 items_to_add.append({
                     'batch_id': batch_id,
@@ -224,7 +242,9 @@ def generate_batch_items(batch_id, data):
 
         elif method == 'random':
             # Random sampling
-            if sample_size and sample_size < len(chemicals):
+            if len(chemicals) == 0:
+                sampled_chemicals = []
+            elif sample_size and sample_size < len(chemicals):
                 # Take a random sample of specified size
                 sampled_chemicals = random.sample(chemicals, sample_size)
             elif sample_percentage:
@@ -458,7 +478,7 @@ def register_cycle_count_routes(app):
         try:
             # Get query parameters
             status = request.args.get('status')
-            schedule_id = request.args.get('schedule_id')
+            schedule_id = request.args.get('schedule_id', type=int)
 
             # Build query
             query = CycleCountBatch.query
