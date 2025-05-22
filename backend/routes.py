@@ -229,9 +229,20 @@ def register_routes(app):
     # Time API endpoint
     @app.route('/api/time', methods=['GET'])
     def time_api_endpoint():
+        """
+        Time API endpoint that returns current time information.
+
+        Returns:
+            JSON response containing:
+            - status: 'ok' if successful
+            - utc_time: Current UTC time in ISO 8601 format
+            - local_time: Current local time in ISO 8601 format
+            - timezone: System timezone information
+            - using_time_utils: Boolean indicating if time utilities are being used
+        """
         print("Time API endpoint called!")  # Debug log
         try:
-            from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
+            from backend.time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
             result = {
                 'status': 'ok',
                 'utc_time': format_datetime(get_utc_timestamp()),
@@ -245,7 +256,7 @@ def register_routes(app):
             print(f"Error importing time_utils in time_api_endpoint: {str(e)}")
             result = {
                 'status': 'ok',
-                'utc_time': datetime.now().isoformat(),
+                'utc_time': datetime.now(timezone.utc).isoformat(),
                 'local_time': datetime.now().isoformat(),
                 'timezone': str(time.tzname),
                 'using_time_utils': False
