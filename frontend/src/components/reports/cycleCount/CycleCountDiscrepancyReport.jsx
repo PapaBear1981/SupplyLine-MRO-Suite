@@ -32,7 +32,11 @@ const CycleCountDiscrepancyReport = ({ data }) => {
     );
   }
 
-  const { discrepancies, summary, trends } = data;
+  const {
+    discrepancies = [],
+    summary      = { by_type: [], total_discrepancies: 0 },
+    trends       = [],
+  } = data ?? {};
 
   // Chart data for discrepancy trends
   const trendChartData = {
@@ -116,8 +120,8 @@ const CycleCountDiscrepancyReport = ({ data }) => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString() + ' ' + 
-           new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const d = new Date(dateString);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   return (
@@ -156,7 +160,7 @@ const CycleCountDiscrepancyReport = ({ data }) => {
             </Card>
           </Col>
         )}
-        
+
         {summary.by_type.length > 0 && (
           <Col md={4}>
             <Card>
@@ -192,8 +196,8 @@ const CycleCountDiscrepancyReport = ({ data }) => {
                 </tr>
               </thead>
               <tbody>
-                {discrepancies.slice(0, 50).map((discrepancy, index) => (
-                  <tr key={index}>
+                {discrepancies.slice(0, 50).map((discrepancy) => (
+                  <tr key={discrepancy.id || `${discrepancy.item_id}-${discrepancy.counted_at}`}>
                     <td>
                       <div>
                         <strong>{discrepancy.item_details.number || 'N/A'}</strong>
@@ -205,7 +209,7 @@ const CycleCountDiscrepancyReport = ({ data }) => {
                     </td>
                     <td>
                       <Badge bg={getDiscrepancyTypeColor(discrepancy.discrepancy_type)}>
-                        {discrepancy.discrepancy_type?.charAt(0).toUpperCase() + 
+                        {discrepancy.discrepancy_type?.charAt(0).toUpperCase() +
                          discrepancy.discrepancy_type?.slice(1) || 'Unknown'}
                       </Badge>
                     </td>

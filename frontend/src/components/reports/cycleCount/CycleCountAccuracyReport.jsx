@@ -32,7 +32,11 @@ const CycleCountAccuracyReport = ({ data }) => {
     );
   }
 
-  const { summary, by_location, trends } = data;
+  const {
+    summary = { total_counts: 0, accurate_counts: 0, discrepancy_counts: 0, accuracy_rate: 0 },
+    by_location = [],
+    trends = [],
+  } = data ?? {};
 
   // Chart data for accuracy trends
   const trendChartData = {
@@ -79,12 +83,12 @@ const CycleCountAccuracyReport = ({ data }) => {
       {
         label: 'Accuracy Rate (%)',
         data: by_location.map(l => l.accuracy_rate),
-        backgroundColor: by_location.map(l => 
+        backgroundColor: by_location.map(l =>
           l.accuracy_rate >= 95 ? 'rgba(34, 197, 94, 0.8)' :
           l.accuracy_rate >= 85 ? 'rgba(251, 191, 36, 0.8)' :
           'rgba(239, 68, 68, 0.8)'
         ),
-        borderColor: by_location.map(l => 
+        borderColor: by_location.map(l =>
           l.accuracy_rate >= 95 ? 'rgb(34, 197, 94)' :
           l.accuracy_rate >= 85 ? 'rgb(251, 191, 36)' :
           'rgb(239, 68, 68)'
@@ -199,8 +203,8 @@ const CycleCountAccuracyReport = ({ data }) => {
                 </tr>
               </thead>
               <tbody>
-                {by_location.map((location, index) => (
-                  <tr key={index}>
+                {by_location.map((location) => (
+                  <tr key={location.location || Math.random()}>
                     <td>{location.location}</td>
                     <td>{location.total_counts}</td>
                     <td>{location.accurate_counts}</td>
