@@ -96,15 +96,15 @@ const CycleCountBatchForm = () => {
       return;
     }
 
-    // If changing item selection method, reset related fields
+    // If changing item selection method, preserve values when possible
     if (name === 'item_selection') {
       const updatedFormData = {
         ...formData,
         [name]: value,
-        // Reset all selection-specific fields
-        item_count: value === 'random' ? 50 : '',
-        category: value === 'category' ? '' : '',
-        location: value === 'location' ? '' : ''
+        // Preserve values when appropriate for the selection method
+        item_count: value === 'random' ? 50 : formData.item_count,
+        category: value === 'category' ? formData.category : formData.category,
+        location: value === 'location' ? formData.location : formData.location
       };
       setFormData(updatedFormData);
       return;
@@ -175,7 +175,11 @@ const CycleCountBatchForm = () => {
         }, 1500);
       }
     } catch (err) {
-      setError(err.error || `An error occurred while ${isEditMode ? 'updating' : 'creating'} the count batch`);
+      setError(
+        err?.error ??
+        err?.message ??
+        `An error occurred while ${isEditMode ? 'updating' : 'creating'} the count batch`
+      );
     } finally {
       setSubmitting(false);
     }
