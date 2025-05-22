@@ -4,6 +4,10 @@ import CheckoutHistoryTable from './tables/CheckoutHistoryTable';
 import ToolUsageChart from './charts/ToolUsageChart';
 import CheckoutTrendsChart from './charts/CheckoutTrendsChart';
 import DepartmentUsageChart from './charts/DepartmentUsageChart';
+import CycleCountAccuracyReport from './cycleCount/CycleCountAccuracyReport';
+import CycleCountDiscrepancyReport from './cycleCount/CycleCountDiscrepancyReport';
+import CycleCountPerformanceReport from './cycleCount/CycleCountPerformanceReport';
+import CycleCountCoverageReport from './cycleCount/CycleCountCoverageReport';
 
 const ReportViewer = ({ reportType, timeframe, data, loading }) => {
   if (loading) {
@@ -33,7 +37,7 @@ const ReportViewer = ({ reportType, timeframe, data, loading }) => {
           <ToolInventoryTable data={data} />
         </div>
       );
-    
+
     case 'checkout-history':
       return (
         <div>
@@ -43,7 +47,7 @@ const ReportViewer = ({ reportType, timeframe, data, loading }) => {
           <CheckoutHistoryTable data={data} />
         </div>
       );
-    
+
     case 'department-usage':
       return (
         <div>
@@ -55,7 +59,19 @@ const ReportViewer = ({ reportType, timeframe, data, loading }) => {
           </div>
         </div>
       );
-    
+
+    case 'cycle-count-accuracy':
+      return <CycleCountAccuracyReport data={data} />;
+
+    case 'cycle-count-discrepancies':
+      return <CycleCountDiscrepancyReport data={data} />;
+
+    case 'cycle-count-performance':
+      return <CycleCountPerformanceReport data={data} />;
+
+    case 'cycle-count-coverage':
+      return <CycleCountCoverageReport data={data} />;
+
     default:
       return (
         <Alert variant="warning">
