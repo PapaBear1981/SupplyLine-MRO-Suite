@@ -23,7 +23,7 @@ def create_app():
         __name__,
         instance_relative_config=False,
         static_folder='static',
-        static_url_path=''
+        static_url_path='/static'
     )
     app.config.from_object(Config)
 
@@ -57,44 +57,7 @@ def create_app():
     # Register main routes
     register_routes(app)
 
-    # Direct time endpoints
-    @app.route('/api/time')
-    def time_endpoint():
-        try:
-            from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
-            return jsonify({
-                'status': 'ok',
-                'utc_time': format_datetime(get_utc_timestamp()),
-                'local_time': format_datetime(get_local_timestamp()),
-                'timezone': str(time.tzname),
-                'using_time_utils': True
-            })
-        except ImportError:
-            return jsonify({
-                'status': 'ok',
-                'utc_time': datetime.datetime.now().isoformat(),
-                'local_time': datetime.datetime.now().isoformat(),
-                'timezone': str(time.tzname),
-                'using_time_utils': False
-            })
 
-    @app.route('/api/time-test')
-    def time_test():
-        return jsonify({
-            'status': 'ok',
-            'utc_time': datetime.datetime.now().isoformat(),
-            'local_time': datetime.datetime.now().isoformat(),
-            'timezone': str(time.tzname),
-            'message': 'This is a test endpoint for time functionality'
-        })
-
-    # Try to register time API blueprint (but we have direct endpoints as backup)
-    try:
-        from time_api import time_api
-        app.register_blueprint(time_api)
-        print("Registered time_api blueprint")
-    except ImportError as e:
-        print(f"Error importing time_api blueprint: {str(e)}")
 
     @app.route('/')
     def index():
