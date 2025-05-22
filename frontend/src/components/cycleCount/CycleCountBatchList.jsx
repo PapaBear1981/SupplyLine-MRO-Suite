@@ -167,14 +167,25 @@ const CycleCountBatchList = () => {
                       View
                     </Button>
                     {batch.status === 'pending' && (
-                      <Button
-                        as={Link}
-                        to={`/cycle-counts/batches/${batch.id}/count`}
-                        variant="outline-success"
-                        size="sm"
-                      >
-                        Start Counting
-                      </Button>
+                      <>
+                        <Button
+                          as={Link}
+                          to={`/cycle-counts/batches/${batch.id}/edit`}
+                          variant="outline-secondary"
+                          size="sm"
+                          className="me-2"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          as={Link}
+                          to={`/cycle-counts/batches/${batch.id}/count`}
+                          variant="outline-success"
+                          size="sm"
+                        >
+                          Start Counting
+                        </Button>
+                      </>
                     )}
                     {batch.status === 'in_progress' && (
                       <Button
