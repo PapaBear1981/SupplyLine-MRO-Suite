@@ -12,8 +12,6 @@ import {
   Table,
   Form,
   InputGroup,
-  Tabs,
-  Tab,
   Modal,
   ProgressBar
 } from 'react-bootstrap';
@@ -70,9 +68,13 @@ const CycleCountBatchDetailPage = () => {
   const handleDelete = async () => {
     try {
       await dispatch(deleteCycleCountBatch(id)).unwrap();
+      setShowDeleteModal(false);
       navigate('/cycle-counts/batches');
+      // Optional: Show a toast notification for success
     } catch (error) {
       console.error('Failed to delete batch:', error);
+      // Show error feedback to the user
+      alert(`Failed to delete batch: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -135,13 +137,17 @@ const CycleCountBatchDetailPage = () => {
       item.item_type.toLowerCase().includes(searchLower) ||
       item.item_name.toLowerCase().includes(searchLower) ||
       (item.location?.toLowerCase() || '').includes(searchLower) ||
-      (item.assigned_to && item.assigned_to.toLowerCase().includes(searchLower))
+      (item.assigned_to?.toLowerCase() || '').includes(searchLower)
     );
   });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
+
+    // Handle null/undefined values
+    if (aValue === null || aValue === undefined) return sortDirection === 'asc' ? -1 : 1;
+    if (bValue === null || bValue === undefined) return sortDirection === 'asc' ? 1 : -1;
 
     if (typeof aValue === 'string') {
       aValue = aValue.toLowerCase();

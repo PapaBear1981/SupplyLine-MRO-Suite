@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Form, Button, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import { submitCountResult } from '../../store/cycleCountSlice';
+import PropTypes from 'prop-types';
 
 const CycleCountItemForm = ({ item, onSuccess }) => {
   const dispatch = useDispatch();
@@ -208,3 +209,14 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
 };
 
 export default CycleCountItemForm;
+
+CycleCountItemForm.propTypes = {
+  item: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    expected_quantity: PropTypes.number.isRequired,
+    location: PropTypes.string,
+    item_type: PropTypes.string,
+    item_name: PropTypes.string,
+  }),
+  onSuccess: PropTypes.func,
+};
