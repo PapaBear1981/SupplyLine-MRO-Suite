@@ -30,6 +30,9 @@ import ScannerPage from './pages/ScannerPage';
 import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
 import CycleCountScheduleForm from './components/cycleCount/CycleCountScheduleForm';
 import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
+import CycleCountScheduleDetailPage from './pages/CycleCountScheduleDetailPage';
+import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
+import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -294,6 +297,14 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/cycle-counts/schedules/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/cycle-counts/batches/new" element={
           <ProtectedRoute>
             <MainLayout>
@@ -306,6 +317,30 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <CycleCountBatchForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/items/:id/count" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/discrepancies/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDiscrepancyDetailPage />
             </MainLayout>
           </ProtectedRoute>
         } />
