@@ -70,7 +70,7 @@ const CycleCountBatchForm = () => {
     if (isEditMode && currentBatch) {
       setFormData({
         name: currentBatch.name || '',
-        schedule_id: currentBatch.schedule_id || '',
+        schedule_id: currentBatch.schedule_id ? String(currentBatch.schedule_id) : '',
         start_date: currentBatch.start_date ? new Date(currentBatch.start_date).toISOString().split('T')[0] : '',
         end_date: currentBatch.end_date ? new Date(currentBatch.end_date).toISOString().split('T')[0] : '',
         notes: currentBatch.notes || '',
@@ -145,7 +145,7 @@ const CycleCountBatchForm = () => {
         const originalBatch = currentBatch;
         const hasChanges =
           originalBatch.name !== batchData.name ||
-          (originalBatch.schedule_id || '') !== (batchData.schedule_id || '') ||
+          String(originalBatch.schedule_id ?? '') !== String(batchData.schedule_id ?? '') ||
           (originalBatch.start_date ? new Date(originalBatch.start_date).toISOString().split('T')[0] : '') !== batchData.start_date ||
           (originalBatch.end_date ? new Date(originalBatch.end_date).toISOString().split('T')[0] : '') !== batchData.end_date ||
           (originalBatch.notes || '') !== (batchData.notes || '');
