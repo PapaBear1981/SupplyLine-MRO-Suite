@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Alert, 
-  Spinner, 
-  Badge, 
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Alert,
+  Spinner,
+  Badge,
   Table,
   Form,
   InputGroup,
@@ -17,8 +17,8 @@ import {
   Modal,
   ProgressBar
 } from 'react-bootstrap';
-import { 
-  fetchCycleCountBatch, 
+import {
+  fetchCycleCountBatch,
   fetchCycleCountItems,
   updateCycleCountBatch,
   updateCycleCountItem,
@@ -33,15 +33,15 @@ const CycleCountBatchDetailPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { showHelp } = useHelp();
-  
-  const { data: batch, loading: batchLoading, error: batchError } = 
+
+  const { data: batch, loading: batchLoading, error: batchError } =
     useSelector((state) => state.cycleCount.currentBatch);
-  
+
   const itemsState = useSelector((state) => state.cycleCount.items);
   const items = itemsState.byBatchId[id] || [];
   const itemsLoading = itemsState.loadingByBatchId[id] || false;
   const itemsError = itemsState.errorByBatchId[id];
-  
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -49,15 +49,15 @@ const CycleCountBatchDetailPage = () => {
   const [sortDirection, setSortDirection] = useState('asc');
   const [showCountModal, setShowCountModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  
+
   useEffect(() => {
     // Fetch batch with associated items
     dispatch(fetchCycleCountBatch({ id, includeItems: true }));
-    
+
     // Fetch all items for this batch
     dispatch(fetchCycleCountItems({ batchId: id }));
   }, [dispatch, id]);
-  
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -66,7 +66,7 @@ const CycleCountBatchDetailPage = () => {
       setSortDirection('asc');
     }
   };
-  
+
   const handleDelete = async () => {
     try {
       await dispatch(deleteCycleCountBatch(id)).unwrap();
@@ -75,34 +75,34 @@ const CycleCountBatchDetailPage = () => {
       console.error('Failed to delete batch:', error);
     }
   };
-  
+
   const handleStartBatch = async () => {
     try {
-      await dispatch(updateCycleCountBatch({ 
-        id, 
-        batchData: { status: 'in_progress' } 
+      await dispatch(updateCycleCountBatch({
+        id,
+        batchData: { status: 'in_progress' }
       })).unwrap();
     } catch (error) {
       console.error('Failed to start batch:', error);
     }
   };
-  
+
   const handleCompleteBatch = async () => {
     try {
-      await dispatch(updateCycleCountBatch({ 
-        id, 
-        batchData: { status: 'completed' } 
+      await dispatch(updateCycleCountBatch({
+        id,
+        batchData: { status: 'completed' }
       })).unwrap();
     } catch (error) {
       console.error('Failed to complete batch:', error);
     }
   };
-  
+
   const handleOpenCountModal = (item) => {
     setSelectedItem(item);
     setShowCountModal(true);
   };
-  
+
   const formatStatus = (status) => {
     const statuses = {
       pending: { label: 'Pending', variant: 'warning' },
@@ -112,7 +112,7 @@ const CycleCountBatchDetailPage = () => {
     };
     return statuses[status] || { label: status, variant: 'secondary' };
   };
-  
+
   const formatItemStatus = (status) => {
     const statuses = {
       pending: { label: 'Pending', variant: 'warning' },
@@ -122,43 +122,43 @@ const CycleCountBatchDetailPage = () => {
     };
     return statuses[status] || { label: status, variant: 'secondary' };
   };
-  
+
   const filteredItems = items.filter(item => {
     // Apply status filter
     if (statusFilter !== 'all' && item.status !== statusFilter) {
       return false;
     }
-    
+
     // Apply search filter
     const searchLower = searchTerm.toLowerCase();
     return (
       item.item_type.toLowerCase().includes(searchLower) ||
       item.item_name.toLowerCase().includes(searchLower) ||
-      item.location.toLowerCase().includes(searchLower) ||
+      (item.location?.toLowerCase() || '').includes(searchLower) ||
       (item.assigned_to && item.assigned_to.toLowerCase().includes(searchLower))
     );
   });
-  
+
   const sortedItems = [...filteredItems].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
-    
+
     if (typeof aValue === 'string') {
       aValue = aValue.toLowerCase();
       bValue = bValue.toLowerCase();
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   const calculateProgress = () => {
     if (!items || items.length === 0) return 0;
     const countedItems = items.filter(item => item.status === 'counted').length;
     return Math.round((countedItems / items.length) * 100);
   };
-  
+
   if (batchLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
@@ -168,7 +168,7 @@ const CycleCountBatchDetailPage = () => {
       </div>
     );
   }
-  
+
   if (batchError) {
     return (
       <Alert variant="danger">
@@ -177,7 +177,7 @@ const CycleCountBatchDetailPage = () => {
       </Alert>
     );
   }
-  
+
   if (!batch) {
     return (
       <Alert variant="warning">
@@ -189,7 +189,7 @@ const CycleCountBatchDetailPage = () => {
       </Alert>
     );
   }
-  
+
   return (
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -207,26 +207,26 @@ const CycleCountBatchDetailPage = () => {
               Start Counting
             </Button>
           )}
-          
+
           {batch.status === 'in_progress' && (
             <Button variant="success" onClick={handleCompleteBatch} className="me-2">
               <i className="bi bi-check-lg me-2"></i>
               Complete Batch
             </Button>
           )}
-          
+
           <Button as={Link} to={`/cycle-counts/batches/${id}/edit`} variant="primary" className="me-2">
             <i className="bi bi-pencil me-2"></i>
             Edit Batch
           </Button>
-          
+
           <Button variant="outline-danger" onClick={() => setShowDeleteModal(true)}>
             <i className="bi bi-trash me-2"></i>
             Delete
           </Button>
         </div>
       </div>
-      
+
       {showHelp && (
         <Alert variant="info" className="mb-4">
           <Alert.Heading>Batch Details</Alert.Heading>
@@ -236,7 +236,7 @@ const CycleCountBatchDetailPage = () => {
           </p>
         </Alert>
       )}
-      
+
       <Row className="mb-4">
         <Col md={6}>
           <Card className="shadow-sm mb-4">
@@ -298,10 +298,10 @@ const CycleCountBatchDetailPage = () => {
             </Card.Header>
             <Card.Body>
               <div className="mb-3">
-                <ProgressBar 
-                  now={calculateProgress()} 
-                  label={`${calculateProgress()}%`} 
-                  variant="success" 
+                <ProgressBar
+                  now={calculateProgress()}
+                  label={`${calculateProgress()}%`}
+                  variant="success"
                   className="mb-2"
                   style={{ height: '25px' }}
                 />
@@ -309,7 +309,7 @@ const CycleCountBatchDetailPage = () => {
                   {items.filter(item => item.status === 'counted').length} of {items.length} items counted
                 </p>
               </div>
-              
+
               <Row className="mb-3">
                 <Col md={6}>
                   <div className="d-flex flex-column align-items-center p-3 border rounded">
@@ -348,7 +348,7 @@ const CycleCountBatchDetailPage = () => {
           </Card>
         </Col>
       </Row>
-      
+
       <Card className="shadow-sm mb-4">
         <Card.Header className="bg-light">
           <h5 className="mb-0">Items</h5>
@@ -357,8 +357,8 @@ const CycleCountBatchDetailPage = () => {
           <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <Form.Group className="d-flex align-items-center">
               <Form.Label className="me-2 mb-0">Status:</Form.Label>
-              <Form.Select 
-                value={statusFilter} 
+              <Form.Select
+                value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{ width: '150px' }}
               >
@@ -369,7 +369,7 @@ const CycleCountBatchDetailPage = () => {
                 <option value="skipped">Skipped</option>
               </Form.Select>
             </Form.Group>
-            
+
             <InputGroup style={{ width: '300px' }}>
               <InputGroup.Text>
                 <i className="bi bi-search"></i>
@@ -382,7 +382,7 @@ const CycleCountBatchDetailPage = () => {
               />
             </InputGroup>
           </div>
-          
+
           {itemsLoading ? (
             <div className="text-center p-3">
               <Spinner animation="border" role="status">
@@ -479,7 +479,7 @@ const CycleCountBatchDetailPage = () => {
           )}
         </Card.Body>
       </Card>
-      
+
       <ConfirmModal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
@@ -489,7 +489,7 @@ const CycleCountBatchDetailPage = () => {
         confirmButtonText="Delete Batch"
         confirmButtonVariant="danger"
       />
-      
+
       <Modal
         show={showCountModal}
         onHide={() => setShowCountModal(false)}
@@ -501,8 +501,8 @@ const CycleCountBatchDetailPage = () => {
         </Modal.Header>
         <Modal.Body>
           {selectedItem && (
-            <CycleCountItemForm 
-              item={selectedItem} 
+            <CycleCountItemForm
+              item={selectedItem}
               onSuccess={() => {
                 setShowCountModal(false);
                 // Refresh items after count

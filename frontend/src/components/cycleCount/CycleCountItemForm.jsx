@@ -5,19 +5,19 @@ import { submitCountResult } from '../../store/cycleCountSlice';
 
 const CycleCountItemForm = ({ item, onSuccess }) => {
   const dispatch = useDispatch();
-  
+
   const [formData, setFormData] = useState({
     actual_quantity: '',
     actual_location: '',
     condition: 'good',
     notes: ''
   });
-  
+
   const [validated, setValidated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  
+
   useEffect(() => {
     // Pre-fill the form with expected values
     if (item) {
@@ -29,7 +29,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
       });
     }
   }, [item]);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -37,48 +37,57 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
       [name]: value
     }));
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const form = e.currentTarget;
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
     setSubmitting(true);
     setError(null);
-    
+
     try {
       // Convert quantity to number
       const resultData = {
         ...formData,
         actual_quantity: parseInt(formData.actual_quantity, 10)
       };
-      
-      await dispatch(submitCountResult({ 
-        itemId: item.id, 
-        resultData 
+
+      await dispatch(submitCountResult({
+        itemId: item.id,
+        resultData
       })).unwrap();
-      
+
       setSuccess(true);
-      setTimeout(() => {
-        if (onSuccess) onSuccess();
-      }, 1500);
+
+      // Use useEffect for cleanup to prevent memory leaks
+      useEffect(() => {
+        if (success) {
+          const timer = setTimeout(() => {
+            if (onSuccess) onSuccess();
+          }, 1500);
+
+          // Prevent state updates after unmount
+          return () => clearTimeout(timer);
+        }
+      }, [success, onSuccess]);
     } catch (err) {
       setError(err.error || 'An error occurred while submitting the count result');
     } finally {
       setSubmitting(false);
     }
   };
-  
+
   if (!item) {
     return <Alert variant="warning">No item selected</Alert>;
   }
-  
+
   return (
     <div>
       <div className="mb-4">
@@ -100,7 +109,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
           <Col md={8}>{item.location}</Col>
         </Row>
       </div>
-      
+
       {success ? (
         <Alert variant="success">
           <Alert.Heading>Count Submitted Successfully</Alert.Heading>
@@ -114,7 +123,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
               <p>{error}</p>
             </Alert>
           )}
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Actual Quantity <span className="text-danger">*</span></Form.Label>
             <Form.Control
@@ -129,7 +138,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
               Please enter a valid quantity.
             </Form.Control.Feedback>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Actual Location <span className="text-danger">*</span></Form.Label>
             <Form.Control
@@ -143,7 +152,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
               Please enter the actual location.
             </Form.Control.Feedback>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Condition</Form.Label>
             <Form.Select
@@ -157,7 +166,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
               <option value="missing">Missing</option>
             </Form.Select>
           </Form.Group>
-          
+
           <Form.Group className="mb-3">
             <Form.Label>Notes</Form.Label>
             <Form.Control
@@ -169,7 +178,7 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
               placeholder="Enter any additional notes about this count"
             />
           </Form.Group>
-          
+
           <div className="d-flex justify-content-end">
             <Button variant="secondary" onClick={onSuccess} className="me-2">
               Cancel

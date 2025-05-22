@@ -2,7 +2,6 @@ import os
 import sys
 import random
 from datetime import datetime, timedelta
-import sqlite3
 
 # Add the parent directory to the path so we can import the models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -199,8 +198,19 @@ def generate_sample_data():
                     adjustment = random.uniform(0.5, 1.5)
                     actual_quantity = round(item.expected_quantity * adjustment, 2)
                 elif discrepancy_type == 'location':
-                    locations = ['Shelf A', 'Shelf B', 'Drawer 1', 'Drawer 2', 'Cabinet 3']
-                    actual_location = random.choice([loc for loc in locations if loc != item.expected_location])
+                    # Get distinct locations from the database
+                    tool_locations = db.session.query(Tool.location).distinct().all()
+                    chemical_locations = db.session.query(Chemical.location).distinct().all()
+                    locations = [
+                        loc[0]
+                        for loc in tool_locations + chemical_locations
+                        if loc[0] != item.expected_location
+                    ]
+                    actual_location = (
+                        random.choice(locations)
+                        if locations
+                        else f"Relocated-{item.expected_location}"
+                    )
                 elif discrepancy_type == 'condition':
                     condition = random.choice(['damaged', 'expired', 'missing'])
 

@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Alert, 
-  Spinner, 
-  Badge, 
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Alert,
+  Spinner,
+  Badge,
   Table,
   Modal,
   Form,
   InputGroup
 } from 'react-bootstrap';
-import { 
-  fetchCycleCountSchedule, 
+import {
+  fetchCycleCountSchedule,
   fetchCycleCountBatches,
   deleteCycleCountSchedule
 } from '../store/cycleCountSlice';
@@ -27,26 +27,26 @@ const CycleCountScheduleDetailPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { showHelp } = useHelp();
-  
-  const { data: schedule, loading: scheduleLoading, error: scheduleError } = 
+
+  const { data: schedule, loading: scheduleLoading, error: scheduleError } =
     useSelector((state) => state.cycleCount.currentSchedule);
-  
-  const { items: batches, loading: batchesLoading } = 
+
+  const { items: batches, loading: batchesLoading } =
     useSelector((state) => state.cycleCount.batches);
-  
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
-  
+
   useEffect(() => {
     // Fetch schedule with associated batches
     dispatch(fetchCycleCountSchedule({ id, includeBatches: true }));
-    
+
     // Fetch all batches for this schedule
     dispatch(fetchCycleCountBatches({ schedule_id: id }));
   }, [dispatch, id]);
-  
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -55,16 +55,17 @@ const CycleCountScheduleDetailPage = () => {
       setSortDirection('asc');
     }
   };
-  
+
   const handleDelete = async () => {
     try {
       await dispatch(deleteCycleCountSchedule(id)).unwrap();
+      setShowDeleteModal(false);
       navigate('/cycle-counts/schedules');
     } catch (error) {
       console.error('Failed to delete schedule:', error);
     }
   };
-  
+
   const formatFrequency = (frequency) => {
     const frequencies = {
       daily: 'Daily',
@@ -75,7 +76,7 @@ const CycleCountScheduleDetailPage = () => {
     };
     return frequencies[frequency] || frequency;
   };
-  
+
   const formatMethod = (method) => {
     const methods = {
       abc: 'ABC Analysis',
@@ -85,7 +86,7 @@ const CycleCountScheduleDetailPage = () => {
     };
     return methods[method] || method;
   };
-  
+
   const formatStatus = (status) => {
     const statuses = {
       pending: { label: 'Pending', variant: 'warning' },
@@ -95,28 +96,28 @@ const CycleCountScheduleDetailPage = () => {
     };
     return statuses[status] || { label: status, variant: 'secondary' };
   };
-  
+
   const filteredBatches = batches
     .filter(batch => batch.schedule_id === parseInt(id))
-    .filter(batch => 
+    .filter(batch =>
       batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       batch.status.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  
+
   const sortedBatches = [...filteredBatches].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
-    
+
     if (typeof aValue === 'string') {
       aValue = aValue.toLowerCase();
       bValue = bValue.toLowerCase();
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   if (scheduleLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
@@ -126,7 +127,7 @@ const CycleCountScheduleDetailPage = () => {
       </div>
     );
   }
-  
+
   if (scheduleError) {
     return (
       <Alert variant="danger">
@@ -135,7 +136,7 @@ const CycleCountScheduleDetailPage = () => {
       </Alert>
     );
   }
-  
+
   if (!schedule) {
     return (
       <Alert variant="warning">
@@ -147,7 +148,7 @@ const CycleCountScheduleDetailPage = () => {
       </Alert>
     );
   }
-  
+
   return (
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -172,7 +173,7 @@ const CycleCountScheduleDetailPage = () => {
           </Button>
         </div>
       </div>
-      
+
       {showHelp && (
         <Alert variant="info" className="mb-4">
           <Alert.Heading>Schedule Details</Alert.Heading>
@@ -182,7 +183,7 @@ const CycleCountScheduleDetailPage = () => {
           </p>
         </Alert>
       )}
-      
+
       <Row className="mb-4">
         <Col md={6}>
           <Card className="shadow-sm mb-4">
@@ -269,7 +270,7 @@ const CycleCountScheduleDetailPage = () => {
           </Card>
         </Col>
       </Row>
-      
+
       <Card className="shadow-sm mb-4">
         <Card.Header className="bg-light d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Associated Batches</h5>
@@ -361,15 +362,15 @@ const CycleCountScheduleDetailPage = () => {
           )}
         </Card.Body>
       </Card>
-      
+
       <ConfirmModal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
         title="Delete Schedule"
         message={`Are you sure you want to delete the schedule "${schedule.name}"? This action cannot be undone.`}
-        confirmButtonText="Delete Schedule"
-        confirmButtonVariant="danger"
+        confirmText="Delete Schedule"
+        confirmVariant="danger"
       />
     </div>
   );

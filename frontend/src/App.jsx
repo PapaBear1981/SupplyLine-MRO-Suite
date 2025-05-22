@@ -33,6 +33,7 @@ import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
 import CycleCountScheduleDetailPage from './pages/CycleCountScheduleDetailPage';
 import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
 import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
+import CycleCountItemCountPage from './pages/CycleCountItemCountPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -332,7 +333,7 @@ function App() {
         <Route path="/cycle-counts/items/:id/count" element={
           <ProtectedRoute>
             <MainLayout>
-              <CycleCountBatchDetailPage />
+              <CycleCountItemCountPage />
             </MainLayout>
           </ProtectedRoute>
         } />
