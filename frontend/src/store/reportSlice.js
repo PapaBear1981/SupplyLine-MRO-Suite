@@ -59,6 +59,63 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
   }
 );
 
+// Cycle Count Report Thunks
+export const fetchCycleCountAccuracyReport = createAsyncThunk(
+  'reports/fetchCycleCountAccuracyReport',
+  async ({ timeframe, filters }, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/reports/cycle-counts/accuracy', {
+        params: { timeframe, ...filters }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count accuracy report' });
+    }
+  }
+);
+
+export const fetchCycleCountDiscrepancyReport = createAsyncThunk(
+  'reports/fetchCycleCountDiscrepancyReport',
+  async ({ timeframe, filters }, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/reports/cycle-counts/discrepancies', {
+        params: { timeframe, ...filters }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count discrepancy report' });
+    }
+  }
+);
+
+export const fetchCycleCountPerformanceReport = createAsyncThunk(
+  'reports/fetchCycleCountPerformanceReport',
+  async ({ timeframe, filters }, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/reports/cycle-counts/performance', {
+        params: { timeframe, ...filters }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count performance report' });
+    }
+  }
+);
+
+export const fetchCycleCountCoverageReport = createAsyncThunk(
+  'reports/fetchCycleCountCoverageReport',
+  async ({ timeframe, filters }, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/reports/cycle-counts/coverage', {
+        params: { timeframe, ...filters }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count coverage report' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   currentReport: 'tool-inventory', // Default report type
@@ -154,6 +211,59 @@ const reportSlice = createSlice({
       .addCase(fetchDepartmentUsageReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || { message: 'An error occurred while fetching department usage report' };
+      })
+
+      // Cycle Count Reports
+      .addCase(fetchCycleCountAccuracyReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCycleCountAccuracyReport.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchCycleCountAccuracyReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while fetching cycle count accuracy report' };
+      })
+
+      .addCase(fetchCycleCountDiscrepancyReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCycleCountDiscrepancyReport.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchCycleCountDiscrepancyReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while fetching cycle count discrepancy report' };
+      })
+
+      .addCase(fetchCycleCountPerformanceReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCycleCountPerformanceReport.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchCycleCountPerformanceReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while fetching cycle count performance report' };
+      })
+
+      .addCase(fetchCycleCountCoverageReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCycleCountCoverageReport.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchCycleCountCoverageReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { message: 'An error occurred while fetching cycle count coverage report' };
       });
   }
 });
