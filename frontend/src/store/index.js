@@ -12,6 +12,7 @@ import rbacReducer from './rbacSlice';
 import adminReducer from './adminSlice';
 import announcementsReducer from './announcementSlice';
 import cycleCountReducer from './cycleCountSlice';
+import cycleCountNotificationsReducer from './cycleCountNotificationsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     admin: adminReducer,
     announcements: announcementsReducer,
     cycleCount: cycleCountReducer,
+    cycleCountNotifications: cycleCountNotificationsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

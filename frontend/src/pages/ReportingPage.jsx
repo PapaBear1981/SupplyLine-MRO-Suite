@@ -9,6 +9,7 @@ import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics
 import ChemicalUsageAnalytics from '../components/reports/ChemicalUsageAnalytics';
 import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
 import CalibrationReports from '../components/reports/CalibrationReports';
+import CycleCountReports from '../components/reports/CycleCountReports';
 import Tooltip from '../components/common/Tooltip';
 import HelpIcon from '../components/common/HelpIcon';
 import HelpContent from '../components/common/HelpContent';
@@ -40,6 +41,7 @@ const ReportingPage = () => {
   const [activeTab, setActiveTab] = useState('standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
   const [calibrationReportsTab, setCalibrationReportsTab] = useState('due');
+  const [cycleCountReportsTab, setCycleCountReportsTab] = useState('accuracy');
   const { showTooltips, showHelp } = useHelp();
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
@@ -115,6 +117,7 @@ const ReportingPage = () => {
             <li><strong>Tool Reports:</strong> Generate reports on tool inventory, checkout history, and department usage.</li>
             <li><strong>Chemical Analytics:</strong> Analyze chemical waste and usage patterns.</li>
             <li><strong>Calibration Reports:</strong> Track calibration status, history, and compliance.</li>
+            <li><strong>Cycle Count Reports:</strong> View inventory accuracy, discrepancies, performance, and coverage.</li>
             <li><strong>Part Number Analytics:</strong> Analyze part number usage and trends.</li>
           </ul>
           <p>Use the tabs at the top to switch between different report types. Each report type has its own set of options and filters.</p>
@@ -156,6 +159,14 @@ const ReportingPage = () => {
             onClick={() => setActiveTab('calibration-reports')}
           >
             Calibration Reports
+          </Button>
+        </Tooltip>
+        <Tooltip text="View cycle count reports and analytics" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'cycle-count-reports' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('cycle-count-reports')}
+          >
+            Cycle Count Reports
           </Button>
         </Tooltip>
         <Tooltip text="Analyze part number usage and trends" placement="top" show={showTooltips}>
@@ -284,6 +295,12 @@ const ReportingPage = () => {
       {activeTab === 'part-number-analytics' && (
         <div className="pt-4">
           <PartNumberAnalytics />
+        </div>
+      )}
+
+      {activeTab === 'cycle-count-reports' && (
+        <div className="pt-4">
+          <CycleCountReports />
         </div>
       )}
     </div>

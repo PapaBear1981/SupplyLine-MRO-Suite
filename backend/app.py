@@ -54,6 +54,14 @@ def create_app():
     except Exception as e:
         print(f"Error running tool calibration migration: {str(e)}")
 
+    try:
+        # Import and run the cycle count notifications migration
+        from migrations.add_cycle_count_notifications import run_migration as migrate_cycle_count_notifications
+        print("Running cycle count notifications migration...")
+        migrate_cycle_count_notifications()
+    except Exception as e:
+        print(f"Error running cycle count notifications migration: {str(e)}")
+
     # Register main routes
     register_routes(app)
 

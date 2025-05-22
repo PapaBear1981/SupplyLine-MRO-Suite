@@ -191,6 +191,10 @@ const CycleCountDashboardPage = () => {
                   <i className="bi bi-graph-up me-2"></i>
                   View Count Reports
                 </Button>
+                <Button as={Link} to="/mobile/cycle-counts" variant="outline-dark">
+                  <i className="bi bi-phone me-2"></i>
+                  Mobile Cycle Count
+                </Button>
               </div>
             </Card.Body>
           </Card>

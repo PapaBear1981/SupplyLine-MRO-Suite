@@ -226,3 +226,30 @@ class CycleCountAdjustment(db.Model):
             'new_value': self.new_value,
             'notes': self.notes
         }
+
+class CycleCountNotification(db.Model):
+    __tablename__ = 'cycle_count_notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    notification_type = db.Column(db.String, nullable=False)  # batch_assigned, discrepancy_found, batch_completed, etc.
+    reference_id = db.Column(db.Integer, nullable=True)  # ID of the related object (batch, discrepancy, etc.)
+    reference_type = db.Column(db.String, nullable=True)  # Type of the related object (batch, discrepancy, etc.)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('cycle_count_notifications', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'notification_type': self.notification_type,
+            'reference_id': self.reference_id,
+            'reference_type': self.reference_type,
+            'message': self.message,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat()
+        }

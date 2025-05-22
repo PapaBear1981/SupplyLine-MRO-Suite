@@ -1,17 +1,35 @@
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
 import TourGuide from './TourGuide';
+import CycleCountNotifications from '../cycleCount/CycleCountNotifications';
+import { fetchNotifications } from '../../store/cycleCountNotificationsSlice';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { showHelp, showTooltips, setShowHelp, setShowTooltips } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const dispatch = useDispatch();
+
+  // Fetch notifications when component mounts and user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchNotifications());
+
+      // Set up polling for notifications every minute
+      const interval = setInterval(() => {
+        dispatch(fetchNotifications());
+      }, 60000);
+
+      // Clean up interval on unmount
+      return () => clearInterval(interval);
+    }
+  }, [dispatch, isAuthenticated]);
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -82,6 +100,13 @@ const MainLayout = ({ children }) => {
                       <i className="bi bi-info-circle"></i>
                     </Button>
                   </OverlayTrigger>
+                </div>
+              )}
+
+              {/* Cycle Count Notifications */}
+              {isAuthenticated && (
+                <div className="me-3">
+                  <CycleCountNotifications />
                 </div>
               )}
 

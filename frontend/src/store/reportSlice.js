@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
+import axios from 'axios';
 
 // Async thunks
 export const fetchReportData = createAsyncThunk(
@@ -59,6 +60,63 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
   }
 );
 
+// Cycle Count Reports
+export const fetchCycleCountAccuracyReport = createAsyncThunk(
+  'reports/fetchCycleCountAccuracyReport',
+  async ({ timeframe, location, category }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/api/reports/cycle-counts/accuracy', {
+        params: { timeframe, location, category }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count accuracy report' });
+    }
+  }
+);
+
+export const fetchCycleCountDiscrepancyReport = createAsyncThunk(
+  'reports/fetchCycleCountDiscrepancyReport',
+  async ({ timeframe, type, location, category }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/api/reports/cycle-counts/discrepancies', {
+        params: { timeframe, type, location, category }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count discrepancy report' });
+    }
+  }
+);
+
+export const fetchCycleCountPerformanceReport = createAsyncThunk(
+  'reports/fetchCycleCountPerformanceReport',
+  async ({ timeframe }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/api/reports/cycle-counts/performance', {
+        params: { timeframe }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count performance report' });
+    }
+  }
+);
+
+export const fetchCycleCountCoverageReport = createAsyncThunk(
+  'reports/fetchCycleCountCoverageReport',
+  async ({ days, location, category }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/api/reports/cycle-counts/coverage', {
+        params: { days, location, category }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count coverage report' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   currentReport: 'tool-inventory', // Default report type
@@ -69,7 +127,29 @@ const initialState = {
   error: null,
   exportFormat: null, // 'pdf' or 'excel'
   exportLoading: false,
-  exportError: null
+  exportError: null,
+  cycleCountReports: {
+    accuracy: {
+      data: null,
+      loading: false,
+      error: null
+    },
+    discrepancy: {
+      data: null,
+      loading: false,
+      error: null
+    },
+    performance: {
+      data: null,
+      loading: false,
+      error: null
+    },
+    coverage: {
+      data: null,
+      loading: false,
+      error: null
+    }
+  }
 };
 
 // Slice
@@ -154,6 +234,62 @@ const reportSlice = createSlice({
       .addCase(fetchDepartmentUsageReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || { message: 'An error occurred while fetching department usage report' };
+      })
+
+      // Cycle Count Accuracy Report
+      .addCase(fetchCycleCountAccuracyReport.pending, (state) => {
+        state.cycleCountReports.accuracy.loading = true;
+        state.cycleCountReports.accuracy.error = null;
+      })
+      .addCase(fetchCycleCountAccuracyReport.fulfilled, (state, action) => {
+        state.cycleCountReports.accuracy.loading = false;
+        state.cycleCountReports.accuracy.data = action.payload;
+      })
+      .addCase(fetchCycleCountAccuracyReport.rejected, (state, action) => {
+        state.cycleCountReports.accuracy.loading = false;
+        state.cycleCountReports.accuracy.error = action.payload || { message: 'An error occurred while fetching cycle count accuracy report' };
+      })
+
+      // Cycle Count Discrepancy Report
+      .addCase(fetchCycleCountDiscrepancyReport.pending, (state) => {
+        state.cycleCountReports.discrepancy.loading = true;
+        state.cycleCountReports.discrepancy.error = null;
+      })
+      .addCase(fetchCycleCountDiscrepancyReport.fulfilled, (state, action) => {
+        state.cycleCountReports.discrepancy.loading = false;
+        state.cycleCountReports.discrepancy.data = action.payload;
+      })
+      .addCase(fetchCycleCountDiscrepancyReport.rejected, (state, action) => {
+        state.cycleCountReports.discrepancy.loading = false;
+        state.cycleCountReports.discrepancy.error = action.payload || { message: 'An error occurred while fetching cycle count discrepancy report' };
+      })
+
+      // Cycle Count Performance Report
+      .addCase(fetchCycleCountPerformanceReport.pending, (state) => {
+        state.cycleCountReports.performance.loading = true;
+        state.cycleCountReports.performance.error = null;
+      })
+      .addCase(fetchCycleCountPerformanceReport.fulfilled, (state, action) => {
+        state.cycleCountReports.performance.loading = false;
+        state.cycleCountReports.performance.data = action.payload;
+      })
+      .addCase(fetchCycleCountPerformanceReport.rejected, (state, action) => {
+        state.cycleCountReports.performance.loading = false;
+        state.cycleCountReports.performance.error = action.payload || { message: 'An error occurred while fetching cycle count performance report' };
+      })
+
+      // Cycle Count Coverage Report
+      .addCase(fetchCycleCountCoverageReport.pending, (state) => {
+        state.cycleCountReports.coverage.loading = true;
+        state.cycleCountReports.coverage.error = null;
+      })
+      .addCase(fetchCycleCountCoverageReport.fulfilled, (state, action) => {
+        state.cycleCountReports.coverage.loading = false;
+        state.cycleCountReports.coverage.data = action.payload;
+      })
+      .addCase(fetchCycleCountCoverageReport.rejected, (state, action) => {
+        state.cycleCountReports.coverage.loading = false;
+        state.cycleCountReports.coverage.error = action.payload || { message: 'An error occurred while fetching cycle count coverage report' };
       });
   }
 });

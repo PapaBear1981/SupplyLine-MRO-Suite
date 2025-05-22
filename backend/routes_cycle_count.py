@@ -1,12 +1,13 @@
 from flask import request, jsonify, session
-from models import db, Tool, Checkout, AuditLog, Chemical
+from models import db, Tool, Checkout, AuditLog, Chemical, User
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
-    CycleCountResult, CycleCountAdjustment
+    CycleCountResult, CycleCountAdjustment, CycleCountNotification
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 import random
+from sqlalchemy import func, extract
 
 # Helper function to generate cycle count items for a batch
 def generate_batch_items(batch_id, data):
@@ -715,6 +716,75 @@ def register_cycle_count_routes(app):
             print(f"Error getting cycle count items for batch {batch_id}: {str(e)}")
             return jsonify({'error': f'An error occurred while fetching cycle count items for batch {batch_id}'}), 500
 
+    # Assign items to users
+    @app.route('/api/cycle-counts/batches/<int:id>/assign', methods=['POST'])
+    @tool_manager_required
+    def assign_cycle_count_items(id):
+        try:
+            # Get request data
+            data = request.get_json()
+
+            # Validate required fields
+            if not data.get('assignments'):
+                return jsonify({'error': 'Missing required field: assignments'}), 400
+
+            # Get batch
+            batch = CycleCountBatch.query.get_or_404(id)
+
+            # Track assignments by user for notifications
+            assignments_by_user = {}
+
+            # Process assignments
+            for assignment in data.get('assignments'):
+                # Validate assignment data
+                if not assignment.get('item_id') or not assignment.get('user_id'):
+                    continue
+
+                # Get item
+                item = CycleCountItem.query.get(assignment.get('item_id'))
+                if not item or item.batch_id != batch.id:
+                    continue
+
+                # Assign user
+                item.assigned_to = assignment.get('user_id')
+
+                # Track for notification
+                user_id = assignment.get('user_id')
+                if user_id not in assignments_by_user:
+                    assignments_by_user[user_id] = []
+                assignments_by_user[user_id].append(item)
+
+            # Save to database
+            db.session.commit()
+
+            # Create notifications for assigned users
+            for user_id, items in assignments_by_user.items():
+                # Create notification
+                notification = CycleCountNotification(
+                    user_id=user_id,
+                    notification_type='batch_assigned',
+                    reference_id=batch.id,
+                    reference_type='batch',
+                    message=f"You have been assigned {len(items)} items to count in batch '{batch.name}'."
+                )
+                db.session.add(notification)
+
+            # Log the action
+            log = AuditLog(
+                action_type='cycle_count_items_assigned',
+                action_details=f"Items assigned for batch {id}"
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            # Return success
+            return jsonify({'message': 'Items assigned successfully'}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error assigning cycle count items: {str(e)}")
+            return jsonify({'error': 'An error occurred while assigning cycle count items'}), 500
+
     # Get a specific cycle count item
     @app.route('/api/cycle-counts/items/<int:id>', methods=['GET'])
     @tool_manager_required
@@ -784,6 +854,9 @@ def register_cycle_count_routes(app):
             # Get item
             item = CycleCountItem.query.get_or_404(item_id)
 
+            # Get batch
+            batch = CycleCountBatch.query.get_or_404(item.batch_id)
+
             # Check if item is already counted
             if item.status == 'counted':
                 return jsonify({'error': f'Item {item_id} has already been counted'}), 400
@@ -824,6 +897,56 @@ def register_cycle_count_routes(app):
             # Save to database
             db.session.add(result)
             db.session.commit()
+
+            # Create notification for discrepancy if needed
+            if has_discrepancy:
+                # Get all admin users and materials department users
+                admin_users = User.query.filter_by(is_admin=True).all()
+                materials_users = User.query.filter_by(department='Materials').all()
+
+                # Combine and deduplicate users
+                notify_users = set()
+                for user in admin_users + materials_users:
+                    notify_users.add(user.id)
+
+                # Create notifications
+                item_type_name = "tool" if item.item_type == "tool" else "chemical"
+                item_details = ""
+                if item.item_type == "tool":
+                    tool = Tool.query.get(item.item_id)
+                    if tool:
+                        item_details = f"{tool.tool_number} - {tool.description}"
+                elif item.item_type == "chemical":
+                    chemical = Chemical.query.get(item.item_id)
+                    if chemical:
+                        item_details = f"{chemical.part_number} - {chemical.description}"
+
+                for user_id in notify_users:
+                    notification = CycleCountNotification(
+                        user_id=user_id,
+                        notification_type='discrepancy_found',
+                        reference_id=result.id,
+                        reference_type='result',
+                        message=f"Discrepancy found in batch '{batch.name}' for {item_type_name} {item_details}. Type: {discrepancy_type}."
+                    )
+                    db.session.add(notification)
+
+            # Check if batch is complete
+            pending_items = CycleCountItem.query.filter_by(batch_id=batch.id, status='pending').count()
+            if pending_items == 0:
+                # All items are counted, update batch status
+                batch.status = 'completed'
+                batch.end_date = datetime.utcnow()
+
+                # Create notification for batch completion
+                notification = CycleCountNotification(
+                    user_id=batch.created_by,
+                    notification_type='batch_completed',
+                    reference_id=batch.id,
+                    reference_type='batch',
+                    message=f"Cycle count batch '{batch.name}' has been completed."
+                )
+                db.session.add(notification)
 
             # Log the action
             log = AuditLog(
@@ -903,6 +1026,9 @@ def register_cycle_count_routes(app):
             # Get item
             item = CycleCountItem.query.get_or_404(result.item_id)
 
+            # Get batch
+            batch = CycleCountBatch.query.get_or_404(item.batch_id)
+
             # Get old value based on adjustment type
             old_value = None
             if data['adjustment_type'] == 'quantity':
@@ -971,6 +1097,28 @@ def register_cycle_count_routes(app):
             # Save to database
             db.session.add(adjustment)
             db.session.commit()
+
+            # Create notification for the user who counted the item
+            item_type_name = "tool" if item.item_type == "tool" else "chemical"
+            item_details = ""
+            if item.item_type == "tool":
+                tool = Tool.query.get(item.item_id)
+                if tool:
+                    item_details = f"{tool.tool_number} - {tool.description}"
+            elif item.item_type == "chemical":
+                chemical = Chemical.query.get(item.item_id)
+                if chemical:
+                    item_details = f"{chemical.part_number} - {chemical.description}"
+
+            # Notify the user who counted the item
+            notification = CycleCountNotification(
+                user_id=result.counted_by,
+                notification_type='adjustment_approved',
+                reference_id=adjustment.id,
+                reference_type='adjustment',
+                message=f"Your count discrepancy for {item_type_name} {item_details} in batch '{batch.name}' has been adjusted. {data['adjustment_type'].capitalize()} changed from {old_value} to {data['new_value']}."
+            )
+            db.session.add(notification)
 
             # Log the action
             log = AuditLog(
@@ -1046,3 +1194,625 @@ def register_cycle_count_routes(app):
         except Exception as e:
             print(f"Error getting cycle count statistics: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching cycle count statistics'}), 500
+
+    # Cycle Count Reports
+    # Inventory Accuracy Report
+    @app.route('/api/reports/cycle-counts/accuracy', methods=['GET'])
+    @tool_manager_required
+    def cycle_count_accuracy_report():
+        try:
+            # Get timeframe parameter
+            timeframe = request.args.get('timeframe', 'month')
+            location = request.args.get('location')
+            category = request.args.get('category')
+
+            # Calculate date range based on timeframe
+            end_date = datetime.now()
+            if timeframe == 'week':
+                start_date = end_date - timedelta(days=7)
+            elif timeframe == 'month':
+                start_date = end_date - timedelta(days=30)
+            elif timeframe == 'quarter':
+                start_date = end_date - timedelta(days=90)
+            elif timeframe == 'year':
+                start_date = end_date - timedelta(days=365)
+            else:
+                start_date = end_date - timedelta(days=30)  # Default to month
+
+            # Build base query for results
+            query = db.session.query(
+                CycleCountResult,
+                CycleCountItem
+            ).join(
+                CycleCountItem,
+                CycleCountResult.item_id == CycleCountItem.id
+            ).join(
+                CycleCountBatch,
+                CycleCountItem.batch_id == CycleCountBatch.id
+            ).filter(
+                CycleCountBatch.created_at >= start_date
+            )
+
+            # Apply filters if provided
+            if location:
+                query = query.filter(CycleCountItem.expected_location == location)
+            if category:
+                # For category filtering, we need to join with the appropriate table
+                query = query.outerjoin(
+                    Tool,
+                    (CycleCountItem.item_type == 'tool') & (CycleCountItem.item_id == Tool.id)
+                ).outerjoin(
+                    Chemical,
+                    (CycleCountItem.item_type == 'chemical') & (CycleCountItem.item_id == Chemical.id)
+                ).filter(
+                    ((CycleCountItem.item_type == 'tool') & (Tool.category == category)) |
+                    ((CycleCountItem.item_type == 'chemical') & (Chemical.category == category))
+                )
+
+            # Execute query
+            results = query.all()
+
+            # Calculate accuracy metrics
+            total_counts = len(results)
+            accurate_counts = sum(1 for r, i in results if not r.has_discrepancy)
+
+            # Calculate accuracy by location
+            accuracy_by_location = {}
+            for r, i in results:
+                location = i.expected_location or 'Unknown'
+                if location not in accuracy_by_location:
+                    accuracy_by_location[location] = {'total': 0, 'accurate': 0}
+                accuracy_by_location[location]['total'] += 1
+                if not r.has_discrepancy:
+                    accuracy_by_location[location]['accurate'] += 1
+
+            # Calculate accuracy by category
+            accuracy_by_category = {}
+            for r, i in results:
+                category = 'Unknown'
+                if i.item_type == 'tool':
+                    tool = Tool.query.get(i.item_id)
+                    if tool:
+                        category = tool.category or 'General'
+                elif i.item_type == 'chemical':
+                    chemical = Chemical.query.get(i.item_id)
+                    if chemical:
+                        category = chemical.category or 'General'
+
+                if category not in accuracy_by_category:
+                    accuracy_by_category[category] = {'total': 0, 'accurate': 0}
+                accuracy_by_category[category]['total'] += 1
+                if not r.has_discrepancy:
+                    accuracy_by_category[category]['accurate'] += 1
+
+            # Calculate accuracy trend over time
+            accuracy_trend = {}
+            for r, i in results:
+                date_key = r.counted_at.strftime('%Y-%m-%d')
+                if date_key not in accuracy_trend:
+                    accuracy_trend[date_key] = {'total': 0, 'accurate': 0}
+                accuracy_trend[date_key]['total'] += 1
+                if not r.has_discrepancy:
+                    accuracy_trend[date_key]['accurate'] += 1
+
+            # Format response
+            response = {
+                'overall_accuracy': round(100 * accurate_counts / total_counts, 2) if total_counts > 0 else 0,
+                'total_counts': total_counts,
+                'accurate_counts': accurate_counts,
+                'accuracy_by_location': [
+                    {
+                        'location': loc,
+                        'accuracy': round(100 * data['accurate'] / data['total'], 2) if data['total'] > 0 else 0,
+                        'total': data['total'],
+                        'accurate': data['accurate']
+                    }
+                    for loc, data in accuracy_by_location.items()
+                ],
+                'accuracy_by_category': [
+                    {
+                        'category': cat,
+                        'accuracy': round(100 * data['accurate'] / data['total'], 2) if data['total'] > 0 else 0,
+                        'total': data['total'],
+                        'accurate': data['accurate']
+                    }
+                    for cat, data in accuracy_by_category.items()
+                ],
+                'accuracy_trend': [
+                    {
+                        'date': date,
+                        'accuracy': round(100 * data['accurate'] / data['total'], 2) if data['total'] > 0 else 0,
+                        'total': data['total'],
+                        'accurate': data['accurate']
+                    }
+                    for date, data in sorted(accuracy_trend.items())
+                ]
+            }
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            print(f"Error generating cycle count accuracy report: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating the cycle count accuracy report'}), 500
+
+    # Discrepancy Report
+    @app.route('/api/reports/cycle-counts/discrepancies', methods=['GET'])
+    @tool_manager_required
+    def cycle_count_discrepancy_report():
+        try:
+            # Get timeframe parameter
+            timeframe = request.args.get('timeframe', 'month')
+            discrepancy_type = request.args.get('type')
+            location = request.args.get('location')
+            category = request.args.get('category')
+
+            # Calculate date range based on timeframe
+            end_date = datetime.now()
+            if timeframe == 'week':
+                start_date = end_date - timedelta(days=7)
+            elif timeframe == 'month':
+                start_date = end_date - timedelta(days=30)
+            elif timeframe == 'quarter':
+                start_date = end_date - timedelta(days=90)
+            elif timeframe == 'year':
+                start_date = end_date - timedelta(days=365)
+            else:
+                start_date = end_date - timedelta(days=30)  # Default to month
+
+            # Build base query for results with discrepancies
+            query = db.session.query(
+                CycleCountResult,
+                CycleCountItem
+            ).join(
+                CycleCountItem,
+                CycleCountResult.item_id == CycleCountItem.id
+            ).join(
+                CycleCountBatch,
+                CycleCountItem.batch_id == CycleCountBatch.id
+            ).filter(
+                CycleCountBatch.created_at >= start_date,
+                CycleCountResult.has_discrepancy == True
+            )
+
+            # Apply filters if provided
+            if discrepancy_type:
+                query = query.filter(CycleCountResult.discrepancy_type == discrepancy_type)
+            if location:
+                query = query.filter(CycleCountItem.expected_location == location)
+            if category:
+                # For category filtering, we need to join with the appropriate table
+                query = query.outerjoin(
+                    Tool,
+                    (CycleCountItem.item_type == 'tool') & (CycleCountItem.item_id == Tool.id)
+                ).outerjoin(
+                    Chemical,
+                    (CycleCountItem.item_type == 'chemical') & (CycleCountItem.item_id == Chemical.id)
+                ).filter(
+                    ((CycleCountItem.item_type == 'tool') & (Tool.category == category)) |
+                    ((CycleCountItem.item_type == 'chemical') & (Chemical.category == category))
+                )
+
+            # Execute query
+            results = query.all()
+
+            # Process results
+            discrepancies = []
+            discrepancy_by_type = {}
+            discrepancy_by_location = {}
+            discrepancy_by_category = {}
+            discrepancy_trend = {}
+
+            for r, i in results:
+                # Get item details
+                item_details = {}
+                if i.item_type == 'tool':
+                    tool = Tool.query.get(i.item_id)
+                    if tool:
+                        item_details = {
+                            'tool_number': tool.tool_number,
+                            'serial_number': tool.serial_number,
+                            'description': tool.description,
+                            'category': tool.category or 'General'
+                        }
+                elif i.item_type == 'chemical':
+                    chemical = Chemical.query.get(i.item_id)
+                    if chemical:
+                        item_details = {
+                            'part_number': chemical.part_number,
+                            'description': chemical.description,
+                            'category': chemical.category or 'General'
+                        }
+
+                # Add to discrepancies list
+                discrepancies.append({
+                    'id': r.id,
+                    'item_type': i.item_type,
+                    'item_id': i.item_id,
+                    'item_details': item_details,
+                    'expected_quantity': i.expected_quantity,
+                    'expected_location': i.expected_location,
+                    'actual_quantity': r.actual_quantity,
+                    'actual_location': r.actual_location,
+                    'discrepancy_type': r.discrepancy_type,
+                    'discrepancy_notes': r.discrepancy_notes,
+                    'counted_at': r.counted_at.isoformat(),
+                    'batch_id': i.batch_id
+                })
+
+                # Count by type
+                disc_type = r.discrepancy_type or 'Unknown'
+                discrepancy_by_type[disc_type] = discrepancy_by_type.get(disc_type, 0) + 1
+
+                # Count by location
+                location = i.expected_location or 'Unknown'
+                discrepancy_by_location[location] = discrepancy_by_location.get(location, 0) + 1
+
+                # Count by category
+                category = item_details.get('category', 'Unknown')
+                discrepancy_by_category[category] = discrepancy_by_category.get(category, 0) + 1
+
+                # Count by date
+                date_key = r.counted_at.strftime('%Y-%m-%d')
+                discrepancy_trend[date_key] = discrepancy_trend.get(date_key, 0) + 1
+
+            # Format response
+            response = {
+                'total_discrepancies': len(discrepancies),
+                'discrepancies': discrepancies,
+                'discrepancy_by_type': [
+                    {'type': t, 'count': c}
+                    for t, c in discrepancy_by_type.items()
+                ],
+                'discrepancy_by_location': [
+                    {'location': l, 'count': c}
+                    for l, c in discrepancy_by_location.items()
+                ],
+                'discrepancy_by_category': [
+                    {'category': c, 'count': count}
+                    for c, count in discrepancy_by_category.items()
+                ],
+                'discrepancy_trend': [
+                    {'date': d, 'count': c}
+                    for d, c in sorted(discrepancy_trend.items())
+                ]
+            }
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            print(f"Error generating cycle count discrepancy report: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating the cycle count discrepancy report'}), 500
+
+    # Cycle Count Performance Report
+    @app.route('/api/reports/cycle-counts/performance', methods=['GET'])
+    @tool_manager_required
+    def cycle_count_performance_report():
+        try:
+            # Get timeframe parameter
+            timeframe = request.args.get('timeframe', 'month')
+
+            # Calculate date range based on timeframe
+            end_date = datetime.now()
+            if timeframe == 'week':
+                start_date = end_date - timedelta(days=7)
+            elif timeframe == 'month':
+                start_date = end_date - timedelta(days=30)
+            elif timeframe == 'quarter':
+                start_date = end_date - timedelta(days=90)
+            elif timeframe == 'year':
+                start_date = end_date - timedelta(days=365)
+            else:
+                start_date = end_date - timedelta(days=30)  # Default to month
+
+            # Get batches in the timeframe
+            batches = CycleCountBatch.query.filter(
+                CycleCountBatch.created_at >= start_date
+            ).all()
+
+            # Calculate completion rates
+            total_batches = len(batches)
+            completed_batches = sum(1 for b in batches if b.status == 'completed')
+            in_progress_batches = sum(1 for b in batches if b.status == 'in_progress')
+            pending_batches = sum(1 for b in batches if b.status == 'pending')
+
+            # Calculate average time to complete
+            completion_times = []
+            for batch in batches:
+                if batch.status == 'completed' and batch.start_date and batch.end_date:
+                    duration = (batch.end_date - batch.start_date).total_seconds() / 3600  # hours
+                    completion_times.append(duration)
+
+            avg_completion_time = sum(completion_times) / len(completion_times) if completion_times else 0
+
+            # Get counts by user
+            counts_by_user = db.session.query(
+                CycleCountResult.counted_by,
+                func.count().label('count')
+            ).filter(
+                CycleCountResult.counted_at >= start_date
+            ).group_by(
+                CycleCountResult.counted_by
+            ).all()
+
+            # Get user names
+            user_counts = []
+            for user_id, count in counts_by_user:
+                from models import User
+                user = User.query.get(user_id)
+                user_name = user.name if user else f"User {user_id}"
+                user_counts.append({
+                    'user_id': user_id,
+                    'user_name': user_name,
+                    'count': count
+                })
+
+            # Get counts by day/week/month
+            counts_by_day = db.session.query(
+                func.date(CycleCountResult.counted_at).label('date'),
+                func.count().label('count')
+            ).filter(
+                CycleCountResult.counted_at >= start_date
+            ).group_by(
+                func.date(CycleCountResult.counted_at)
+            ).all()
+
+            # Format response
+            response = {
+                'completion_rate': {
+                    'total_batches': total_batches,
+                    'completed_batches': completed_batches,
+                    'in_progress_batches': in_progress_batches,
+                    'pending_batches': pending_batches,
+                    'completion_percentage': round(100 * completed_batches / total_batches, 2) if total_batches > 0 else 0
+                },
+                'average_completion_time': round(avg_completion_time, 2),  # in hours
+                'counts_by_user': user_counts,
+                'counts_by_day': [
+                    {'date': date.strftime('%Y-%m-%d'), 'count': count}
+                    for date, count in counts_by_day
+                ]
+            }
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            print(f"Error generating cycle count performance report: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating the cycle count performance report'}), 500
+
+    # Cycle Count Coverage Report
+    @app.route('/api/reports/cycle-counts/coverage', methods=['GET'])
+    @tool_manager_required
+    def cycle_count_coverage_report():
+        try:
+            # Get parameters
+            days = request.args.get('days', 90, type=int)
+            location = request.args.get('location')
+            category = request.args.get('category')
+
+            # Calculate cutoff date
+            cutoff_date = datetime.now() - timedelta(days=days)
+
+            # Get all tools and chemicals
+            tools_query = Tool.query
+            chemicals_query = Chemical.query
+
+            # Apply filters if provided
+            if location:
+                tools_query = tools_query.filter(Tool.location == location)
+                chemicals_query = chemicals_query.filter(Chemical.location == location)
+            if category:
+                tools_query = tools_query.filter(Tool.category == category)
+                chemicals_query = chemicals_query.filter(Chemical.category == category)
+
+            # Get all tools and chemicals
+            all_tools = tools_query.all()
+            all_chemicals = chemicals_query.all()
+
+            # Get tools and chemicals that have been counted
+            counted_tool_ids = db.session.query(
+                CycleCountItem.item_id
+            ).filter(
+                CycleCountItem.item_type == 'tool',
+                CycleCountItem.status == 'counted',
+                CycleCountItem.updated_at >= cutoff_date
+            ).distinct().all()
+
+            counted_chemical_ids = db.session.query(
+                CycleCountItem.item_id
+            ).filter(
+                CycleCountItem.item_type == 'chemical',
+                CycleCountItem.status == 'counted',
+                CycleCountItem.updated_at >= cutoff_date
+            ).distinct().all()
+
+            # Convert to sets for faster lookup
+            counted_tool_ids = {id[0] for id in counted_tool_ids}
+            counted_chemical_ids = {id[0] for id in counted_chemical_ids}
+
+            # Calculate coverage
+            total_items = len(all_tools) + len(all_chemicals)
+            counted_items = len(counted_tool_ids) + len(counted_chemical_ids)
+
+            # Identify items not counted
+            uncounted_tools = [t for t in all_tools if t.id not in counted_tool_ids]
+            uncounted_chemicals = [c for c in all_chemicals if c.id not in counted_chemical_ids]
+
+            # Calculate coverage by location
+            coverage_by_location = {}
+
+            # Process tools by location
+            for tool in all_tools:
+                location = tool.location or 'Unknown'
+                if location not in coverage_by_location:
+                    coverage_by_location[location] = {'total': 0, 'counted': 0}
+                coverage_by_location[location]['total'] += 1
+                if tool.id in counted_tool_ids:
+                    coverage_by_location[location]['counted'] += 1
+
+            # Process chemicals by location
+            for chemical in all_chemicals:
+                location = chemical.location or 'Unknown'
+                if location not in coverage_by_location:
+                    coverage_by_location[location] = {'total': 0, 'counted': 0}
+                coverage_by_location[location]['total'] += 1
+                if chemical.id in counted_chemical_ids:
+                    coverage_by_location[location]['counted'] += 1
+
+            # Calculate coverage by category
+            coverage_by_category = {}
+
+            # Process tools by category
+            for tool in all_tools:
+                category = tool.category or 'General'
+                if category not in coverage_by_category:
+                    coverage_by_category[category] = {'total': 0, 'counted': 0}
+                coverage_by_category[category]['total'] += 1
+                if tool.id in counted_tool_ids:
+                    coverage_by_category[category]['counted'] += 1
+
+            # Process chemicals by category
+            for chemical in all_chemicals:
+                category = chemical.category or 'General'
+                if category not in coverage_by_category:
+                    coverage_by_category[category] = {'total': 0, 'counted': 0}
+                coverage_by_category[category]['total'] += 1
+                if chemical.id in counted_chemical_ids:
+                    coverage_by_category[category]['counted'] += 1
+
+            # Format uncounted items for response
+            uncounted_items = []
+
+            for tool in uncounted_tools[:100]:  # Limit to 100 items
+                uncounted_items.append({
+                    'id': tool.id,
+                    'type': 'tool',
+                    'identifier': tool.tool_number,
+                    'description': tool.description,
+                    'location': tool.location,
+                    'category': tool.category or 'General'
+                })
+
+            for chemical in uncounted_chemicals[:100]:  # Limit to 100 items
+                uncounted_items.append({
+                    'id': chemical.id,
+                    'type': 'chemical',
+                    'identifier': chemical.part_number,
+                    'description': chemical.description,
+                    'location': chemical.location,
+                    'category': chemical.category or 'General'
+                })
+
+            # Format response
+            response = {
+                'overall_coverage': {
+                    'total_items': total_items,
+                    'counted_items': counted_items,
+                    'coverage_percentage': round(100 * counted_items / total_items, 2) if total_items > 0 else 0
+                },
+                'coverage_by_location': [
+                    {
+                        'location': loc,
+                        'total': data['total'],
+                        'counted': data['counted'],
+                        'coverage_percentage': round(100 * data['counted'] / data['total'], 2) if data['total'] > 0 else 0
+                    }
+                    for loc, data in coverage_by_location.items()
+                ],
+                'coverage_by_category': [
+                    {
+                        'category': cat,
+                        'total': data['total'],
+                        'counted': data['counted'],
+                        'coverage_percentage': round(100 * data['counted'] / data['total'], 2) if data['total'] > 0 else 0
+                    }
+                    for cat, data in coverage_by_category.items()
+                ],
+                'uncounted_items': uncounted_items,
+                'uncounted_items_count': len(uncounted_tools) + len(uncounted_chemicals),
+                'days_threshold': days
+            }
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            print(f"Error generating cycle count coverage report: {str(e)}")
+            return jsonify({'error': 'An error occurred while generating the cycle count coverage report'}), 500
+
+    # Notification Endpoints
+    # Get notifications for the current user
+    @app.route('/api/cycle-counts/notifications', methods=['GET'])
+    def get_cycle_count_notifications():
+        try:
+            # Get query parameters
+            unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+            limit = request.args.get('limit', 10, type=int)
+
+            # Build query
+            query = CycleCountNotification.query.filter_by(user_id=session['user_id'])
+
+            # Filter by read status if requested
+            if unread_only:
+                query = query.filter_by(is_read=False)
+
+            # Execute query with limit and order by created_at desc
+            notifications = query.order_by(CycleCountNotification.created_at.desc()).limit(limit).all()
+
+            # Get unread count
+            unread_count = CycleCountNotification.query.filter_by(
+                user_id=session['user_id'],
+                is_read=False
+            ).count()
+
+            # Return results
+            return jsonify({
+                'notifications': [notification.to_dict() for notification in notifications],
+                'unread_count': unread_count
+            }), 200
+
+        except Exception as e:
+            print(f"Error getting cycle count notifications: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching cycle count notifications'}), 500
+
+    # Mark notification as read
+    @app.route('/api/cycle-counts/notifications/<int:id>/read', methods=['POST'])
+    def mark_notification_read(id):
+        try:
+            # Get notification
+            notification = CycleCountNotification.query.get_or_404(id)
+
+            # Check if notification belongs to current user
+            if notification.user_id != session['user_id']:
+                return jsonify({'error': 'Unauthorized'}), 403
+
+            # Mark as read
+            notification.is_read = True
+
+            # Save to database
+            db.session.commit()
+
+            # Return success
+            return jsonify({'message': 'Notification marked as read'}), 200
+
+        except Exception as e:
+            print(f"Error marking notification as read: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking the notification as read'}), 500
+
+    # Mark all notifications as read
+    @app.route('/api/cycle-counts/notifications/read-all', methods=['POST'])
+    def mark_all_notifications_read():
+        try:
+            # Update all unread notifications for the current user
+            CycleCountNotification.query.filter_by(
+                user_id=session['user_id'],
+                is_read=False
+            ).update({'is_read': True})
+
+            # Save to database
+            db.session.commit()
+
+            # Return success
+            return jsonify({'message': 'All notifications marked as read'}), 200
+
+        except Exception as e:
+            print(f"Error marking all notifications as read: {str(e)}")
+            return jsonify({'error': 'An error occurred while marking all notifications as read'}), 500
