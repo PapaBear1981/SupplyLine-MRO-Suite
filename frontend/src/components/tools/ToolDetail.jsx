@@ -12,6 +12,9 @@ import ReturnToServiceModal from './ReturnToServiceModal';
 import ServiceHistoryList from './ServiceHistoryList';
 import ToolCalibrationHistory from '../calibration/ToolCalibrationHistory';
 import ToolBarcode from './ToolBarcode';
+import DeleteToolModal from './DeleteToolModal';
+import CheckoutHistoryDetailModal from './CheckoutHistoryDetailModal';
+import CalibrationStatusIndicator from './CalibrationStatusIndicator';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -29,6 +32,9 @@ const ToolDetail = () => {
   const [showRemoveFromServiceModal, setShowRemoveFromServiceModal] = useState(false);
   const [showReturnToServiceModal, setShowReturnToServiceModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCheckoutDetailModal, setShowCheckoutDetailModal] = useState(false);
+  const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
   const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
@@ -49,6 +55,24 @@ const ToolDetail = () => {
   const toolId = typeof id === 'string' ? parseInt(id, 10) : id;
   const history = checkoutHistory[toolId] || [];
   const isAdmin = user?.is_admin || user?.department === 'Materials';
+
+  // Handle checkout detail view
+  const handleCheckoutDetailClick = (checkoutId) => {
+    setSelectedCheckoutId(checkoutId);
+    setShowCheckoutDetailModal(true);
+  };
+
+  // Handle tool deletion
+  const handleToolDelete = () => {
+    // Navigate back to tools list after deletion
+    window.location.href = '/tools';
+  };
+
+  // Handle tool retirement
+  const handleToolRetire = () => {
+    // Refresh the tool data
+    dispatch(fetchToolById(toolId));
+  };
 
   return (
     <>
@@ -92,11 +116,20 @@ const ToolDetail = () => {
               </Button>
             </Tooltip>
             {isAdmin && (
-              <Tooltip text="Edit tool information" placement="top" show={showTooltips}>
-                <Button as={Link} to={`/tools/${id}/edit`} variant="primary">
-                  Edit Tool
-                </Button>
-              </Tooltip>
+              <>
+                <Tooltip text="Edit tool information" placement="top" show={showTooltips}>
+                  <Button as={Link} to={`/tools/${id}/edit`} variant="primary" className="me-2">
+                    Edit Tool
+                  </Button>
+                </Tooltip>
+                {user?.is_admin && (
+                  <Tooltip text="Delete or retire this tool" placement="top" show={showTooltips}>
+                    <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
+                      <i className="bi bi-trash me-1"></i> Delete
+                    </Button>
+                  </Tooltip>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -187,15 +220,7 @@ const ToolDetail = () => {
                     <Row className="mb-3">
                       <Col sm={4} className="fw-bold">Calibration Status:</Col>
                       <Col sm={8}>
-                        <Badge bg={
-                          currentTool.calibration_status === 'current' ? 'success' :
-                          currentTool.calibration_status === 'due_soon' ? 'warning' :
-                          currentTool.calibration_status === 'overdue' ? 'danger' : 'secondary'
-                        }>
-                          {currentTool.calibration_status === 'current' ? 'Current' :
-                           currentTool.calibration_status === 'due_soon' ? 'Due Soon' :
-                           currentTool.calibration_status === 'overdue' ? 'Overdue' : 'Not Applicable'}
-                        </Badge>
+                        <CalibrationStatusIndicator tool={currentTool} size="lg" />
                       </Col>
                     </Row>
                   </>
@@ -316,6 +341,7 @@ const ToolDetail = () => {
                           <th>Checkout Date</th>
                           <th>Return Date</th>
                           <th>Status</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -331,16 +357,26 @@ const ToolDetail = () => {
                               </td>
                               <td>
                                 <Badge bg={
-                                  checkout.status === 'Returned' ? 'success' : 'warning'
+                                  checkout.status === 'Returned' ? 'success' :
+                                  checkout.status === 'Overdue' ? 'danger' : 'warning'
                                 }>
                                   {checkout.status}
                                 </Badge>
+                              </td>
+                              <td>
+                                <Button
+                                  variant="outline-info"
+                                  size="sm"
+                                  onClick={() => handleCheckoutDetailClick(checkout.id)}
+                                >
+                                  Details
+                                </Button>
                               </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="4" className="text-center">
+                            <td colSpan="5" className="text-center">
                               No checkout history available.
                             </td>
                           </tr>
@@ -381,6 +417,20 @@ const ToolDetail = () => {
           show={showBarcodeModal}
           onHide={() => setShowBarcodeModal(false)}
           tool={currentTool}
+        />
+
+        <DeleteToolModal
+          show={showDeleteModal}
+          onHide={() => setShowDeleteModal(false)}
+          tool={currentTool}
+          onDelete={handleToolDelete}
+          onRetire={handleToolRetire}
+        />
+
+        <CheckoutHistoryDetailModal
+          show={showCheckoutDetailModal}
+          onHide={() => setShowCheckoutDetailModal(false)}
+          checkoutId={selectedCheckoutId}
         />
       </div>
     </>

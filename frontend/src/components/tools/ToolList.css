@@ -51,3 +51,44 @@
   background-color: #e2e3e5;
   color: #41464b;
 }
+
+/* Calibration Status Indicators */
+.calibration-status-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.calibration-status-badge.sm {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+}
+
+.calibration-status-badge.lg {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.calibration-status-badge.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  background-color: var(--bs-gray-100);
+}

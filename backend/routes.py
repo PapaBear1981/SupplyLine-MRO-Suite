@@ -793,7 +793,7 @@ def register_routes(app):
             'message': 'Tool created successfully'
         }), 201
 
-    @app.route('/api/tools/<int:id>', methods=['GET', 'PUT'])
+    @app.route('/api/tools/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def get_tool(id):
         tool = Tool.query.get_or_404(id)
 
@@ -840,6 +840,70 @@ def register_routes(app):
                 'next_calibration_date': tool.next_calibration_date.isoformat() if hasattr(tool, 'next_calibration_date') and tool.next_calibration_date else None,
                 'calibration_status': getattr(tool, 'calibration_status', 'not_applicable')
             })
+
+        elif request.method == 'DELETE':
+            # DELETE - Delete tool (requires admin privileges)
+            if not session.get('is_admin', False):
+                return jsonify({'error': 'Admin privileges required to delete tools'}), 403
+
+            data = request.get_json() or {}
+            force_delete = data.get('force_delete', False)
+
+            # Check if tool has history (checkouts, calibrations, service records)
+            has_checkouts = Checkout.query.filter_by(tool_id=id).count() > 0
+            has_calibrations = ToolCalibration.query.filter_by(tool_id=id).count() > 0
+            has_service_records = ToolServiceRecord.query.filter_by(tool_id=id).count() > 0
+
+            if (has_checkouts or has_calibrations or has_service_records) and not force_delete:
+                return jsonify({
+                    'error': 'Tool has history and cannot be deleted',
+                    'has_history': True,
+                    'has_checkouts': has_checkouts,
+                    'has_calibrations': has_calibrations,
+                    'has_service_records': has_service_records,
+                    'suggestion': 'Consider retiring the tool instead to preserve history'
+                }), 400
+
+            # Store tool details for audit log before deletion
+            tool_number = tool.tool_number
+            tool_description = tool.description
+
+            try:
+                # Delete related records if force_delete is True
+                if force_delete:
+                    # Delete calibration standards associations first
+                    ToolCalibrationStandard.query.filter(
+                        ToolCalibrationStandard.calibration_id.in_(
+                            db.session.query(ToolCalibration.id).filter_by(tool_id=id)
+                        )
+                    ).delete(synchronize_session=False)
+
+                    # Delete calibrations
+                    ToolCalibration.query.filter_by(tool_id=id).delete()
+
+                    # Delete checkouts
+                    Checkout.query.filter_by(tool_id=id).delete()
+
+                    # Delete service records
+                    ToolServiceRecord.query.filter_by(tool_id=id).delete()
+
+                # Delete the tool
+                db.session.delete(tool)
+                db.session.commit()
+
+                # Log the action
+                log = AuditLog(
+                    action_type='delete_tool',
+                    action_details=f'Deleted tool {id} ({tool_number}) - {tool_description}. Force delete: {force_delete}'
+                )
+                db.session.add(log)
+                db.session.commit()
+
+                return jsonify({'message': 'Tool deleted successfully'}), 200
+
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'error': f'Failed to delete tool: {str(e)}'}), 500
 
         # PUT - Update tool (requires tool manager privileges)
         print(f"Session: {session}")
@@ -965,6 +1029,101 @@ def register_routes(app):
 
         print(f"Sending response: {response_data}")
         return jsonify(response_data)
+
+    @app.route('/api/tools/<int:id>/retire', methods=['POST'])
+    @admin_required
+    def retire_tool(id):
+        """Retire a tool instead of deleting it to preserve history."""
+        tool = Tool.query.get_or_404(id)
+
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Tool retired by admin')
+
+        # Update tool status to retired
+        tool.status = 'retired'
+        tool.status_reason = reason
+
+        # Create service record for retirement
+        service_record = ToolServiceRecord(
+            tool_id=id,
+            action_type='remove_permanent',
+            user_id=session.get('user_id'),
+            reason=reason,
+            comments=data.get('comments', '')
+        )
+
+        db.session.add(service_record)
+        db.session.commit()
+
+        # Log the action
+        log = AuditLog(
+            action_type='retire_tool',
+            action_details=f'Retired tool {id} ({tool.tool_number}) - {reason}'
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Tool retired successfully',
+            'tool': tool.to_dict()
+        }), 200
+
+    @app.route('/api/calibrations/notifications', methods=['GET'])
+    def get_calibration_notifications():
+        """Get calibration notifications for tools due for calibration."""
+        try:
+            now = datetime.now()
+
+            # Get tools that require calibration
+            tools_requiring_calibration = Tool.query.filter_by(requires_calibration=True).all()
+
+            notifications = []
+
+            for tool in tools_requiring_calibration:
+                # Check calibration status
+                if tool.calibration_status == 'overdue':
+                    notifications.append({
+                        'id': tool.id,
+                        'tool_number': tool.tool_number,
+                        'description': tool.description,
+                        'type': 'overdue',
+                        'message': f'Tool {tool.tool_number} calibration is overdue',
+                        'priority': 'high',
+                        'last_calibration_date': tool.last_calibration_date.isoformat() if tool.last_calibration_date else None,
+                        'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None
+                    })
+                elif tool.calibration_status == 'due_soon':
+                    # Check if due within 30 days
+                    if tool.next_calibration_date and tool.next_calibration_date <= now + timedelta(days=30):
+                        days_until_due = (tool.next_calibration_date - now).days
+                        notifications.append({
+                            'id': tool.id,
+                            'tool_number': tool.tool_number,
+                            'description': tool.description,
+                            'type': 'due_soon',
+                            'message': f'Tool {tool.tool_number} calibration due in {days_until_due} days',
+                            'priority': 'medium',
+                            'days_until_due': days_until_due,
+                            'last_calibration_date': tool.last_calibration_date.isoformat() if tool.last_calibration_date else None,
+                            'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None
+                        })
+
+            # Sort by priority (overdue first, then by days until due)
+            notifications.sort(key=lambda x: (
+                0 if x['type'] == 'overdue' else 1,
+                x.get('days_until_due', 999)
+            ))
+
+            return jsonify({
+                'notifications': notifications,
+                'count': len(notifications),
+                'overdue_count': len([n for n in notifications if n['type'] == 'overdue']),
+                'due_soon_count': len([n for n in notifications if n['type'] == 'due_soon'])
+            }), 200
+
+        except Exception as e:
+            print(f"Error getting calibration notifications: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/users', methods=['GET', 'POST'])
     def users_route():
@@ -2464,9 +2623,65 @@ def register_routes(app):
             'id': c.id,
             'user_id': c.user_id,
             'user_name': c.user.name if c.user else 'Unknown',
+            'user_department': c.user.department if c.user else 'Unknown',
             'checkout_date': c.checkout_date.isoformat(),
-            'return_date': c.return_date.isoformat() if c.return_date else None
+            'return_date': c.return_date.isoformat() if c.return_date else None,
+            'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
+            'condition_at_return': getattr(c, 'condition_at_return', None),
+            'returned_by': getattr(c, 'returned_by', None),
+            'found': getattr(c, 'found', None),
+            'return_notes': getattr(c, 'return_notes', None),
+            'is_overdue': c.return_date is None and c.expected_return_date and c.expected_return_date < datetime.now(),
+            'duration_days': (c.return_date - c.checkout_date).days if c.return_date else None,
+            'status': 'Returned' if c.return_date else ('Overdue' if c.expected_return_date and c.expected_return_date < datetime.now() else 'Checked Out')
         } for c in checkouts]), 200
+
+    @app.route('/api/checkouts/<int:id>/details', methods=['GET'])
+    def get_checkout_details(id):
+        """Get detailed information about a specific checkout transaction."""
+        checkout = Checkout.query.get_or_404(id)
+
+        # Get tool and user information
+        tool = checkout.tool
+        user = checkout.user
+
+        # Calculate duration if returned
+        duration_days = None
+        if checkout.return_date:
+            duration_days = (checkout.return_date - checkout.checkout_date).days
+
+        # Check if overdue
+        is_overdue = (checkout.return_date is None and
+                     checkout.expected_return_date and
+                     checkout.expected_return_date < datetime.now())
+
+        return jsonify({
+            'id': checkout.id,
+            'tool': {
+                'id': tool.id,
+                'tool_number': tool.tool_number,
+                'serial_number': tool.serial_number,
+                'description': tool.description,
+                'category': tool.category,
+                'location': tool.location
+            } if tool else None,
+            'user': {
+                'id': user.id,
+                'name': user.name,
+                'employee_number': user.employee_number,
+                'department': user.department
+            } if user else None,
+            'checkout_date': checkout.checkout_date.isoformat(),
+            'return_date': checkout.return_date.isoformat() if checkout.return_date else None,
+            'expected_return_date': checkout.expected_return_date.isoformat() if checkout.expected_return_date else None,
+            'condition_at_return': getattr(checkout, 'condition_at_return', None),
+            'returned_by': getattr(checkout, 'returned_by', None),
+            'found': getattr(checkout, 'found', None),
+            'return_notes': getattr(checkout, 'return_notes', None),
+            'duration_days': duration_days,
+            'is_overdue': is_overdue,
+            'status': 'Returned' if checkout.return_date else ('Overdue' if is_overdue else 'Checked Out')
+        }), 200
 
     @app.route('/api/tools/<int:id>/service/remove', methods=['POST'])
     @tool_manager_required
