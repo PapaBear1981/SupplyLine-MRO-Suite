@@ -161,6 +161,15 @@ const CycleCountScheduleList = () => {
                     </Button>
                     <Button
                       as={Link}
+                      to={`/cycle-counts/schedules/${schedule.id}/edit`}
+                      variant="outline-secondary"
+                      size="sm"
+                      className="me-2"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      as={Link}
                       to={`/cycle-counts/batches/new?schedule=${schedule.id}`}
                       variant="outline-success"
                       size="sm"
