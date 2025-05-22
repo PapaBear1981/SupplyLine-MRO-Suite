@@ -540,8 +540,8 @@ def register_cycle_count_routes(app):
                 schedule_id=data.get('schedule_id'),
                 name=data['name'],
                 status='pending',
-                start_date=datetime.fromisoformat(data['start_date']) if 'start_date' in data else None,
-                end_date=datetime.fromisoformat(data['end_date']) if 'end_date' in data else None,
+                start_date=datetime.fromisoformat(data['start_date']) if data.get('start_date') else None,
+                end_date=datetime.fromisoformat(data['end_date']) if data.get('end_date') else None,
                 created_by=session['user_id'],
                 notes=data.get('notes', '')
             )
@@ -860,11 +860,31 @@ def register_cycle_count_routes(app):
             results = query.all()
 
             # Return results
-            return jsonify([result.to_dict() for result in results]), 200
+            return jsonify([result.to_dict(include_item=True) for result in results]), 200
 
         except Exception as e:
             print(f"Error getting count discrepancies: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching count discrepancies'}), 500
+
+    # Get a specific count result
+    @app.route('/api/cycle-counts/results/<int:result_id>', methods=['GET'])
+    @tool_manager_required
+    def get_count_result(result_id):
+        try:
+            # Get result
+            result = CycleCountResult.query.get_or_404(result_id)
+
+            # Get the associated item
+            item = CycleCountItem.query.get(result.item_id)
+
+            # Return result with item details
+            result_dict = result.to_dict(include_item=True, include_adjustments=True)
+
+            return jsonify(result_dict), 200
+
+        except Exception as e:
+            print(f"Error getting count result {result_id}: {str(e)}")
+            return jsonify({'error': f'An error occurred while fetching count result {result_id}'}), 500
 
     # Approve and process a count adjustment
     @app.route('/api/cycle-counts/results/<int:result_id>/adjust', methods=['POST'])
