@@ -286,7 +286,23 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/cycle-counts/schedules/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/cycle-counts/batches/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches/:id/edit" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountBatchForm />

@@ -1,22 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Card, Form, Button, Alert, Spinner, Row, Col } from 'react-bootstrap';
-import { createCycleCountBatch, fetchCycleCountSchedules } from '../../store/cycleCountSlice';
+import {
+  createCycleCountBatch,
+  fetchCycleCountSchedules,
+  fetchCycleCountBatch,
+  updateCycleCountBatch,
+  clearCurrentBatch
+} from '../../store/cycleCountSlice';
 import { useHelp } from '../../context/HelpContext';
 
 const CycleCountBatchForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
   const { showHelp } = useHelp();
+  const isEditMode = !!id;
 
-  // Get schedule ID from query params if available
+  // Get schedule ID from query params if available (for new batch creation)
   const queryParams = new URLSearchParams(location.search);
   const scheduleIdFromQuery = queryParams.get('schedule');
 
   const { items: schedules, loading: schedulesLoading } =
     useSelector((state) => state.cycleCount.schedules);
+
+  const { data: currentBatch, loading: batchLoading, error: batchError } =
+    useSelector((state) => state.cycleCount.currentBatch);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,7 +50,38 @@ const CycleCountBatchForm = () => {
   useEffect(() => {
     // Fetch schedules for dropdown
     dispatch(fetchCycleCountSchedules({ active_only: true }));
-  }, [dispatch]);
+
+    // If editing, fetch the batch data
+    if (isEditMode) {
+      dispatch(fetchCycleCountBatch({ id }));
+    } else {
+      // Clear any existing batch data when creating new
+      dispatch(clearCurrentBatch());
+    }
+
+    // Cleanup on unmount
+    return () => {
+      dispatch(clearCurrentBatch());
+    };
+  }, [dispatch, id, isEditMode]);
+
+  // Populate form when batch data is loaded
+  useEffect(() => {
+    if (isEditMode && currentBatch) {
+      setFormData({
+        name: currentBatch.name || '',
+        schedule_id: currentBatch.schedule_id ? String(currentBatch.schedule_id) : '',
+        start_date: currentBatch.start_date ? new Date(currentBatch.start_date).toISOString().split('T')[0] : '',
+        end_date: currentBatch.end_date ? new Date(currentBatch.end_date).toISOString().split('T')[0] : '',
+        notes: currentBatch.notes || '',
+        generate_items: false, // Can't generate items when editing
+        item_selection: 'all',
+        item_count: 50,
+        category: '',
+        location: ''
+      });
+    }
+  }, [currentBatch, isEditMode]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -54,15 +96,15 @@ const CycleCountBatchForm = () => {
       return;
     }
 
-    // If changing item selection method, reset related fields
+    // If changing item selection method, preserve values when possible
     if (name === 'item_selection') {
       const updatedFormData = {
         ...formData,
         [name]: value,
-        // Reset all selection-specific fields
-        item_count: value === 'random' ? 50 : '',
-        category: value === 'category' ? '' : '',
-        location: value === 'location' ? '' : ''
+        // Preserve values when appropriate for the selection method
+        item_count: value === 'random' ? 50 : formData.item_count,
+        category: value === 'category' ? formData.category : formData.category,
+        location: value === 'location' ? formData.location : formData.location
       };
       setFormData(updatedFormData);
       return;
@@ -98,22 +140,79 @@ const CycleCountBatchForm = () => {
         ...(formData.item_selection === 'location' ? { location: formData.location } : {})
       };
 
-      await dispatch(createCycleCountBatch(batchData)).unwrap();
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/cycle-counts/batches');
-      }, 1500);
+      if (isEditMode) {
+        // If editing, check if there are any changes
+        const originalBatch = currentBatch;
+        const hasChanges =
+          originalBatch.name !== batchData.name ||
+          String(originalBatch.schedule_id ?? '') !== String(batchData.schedule_id ?? '') ||
+          (originalBatch.start_date ? new Date(originalBatch.start_date).toISOString().split('T')[0] : '') !== batchData.start_date ||
+          (originalBatch.end_date ? new Date(originalBatch.end_date).toISOString().split('T')[0] : '') !== batchData.end_date ||
+          (originalBatch.notes || '') !== (batchData.notes || '');
+
+        if (!hasChanges) {
+          // No changes, show success and redirect
+          setSuccess(true);
+          setTimeout(() => {
+            navigate('/cycle-counts/batches');
+          }, 1500);
+          setSubmitting(false);
+          return;
+        }
+
+        // Update existing batch
+        await dispatch(updateCycleCountBatch({ id, batchData })).unwrap();
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/cycle-counts/batches');
+        }, 1500);
+      } else {
+        // Create new batch
+        await dispatch(createCycleCountBatch(batchData)).unwrap();
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/cycle-counts/batches');
+        }, 1500);
+      }
     } catch (err) {
-      setError(err.error || 'An error occurred while creating the count batch');
+      setError(
+        err?.error ??
+        err?.message ??
+        `An error occurred while ${isEditMode ? 'updating' : 'creating'} the count batch`
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Show loading spinner when fetching batch data in edit mode
+  if (batchLoading && isEditMode) {
+    return (
+      <div className="d-flex justify-content-center my-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </div>
+    );
+  }
+
+  // Show error message if batch data fetch fails in edit mode
+  if (batchError && isEditMode) {
+    return (
+      <Alert variant="danger">
+        <Alert.Heading>Error Loading Batch</Alert.Heading>
+        <p>{batchError.error || 'Failed to load batch data'}</p>
+        <Button variant="outline-danger" onClick={() => navigate('/cycle-counts/batches')}>
+          Return to Batches
+        </Button>
+      </Alert>
+    );
+  }
+
   return (
     <div className="w-100">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Create Cycle Count Batch</h1>
+        <h1>{isEditMode ? 'Edit Cycle Count Batch' : 'Create Cycle Count Batch'}</h1>
       </div>
 
       {showHelp && (
@@ -141,7 +240,11 @@ const CycleCountBatchForm = () => {
       {success && (
         <Alert variant="success" className="mb-4">
           <Alert.Heading>Success!</Alert.Heading>
-          <p>Count batch created successfully. Redirecting...</p>
+          <p>
+            {isEditMode
+              ? 'Batch updated successfully. Redirecting...'
+              : 'Batch created successfully. Redirecting...'}
+          </p>
         </Alert>
       )}
 
@@ -242,16 +345,18 @@ const CycleCountBatchForm = () => {
               />
             </Form.Group>
 
-            <Form.Group className="mb-4">
-              <Form.Check
-                type="checkbox"
-                id="generate-items-checkbox"
-                name="generate_items"
-                label="Automatically generate items for this count batch"
-                checked={formData.generate_items}
-                onChange={handleChange}
-              />
-            </Form.Group>
+            {!isEditMode && (
+              <Form.Group className="mb-4">
+                <Form.Check
+                  type="checkbox"
+                  id="generate-items-checkbox"
+                  name="generate_items"
+                  label="Automatically generate items for this count batch"
+                  checked={formData.generate_items}
+                  onChange={handleChange}
+                />
+              </Form.Group>
+            )}
 
             {formData.generate_items && (
               <Card className="mb-3 bg-light">
@@ -350,10 +455,10 @@ const CycleCountBatchForm = () => {
                       aria-hidden="true"
                       className="me-2"
                     />
-                    Creating...
+                    {isEditMode ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
-                  'Create Count Batch'
+                  isEditMode ? 'Update Batch' : 'Create Count Batch'
                 )}
               </Button>
             </div>
