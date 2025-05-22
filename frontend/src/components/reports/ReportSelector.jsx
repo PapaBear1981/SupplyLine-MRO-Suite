@@ -100,6 +100,12 @@ const ReportSelector = ({
                 <option value="tool-inventory">Tool Inventory</option>
                 <option value="checkout-history">Checkout History</option>
                 <option value="department-usage">Department Usage</option>
+                <optgroup label="Cycle Count Reports">
+                  <option value="cycle-count-accuracy">Inventory Accuracy</option>
+                  <option value="cycle-count-discrepancies">Discrepancy Report</option>
+                  <option value="cycle-count-performance">Performance Report</option>
+                  <option value="cycle-count-coverage">Coverage Report</option>
+                </optgroup>
               </Form.Select>
             </Tooltip>
           </Form.Group>
@@ -246,6 +252,79 @@ const ReportSelector = ({
               </Form.Select>
             </Form.Group>
           </Col>
+        </Row>
+      )}
+
+      {(currentReport === 'cycle-count-accuracy' || currentReport === 'cycle-count-discrepancies' || currentReport === 'cycle-count-coverage') && (
+        <Row className="mb-3">
+          <Col md={4}>
+            <Form.Group>
+              <Form.Label>Location</Form.Label>
+              <Form.Control
+                type="text"
+                name="location"
+                value={localFilters.location || ''}
+                onChange={handleFilterChange}
+                placeholder="Filter by location"
+              />
+            </Form.Group>
+          </Col>
+
+          {currentReport === 'cycle-count-accuracy' && (
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Category</Form.Label>
+                <Form.Select
+                  name="category"
+                  value={localFilters.category || ''}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          )}
+
+          {currentReport === 'cycle-count-discrepancies' && (
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Discrepancy Type</Form.Label>
+                <Form.Select
+                  name="discrepancy_type"
+                  value={localFilters.discrepancy_type || ''}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">All Types</option>
+                  <option value="quantity">Quantity</option>
+                  <option value="location">Location</option>
+                  <option value="condition">Condition</option>
+                  <option value="missing">Missing</option>
+                  <option value="extra">Extra</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          )}
+
+          {currentReport === 'cycle-count-coverage' && (
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Item Type</Form.Label>
+                <Form.Select
+                  name="item_type"
+                  value={localFilters.item_type || 'tool'}
+                  onChange={handleFilterChange}
+                >
+                  <option value="tool">Tools</option>
+                  <option value="chemical">Chemicals</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          )}
         </Row>
       )}
 
