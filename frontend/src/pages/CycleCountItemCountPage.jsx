@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Alert, 
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Alert,
   Spinner
 } from 'react-bootstrap';
 import axios from 'axios';
-import { fetchCycleCountItem } from '../store/cycleCountSlice';
+
 import { useHelp } from '../context/HelpContext';
 import CycleCountItemForm from '../components/cycleCount/CycleCountItemForm';
 
@@ -19,14 +19,14 @@ const CycleCountItemCountPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { showHelp } = useHelp();
-  
+
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const controller = new AbortController();
-    
+
     const fetchItem = async () => {
       try {
         setLoading(true);
@@ -36,19 +36,22 @@ const CycleCountItemCountPage = () => {
         setItem(response.data);
       } catch (err) {
         if (err.name !== 'AbortError') {
+          console.error('Error fetching item details:', err);
           setError(err.response?.data?.error || 'Failed to fetch item details');
         }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
-    
+
     fetchItem();
-    
+
     // Cleanup
     return () => controller.abort();
   }, [id]);
-  
+
   const handleSuccess = () => {
     // Navigate back to the batch detail page
     if (item && item.batch_id) {
@@ -57,7 +60,7 @@ const CycleCountItemCountPage = () => {
       navigate('/cycle-counts');
     }
   };
-  
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
@@ -67,7 +70,7 @@ const CycleCountItemCountPage = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <Alert variant="danger">
@@ -79,7 +82,7 @@ const CycleCountItemCountPage = () => {
       </Alert>
     );
   }
-  
+
   if (!item) {
     return (
       <Alert variant="warning">
@@ -91,7 +94,7 @@ const CycleCountItemCountPage = () => {
       </Alert>
     );
   }
-  
+
   return (
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -108,7 +111,7 @@ const CycleCountItemCountPage = () => {
           </Button>
         </div>
       </div>
-      
+
       {showHelp && (
         <Alert variant="info" className="mb-4">
           <Alert.Heading>Count Item</Alert.Heading>
@@ -119,7 +122,7 @@ const CycleCountItemCountPage = () => {
           </p>
         </Alert>
       )}
-      
+
       <Card className="shadow-sm mb-4">
         <Card.Header className="bg-light">
           <h5 className="mb-0">Count Form</h5>
