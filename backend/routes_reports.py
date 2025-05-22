@@ -1,8 +1,7 @@
 from flask import request, jsonify, session
 from models import db, Tool, User, Checkout, AuditLog
 from models_cycle_count import (
-    CycleCountSchedule, CycleCountBatch, CycleCountItem,
-    CycleCountResult, CycleCountAdjustment
+    CycleCountBatch, CycleCountItem, CycleCountResult
 )
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract
@@ -546,7 +545,7 @@ def register_report_routes(app):
             # Get all discrepancy results within the timeframe
             query = CycleCountResult.query.filter(
                 CycleCountResult.counted_at >= start_date,
-                CycleCountResult.has_discrepancy == True
+                CycleCountResult.has_discrepancy.is_(True)
             ).join(CycleCountItem)
 
             # Apply filters if provided
@@ -556,7 +555,7 @@ def register_report_routes(app):
             if location:
                 query = query.filter(CycleCountItem.expected_location.ilike(f'%{location}%'))
 
-            discrepancies = query.order_by(CycleCountResult.counted_at.desc()).all()
+            query.order_by(CycleCountResult.counted_at.desc()).all()
 
             # Format response with empty data
             result = {
@@ -814,7 +813,7 @@ def register_report_routes(app):
                 CycleCountResult.counted_at >= start_date
             ).distinct().all()
 
-            counted_item_ids = [item[0] for item in counted_items]
+            counted_item_ids = {item_id for (item_id,) in counted_items}
             coverage_count = len(counted_item_ids)
             coverage_rate = (coverage_count / total_inventory * 100) if total_inventory > 0 else 0
 
