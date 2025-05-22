@@ -874,8 +874,7 @@ def register_cycle_count_routes(app):
             # Get result
             result = CycleCountResult.query.get_or_404(result_id)
 
-            # Get the associated item
-            item = CycleCountItem.query.get(result.item_id)
+            # The item details are included via include_item=True
 
             # Return result with item details
             result_dict = result.to_dict(include_item=True, include_adjustments=True)

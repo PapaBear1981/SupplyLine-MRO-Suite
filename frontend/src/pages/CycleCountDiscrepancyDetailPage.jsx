@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Button, 
-  Alert, 
-  Spinner, 
-  Badge, 
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Alert,
+  Spinner,
+  Badge,
   Form
 } from 'react-bootstrap';
 import axios from 'axios';
@@ -20,29 +20,33 @@ const CycleCountDiscrepancyDetailPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { showHelp } = useHelp();
-  
+
   const [discrepancy, setDiscrepancy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     adjustment_type: 'quantity',
     new_value: '',
     notes: ''
   });
-  
+
   const [validated, setValidated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [success, setSuccess] = useState(false);
-  
+
   useEffect(() => {
+    const controller = new AbortController();
     const fetchDiscrepancy = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/cycle-counts/results/${id}`);
+        const response = await axios.get(
+          `/api/cycle-counts/results/${id}`,
+          { signal: controller.signal }
+        );
         setDiscrepancy(response.data);
-        
+
         // Pre-fill form with appropriate values
         if (response.data.discrepancy_type === 'quantity') {
           setFormData(prev => ({
@@ -58,15 +62,34 @@ const CycleCountDiscrepancyDetailPage = () => {
           }));
         }
       } catch (err) {
-        setError(err.response?.data?.error || 'Failed to fetch discrepancy details');
+        if (err.name !== 'AbortError') {
+          setError(err.response?.data?.error || 'Failed to fetch discrepancy details');
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
-    
+
     fetchDiscrepancy();
+
+    // cleanup
+    return () => controller.abort();
   }, [id]);
-  
+
+  // Navigate after successful submission
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        navigate('/cycle-counts/discrepancies');
+      }, 1500);
+
+      // Cleanup to prevent memory leaks
+      return () => clearTimeout(timer);
+    }
+  }, [success, navigate]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -74,57 +97,64 @@ const CycleCountDiscrepancyDetailPage = () => {
       [name]: value
     }));
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const form = e.currentTarget;
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-    
+
     setValidated(true);
     setSubmitting(true);
     setSubmitError(null);
-    
+
     try {
       // Prepare adjustment data
-      const adjustmentData = {
-        ...formData,
-        // Convert to number if it's a quantity adjustment
-        new_value: formData.adjustment_type === 'quantity' 
-          ? parseInt(formData.new_value, 10) 
-          : formData.new_value
-      };
-      
-      await dispatch(approveCountAdjustment({ 
-        resultId: id, 
-        adjustmentData 
+      // Convert to number if it's a quantity adjustment
+      const numericValue =
+        formData.adjustment_type === 'quantity'
+          ? Number.parseInt(formData.new_value, 10)
+          : formData.new_value;
+
+      if (
+        formData.adjustment_type === 'quantity' &&
+        (Number.isNaN(numericValue) || numericValue < 0)
+      ) {
+        setValidated(true);
+        setSubmitting(false);
+        return setSubmitError('Please enter a valid, non-negative quantity.');
+      }
+
+      const adjustmentData = { ...formData, new_value: numericValue };
+
+      await dispatch(approveCountAdjustment({
+        resultId: id,
+        adjustmentData
       })).unwrap();
-      
+
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/cycle-counts/discrepancies');
-      }, 1500);
     } catch (err) {
       setSubmitError(err.error || 'An error occurred while approving the adjustment');
     } finally {
       setSubmitting(false);
     }
   };
-  
+
   const formatDiscrepancyType = (type) => {
     const types = {
       quantity: 'Quantity Mismatch',
       location: 'Location Mismatch',
       condition: 'Condition Issue',
+      status: 'Status Mismatch',
       multiple: 'Multiple Issues'
     };
     return types[type] || type;
   };
-  
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
@@ -134,7 +164,7 @@ const CycleCountDiscrepancyDetailPage = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <Alert variant="danger">
@@ -143,7 +173,7 @@ const CycleCountDiscrepancyDetailPage = () => {
       </Alert>
     );
   }
-  
+
   if (!discrepancy) {
     return (
       <Alert variant="warning">
@@ -155,7 +185,7 @@ const CycleCountDiscrepancyDetailPage = () => {
       </Alert>
     );
   }
-  
+
   return (
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -172,7 +202,7 @@ const CycleCountDiscrepancyDetailPage = () => {
           </Button>
         </div>
       </div>
-      
+
       {showHelp && (
         <Alert variant="info" className="mb-4">
           <Alert.Heading>Discrepancy Resolution</Alert.Heading>
@@ -182,7 +212,7 @@ const CycleCountDiscrepancyDetailPage = () => {
           </p>
         </Alert>
       )}
-      
+
       <Row className="mb-4">
         <Col md={6}>
           <Card className="shadow-sm mb-4">
@@ -229,7 +259,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   <Badge bg="warning">{formatDiscrepancyType(discrepancy.discrepancy_type)}</Badge>
                 </Col>
               </Row>
-              
+
               <Row className="mb-3">
                 <Col md={4} className="fw-bold">Expected Quantity:</Col>
                 <Col md={8}>{discrepancy.item.expected_quantity}</Col>
@@ -243,7 +273,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   )}
                 </Col>
               </Row>
-              
+
               <Row className="mb-3">
                 <Col md={4} className="fw-bold">Expected Location:</Col>
                 <Col md={8}>{discrepancy.item.location}</Col>
@@ -257,7 +287,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   )}
                 </Col>
               </Row>
-              
+
               <Row className="mb-3">
                 <Col md={4} className="fw-bold">Condition:</Col>
                 <Col md={8} className={discrepancy.discrepancy_type === 'condition' ? 'text-danger' : ''}>
@@ -267,7 +297,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   )}
                 </Col>
               </Row>
-              
+
               <Row className="mb-3">
                 <Col md={4} className="fw-bold">Notes:</Col>
                 <Col md={8}>{discrepancy.notes || 'No notes'}</Col>
@@ -276,7 +306,7 @@ const CycleCountDiscrepancyDetailPage = () => {
           </Card>
         </Col>
       </Row>
-      
+
       <Card className="shadow-sm mb-4">
         <Card.Header className="bg-light">
           <h5 className="mb-0">Approve Adjustment</h5>
@@ -295,7 +325,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   <p>{submitError}</p>
                 </Alert>
               )}
-              
+
               <Form.Group className="mb-3">
                 <Form.Label>Adjustment Type <span className="text-danger">*</span></Form.Label>
                 <Form.Select
@@ -310,7 +340,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   <option value="status">Update Status</option>
                 </Form.Select>
               </Form.Group>
-              
+
               <Form.Group className="mb-3">
                 <Form.Label>New Value <span className="text-danger">*</span></Form.Label>
                 {formData.adjustment_type === 'quantity' ? (
@@ -361,7 +391,7 @@ const CycleCountDiscrepancyDetailPage = () => {
                   Please enter a valid value.
                 </Form.Control.Feedback>
               </Form.Group>
-              
+
               <Form.Group className="mb-3">
                 <Form.Label>Notes</Form.Label>
                 <Form.Control
@@ -373,12 +403,12 @@ const CycleCountDiscrepancyDetailPage = () => {
                   placeholder="Enter any notes about this adjustment"
                 />
               </Form.Group>
-              
+
               <div className="d-flex justify-content-end">
-                <Button 
-                  as={Link} 
-                  to="/cycle-counts/discrepancies" 
-                  variant="secondary" 
+                <Button
+                  as={Link}
+                  to="/cycle-counts/discrepancies"
+                  variant="secondary"
                   className="me-2"
                 >
                   Cancel
