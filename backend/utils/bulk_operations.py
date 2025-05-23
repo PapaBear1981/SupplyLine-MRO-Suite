@@ -35,9 +35,11 @@ def bulk_log_activities(activities):
 
     try:
         db.session.bulk_insert_mappings(UserActivity, activities)
+        db.session.commit()
         logger.info(f"Bulk logged {len(activities)} user activities")
     except Exception as e:
         logger.error(f"Error bulk logging activities: {str(e)}")
+        db.session.rollback()
         raise
 
 
@@ -61,9 +63,11 @@ def bulk_log_audit_events(audit_logs):
 
     try:
         db.session.bulk_insert_mappings(AuditLog, audit_logs)
+        db.session.commit()
         logger.info(f"Bulk logged {len(audit_logs)} audit events")
     except Exception as e:
         logger.error(f"Error bulk logging audit events: {str(e)}")
+        db.session.rollback()
         raise
 
 
@@ -81,7 +85,10 @@ def bulk_update_tool_calibration_status():
                 Tool.next_calibration_date < now,
                 Tool.calibration_status != 'overdue'
             )
-        ).update({Tool.calibration_status: 'overdue'})
+        ).update(
+            {Tool.calibration_status: 'overdue'},
+            synchronize_session=False
+        )
 
         # Update due soon calibrations (within 30 days)
         due_soon_date = now + timedelta(days=30)
@@ -90,7 +97,10 @@ def bulk_update_tool_calibration_status():
                 Tool.next_calibration_date.between(now, due_soon_date),
                 Tool.calibration_status != 'due_soon'
             )
-        ).update({Tool.calibration_status: 'due_soon'})
+        ).update(
+            {Tool.calibration_status: 'due_soon'},
+            synchronize_session=False
+        )
 
         # Update current calibrations
         current_count = db.session.query(Tool).filter(
@@ -98,7 +108,10 @@ def bulk_update_tool_calibration_status():
                 Tool.next_calibration_date > due_soon_date,
                 Tool.calibration_status != 'current'
             )
-        ).update({Tool.calibration_status: 'current'})
+        ).update(
+            {Tool.calibration_status: 'current'},
+            synchronize_session=False
+        )
 
         logger.info(f"Bulk updated calibration status: {overdue_count} overdue, {due_soon_count} due soon, {current_count} current")
 
@@ -230,16 +243,19 @@ def get_chemicals_with_relationships(filters=None):
             joinedload(Chemical.issuances)
         )
 
-        # Default filter for non-archived chemicals
-        query = query.filter(Chemical.is_archived == False)
+        # Apply archived filter based on show_archived parameter
+        if filters and filters.get('show_archived'):
+            # Show archived chemicals - no filter needed
+            pass
+        else:
+            # Default filter for non-archived chemicals
+            query = query.filter(Chemical.is_archived.is_(False))
 
         if filters:
             if 'status' in filters:
                 query = query.filter(Chemical.status == filters['status'])
             if 'category' in filters:
                 query = query.filter(Chemical.category == filters['category'])
-            if 'show_archived' in filters and filters['show_archived']:
-                query = Chemical.query.options(joinedload(Chemical.issuances))
 
         return query.all()
 
