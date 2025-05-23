@@ -19,30 +19,15 @@ from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
+from utils.session_manager import SessionManager
+from utils.error_handler import log_security_event
 
-# Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Check if user is admin or Materials department or IT department
-        if not (session.get('is_admin', False) or
-                session.get('department') == 'Materials' or
-                session.get('department') == 'IT'):
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+# Removed duplicate materials_manager_required - using secure version below
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-        from utils.error_handler import log_security_event
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Login required access denied: {message}')
@@ -77,9 +62,6 @@ def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-        from utils.error_handler import log_security_event
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
@@ -97,9 +79,6 @@ def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-        from utils.error_handler import log_security_event
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Materials management access denied: {message}')

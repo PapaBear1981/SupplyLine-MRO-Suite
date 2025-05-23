@@ -2,9 +2,9 @@ from flask import request, jsonify, session
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
-from utils.error_handler import handle_errors, ValidationError, log_security_event
-from utils.validation import validate_schema
-from utils.session_manager import secure_login_required
+from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
+from utils.validation import validate_schema, validate_types, validate_constraints
+from utils.session_manager import SessionManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,6 @@ def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
@@ -243,13 +241,15 @@ def register_chemical_routes(app):
         }
 
         # Validate input
-        from utils.error_handler import validate_input
         validate_input(data, issuance_schema['required'], issuance_schema.get('optional', []))
 
         # Validate types and constraints
-        from utils.validation import validate_types, validate_constraints
         validate_types(data, issuance_schema['types'])
         validate_constraints(data, issuance_schema['constraints'])
+
+        # Ensure the user exists
+        if not User.query.get(data['user_id']):
+            raise ValidationError('Supplied user_id does not exist')
 
         quantity = float(data['quantity'])
         if quantity > chemical.quantity:

@@ -7,7 +7,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
-from utils.session_manager import secure_login_required
+from utils.session_manager import SessionManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,6 @@ def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
@@ -213,10 +211,10 @@ def register_calibration_routes(app):
         tool.next_calibration_date = next_calibration_date
         tool.update_calibration_status()
 
-        # Step 2: Save calibration to database first to get its ID
-        # This ensures the calibration record exists before linking standards
+        # Step 2: Add calibration to session and flush to get its ID
+        # This ensures the calibration record gets an ID without committing
         db.session.add(calibration)
-        db.session.commit()
+        db.session.flush()  # Flush to get the ID without committing
 
         # Step 3: Add calibration standards if provided
         # Now that we have a valid calibration.id, we can link standards to it
@@ -225,13 +223,10 @@ def register_calibration_routes(app):
                 standard = CalibrationStandard.query.get(standard_id)
                 if standard:
                     calibration_standard = ToolCalibrationStandard(
-                        calibration_id=calibration.id,  # This ID is now available because we committed above
+                        calibration_id=calibration.id,  # This ID is now available because we flushed above
                         standard_id=standard_id
                     )
                     db.session.add(calibration_standard)
-
-            # Commit the standards separately
-            db.session.commit()
 
         # Create audit log
         log = AuditLog(
@@ -249,7 +244,7 @@ def register_calibration_routes(app):
         )
         db.session.add(activity)
 
-        # Final commit for audit log and user activity
+        # Single commit for all operations to ensure atomicity
         db.session.commit()
 
         logger.info(f"Calibration record added successfully for tool {tool.tool_number}")

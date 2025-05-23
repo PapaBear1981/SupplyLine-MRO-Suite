@@ -2,8 +2,8 @@ from flask import request, jsonify, session
 from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
 from datetime import datetime, timezone
 from functools import wraps
-from utils.error_handler import handle_errors, ValidationError, log_security_event
-from utils.session_manager import secure_admin_required
+from utils.error_handler import log_security_event
+from utils.session_manager import SessionManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,8 +13,6 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Use secure session validation
-        from utils.session_manager import SessionManager
-
         valid, message = SessionManager.validate_session()
         if not valid:
             log_security_event('unauthorized_access_attempt', f'Admin access denied: {message}')
