@@ -78,31 +78,30 @@ class SessionCleaner:
         total_size_freed = 0
 
         try:
-            for filename in os.listdir(self.session_dir):
-                filepath = os.path.join(self.session_dir, filename)
+            with os.scandir(self.session_dir) as entries:
+                for entry in entries:
+                    # Skip directories and non-session files
+                    if (
+                        not entry.is_file()
+                        or not (entry.name.startswith("session_") or entry.name.startswith("session:"))
+                    ):
+                        continue
 
-                # Skip directories and non-session files
-                if (
-                    not os.path.isfile(filepath)
-                    or not (filename.startswith("session_") or filename.startswith("session:"))
-                ):
-                    continue
+                    try:
+                        # Check file age using cached stat info
+                        file_age = now - entry.stat().st_mtime
+                        if file_age > self.max_age:
+                            # Get file size before deletion
+                            file_size = entry.stat().st_size
+                            os.remove(entry.path)
+                            cleaned += 1
+                            total_size_freed += file_size
 
-                try:
-                    # Check file age
-                    file_age = now - os.path.getmtime(filepath)
-                    if file_age > self.max_age:
-                        # Get file size before deletion
-                        file_size = os.path.getsize(filepath)
-                        os.remove(filepath)
-                        cleaned += 1
-                        total_size_freed += file_size
+                            logger.debug(f"Removed expired session file: {entry.name} (age: {file_age:.0f}s)")
 
-                        logger.debug(f"Removed expired session file: {filename} (age: {file_age:.0f}s)")
-
-                except OSError as e:
-                    logger.warning(f"Could not remove session file {filename}: {e}")
-                    continue
+                    except OSError as e:
+                        logger.warning(f"Could not remove session file {entry.name}: {e}")
+                        continue
 
         except OSError as e:
             logger.error(f"Error accessing session directory {self.session_dir}: {e}")
@@ -137,15 +136,15 @@ class SessionCleaner:
         oldest_age = 0
 
         try:
-            for filename in os.listdir(self.session_dir):
-                filepath = os.path.join(self.session_dir, filename)
+            with os.scandir(self.session_dir) as entries:
+                for entry in entries:
+                    if entry.is_file() and (entry.name.startswith('session_') or entry.name.startswith('session:')):
+                        total_files += 1
+                        stat_info = entry.stat()
+                        total_size += stat_info.st_size
 
-                if os.path.isfile(filepath) and (filename.startswith('session_') or filename.startswith('session:')):
-                    total_files += 1
-                    total_size += os.path.getsize(filepath)
-
-                    file_age = now - os.path.getmtime(filepath)
-                    oldest_age = max(oldest_age, file_age)
+                        file_age = now - stat_info.st_mtime
+                        oldest_age = max(oldest_age, file_age)
 
         except OSError as e:
             logger.error(f"Error getting session stats: {e}")

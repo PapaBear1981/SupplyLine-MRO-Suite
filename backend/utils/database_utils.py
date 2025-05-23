@@ -105,7 +105,7 @@ def safe_add_and_commit(obj, operation_name="add_object"):
         db.session.rollback()
 
         duration = (time.time() - start_time) * 1000
-        logger.error(f"Failed to add {obj.__class__.__name__}", extra={
+        logger.error("Failed to add %s", obj.__class__.__name__, extra={
             'operation': operation_name,
             'table': obj.__tablename__,
             'error_type': type(e).__name__,
@@ -135,7 +135,7 @@ def safe_update_and_commit(obj, operation_name="update_object"):
         duration = (time.time() - start_time) * 1000
         log_database_operation('UPDATE', obj.__tablename__, duration, 1)
 
-        logger.debug(f"Successfully updated {obj.__class__.__name__}", extra={
+        logger.debug("Successfully updated %s", obj.__class__.__name__, extra={
             'operation': operation_name,
             'table': obj.__tablename__,
             'object_id': getattr(obj, 'id', None)
@@ -147,7 +147,7 @@ def safe_update_and_commit(obj, operation_name="update_object"):
         db.session.rollback()
 
         duration = (time.time() - start_time) * 1000
-        logger.error(f"Failed to update {obj.__class__.__name__}", extra={
+        logger.error("Failed to update %s", obj.__class__.__name__, extra={
             'operation': operation_name,
             'table': obj.__tablename__,
             'error_type': type(e).__name__,
@@ -181,7 +181,7 @@ def safe_delete_and_commit(obj, operation_name="delete_object"):
         duration = (time.time() - start_time) * 1000
         log_database_operation('DELETE', table_name, duration, 1)
 
-        logger.debug(f"Successfully deleted {class_name}", extra={
+        logger.debug("Successfully deleted %s", class_name, extra={
             'operation': operation_name,
             'table': table_name,
             'object_id': object_id
@@ -193,7 +193,7 @@ def safe_delete_and_commit(obj, operation_name="delete_object"):
         db.session.rollback()
 
         duration = (time.time() - start_time) * 1000
-        logger.error(f"Failed to delete {class_name}", extra={
+        logger.error("Failed to delete %s", class_name, extra={
             'operation': operation_name,
             'table': table_name,
             'object_id': object_id,
@@ -226,7 +226,7 @@ def bulk_insert_with_rollback(model_class, data_list, operation_name="bulk_inser
         duration = (time.time() - start_time) * 1000
         log_database_operation('BULK_INSERT', model_class.__tablename__, duration, len(data_list))
 
-        logger.info(f"Successfully bulk inserted {len(data_list)} {model_class.__name__} records", extra={
+        logger.info("Successfully bulk inserted %d %s records", len(data_list), model_class.__name__, extra={
             'operation': operation_name,
             'table': model_class.__tablename__,
             'record_count': len(data_list)
@@ -238,7 +238,7 @@ def bulk_insert_with_rollback(model_class, data_list, operation_name="bulk_inser
         db.session.rollback()
 
         duration = (time.time() - start_time) * 1000
-        logger.error(f"Failed to bulk insert {model_class.__name__} records", extra={
+        logger.error("Failed to bulk insert %s records", model_class.__name__, extra={
             'operation': operation_name,
             'table': model_class.__tablename__,
             'record_count': len(data_list),
@@ -261,16 +261,26 @@ def get_connection_stats():
         engine = db.engine
         pool = engine.pool
 
-        return {
-            'pool_size': pool.size(),
-            'checked_in': pool.checkedin(),
-            'checked_out': pool.checkedout(),
-            'overflow': pool.overflow(),
-            'invalid': pool.invalid(),
-            'total_connections': pool.size() + pool.overflow()
-        }
+        # Check if pool has the required methods (not available for NullPool/SingletonThreadPool)
+        stats = {}
+        if hasattr(pool, 'size'):
+            stats['pool_size'] = pool.size()
+        if hasattr(pool, 'checkedin'):
+            stats['checked_in'] = pool.checkedin()
+        if hasattr(pool, 'checkedout'):
+            stats['checked_out'] = pool.checkedout()
+        if hasattr(pool, 'overflow'):
+            stats['overflow'] = pool.overflow()
+        if hasattr(pool, 'invalid'):
+            stats['invalid'] = pool.invalid()
+
+        # Calculate total if we have the required values
+        if 'pool_size' in stats and 'overflow' in stats:
+            stats['total_connections'] = stats['pool_size'] + stats['overflow']
+
+        return stats
     except Exception as e:
-        logger.error(f"Error getting connection stats: {e}")
+        logger.error("Error getting connection stats: %s", e)
         return {'error': str(e)}
 
 
@@ -296,7 +306,7 @@ def check_database_health():
         }
 
     except Exception as e:
-        logger.error(f"Database health check failed: {e}")
+        logger.error("Database health check failed: %s", e)
         return {
             'healthy': False,
             'error': str(e),
@@ -323,7 +333,7 @@ def db_connection_cleanup():
                 g.db_connection.close()
                 delattr(g, 'db_connection')
             except Exception as e:
-                logger.warning(f"Error closing database connection: {e}")
+                logger.warning("Error closing database connection: %s", e)
 
         # Remove any session from Flask g
         db.session.remove()

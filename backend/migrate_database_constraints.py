@@ -111,13 +111,16 @@ def migrate_database():
             ]
 
             # Note: SQLite has limited support for adding constraints to existing tables
-            # We'll log these for reference but may need to implement them at the application level
-            for constraint_sql, table, column in constraints_to_add:
-                try:
-                    cursor.execute(constraint_sql)
-                    logger.info(f"Added constraint to {table}.{column}")
-                except sqlite3.Error as e:
-                    logger.info(f"Constraint not added to {table}.{column} (SQLite limitation): {e}")
+            # Check SQLite version before attempting constraints
+            if sqlite3.sqlite_version_info >= (3, 25, 0):
+                for constraint_sql, table, column in constraints_to_add:
+                    try:
+                        cursor.execute(constraint_sql)
+                        logger.info(f"Added constraint to {table}.{column}")
+                    except sqlite3.Error as e:
+                        logger.info(f"Constraint not added to {table}.{column} (SQLite limitation): {e}")
+            else:
+                logger.debug(f"Skipping constraints - SQLite version {sqlite3.sqlite_version} too old (need 3.25.0+)")
 
             # Commit all changes
             conn.commit()

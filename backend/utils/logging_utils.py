@@ -196,7 +196,14 @@ def log_database_operation(operation: str, table: str, duration_ms: float,
     }
 
     db_logger = logging.getLogger('database')
-    db_logger.debug(f"Database: {operation} on {table} took {duration_ms:.2f}ms", extra=log_data)
+
+    # Use info level for slow queries (>500ms) or warning for very slow (>1000ms)
+    if duration_ms > 1000:
+        db_logger.warning("Slow database operation: %s on %s (%.2fms)", operation, table, duration_ms, extra=log_data)
+    elif duration_ms > 500:
+        db_logger.info("Database operation: %s on %s (%.2fms)", operation, table, duration_ms, extra=log_data)
+    else:
+        db_logger.debug("Database operation: %s on %s (%.2fms)", operation, table, duration_ms, extra=log_data)
 
 
 def performance_monitor(operation_name: str):

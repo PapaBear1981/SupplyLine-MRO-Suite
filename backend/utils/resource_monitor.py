@@ -234,6 +234,19 @@ class ResourceMonitor:
         if stats['process']['open_files'] > self.thresholds['open_files']:
             issues.append(f"High open file count: {stats['process']['open_files']}")
 
+        # Check database connections if available
+        try:
+            from .database_utils import get_connection_stats
+            conn_stats = get_connection_stats()
+            if (
+                isinstance(conn_stats, dict)
+                and 'error' not in conn_stats
+                and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
+            ):
+                issues.append(f"High database connection usage: {conn_stats.get('checked_out')}")
+        except (ImportError, Exception):
+            pass
+
         return {
             'healthy': len(issues) == 0,
             'issues': issues,
