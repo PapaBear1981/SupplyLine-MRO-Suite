@@ -8,9 +8,9 @@ transaction management, and security event tracking.
 import logging
 import time
 from functools import wraps
-from flask import jsonify, current_app, request, session, g
+from flask import jsonify, current_app, request, session
 from sqlalchemy.exc import SQLAlchemyError
-from .logging_utils import get_request_context, sanitize_data, log_security_event
+from .logging_utils import get_request_context, log_security_event
 
 logger = logging.getLogger(__name__)
 

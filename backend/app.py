@@ -35,9 +35,9 @@ def create_app():
     if hasattr(Config, 'LOGGING_CONFIG'):
         try:
             logging.config.dictConfig(Config.LOGGING_CONFIG)
-            print("Structured logging configured successfully")
+            logging.getLogger(__name__).info("Structured logging configured successfully")
         except Exception as e:
-            print(f"Error configuring logging: {e}")
+            logging.getLogger(__name__).warning("Error configuring logging: %s", e)
             # Fall back to basic logging
             logging.basicConfig(level=logging.INFO)
 
@@ -68,7 +68,7 @@ def create_app():
     logger = logging.getLogger(__name__)
 
     # Log current time information for debugging
-    logger.info(f"Application starting", extra={
+    logger.info("Application starting", extra={
         'utc_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'local_time': datetime.datetime.now().isoformat()
     })
@@ -81,7 +81,7 @@ def create_app():
         migrate_database()
         logger.info("Chemical reorder fields migration completed successfully")
     except Exception as e:
-        logger.error(f"Error running chemical reorder fields migration", exc_info=True, extra={
+        logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
             'migration': 'reorder_fields',
             'error_message': str(e)
         })
@@ -93,7 +93,7 @@ def create_app():
         migrate_tool_calibration()
         logger.info("Tool calibration migration completed successfully")
     except Exception as e:
-        logger.error(f"Error running tool calibration migration", exc_info=True, extra={
+        logger.error("Error running tool calibration migration", exc_info=True, extra={
             'migration': 'tool_calibration',
             'error_message': str(e)
         })

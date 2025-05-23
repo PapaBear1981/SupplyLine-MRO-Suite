@@ -9,7 +9,6 @@ import os
 import time
 import logging
 from threading import Thread
-from flask import current_app
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +16,15 @@ logger = logging.getLogger(__name__)
 class SessionCleaner:
     """
     Automatic session file cleanup manager.
-    
+
     This class runs a background thread that periodically cleans up
     expired session files to prevent disk space issues.
     """
-    
+
     def __init__(self, session_dir, max_age=86400, cleanup_interval=3600):
         """
         Initialize the session cleaner.
-        
+
         Args:
             session_dir (str): Directory containing session files
             max_age (int): Maximum age of session files in seconds (default: 24 hours)
@@ -36,7 +35,7 @@ class SessionCleaner:
         self.cleanup_interval = cleanup_interval
         self.running = False
         self._thread = None
-    
+
     def start_cleanup_thread(self):
         """Start the background cleanup thread."""
         if not self.running:
@@ -44,14 +43,14 @@ class SessionCleaner:
             self._thread = Thread(target=self._cleanup_loop, daemon=True)
             self._thread.start()
             logger.info(f"Session cleanup thread started for directory: {self.session_dir}")
-    
+
     def stop_cleanup_thread(self):
         """Stop the background cleanup thread."""
         self.running = False
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
         logger.info("Session cleanup thread stopped")
-    
+
     def _cleanup_loop(self):
         """Main cleanup loop that runs in the background thread."""
         while self.running:
@@ -59,33 +58,36 @@ class SessionCleaner:
                 self.cleanup_expired_sessions()
             except Exception as e:
                 logger.error(f"Session cleanup error: {e}", exc_info=True)
-            
+
             # Sleep for the cleanup interval
             time.sleep(self.cleanup_interval)
-    
+
     def cleanup_expired_sessions(self):
         """
         Clean up expired session files.
-        
+
         Returns:
             int: Number of files cleaned up
         """
         if not os.path.exists(self.session_dir):
             logger.warning(f"Session directory does not exist: {self.session_dir}")
             return 0
-        
+
         now = time.time()
         cleaned = 0
         total_size_freed = 0
-        
+
         try:
             for filename in os.listdir(self.session_dir):
                 filepath = os.path.join(self.session_dir, filename)
-                
+
                 # Skip directories and non-session files
-                if not os.path.isfile(filepath) or not filename.startswith('session_'):
+                if (
+                    not os.path.isfile(filepath)
+                    or not (filename.startswith("session_") or filename.startswith("session:"))
+                ):
                     continue
-                
+
                 try:
                     # Check file age
                     file_age = now - os.path.getmtime(filepath)
@@ -95,29 +97,29 @@ class SessionCleaner:
                         os.remove(filepath)
                         cleaned += 1
                         total_size_freed += file_size
-                        
+
                         logger.debug(f"Removed expired session file: {filename} (age: {file_age:.0f}s)")
-                        
+
                 except OSError as e:
                     logger.warning(f"Could not remove session file {filename}: {e}")
                     continue
-        
+
         except OSError as e:
             logger.error(f"Error accessing session directory {self.session_dir}: {e}")
             return 0
-        
+
         if cleaned > 0:
             size_mb = total_size_freed / (1024 * 1024)
             logger.info(f"Session cleanup completed: {cleaned} files removed, {size_mb:.2f} MB freed")
         else:
             logger.debug("Session cleanup completed: no expired files found")
-        
+
         return cleaned
-    
+
     def get_session_stats(self):
         """
         Get statistics about session files.
-        
+
         Returns:
             dict: Statistics including file count, total size, oldest file age
         """
@@ -128,23 +130,23 @@ class SessionCleaner:
                 'oldest_file_age_hours': 0,
                 'directory_exists': False
             }
-        
+
         now = time.time()
         total_files = 0
         total_size = 0
         oldest_age = 0
-        
+
         try:
             for filename in os.listdir(self.session_dir):
                 filepath = os.path.join(self.session_dir, filename)
-                
-                if os.path.isfile(filepath) and filename.startswith('session_'):
+
+                if os.path.isfile(filepath) and (filename.startswith('session_') or filename.startswith('session:')):
                     total_files += 1
                     total_size += os.path.getsize(filepath)
-                    
+
                     file_age = now - os.path.getmtime(filepath)
                     oldest_age = max(oldest_age, file_age)
-        
+
         except OSError as e:
             logger.error(f"Error getting session stats: {e}")
             return {
@@ -154,7 +156,7 @@ class SessionCleaner:
                 'directory_exists': True,
                 'error': str(e)
             }
-        
+
         return {
             'total_files': total_files,
             'total_size_mb': round(total_size / (1024 * 1024), 2),
@@ -170,20 +172,20 @@ _session_cleaner = None
 def init_session_cleanup(app):
     """
     Initialize session cleanup for the Flask application.
-    
+
     Args:
         app: Flask application instance
     """
     global _session_cleaner
-    
+
     session_dir = app.config.get('SESSION_FILE_DIR')
     max_age = app.config.get('SESSION_MAX_AGE', 86400)
     cleanup_interval = app.config.get('SESSION_CLEANUP_INTERVAL', 3600)
-    
+
     if session_dir and app.config.get('SESSION_TYPE') == 'filesystem':
         _session_cleaner = SessionCleaner(session_dir, max_age, cleanup_interval)
         _session_cleaner.start_cleanup_thread()
-        
+
         logger.info(f"Session cleanup initialized: dir={session_dir}, max_age={max_age}s, interval={cleanup_interval}s")
     else:
         logger.info("Session cleanup not initialized: filesystem sessions not configured")

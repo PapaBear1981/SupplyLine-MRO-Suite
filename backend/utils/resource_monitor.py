@@ -9,7 +9,7 @@ import psutil
 import threading
 import time
 import logging
-from flask import current_app
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class ResourceMonitor:
             # Memory usage
             memory = psutil.virtual_memory()
             if memory.percent > self.thresholds['memory_percent']:
-                logger.warning(f"High memory usage detected", extra={
+                logger.warning("High memory usage detected", extra={
                     'metric_type': 'memory_usage',
                     'current_percent': memory.percent,
                     'threshold_percent': self.thresholds['memory_percent'],
@@ -85,11 +85,10 @@ class ResourceMonitor:
                 })
 
             # Disk usage (use appropriate path for OS)
-            import os
             disk_path = 'C:' if os.name == 'nt' else '/'
             disk = psutil.disk_usage(disk_path)
             if disk.percent > self.thresholds['disk_percent']:
-                logger.warning(f"High disk usage detected", extra={
+                logger.warning("High disk usage detected", extra={
                     'metric_type': 'disk_usage',
                     'current_percent': disk.percent,
                     'threshold_percent': self.thresholds['disk_percent'],
@@ -102,7 +101,7 @@ class ResourceMonitor:
                 process = psutil.Process()
                 open_files = len(process.open_files())
                 if open_files > self.thresholds['open_files']:
-                    logger.warning(f"High open file count detected", extra={
+                    logger.warning("High open file count detected", extra={
                         'metric_type': 'open_files',
                         'current_count': open_files,
                         'threshold_count': self.thresholds['open_files'],
@@ -110,6 +109,28 @@ class ResourceMonitor:
                     })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
+
+            # Database connection pool usage
+            try:
+                from .database_utils import get_connection_stats
+                conn_stats = get_connection_stats()
+                if (
+                    isinstance(conn_stats, dict)
+                    and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
+                ):
+                    logger.warning(
+                        "High database connection usage detected",
+                        extra={
+                            "metric_type": "db_connections",
+                            "checked_out": conn_stats.get("checked_out"),
+                            "threshold": self.thresholds["db_connections"],
+                        },
+                    )
+            except ImportError:
+                # database_utils not available
+                pass
+            except Exception as e:
+                logger.debug(f"Could not check database connections: {e}")
 
             # Log periodic resource stats (debug level)
             logger.debug("Resource check completed", extra={
@@ -134,7 +155,6 @@ class ResourceMonitor:
             memory = psutil.virtual_memory()
 
             # Disk (use appropriate path for OS)
-            import os
             disk_path = 'C:' if os.name == 'nt' else '/'
             disk = psutil.disk_usage(disk_path)
 
@@ -147,7 +167,10 @@ class ResourceMonitor:
             open_files_count = len(process.open_files())
 
             # Network connections
-            connections = len(psutil.net_connections())
+            try:
+                connections = len(psutil.net_connections())
+            except (psutil.AccessDenied, OSError):
+                connections = -1  # Indicate unavailable
 
             return {
                 'memory': {

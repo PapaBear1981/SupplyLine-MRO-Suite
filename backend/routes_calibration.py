@@ -106,7 +106,7 @@ def register_calibration_routes(app):
             })
 
             for tool in tools:
-                logger.debug(f"Tool due for calibration", extra={
+                logger.debug("Tool due for calibration", extra={
                     'tool_id': tool.id,
                     'tool_number': tool.tool_number,
                     'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None,
@@ -116,7 +116,7 @@ def register_calibration_routes(app):
             return jsonify([tool.to_dict() for tool in tools]), 200
 
         except Exception as e:
-            logger.error(f"Error getting calibrations due", exc_info=True, extra={
+            logger.error("Error getting calibrations due", exc_info=True, extra={
                 'operation': 'get_calibrations_due',
                 'days_ahead': days,
                 'error_type': type(e).__name__,
@@ -501,7 +501,7 @@ def register_calibration_routes(app):
             }), 200
 
         except Exception as e:
-            logger.error(f"Error updating calibration standard", exc_info=True, extra={
+            logger.error("Error updating calibration standard", exc_info=True, extra={
                 'operation': 'update_calibration_standard',
                 'standard_id': id,
                 'error_type': type(e).__name__,

@@ -112,7 +112,7 @@ def register_routes(app):
                 "INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs"
             )
         elif not success:
-            logger.error(f"Admin user creation failed", extra={
+            logger.error("Admin user creation failed", extra={
                 'operation': 'admin_initialization',
                 'error_message': message
             })
@@ -1581,9 +1581,9 @@ def register_routes(app):
                 }), 200
             except Exception as e:
                 db.session.rollback()
-                logger.error(f"Database error during tool return", exc_info=True, extra={
+                logger.error("Database error during tool return", exc_info=True, extra={
                     'operation': 'tool_return',
-                    'tool_id': tool_id,
+                    'tool_id': c.tool_id,
                     'user_id': session.get('user_id'),
                     'error_type': type(e).__name__,
                     'error_message': str(e)
@@ -1591,9 +1591,9 @@ def register_routes(app):
                 return jsonify({'error': 'Database error during tool return'}), 500
 
         except Exception as e:
-            logger.error(f"Unexpected error in return route", exc_info=True, extra={
+            logger.error("Unexpected error in return route", exc_info=True, extra={
                 'operation': 'tool_return',
-                'tool_id': tool_id,
+                'tool_id': c.tool_id,
                 'user_id': session.get('user_id'),
                 'error_type': type(e).__name__,
                 'error_message': str(e)
