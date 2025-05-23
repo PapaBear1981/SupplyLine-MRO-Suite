@@ -89,9 +89,11 @@ def register_routes(app):
         from utils.admin_init import create_secure_admin
         success, message, password = create_secure_admin()
         if success and password:
-            print(f"SECURITY NOTICE: {message}")
-            if password:
-                print(f"IMPORTANT: Save this admin password securely: {password}")
+            current_app.logger.warning("SECURITY NOTICE: %s", message)
+            # Emit a *single* structured log entry flagged as secret; do not expose raw password.
+            current_app.logger.warning(
+                "INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs"
+            )
         elif not success:
             print(f"ERROR: {message}")
 
