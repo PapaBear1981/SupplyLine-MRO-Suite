@@ -98,14 +98,30 @@ def register_calibration_routes(app):
             ).all()
 
             # Log the query results for debugging
-            print(f"Found {len(tools)} tools due for calibration in the next {days} days")
+            logger.info(f"Found {len(tools)} tools due for calibration in the next {days} days", extra={
+                'operation': 'get_calibrations_due',
+                'days_ahead': days,
+                'tools_found': len(tools),
+                'tool_ids': [tool.id for tool in tools]
+            })
+
             for tool in tools:
-                print(f"Tool ID: {tool.id}, Tool Number: {tool.tool_number}, Next Calibration Date: {tool.next_calibration_date}, Status: {tool.calibration_status}")
+                logger.debug(f"Tool due for calibration", extra={
+                    'tool_id': tool.id,
+                    'tool_number': tool.tool_number,
+                    'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None,
+                    'calibration_status': tool.calibration_status
+                })
 
             return jsonify([tool.to_dict() for tool in tools]), 200
 
         except Exception as e:
-            print(f"Error getting calibrations due: {str(e)}")
+            logger.error(f"Error getting calibrations due", exc_info=True, extra={
+                'operation': 'get_calibrations_due',
+                'days_ahead': days,
+                'error_type': type(e).__name__,
+                'error_message': str(e)
+            })
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     # Get tools overdue for calibration
@@ -485,5 +501,10 @@ def register_calibration_routes(app):
             }), 200
 
         except Exception as e:
-            print(f"Error updating calibration standard: {str(e)}")
+            logger.error(f"Error updating calibration standard", exc_info=True, extra={
+                'operation': 'update_calibration_standard',
+                'standard_id': id,
+                'error_type': type(e).__name__,
+                'error_message': str(e)
+            })
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500

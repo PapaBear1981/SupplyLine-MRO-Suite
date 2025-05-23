@@ -1,4 +1,5 @@
 import os
+import logging.handlers
 from datetime import timedelta
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -17,6 +18,13 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Database connection pooling and optimization
+    # Note: SQLite doesn't support connection pooling, so we only set basic options
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'echo': False,  # Set to True for SQL debugging
+        'pool_pre_ping': True,  # Validate connections before use
+    }
+
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
     SESSION_TYPE = 'filesystem'
@@ -27,9 +35,66 @@ class Config:
         SESSION_FILE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
     print(f"Using session directory: {SESSION_FILE_DIR}")
 
+    # Session cleanup configuration
+    SESSION_CLEANUP_INTERVAL = 3600  # 1 hour
+    SESSION_MAX_AGE = 86400  # 24 hours
+
     # Enhanced cookie settings
     SESSION_COOKIE_SECURE = True  # Always use HTTPS in production
     SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
+
+    # Structured logging configuration
+    LOGGING_CONFIG = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'json': {
+                'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+                'format': '%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d'
+            },
+            'standard': {
+                'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'default': {
+                'level': 'INFO',
+                'formatter': 'standard',
+                'class': 'logging.StreamHandler',
+            },
+            'file': {
+                'level': 'DEBUG',
+                'formatter': 'json',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': 'app.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 5
+            },
+            'error_file': {
+                'level': 'ERROR',
+                'formatter': 'json',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': 'error.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 10
+            }
+        },
+        'loggers': {
+            '': {
+                'handlers': ['default', 'file', 'error_file'],
+                'level': 'DEBUG',
+                'propagate': False
+            }
+        }
+    }
+
+    # Resource monitoring thresholds
+    RESOURCE_THRESHOLDS = {
+        'memory_percent': 80,
+        'disk_percent': 85,
+        'open_files': 1000,
+        'db_connections': 8  # 80% of pool size
+    }
     SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF
     SESSION_USE_SIGNER = True  # Sign cookies
     SESSION_COOKIE_NAME = 'supplyline_session'  # Custom name
