@@ -13,19 +13,25 @@ db.init_app(app)
 with app.app_context():
     # Get admin user
     admin = User.query.filter_by(employee_number='ADMIN001').first()
-    
+
     if not admin:
         print("Admin user not found!")
     else:
         print(f"Found admin user: {admin.name} ({admin.employee_number})")
-        
-        # Check password
-        if admin.check_password('admin123'):
-            print("Password 'admin123' is correct!")
+
+        # Validate admin setup security
+        from utils.admin_init import validate_admin_setup
+        is_secure, issues = validate_admin_setup()
+
+        print(f"Admin setup security status: {'SECURE' if is_secure else 'INSECURE'}")
+
+        if issues:
+            print("Security issues found:")
+            for issue in issues:
+                print(f"  - {issue}")
+
+        if not is_secure:
+            print("\nWARNING: Admin setup has security vulnerabilities!")
+            print("Consider running secure admin reset or setting INITIAL_ADMIN_PASSWORD environment variable.")
         else:
-            print("Password 'admin123' is NOT correct!")
-            
-        # Reset password to ensure it's correct
-        admin.set_password('admin123')
-        db.session.commit()
-        print("Admin password has been reset to 'admin123'")
+            print("Admin setup appears secure.")

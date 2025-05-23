@@ -1,6 +1,7 @@
 from models import db, User
 from flask import Flask
 import os
+import sys
 
 # Create a minimal Flask app
 app = Flask(__name__)
@@ -19,20 +20,21 @@ with app.app_context():
     admin = User.query.filter_by(employee_number='ADMIN001').first()
 
     if admin:
-        print("Admin user already exists. Updating password...")
-        admin.set_password('admin123')
+        print("Admin user already exists.")
+        print("WARNING: This script should not be used in production.")
+        print("Use environment variables or secure admin initialization instead.")
     else:
         print("Creating new admin user...")
-        admin = User(
-            name='Admin',
-            employee_number='ADMIN001',
-            department='IT',
-            is_admin=True
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
+        from utils.admin_init import create_secure_admin
+        success, message, password = create_secure_admin()
+        if success:
+            print(f"SUCCESS: {message}")
+            if password:
+                print(f"IMPORTANT: Generated admin password: {password}")
+                print("Please save this password securely!")
+        else:
+            print(f"ERROR: {message}")
+            sys.exit(1)
 
-    db.session.commit()
-    print("Admin user created/updated successfully!")
+    print("Admin user setup completed!")
     print("Employee Number: ADMIN001")
-    print("Password: admin123")

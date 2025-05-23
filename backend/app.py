@@ -28,7 +28,15 @@ def create_app():
     app.config.from_object(Config)
 
     # Initialize CORS with settings from config
-    CORS(app, resources={r"/*": {"origins": "*", "allow_headers": ["Content-Type", "Authorization"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}}, supports_credentials=True)
+    allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
+            "supports_credentials": True
+        }
+    })
 
     # Initialize Flask-Session
     Session(app)
@@ -54,10 +62,29 @@ def create_app():
     except Exception as e:
         print(f"Error running tool calibration migration: {str(e)}")
 
+    try:
+        # Import and run the performance indexes migration
+        from migrate_performance_indexes import migrate_database as migrate_performance_indexes
+        print("Running performance indexes migration...")
+        migrate_performance_indexes()
+    except Exception as e:
+        app.logger.exception("Performance indexes migration failed – aborting startup")
+        raise
+
+    # Setup global error handlers
+    from utils.error_handler import setup_global_error_handlers
+    setup_global_error_handlers(app)
+
     # Register main routes
     register_routes(app)
 
-
+    # Add security headers middleware
+    @app.after_request
+    def add_security_headers(response):
+        security_headers = app.config.get('SECURITY_HEADERS', {})
+        for header, value in security_headers.items():
+            response.headers[header] = value
+        return response
 
     @app.route('/')
     def index():
