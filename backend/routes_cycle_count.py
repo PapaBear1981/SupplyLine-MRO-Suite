@@ -7,6 +7,7 @@ from models_cycle_count import (
 from datetime import datetime
 from functools import wraps
 import random
+from utils.validation import validate_schema
 
 # Helper function to create cycle count notifications
 def create_cycle_count_notification(notification_type, message, batch_id=None, schedule_id=None, created_by=None):
@@ -372,7 +373,6 @@ def register_cycle_count_routes(app):
             data = request.get_json()
 
             # Validate data using schema
-            from utils.validation import validate_schema
             validated_data = validate_schema(data, 'cycle_count_schedule')
 
             # Create new schedule
@@ -545,7 +545,6 @@ def register_cycle_count_routes(app):
             data = request.get_json()
 
             # Validate data using schema
-            from utils.validation import validate_schema
             validated_data = validate_schema(data, 'cycle_count_batch')
 
             # Validate dates
@@ -806,7 +805,6 @@ def register_cycle_count_routes(app):
             data = request.get_json()
 
             # Validate data using schema
-            from utils.validation import validate_schema
             validated_data = validate_schema(data, 'cycle_count_result')
 
             # Get item

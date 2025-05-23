@@ -6,7 +6,7 @@ import { fetchCycleCountItems, submitCountResult } from '../../../store/cycleCou
 const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   const dispatch = useDispatch();
   const { items, loading, error } = useSelector(state => state.cycleCount);
-  
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [showCountModal, setShowCountModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +18,9 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
     notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+  const [scanError, setScanError] = useState('');
 
   useEffect(() => {
     if (batchId) {
@@ -26,13 +29,13 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   }, [dispatch, batchId]);
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       item.item_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -71,7 +74,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
 
       // Refresh items
       dispatch(fetchCycleCountItems({ batchId }));
-      
+
       if (onItemCounted) {
         onItemCounted();
       }
@@ -83,19 +86,27 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   };
 
   const handleScanBarcode = () => {
-    // For now, simulate barcode scanning with a prompt
-    // In production, this would integrate with a real barcode scanner
-    const scannedCode = prompt('Scan or enter barcode:');
-    if (scannedCode) {
-      const item = items.find(i => 
-        i.item_number === scannedCode || 
-        i.barcode === scannedCode
-      );
-      if (item) {
-        handleItemSelect(item);
-      } else {
-        alert('Item not found in this batch');
-      }
+    setScanInput('');
+    setScanError('');
+    setShowScanModal(true);
+  };
+
+  const handleScanSubmit = () => {
+    if (!scanInput.trim()) {
+      setScanError('Please enter a barcode or item number');
+      return;
+    }
+
+    const item = items.find(i =>
+      i.item_number === scanInput.trim() ||
+      i.barcode === scanInput.trim()
+    );
+
+    if (item) {
+      setShowScanModal(false);
+      handleItemSelect(item);
+    } else {
+      setScanError('Item not found in this batch');
     }
   };
 
@@ -140,7 +151,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
               size="sm"
             />
           </Form.Group>
-          
+
           <div className="d-flex gap-2 mb-2">
             <Form.Select
               size="sm"
@@ -151,9 +162,9 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
               <option value="pending">Pending</option>
               <option value="counted">Counted</option>
             </Form.Select>
-            
-            <Button 
-              variant="outline-primary" 
+
+            <Button
+              variant="outline-primary"
               size="sm"
               onClick={handleScanBarcode}
               className="flex-shrink-0"
@@ -162,7 +173,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
               Scan
             </Button>
           </div>
-          
+
           <div className="text-muted small">
             {filteredItems.length} of {items.length} items
           </div>
@@ -172,7 +183,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
       {/* Items List */}
       <ListGroup>
         {filteredItems.map(item => (
-          <ListGroup.Item 
+          <ListGroup.Item
             key={item.id}
             className="d-flex justify-content-between align-items-start p-3"
             style={{ cursor: 'pointer' }}
@@ -202,8 +213,8 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
       )}
 
       {/* Count Modal */}
-      <Modal 
-        show={showCountModal} 
+      <Modal
+        show={showCountModal}
         onHide={() => setShowCountModal(false)}
         size="lg"
         centered
@@ -274,15 +285,15 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             onClick={() => setShowCountModal(false)}
             disabled={submitting}
           >
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={handleCountSubmit}
             disabled={submitting || !countData.actual_quantity}
           >
@@ -294,6 +305,62 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
             ) : (
               'Submit Count'
             )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Scan Modal */}
+      <Modal
+        show={showScanModal}
+        onHide={() => setShowScanModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Scan Barcode</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Barcode or Item Number</Form.Label>
+              <Form.Control
+                type="text"
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                placeholder="Enter barcode or item number..."
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleScanSubmit();
+                  }
+                }}
+              />
+              <Form.Text className="text-muted">
+                In production, this would integrate with a barcode scanner
+              </Form.Text>
+            </Form.Group>
+            {scanError && (
+              <Alert variant="danger" className="mb-0">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                {scanError}
+              </Alert>
+            )}
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowScanModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleScanSubmit}
+            disabled={!scanInput.trim()}
+          >
+            <i className="bi bi-search me-2"></i>
+            Find Item
           </Button>
         </Modal.Footer>
       </Modal>
