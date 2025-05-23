@@ -8,7 +8,7 @@ from datetime import datetime
 from functools import wraps
 import random
 import logging
-from .utils.validation import validate_schema
+from utils.validation import validate_schema
 
 # Helper function to create cycle count notifications
 def create_cycle_count_notification(notification_type, message, batch_id=None, schedule_id=None, created_by=None):

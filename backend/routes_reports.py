@@ -4,7 +4,7 @@ from models import db, Tool, User, Checkout
 from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
-from .utils.export_utils import generate_pdf_report, generate_excel_report
+from utils.export_utils import generate_pdf_report, generate_excel_report
 
 def calculate_date_range(timeframe):
     """Calculate start date based on timeframe parameter."""
