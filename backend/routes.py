@@ -18,7 +18,7 @@ from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_cycle_count import register_cycle_count_routes
-from utils import validate_password_strength
+import utils as password_utils
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
@@ -47,19 +47,23 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print(f"Admin required decorator called for {f.__name__}")
-        print(f"Session: {session}")
-        print(f"User ID in session: {session.get('user_id')}")
-        print(f"Is admin in session: {session.get('is_admin')}")
+        # Use secure session validation
+        from utils.session_manager import SessionManager
+        import logging
 
-        if 'user_id' not in session:
-            print("Authentication required - no user_id in session")
-            return jsonify({'error': 'Authentication required'}), 401
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Admin access attempted for {f.__name__}")
+
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            logger.warning(f"Admin access denied - {message}")
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+
         if not session.get('is_admin', False):
-            print("Admin privileges required - user is not admin")
+            logger.warning(f"Admin access denied - insufficient privileges for user {session.get('user_id')}")
             return jsonify({'error': 'Admin privileges required'}), 403
 
-        print("Admin check passed")
+        logger.debug(f"Admin access granted for user {session.get('user_id')}")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -81,18 +85,17 @@ def register_routes(app):
     with app.app_context():
         db.create_all()
 
-        # Create admin user if none exists
-        if User.query.filter_by(is_admin=True).first() is None:
-            admin = User(
-                name='Admin',
-                employee_number='ADMIN001',
-                department='IT',
-                is_admin=True
+        # Create admin user if none exists - using secure initialization
+        from utils.admin_init import create_secure_admin
+        success, message, password = create_secure_admin()
+        if success and password:
+            current_app.logger.warning("SECURITY NOTICE: %s", message)
+            # Emit a *single* structured log entry flagged as secret; do not expose raw password.
+            current_app.logger.warning(
+                "INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs"
             )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("Admin user created with employee number ADMIN001 and password admin123")
+        elif not success:
+            print(f"ERROR: {message}")
 
     # Register report routes
     register_report_routes(app)
@@ -1165,7 +1168,7 @@ def register_routes(app):
             return jsonify({'error': 'Employee number already exists'}), 400
 
         # Validate password strength
-        is_valid, errors = validate_password_strength(data.get('password'))
+        is_valid, errors = password_utils.validate_password_strength(data.get('password'))
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
@@ -1221,7 +1224,7 @@ def register_routes(app):
                 user.is_active = data['is_active']
             if 'password' in data and data['password']:
                 # Validate password strength
-                is_valid, errors = validate_password_strength(data['password'])
+                is_valid, errors = password_utils.validate_password_strength(data['password'])
                 if not is_valid:
                     return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
                 user.set_password(data['password'])
@@ -1820,12 +1823,9 @@ def register_routes(app):
         # Reset failed login attempts on successful login
         user.reset_failed_login_attempts()
 
-        # Store user info in session
-        session['user_id'] = user.id
-        session['user_name'] = user.name
-        session['is_admin'] = user.is_admin
-        session['department'] = user.department
-        session.permanent = True
+        # Create secure session
+        from utils.session_manager import SessionManager
+        SessionManager.create_session(user)
 
         # Get user permissions for session
         permissions = user.get_permissions()
@@ -1888,8 +1888,9 @@ def register_routes(app):
                 db.session.add(log)
                 db.session.commit()
 
-        # Clear session
-        session.clear()
+        # Clear session securely
+        from utils.session_manager import SessionManager
+        SessionManager.destroy_session()
 
         # Create response and clear cookies
         response = make_response(jsonify({'message': 'Logged out successfully'}))
@@ -1901,7 +1902,9 @@ def register_routes(app):
     @app.route('/api/auth/status', methods=['GET'])
     def auth_status():
         try:
-            print("Auth status check - Session:", session)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug("Auth status check requested")
 
             if 'user_id' not in session:
                 print("No user_id in session, checking cookies")
@@ -1990,7 +1993,7 @@ def register_routes(app):
             return jsonify({'error': 'A registration request with this employee number is already pending approval'}), 400
 
         # Validate password strength
-        is_valid, errors = validate_password_strength(data.get('password'))
+        is_valid, errors = password_utils.validate_password_strength(data.get('password'))
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
@@ -2071,7 +2074,7 @@ def register_routes(app):
             return jsonify({'error': 'Invalid or expired reset code'}), 400
 
         # Validate password strength
-        is_valid, errors = validate_password_strength(data['new_password'])
+        is_valid, errors = password_utils.validate_password_strength(data['new_password'])
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
@@ -2197,7 +2200,7 @@ def register_routes(app):
             return jsonify({'error': 'Current password is incorrect'}), 400
 
         # Validate password strength
-        is_valid, errors = validate_password_strength(data['new_password'])
+        is_valid, errors = password_utils.validate_password_strength(data['new_password'])
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
