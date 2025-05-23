@@ -48,9 +48,8 @@ def validate_types(data, type_schema):
         type_schema: Dictionary mapping field names to expected types
     """
     for field, expected_type in type_schema.items():
-        if field in data and data[field] is not None:
-            if not isinstance(data[field], expected_type):
-                raise ValidationError(f"{field} must be of type {expected_type.__name__}")
+        if field in data and data[field] is not None and not isinstance(data[field], expected_type):
+            raise ValidationError(f"{field} must be of type {expected_type.__name__}")
 
 
 def validate_constraints(data, constraint_schema):
@@ -104,7 +103,11 @@ def validate_dates(data, date_fields):
         if field in data and data[field]:
             try:
                 if isinstance(data[field], str):
-                    data[field] = datetime.fromisoformat(data[field].replace('Z', '+00:00'))
+                    # Handle various timezone formats or convert to UTC
+                    date_str = data[field]
+                    if date_str.endswith('Z'):
+                        date_str = date_str.replace('Z', '+00:00')
+                    data[field] = datetime.fromisoformat(date_str)
             except ValueError as err:
                 raise ValidationError(
                     f"{field} must be a valid ISO format date"
@@ -175,7 +178,27 @@ USER_SCHEMA = {
         'name': {'max_length': 100, 'min_length': 2},
         'employee_number': {'max_length': 20, 'pattern': r'^[A-Z0-9]+$'},
         'department': {'choices': ['Materials', 'Quality', 'Engineering', 'Production', 'IT', 'Admin']},
-        'password': {'min_length': 8}
+        'password': {
+            'min_length': 8,
+            'pattern': r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]'
+        }
+    }
+}
+
+CHEMICAL_ISSUANCE_SCHEMA = {
+    'required': ['quantity', 'hangar', 'user_id'],
+    'optional': ['purpose'],
+    'types': {
+        'quantity': (int, float),
+        'hangar': str,
+        'user_id': int,
+        'purpose': str
+    },
+    'constraints': {
+        'quantity': {'min': 0.01},
+        'hangar': {'max_length': 100},
+        'user_id': {'min': 1},
+        'purpose': {'max_length': 500}
     }
 }
 
@@ -232,6 +255,7 @@ def validate_schema(data, schema_name):
         'tool': TOOL_SCHEMA,
         'chemical': CHEMICAL_SCHEMA,
         'user': USER_SCHEMA,
+        'chemical_issuance': CHEMICAL_ISSUANCE_SCHEMA,
         'calibration': CALIBRATION_SCHEMA,
         'checkout': CHECKOUT_SCHEMA
     }
