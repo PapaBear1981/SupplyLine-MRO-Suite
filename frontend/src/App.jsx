@@ -34,6 +34,7 @@ import CycleCountScheduleDetailPage from './pages/CycleCountScheduleDetailPage';
 import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
 import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
 import CycleCountItemCountPage from './pages/CycleCountItemCountPage';
+import CycleCountMobilePage from './pages/CycleCountMobilePage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -376,6 +377,13 @@ function App() {
             <MainLayout>
               <CycleCountDashboardPage />
             </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Mobile Cycle Count route */}
+        <Route path="/cycle-counts/mobile" element={
+          <ProtectedRoute>
+            <CycleCountMobilePage />
           </ProtectedRoute>
         } />
 

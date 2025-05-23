@@ -239,6 +239,67 @@ CHECKOUT_SCHEMA = {
     'date_fields': ['expected_return_date']
 }
 
+CYCLE_COUNT_SCHEDULE_SCHEMA = {
+    'required': ['name', 'frequency', 'method'],
+    'optional': ['description', 'is_active'],
+    'types': {
+        'name': str,
+        'description': str,
+        'frequency': str,
+        'method': str,
+        'is_active': bool
+    },
+    'constraints': {
+        'name': {'max_length': 100, 'min_length': 1},
+        'description': {'max_length': 500},
+        'frequency': {'choices': ['daily', 'weekly', 'monthly', 'quarterly', 'annual']},
+        'method': {'choices': ['ABC', 'random', 'location', 'category']}
+    }
+}
+
+CYCLE_COUNT_BATCH_SCHEMA = {
+    'required': ['name'],
+    'optional': ['schedule_id', 'start_date', 'end_date', 'notes', 'generate_items', 'item_selection', 'item_count', 'category', 'location'],
+    'types': {
+        'name': str,
+        'schedule_id': int,
+        'start_date': str,
+        'end_date': str,
+        'notes': str,
+        'generate_items': bool,
+        'item_selection': str,
+        'item_count': int,
+        'category': str,
+        'location': str
+    },
+    'constraints': {
+        'name': {'max_length': 100, 'min_length': 1},
+        'notes': {'max_length': 1000},
+        'item_selection': {'choices': ['all', 'random', 'category', 'location']},
+        'item_count': {'min': 1, 'max': 10000},
+        'category': {'max_length': 50},
+        'location': {'max_length': 100}
+    },
+    'date_fields': ['start_date', 'end_date']
+}
+
+CYCLE_COUNT_RESULT_SCHEMA = {
+    'required': ['actual_quantity'],
+    'optional': ['actual_location', 'condition', 'notes'],
+    'types': {
+        'actual_quantity': int,
+        'actual_location': str,
+        'condition': str,
+        'notes': str
+    },
+    'constraints': {
+        'actual_quantity': {'min': 0, 'max': 999999},
+        'actual_location': {'max_length': 100},
+        'condition': {'choices': ['good', 'fair', 'poor', 'damaged']},
+        'notes': {'max_length': 500}
+    }
+}
+
 
 def validate_schema(data, schema_name):
     """
@@ -257,7 +318,10 @@ def validate_schema(data, schema_name):
         'user': USER_SCHEMA,
         'chemical_issuance': CHEMICAL_ISSUANCE_SCHEMA,
         'calibration': CALIBRATION_SCHEMA,
-        'checkout': CHECKOUT_SCHEMA
+        'checkout': CHECKOUT_SCHEMA,
+        'cycle_count_schedule': CYCLE_COUNT_SCHEDULE_SCHEMA,
+        'cycle_count_batch': CYCLE_COUNT_BATCH_SCHEMA,
+        'cycle_count_result': CYCLE_COUNT_RESULT_SCHEMA
     }
 
     if schema_name not in schemas:

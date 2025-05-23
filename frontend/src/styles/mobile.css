@@ -1,0 +1,299 @@
+/* Mobile-specific styles for cycle count functionality */
+
+.mobile-cycle-count {
+  padding-bottom: 80px; /* Space for fixed bottom actions */
+}
+
+/* Mobile-optimized list items */
+@media (max-width: 768px) {
+  .list-group-item {
+    border-left: none;
+    border-right: none;
+    border-radius: 0 !important;
+  }
+  
+  .list-group-item:first-child {
+    border-top: none;
+  }
+  
+  .list-group-item:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Touch-friendly buttons */
+.mobile-cycle-count .btn {
+  min-height: 44px; /* iOS recommended touch target size */
+  padding: 12px 16px;
+}
+
+.mobile-cycle-count .btn-sm {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+/* Improved form controls for mobile */
+.mobile-cycle-count .form-control,
+.mobile-cycle-count .form-select {
+  min-height: 44px;
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+/* Progress bars */
+.mobile-cycle-count .progress {
+  height: 8px;
+  border-radius: 4px;
+  background-color: #e9ecef;
+}
+
+.mobile-cycle-count .progress-bar {
+  border-radius: 4px;
+}
+
+/* Badge styling */
+.mobile-cycle-count .badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+}
+
+/* Modal improvements for mobile */
+@media (max-width: 576px) {
+  .modal-fullscreen-sm-down {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    margin: 0;
+  }
+  
+  .modal-fullscreen-sm-down .modal-content {
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+  
+  .modal-fullscreen-sm-down .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Search and filter controls */
+.mobile-cycle-count .search-controls {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+/* Item cards */
+.mobile-cycle-count .item-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.mobile-cycle-count .item-card:active {
+  transform: scale(0.98);
+  background-color: #f8f9fa;
+}
+
+/* Status indicators */
+.status-pending {
+  color: #856404;
+  background-color: #fff3cd;
+}
+
+.status-counted {
+  color: #155724;
+  background-color: #d4edda;
+}
+
+.status-discrepancy {
+  color: #721c24;
+  background-color: #f8d7da;
+}
+
+/* Scan button styling */
+.scan-button {
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  border: none;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scan-button:hover {
+  background: linear-gradient(45deg, #0056b3, #004085);
+  transform: translateY(-1px);
+}
+
+/* Fixed bottom actions */
+.fixed-bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #dee2e6;
+  padding: 1rem;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading states */
+.mobile-cycle-count .loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+/* Swipe gestures */
+.mobile-cycle-count .swipeable {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-cycle-count .swipe-actions {
+  position: absolute;
+  top: 0;
+  right: -100px;
+  height: 100%;
+  width: 100px;
+  background: #dc3545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: right 0.3s ease;
+}
+
+.mobile-cycle-count .swipeable.swiped .swipe-actions {
+  right: 0;
+}
+
+/* Accessibility improvements */
+.mobile-cycle-count .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus states for keyboard navigation */
+.mobile-cycle-count .btn:focus,
+.mobile-cycle-count .form-control:focus,
+.mobile-cycle-count .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  border-color: #80bdff;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .mobile-cycle-count .item-card {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .mobile-cycle-count .text-muted {
+    color: #a0aec0 !important;
+  }
+  
+  .fixed-bottom-actions {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+}
+
+/* Animation for count submission */
+.count-success {
+  animation: countSuccess 0.6s ease-out;
+}
+
+@keyframes countSuccess {
+  0% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+  50% {
+    transform: scale(1.05);
+    background-color: #d4edda;
+  }
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+/* Offline indicator */
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #ffc107;
+  color: #212529;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  z-index: 1100;
+}
+
+/* Responsive typography */
+@media (max-width: 576px) {
+  .mobile-cycle-count h1 {
+    font-size: 1.5rem;
+  }
+  
+  .mobile-cycle-count h2 {
+    font-size: 1.25rem;
+  }
+  
+  .mobile-cycle-count h6 {
+    font-size: 1rem;
+  }
+}
+
+/* Pull to refresh indicator */
+.pull-to-refresh {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 20px;
+  padding: 10px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: top 0.3s ease;
+}
+
+.pull-to-refresh.active {
+  top: 10px;
+}
+
+/* Haptic feedback simulation */
+.haptic-feedback {
+  animation: hapticPulse 0.1s ease-out;
+}
+
+@keyframes hapticPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}

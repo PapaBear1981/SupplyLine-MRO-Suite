@@ -41,55 +41,59 @@ const ReportService = {
   },
 
   // Export report as PDF
-  exportAsPdf: (reportData, reportType, timeframe) => {
-    const doc = new jsPDF();
-    const title = getReportTitle(reportType, timeframe);
-    const displayDate = formatDate(new Date());
-    const fileDate = formatISODate(new Date());
+  exportAsPdf: async (reportData, reportType, timeframe) => {
+    try {
+      const response = await api.post('/reports/export/pdf', {
+        report_type: reportType,
+        report_data: reportData,
+        timeframe: timeframe
+      }, {
+        responseType: 'blob'
+      });
 
-    // Add title and date
-    doc.setFontSize(18);
-    doc.text(title, 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Generated on: ${displayDate}`, 14, 30);
-
-    // Add report data based on report type
-    if (reportType === 'tool-inventory') {
-      exportToolInventoryPdf(doc, reportData);
-    } else if (reportType === 'checkout-history') {
-      exportCheckoutHistoryPdf(doc, reportData);
-    } else if (reportType === 'department-usage') {
-      exportDepartmentUsagePdf(doc, reportData);
+      // Create blob and download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportType}-report-${formatISODate(new Date())}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      throw new Error('Failed to export PDF: ' + (error.response?.data?.error || error.message));
     }
-
-    // Save the PDF
-    doc.save(`${reportType}-report-${fileDate}.pdf`);
   },
 
   // Export report as Excel
-  exportAsExcel: (reportData, reportType, timeframe) => {
-    const title = getReportTitle(reportType, timeframe);
-    const displayDate = formatDate(new Date());
-    const fileDate = formatISODate(new Date());
-    let worksheet;
+  exportAsExcel: async (reportData, reportType, timeframe) => {
+    try {
+      const response = await api.post('/reports/export/excel', {
+        report_type: reportType,
+        report_data: reportData,
+        timeframe: timeframe
+      }, {
+        responseType: 'blob'
+      });
 
-    // Create worksheet based on report type
-    if (reportType === 'tool-inventory') {
-      worksheet = XLSX.utils.json_to_sheet(formatToolInventoryForExcel(reportData));
-    } else if (reportType === 'checkout-history') {
-      worksheet = XLSX.utils.json_to_sheet(formatCheckoutHistoryForExcel(reportData));
-    } else if (reportType === 'department-usage') {
-      worksheet = XLSX.utils.json_to_sheet(formatDepartmentUsageForExcel(reportData));
+      // Create blob and download
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportType}-report-${formatISODate(new Date())}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Excel export error:', error);
+      throw new Error('Failed to export Excel: ' + (error.response?.data?.error || error.message));
     }
-
-    // Create workbook and add worksheet
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, title);
-
-    // Generate Excel file and save
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${reportType}-report-${fileDate}.xlsx`);
   }
 };
 
