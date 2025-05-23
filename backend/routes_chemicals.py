@@ -5,6 +5,7 @@ from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
 from utils.session_manager import SessionManager, secure_login_required
+from sqlalchemy.orm import joinedload
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,93 +31,107 @@ def materials_manager_required(f):
 def register_chemical_routes(app):
     # Get all chemicals
     @app.route('/api/chemicals', methods=['GET'])
+    @handle_errors
     def chemicals_route():
+        # Get query parameters for filtering
+        category = request.args.get('category')
+        status = request.args.get('status')
+        search = request.args.get('q')
+        show_archived = request.args.get('archived', 'false').lower() == 'true'
+
+        # Start with base query
+        query = Chemical.query
+
+        # Filter by archived status if the column exists
         try:
-            # Get query parameters for filtering
-            category = request.args.get('category')
-            status = request.args.get('status')
-            search = request.args.get('q')
-            show_archived = request.args.get('archived', 'false').lower() == 'true'
+            if not show_archived:
+                query = query.filter(Chemical.is_archived == False)
+        except:
+            # If the column doesn't exist, we can't filter by it
+            pass
 
-            # Start with base query
-            query = Chemical.query
-
-            # Filter by archived status if the column exists
-            try:
-                if not show_archived:
-                    query = query.filter(Chemical.is_archived == False)
-            except:
-                # If the column doesn't exist, we can't filter by it
-                pass
-
-            # Apply filters if provided
-            if category:
-                query = query.filter(Chemical.category == category)
-            if status:
-                query = query.filter(Chemical.status == status)
-            if search:
-                query = query.filter(
-                    db.or_(
-                        Chemical.part_number.ilike(f'%{search}%'),
-                        Chemical.lot_number.ilike(f'%{search}%'),
-                        Chemical.description.ilike(f'%{search}%'),
-                        Chemical.manufacturer.ilike(f'%{search}%')
-                    )
+        # Apply filters if provided
+        if category:
+            query = query.filter(Chemical.category == category)
+        if status:
+            query = query.filter(Chemical.status == status)
+        if search:
+            query = query.filter(
+                db.or_(
+                    Chemical.part_number.ilike(f'%{search}%'),
+                    Chemical.lot_number.ilike(f'%{search}%'),
+                    Chemical.description.ilike(f'%{search}%'),
+                    Chemical.manufacturer.ilike(f'%{search}%')
                 )
+            )
 
-            # Execute query and convert to list of dictionaries
-            chemicals = query.all()
-            result = [c.to_dict() for c in chemicals]
+        # Execute query and convert to list of dictionaries
+        chemicals = query.all()
+        result = [c.to_dict() for c in chemicals]
 
-            # Update status based on expiration and stock level
-            for chemical in chemicals:
-                try:
-                    is_archived = chemical.is_archived
-                except:
-                    is_archived = False
+        # Batch update status based on expiration and stock level to avoid N+1 queries
+        chemicals_to_update = []
+        archive_logs = []
 
-                if not is_archived:  # Only update status for non-archived chemicals
-                    if chemical.is_expired():
-                        chemical.status = 'expired'
+        for chemical in chemicals:
+            try:
+                is_archived = chemical.is_archived
+            except:
+                is_archived = False
 
-                        # Auto-archive expired chemicals if the columns exist
-                        try:
-                            chemical.is_archived = True
-                            chemical.archived_reason = 'expired'
-                            chemical.archived_date = datetime.utcnow()
+            if not is_archived:  # Only update status for non-archived chemicals
+                status_changed = False
 
-                            # Add log for archiving
-                            archive_log = AuditLog(
-                                action_type='chemical_archived',
-                                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} automatically archived: expired"
-                            )
-                            db.session.add(archive_log)
+                if chemical.is_expired():
+                    chemical.status = 'expired'
+                    status_changed = True
 
-                            # Update reorder status for expired chemicals
-                            chemical.update_reorder_status()
-                        except:
-                            # If the columns don't exist, just update the status
-                            pass
-                    elif chemical.quantity <= 0:
-                        chemical.status = 'out_of_stock'
-                        # Update reorder status for out-of-stock chemicals
+                    # Auto-archive expired chemicals if the columns exist
+                    try:
+                        chemical.is_archived = True
+                        chemical.archived_reason = 'expired'
+                        chemical.archived_date = datetime.utcnow()
+
+                        # Prepare log for archiving (batch insert later)
+                        archive_logs.append({
+                            'action_type': 'chemical_archived',
+                            'action_details': f"Chemical {chemical.part_number} - {chemical.lot_number} automatically archived: expired",
+                            'timestamp': datetime.utcnow()
+                        })
+
+                        # Update reorder status for expired chemicals
                         chemical.update_reorder_status()
-                    elif chemical.is_low_stock():
-                        chemical.status = 'low_stock'
-                        # Update reorder status for low-stock chemicals
-                        chemical.update_reorder_status()
+                    except:
+                        # If the columns don't exist, just update the status
+                        pass
+                elif chemical.quantity <= 0:
+                    chemical.status = 'out_of_stock'
+                    status_changed = True
+                    # Update reorder status for out-of-stock chemicals
+                    chemical.update_reorder_status()
+                elif chemical.is_low_stock():
+                    chemical.status = 'low_stock'
+                    status_changed = True
+                    # Update reorder status for low-stock chemicals
+                    chemical.update_reorder_status()
 
-                    # Check if chemical is expiring soon (within 30 days)
-                    if chemical.is_expiring_soon(30):
-                        # Add a flag to the chemical data
-                        chemical.expiring_soon = True
+                # Check if chemical is expiring soon (within 30 days)
+                if chemical.is_expiring_soon(30):
+                    # Add a flag to the chemical data
+                    chemical.expiring_soon = True
 
-                    db.session.commit()
+                if status_changed:
+                    chemicals_to_update.append(chemical)
 
-            return jsonify(result)
-        except Exception as e:
-            print(f"Error in chemicals route: {str(e)}")
-            return jsonify({'error': 'An error occurred while fetching chemicals'}), 500
+        # Batch insert archive logs if any
+        if archive_logs:
+            db.session.bulk_insert_mappings(AuditLog, archive_logs)
+
+        # Single commit for all changes
+        if chemicals_to_update or archive_logs:
+            db.session.commit()
+
+        return jsonify(result)
 
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
@@ -285,22 +300,22 @@ def register_chemical_routes(app):
 
     # Get issuance history for a chemical
     @app.route('/api/chemicals/<int:id>/issuances', methods=['GET'])
+    @handle_errors
     def chemical_issuances_route(id):
-        try:
-            # Get the chemical
-            chemical = Chemical.query.get_or_404(id)
+        # Get the chemical
+        chemical = Chemical.query.get_or_404(id)
 
-            # Get issuance records
-            issuances = ChemicalIssuance.query.filter_by(chemical_id=id).order_by(ChemicalIssuance.issue_date.desc()).all()
+        # Get issuance records with eager loading to avoid N+1 queries
+        issuances = ChemicalIssuance.query.options(
+            joinedload(ChemicalIssuance.user),
+            joinedload(ChemicalIssuance.chemical)
+        ).filter_by(chemical_id=id).order_by(ChemicalIssuance.issue_date.desc()).all()
 
-            # Convert to list of dictionaries
-            result = [i.to_dict() for i in issuances]
+        # Convert to list of dictionaries
+        result = [i.to_dict() for i in issuances]
 
-            # Return the result
-            return jsonify(result)
-        except Exception as e:
-            print(f"Error in chemical issuances route: {str(e)}")
-            return jsonify({'error': 'An error occurred while fetching chemical issuances'}), 500
+        # Return the result
+        return jsonify(result)
 
     # Mark a chemical as ordered
     @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])

@@ -10,6 +10,7 @@ import uuid
 import time
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, extract
+from sqlalchemy.orm import joinedload
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
@@ -20,7 +21,11 @@ from routes_scanner import register_scanner_routes
 from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
 from utils.session_manager import SessionManager
-from utils.error_handler import log_security_event
+from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
+from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Removed duplicate materials_manager_required - using secure version below
 
@@ -153,20 +158,17 @@ def register_routes(app):
 
     @app.route('/api/chemicals/on-order', methods=['GET'])
     @materials_manager_required
+    @handle_errors
     def chemicals_on_order_direct_route():
-        try:
-            print("Session info: user_id={}, is_admin={}, department={}".format(
-                session.get('user_id'), session.get('is_admin'), session.get('department')))
-            # Get chemicals that are on order
-            chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
+        logger.info(f"Chemicals on order requested by user {session.get('user_id')}")
 
-            # Convert to list of dictionaries
-            result = [c.to_dict() for c in chemicals]
+        # Get chemicals that are on order
+        chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
 
-            return jsonify(result)
-        except Exception as e:
-            print(f"Error in chemicals on order route: {str(e)}")
-            return jsonify({'error': 'An error occurred while fetching chemicals on order'}), 500
+        # Convert to list of dictionaries
+        result = [c.to_dict() for c in chemicals]
+
+        return jsonify(result)
 
     @app.route('/api/chemicals/expiring-soon', methods=['GET'])
     @materials_manager_required
@@ -504,170 +506,164 @@ def register_routes(app):
 
     @app.route('/api/admin/system-resources', methods=['GET'])
     @admin_required
+    @handle_errors
     def get_system_resources():
         """Get real-time system resource usage statistics"""
-        print("System resources endpoint called")  # Debug log
+        logger.info("System resources endpoint called")
+
+        # Get database size (approximate based on number of records)
+        db_size_mb = 0
+        total_records = 0  # Initialize to prevent UnboundLocalError if the try block fails
         try:
-            # Get database size (approximate based on number of records)
-            db_size_mb = 0
-            total_records = 0  # Initialize to prevent UnboundLocalError if the try block fails
-            try:
-                # Count records in major tables to estimate size
-                user_count = User.query.count()
-                tool_count = Tool.query.count()
-                checkout_count = Checkout.query.count()
-                log_count = AuditLog.query.count()
+            # Count records in major tables to estimate size
+            user_count = User.query.count()
+            tool_count = Tool.query.count()
+            checkout_count = Checkout.query.count()
+            log_count = AuditLog.query.count()
 
-                # Rough estimate: 2KB per record on average
-                total_records = user_count + tool_count + checkout_count + log_count
-                db_size_mb = (total_records * 2) / 1024  # Convert KB to MB
-            except Exception as e:
-                print(f"Error estimating database size: {str(e)}")
-                db_size_mb = 10  # Default fallback value
-                total_records = 0  # Ensure it's defined in case of exception
-
-            # Get active user sessions (approximate based on recent activity)
-            now = datetime.now()
-            five_minutes_ago = now - timedelta(minutes=5)
-
-            # Count users with activity in the last 5 minutes
-            active_sessions = UserActivity.query.filter(
-                UserActivity.timestamp >= five_minutes_ago
-            ).distinct(UserActivity.user_id).count()
-
-            # Try to import psutil
-            try:
-                print("Attempting to import psutil module...")
-                import psutil
-                print("Successfully imported psutil module")
-
-                # Get CPU usage - use instantaneous value to avoid blocking
-                # Note: This will return the usage since the last call or 0.0 on first call
-                print("Getting CPU usage...")
-                cpu_usage = psutil.cpu_percent(interval=None)
-                print(f"CPU usage: {cpu_usage}")
-
-                print("Getting CPU cores...")
-                cpu_cores = psutil.cpu_count()
-                print(f"CPU cores: {cpu_cores}")
-
-                # Get memory usage
-                print("Getting memory usage...")
-                memory = psutil.virtual_memory()
-                memory_usage = memory.percent
-                print(f"Memory usage: {memory_usage}")
-                memory_total_gb = round(memory.total / (1024**3), 1)
-                print(f"Memory total: {memory_total_gb} GB")
-
-                # Get disk usage for the system drive
-                print("Getting disk usage...")
-                # On Windows, use 'C:\\' instead of '/'
-                disk_path = 'C:\\' if os.name == 'nt' else '/'
-                print(f"Using disk path: {disk_path}")
-                disk = psutil.disk_usage(disk_path)
-                disk_usage = disk.percent
-                print(f"Disk usage: {disk_usage}")
-                disk_total_gb = round(disk.total / (1024**3), 1)
-                print(f"Disk total: {disk_total_gb} GB")
-
-                # Get server uptime
-                print("Getting server uptime...")
-                uptime_seconds = int(time.time() - psutil.boot_time())
-                days, remainder = divmod(uptime_seconds, 86400)
-                hours, remainder = divmod(remainder, 3600)
-                minutes, seconds = divmod(remainder, 60)
-                uptime_str = f"{days}d {hours}h {minutes}m"
-                print(f"Server uptime: {uptime_str}")
-
-                print("Using real system resource data from psutil")
-
-                # Ensure all values are properly formatted numbers
-                cpu_usage = round(float(cpu_usage), 1)
-                memory_usage = round(float(memory_usage), 1)
-                disk_usage = round(float(disk_usage), 1)
-            except ImportError as e:
-                print(f"ImportError: {str(e)}")
-                print("psutil module not available. Using mock data for system resources.")
-                # Use mock data when psutil is not available
-                cpu_usage = 45.2  # Mock CPU usage percentage
-                print(f"Mock CPU usage: {cpu_usage}")
-                cpu_cores = 8     # Mock number of CPU cores
-                print(f"Mock CPU cores: {cpu_cores}")
-
-                memory_usage = 62.7  # Mock memory usage percentage
-                print(f"Mock memory usage: {memory_usage}")
-                memory_total_gb = 16.0  # Mock total memory in GB
-                print(f"Mock memory total: {memory_total_gb} GB")
-
-                disk_usage = 58.3  # Mock disk usage percentage
-                print(f"Mock disk usage: {disk_usage}")
-                disk_total_gb = 512.0  # Mock total disk space in GB
-                print(f"Mock disk total: {disk_total_gb} GB")
-
-                # Mock uptime (3 days, 7 hours, 22 minutes)
-                uptime_str = "3d 7h 22m"
-                print(f"Mock server uptime: {uptime_str}")
-            except Exception as e:
-                print(f"Unexpected error when using psutil: {str(e)}")
-                print(f"Error type: {type(e)}")
-                print(f"Error details: {repr(e)}")
-                print("Falling back to mock data for system resources.")
-                # Use mock data when psutil has an error
-                cpu_usage = 45.2  # Mock CPU usage percentage
-                print(f"Mock CPU usage: {cpu_usage}")
-                cpu_cores = 8     # Mock number of CPU cores
-                print(f"Mock CPU cores: {cpu_cores}")
-
-                memory_usage = 62.7  # Mock memory usage percentage
-                print(f"Mock memory usage: {memory_usage}")
-                memory_total_gb = 16.0  # Mock total memory in GB
-                print(f"Mock memory total: {memory_total_gb} GB")
-
-                disk_usage = 58.3  # Mock disk usage percentage
-                print(f"Mock disk usage: {disk_usage}")
-                disk_total_gb = 512.0  # Mock total disk space in GB
-                print(f"Mock disk total: {disk_total_gb} GB")
-
-                # Mock uptime (3 days, 7 hours, 22 minutes)
-                uptime_str = "3d 7h 22m"
-                print(f"Mock server uptime: {uptime_str}")
-
-            # Prepare the response data
-            response_data = {
-                'cpu': {
-                    'usage': cpu_usage,
-                    'cores': cpu_cores
-                },
-                'memory': {
-                    'usage': memory_usage,
-                    'total_gb': memory_total_gb
-                },
-                'disk': {
-                    'usage': disk_usage,
-                    'total_gb': disk_total_gb
-                },
-                'database': {
-                    'size_mb': round(db_size_mb, 1),
-                    'tables': 4,
-                    'total_records': total_records
-                },
-                'server': {
-                    'status': 'online',
-                    'uptime': uptime_str,
-                    'active_users': active_sessions
-                },
-                'timestamp': datetime.now().isoformat()
-            }
-
-            print(f"System resources response data: {response_data}")  # Debug log
-            return jsonify(response_data), 200
-
+            # Rough estimate: 2KB per record on average
+            total_records = user_count + tool_count + checkout_count + log_count
+            db_size_mb = (total_records * 2) / 1024  # Convert KB to MB
         except Exception as e:
-            print(f"Error getting system resources: {str(e)}")
-            return jsonify({
-                'error': 'Failed to retrieve system resources',
-                'message': str(e)
-            }), 500
+            logger.error(f"Error estimating database size: {str(e)}")
+            db_size_mb = 10  # Default fallback value
+            total_records = 0  # Ensure it's defined in case of exception
+
+        # Get active user sessions (approximate based on recent activity)
+        now = datetime.now()
+        five_minutes_ago = now - timedelta(minutes=5)
+
+        # Count users with activity in the last 5 minutes
+        active_sessions = UserActivity.query.filter(
+            UserActivity.timestamp >= five_minutes_ago
+        ).distinct(UserActivity.user_id).count()
+
+        # Try to import psutil
+        try:
+            logger.info("Attempting to import psutil module...")
+            import psutil
+            logger.info("Successfully imported psutil module")
+
+            # Get CPU usage - use instantaneous value to avoid blocking
+            # Note: This will return the usage since the last call or 0.0 on first call
+            logger.debug("Getting CPU usage...")
+            cpu_usage = psutil.cpu_percent(interval=None)
+            logger.debug(f"CPU usage: {cpu_usage}")
+
+            logger.debug("Getting CPU cores...")
+            cpu_cores = psutil.cpu_count()
+            logger.debug(f"CPU cores: {cpu_cores}")
+
+            # Get memory usage
+            logger.debug("Getting memory usage...")
+            memory = psutil.virtual_memory()
+            memory_usage = memory.percent
+            logger.debug(f"Memory usage: {memory_usage}")
+            memory_total_gb = round(memory.total / (1024**3), 1)
+            logger.debug(f"Memory total: {memory_total_gb} GB")
+
+            # Get disk usage for the system drive
+            logger.debug("Getting disk usage...")
+            # On Windows, use 'C:\\' instead of '/'
+            disk_path = 'C:\\' if os.name == 'nt' else '/'
+            logger.debug(f"Using disk path: {disk_path}")
+            disk = psutil.disk_usage(disk_path)
+            disk_usage = disk.percent
+            logger.debug(f"Disk usage: {disk_usage}")
+            disk_total_gb = round(disk.total / (1024**3), 1)
+            logger.debug(f"Disk total: {disk_total_gb} GB")
+
+            # Get server uptime
+            logger.debug("Getting server uptime...")
+            uptime_seconds = int(time.time() - psutil.boot_time())
+            days, remainder = divmod(uptime_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            uptime_str = f"{days}d {hours}h {minutes}m"
+            logger.debug(f"Server uptime: {uptime_str}")
+
+            logger.info("Using real system resource data from psutil")
+
+            # Ensure all values are properly formatted numbers
+            cpu_usage = round(float(cpu_usage), 1)
+            memory_usage = round(float(memory_usage), 1)
+            disk_usage = round(float(disk_usage), 1)
+        except ImportError as e:
+            logger.warning(f"ImportError: {str(e)}")
+            logger.warning("psutil module not available. Using mock data for system resources.")
+            # Use mock data when psutil is not available
+            cpu_usage = 45.2  # Mock CPU usage percentage
+            logger.debug(f"Mock CPU usage: {cpu_usage}")
+            cpu_cores = 8     # Mock number of CPU cores
+            logger.debug(f"Mock CPU cores: {cpu_cores}")
+
+            memory_usage = 62.7  # Mock memory usage percentage
+            logger.debug(f"Mock memory usage: {memory_usage}")
+            memory_total_gb = 16.0  # Mock total memory in GB
+            logger.debug(f"Mock memory total: {memory_total_gb} GB")
+
+            disk_usage = 58.3  # Mock disk usage percentage
+            logger.debug(f"Mock disk usage: {disk_usage}")
+            disk_total_gb = 512.0  # Mock total disk space in GB
+            logger.debug(f"Mock disk total: {disk_total_gb} GB")
+
+            # Mock uptime (3 days, 7 hours, 22 minutes)
+            uptime_str = "3d 7h 22m"
+            logger.debug(f"Mock server uptime: {uptime_str}")
+        except Exception as e:
+            logger.error(f"Unexpected error when using psutil: {str(e)}")
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {repr(e)}")
+            logger.warning("Falling back to mock data for system resources.")
+            # Use mock data when psutil has an error
+            cpu_usage = 45.2  # Mock CPU usage percentage
+            logger.debug(f"Mock CPU usage: {cpu_usage}")
+            cpu_cores = 8     # Mock number of CPU cores
+            logger.debug(f"Mock CPU cores: {cpu_cores}")
+
+            memory_usage = 62.7  # Mock memory usage percentage
+            logger.debug(f"Mock memory usage: {memory_usage}")
+            memory_total_gb = 16.0  # Mock total memory in GB
+            logger.debug(f"Mock memory total: {memory_total_gb} GB")
+
+            disk_usage = 58.3  # Mock disk usage percentage
+            logger.debug(f"Mock disk usage: {disk_usage}")
+            disk_total_gb = 512.0  # Mock total disk space in GB
+            logger.debug(f"Mock disk total: {disk_total_gb} GB")
+
+            # Mock uptime (3 days, 7 hours, 22 minutes)
+            uptime_str = "3d 7h 22m"
+            logger.debug(f"Mock server uptime: {uptime_str}")
+
+        # Prepare the response data
+        response_data = {
+            'cpu': {
+                'usage': cpu_usage,
+                'cores': cpu_cores
+            },
+            'memory': {
+                'usage': memory_usage,
+                'total_gb': memory_total_gb
+            },
+            'disk': {
+                'usage': disk_usage,
+                'total_gb': disk_total_gb
+            },
+            'database': {
+                'size_mb': round(db_size_mb, 1),
+                'tables': 4,
+                'total_records': total_records
+            },
+            'server': {
+                'status': 'online',
+                'uptime': uptime_str,
+                'active_users': active_sessions
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+
+        logger.debug(f"System resources response data: {response_data}")
+        return jsonify(response_data), 200
 
     # Serve static files
     @app.route('/api/static/<path:filename>')
