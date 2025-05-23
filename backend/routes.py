@@ -39,8 +39,14 @@ def materials_manager_required(f):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        # Use secure session validation
+        from utils.session_manager import SessionManager
+        from utils.error_handler import log_security_event
+
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            log_security_event('unauthorized_access_attempt', f'Login required access denied: {message}')
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
         return f(*args, **kwargs)
     return decorated_function
 
@@ -70,14 +76,41 @@ def admin_required(f):
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        # Use secure session validation
+        from utils.session_manager import SessionManager
+        from utils.error_handler import log_security_event
+
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
 
         # Allow access for admins or Materials department users
         if session.get('is_admin', False) or session.get('department') == 'Materials':
             return f(*args, **kwargs)
 
+        log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
         return jsonify({'error': 'Tool management privileges required'}), 403
+    return decorated_function
+
+def materials_manager_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Use secure session validation
+        from utils.session_manager import SessionManager
+        from utils.error_handler import log_security_event
+
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            log_security_event('unauthorized_access_attempt', f'Materials management access denied: {message}')
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+
+        # Check if user is admin or Materials department
+        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Materials management access denied for user {session.get("user_id")}')
+            return jsonify({'error': 'Materials management privileges required'}), 403
+
+        return f(*args, **kwargs)
     return decorated_function
 
 def register_routes(app):
