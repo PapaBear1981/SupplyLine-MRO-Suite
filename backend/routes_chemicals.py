@@ -45,9 +45,10 @@ def register_chemical_routes(app):
         # Filter by archived status if the column exists
         try:
             if not show_archived:
-                query = query.filter(Chemical.is_archived == False)
-        except:
+                query = query.filter(Chemical.is_archived.is_(False))
+        except AttributeError:
             # If the column doesn't exist, we can't filter by it
+            logger.warning("is_archived column not found, skipping archived filter")
             pass
 
         # Apply filters if provided
@@ -76,7 +77,9 @@ def register_chemical_routes(app):
         for chemical in chemicals:
             try:
                 is_archived = chemical.is_archived
-            except:
+            except AttributeError:
+                # If the column doesn't exist, assume not archived
+                logger.debug(f"is_archived attribute not found for chemical {chemical.id}")
                 is_archived = False
 
             if not is_archived:  # Only update status for non-archived chemicals
@@ -101,8 +104,9 @@ def register_chemical_routes(app):
 
                         # Update reorder status for expired chemicals
                         chemical.update_reorder_status()
-                    except:
+                    except AttributeError as e:
                         # If the columns don't exist, just update the status
+                        logger.debug(f"Archive columns not found for chemical {chemical.id}: {str(e)}")
                         pass
                 elif chemical.quantity <= 0:
                     chemical.status = 'out_of_stock'
