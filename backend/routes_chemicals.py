@@ -2,16 +2,26 @@ from flask import request, jsonify, session
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
+from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
+from utils.validation import validate_schema, validate_types, validate_constraints
+from utils.session_manager import SessionManager, secure_login_required
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        # Use secure session validation
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
 
         # Check if user is admin or Materials department
         if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
             return jsonify({'error': 'Materials management privileges required'}), 403
 
         return f(*args, **kwargs)
@@ -111,57 +121,62 @@ def register_chemical_routes(app):
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
     @materials_manager_required
+    @handle_errors
     def create_chemical_route():
-        try:
-            data = request.get_json() or {}
+        data = request.get_json() or {}
 
-            # Validate required fields
-            required_fields = ['part_number', 'lot_number', 'quantity', 'unit']
-            for field in required_fields:
-                if not data.get(field):
-                    return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Validate and sanitize input using schema
+        validated_data = validate_schema(data, 'chemical')
 
-            # Create new chemical
-            chemical = Chemical(
-                part_number=data.get('part_number'),
-                lot_number=data.get('lot_number'),
-                description=data.get('description'),
-                manufacturer=data.get('manufacturer'),
-                quantity=data.get('quantity'),
-                unit=data.get('unit'),
-                location=data.get('location'),
-                category=data.get('category', 'General'),
-                status=data.get('status', 'available'),
-                expiration_date=datetime.fromisoformat(data.get('expiration_date')) if data.get('expiration_date') else None,
-                minimum_stock_level=data.get('minimum_stock_level'),
-                notes=data.get('notes')
+        logger.info(f"Creating chemical with part number: {validated_data.get('part_number')}")
+
+        # Check if chemical with same part number and lot number already exists
+        existing_chemical = Chemical.query.filter_by(
+            part_number=validated_data['part_number'],
+            lot_number=validated_data['lot_number']
+        ).first()
+
+        if existing_chemical:
+            raise ValidationError('Chemical with this part number and lot number already exists')
+
+        # Create new chemical
+        chemical = Chemical(
+            part_number=validated_data['part_number'],
+            lot_number=validated_data['lot_number'],
+            description=validated_data.get('description', ''),
+            manufacturer=validated_data.get('manufacturer', ''),
+            quantity=validated_data['quantity'],
+            unit=validated_data['unit'],
+            location=validated_data.get('location', ''),
+            category=validated_data.get('category', 'General'),
+            status=validated_data.get('status', 'available'),
+            expiration_date=validated_data.get('expiration_date'),
+            minimum_stock_level=validated_data.get('minimum_stock_level'),
+            notes=validated_data.get('notes', '')
+        )
+
+        db.session.add(chemical)
+
+        # Log the action
+        log = AuditLog(
+            action_type='chemical_added',
+            action_details=f"Chemical {validated_data['part_number']} - {validated_data['lot_number']} added"
+        )
+        db.session.add(log)
+
+        # Log user activity
+        if 'user_id' in session:
+            activity = UserActivity(
+                user_id=session['user_id'],
+                activity_type='chemical_added',
+                description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
             )
+            db.session.add(activity)
 
-            db.session.add(chemical)
+        db.session.commit()
 
-            # Log the action
-            log = AuditLog(
-                action_type='chemical_added',
-                action_details=f"Chemical {data.get('part_number')} - {data.get('lot_number')} added"
-            )
-            db.session.add(log)
-
-            # Log user activity
-            if 'user_id' in session:
-                activity = UserActivity(
-                    user_id=session['user_id'],
-                    activity_type='chemical_added',
-                    description=f"Added chemical {data.get('part_number')} - {data.get('lot_number')}"
-                )
-                db.session.add(activity)
-
-            db.session.commit()
-
-            return jsonify(chemical.to_dict()), 201
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error in create chemical route: {str(e)}")
-            return jsonify({'error': 'An error occurred while creating the chemical'}), 500
+        logger.info(f"Chemical created successfully: {chemical.part_number} - {chemical.lot_number}")
+        return jsonify(chemical.to_dict()), 201
 
     # Get barcode data for a chemical
     @app.route('/api/chemicals/<int:id>/barcode', methods=['GET'])
@@ -191,86 +206,82 @@ def register_chemical_routes(app):
 
     # Issue a chemical
     @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
+    @secure_login_required
+    @handle_errors
     def chemical_issue_route(id):
-        try:
-            # Get the chemical
-            chemical = Chemical.query.get_or_404(id)
+        # Get the chemical
+        chemical = Chemical.query.get_or_404(id)
 
-            # Check if chemical can be issued
-            if chemical.status == 'expired':
-                return jsonify({'error': 'Cannot issue an expired chemical'}), 400
+        # Check if chemical can be issued
+        if chemical.status == 'expired':
+            raise ValidationError('Cannot issue an expired chemical')
 
-            if chemical.quantity <= 0:
-                return jsonify({'error': 'Cannot issue a chemical that is out of stock'}), 400
+        if chemical.quantity <= 0:
+            raise ValidationError('Cannot issue a chemical that is out of stock')
 
-            # Get request data
-            data = request.get_json() or {}
+        # Get and validate request data
+        data = request.get_json() or {}
 
-            # Validate required fields
-            required_fields = ['quantity', 'hangar', 'user_id']
-            for field in required_fields:
-                if not data.get(field):
-                    return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Use centralized schema validation
+        validated_data = validate_schema(data, 'chemical_issuance')
 
-            # Validate quantity
-            quantity = float(data.get('quantity'))
-            if quantity <= 0:
-                return jsonify({'error': 'Quantity must be greater than zero'}), 400
+        # Ensure the user exists
+        if not User.query.get(validated_data['user_id']):
+            raise ValidationError('Supplied user_id does not exist')
 
-            if quantity > chemical.quantity:
-                return jsonify({'error': f'Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})'}), 400
+        quantity = float(validated_data['quantity'])
+        if quantity > chemical.quantity:
+            raise ValidationError(f'Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})')
 
-            # Create issuance record
-            issuance = ChemicalIssuance(
-                chemical_id=chemical.id,
-                user_id=data.get('user_id'),
-                quantity=quantity,
-                hangar=data.get('hangar'),
-                purpose=data.get('purpose')
+        # Create issuance record
+        issuance = ChemicalIssuance(
+            chemical_id=chemical.id,
+            user_id=validated_data['user_id'],
+            quantity=quantity,
+            hangar=validated_data['hangar'],
+            purpose=validated_data.get('purpose', '')
+        )
+
+        # Update chemical quantity
+        chemical.quantity -= quantity
+
+        # Update chemical status based on new quantity
+        if chemical.quantity <= 0:
+            chemical.status = 'out_of_stock'
+            # Update reorder status
+            chemical.update_reorder_status()
+        elif chemical.is_low_stock():
+            chemical.status = 'low_stock'
+            # Update reorder status
+            chemical.update_reorder_status()
+
+        db.session.add(issuance)
+
+        # Log the action
+        log = AuditLog(
+            action_type='chemical_issued',
+            action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} issued: {quantity} {chemical.unit}"
+        )
+        db.session.add(log)
+
+        # Log user activity
+        if 'user_id' in session:
+            activity = UserActivity(
+                user_id=session['user_id'],
+                activity_type='chemical_issued',
+                description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
             )
+            db.session.add(activity)
 
-            # Update chemical quantity
-            chemical.quantity -= quantity
+        db.session.commit()
 
-            # Update chemical status based on new quantity
-            if chemical.quantity <= 0:
-                chemical.status = 'out_of_stock'
-                # Update reorder status
-                chemical.update_reorder_status()
-            elif chemical.is_low_stock():
-                chemical.status = 'low_stock'
-                # Update reorder status
-                chemical.update_reorder_status()
+        logger.info(f"Chemical issued successfully: {chemical.part_number} - {chemical.lot_number}, quantity: {quantity}")
 
-            db.session.add(issuance)
-
-            # Log the action
-            log = AuditLog(
-                action_type='chemical_issued',
-                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} issued: {quantity} {chemical.unit}"
-            )
-            db.session.add(log)
-
-            # Log user activity
-            if 'user_id' in session:
-                activity = UserActivity(
-                    user_id=session['user_id'],
-                    activity_type='chemical_issued',
-                    description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
-                )
-                db.session.add(activity)
-
-            db.session.commit()
-
-            # Return updated chemical and issuance record
-            return jsonify({
-                'chemical': chemical.to_dict(),
-                'issuance': issuance.to_dict()
-            })
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error in chemical issue route: {str(e)}")
-            return jsonify({'error': 'An error occurred while issuing the chemical'}), 500
+        # Return updated chemical and issuance record
+        return jsonify({
+            'chemical': chemical.to_dict(),
+            'issuance': issuance.to_dict()
+        })
 
     # Get issuance history for a chemical
     @app.route('/api/chemicals/<int:id>/issuances', methods=['GET'])

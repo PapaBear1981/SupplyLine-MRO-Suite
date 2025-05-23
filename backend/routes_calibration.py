@@ -5,17 +5,26 @@ from functools import wraps
 import os
 import uuid
 from werkzeug.utils import secure_filename
+from utils.error_handler import handle_errors, ValidationError, log_security_event
+from utils.validation import validate_schema
+from utils.session_manager import SessionManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Decorator for requiring tool manager privileges
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check if user is authenticated
-        if not session.get('user_id'):
-            return jsonify({'error': 'Authentication required'}), 401
+        # Use secure session validation
+        valid, message = SessionManager.validate_session()
+        if not valid:
+            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
+            return jsonify({'error': 'Authentication required', 'reason': message}), 401
 
         # Check if user has admin or Materials department privileges
         if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
             return jsonify({'error': 'Tool management privileges required'}), 403
 
         return f(*args, **kwargs)
@@ -160,115 +169,90 @@ def register_calibration_routes(app):
     # Add a new calibration record for a tool
     @app.route('/api/tools/<int:id>/calibrations', methods=['POST'])
     @tool_manager_required
+    @handle_errors
     def add_tool_calibration(id):
-        try:
-            # Get the tool
-            tool = Tool.query.get_or_404(id)
+        # Get the tool
+        tool = Tool.query.get_or_404(id)
 
-            # Get data from request
-            data = request.get_json() or {}
+        # Get and validate data from request
+        data = request.get_json() or {}
 
-            # Validate required fields
-            required_fields = ['calibration_date', 'calibration_status']
-            for field in required_fields:
-                if not data.get(field):
-                    return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Validate using calibration schema
+        validated_data = validate_schema(data, 'calibration')
 
-            # Parse calibration date
-            try:
-                # Remove any timezone information to create naive datetime
-                cal_date_str = data.get('calibration_date')
-                if '+' in cal_date_str:
-                    cal_date_str = cal_date_str.split('+')[0]
-                if 'Z' in cal_date_str:
-                    cal_date_str = cal_date_str.replace('Z', '')
-                calibration_date = datetime.fromisoformat(cal_date_str)
-            except ValueError as e:
-                print(f"Error parsing calibration date: {str(e)}")
-                return jsonify({'error': 'Invalid calibration date format'}), 400
+        logger.info(f"Adding calibration record for tool {tool.tool_number}")
 
-            # Parse next calibration date if provided
-            next_calibration_date = None
-            if data.get('next_calibration_date'):
-                try:
-                    # Remove any timezone information to create naive datetime
-                    next_cal_date_str = data.get('next_calibration_date')
-                    if '+' in next_cal_date_str:
-                        next_cal_date_str = next_cal_date_str.split('+')[0]
-                    if 'Z' in next_cal_date_str:
-                        next_cal_date_str = next_cal_date_str.replace('Z', '')
-                    next_calibration_date = datetime.fromisoformat(next_cal_date_str)
-                except ValueError as e:
-                    print(f"Error parsing next calibration date: {str(e)}")
-                    return jsonify({'error': 'Invalid next calibration date format'}), 400
-            elif tool.calibration_frequency_days:
-                # Calculate next calibration date based on frequency
-                next_calibration_date = calibration_date + timedelta(days=tool.calibration_frequency_days)
+        # Validate that calibration status is valid
+        if validated_data['calibration_status'] not in ['pass', 'fail', 'limited']:
+            raise ValidationError('Calibration status must be pass, fail, or limited')
 
-            # Create calibration record
-            calibration = ToolCalibration(
-                tool_id=id,
-                calibration_date=calibration_date,
-                next_calibration_date=next_calibration_date,
-                performed_by_user_id=session['user_id'],
-                calibration_notes=data.get('calibration_notes', ''),
-                calibration_status=data.get('calibration_status')
-            )
+        # Get calibration dates (already validated by schema)
+        calibration_date = validated_data['calibration_date']
+        next_calibration_date = validated_data.get('next_calibration_date')
 
-            # IMPORTANT: The sequence of operations below is critical for database integrity
+        # Calculate next calibration date if not provided but tool has frequency
+        if not next_calibration_date and tool.calibration_frequency_days:
+            next_calibration_date = calibration_date + timedelta(days=tool.calibration_frequency_days)
 
-            # Step 1: Update tool calibration information
-            tool.last_calibration_date = calibration_date
-            tool.next_calibration_date = next_calibration_date
-            tool.update_calibration_status()
+        # Create calibration record
+        calibration = ToolCalibration(
+            tool_id=id,
+            calibration_date=calibration_date,
+            next_calibration_date=next_calibration_date,
+            performed_by_user_id=session['user_id'],
+            calibration_notes=validated_data.get('notes', ''),
+            calibration_status=validated_data['calibration_status']
+        )
 
-            # Step 2: Save calibration to database first to get its ID
-            # This ensures the calibration record exists before linking standards
-            db.session.add(calibration)
-            db.session.commit()
+        # IMPORTANT: The sequence of operations below is critical for database integrity
 
-            # Step 3: Add calibration standards if provided
-            # Now that we have a valid calibration.id, we can link standards to it
-            if data.get('standard_ids'):
-                for standard_id in data.get('standard_ids'):
-                    standard = CalibrationStandard.query.get(standard_id)
-                    if standard:
-                        calibration_standard = ToolCalibrationStandard(
-                            calibration_id=calibration.id,  # This ID is now available because we committed above
-                            standard_id=standard_id
-                        )
-                        db.session.add(calibration_standard)
+        # Step 1: Update tool calibration information
+        tool.last_calibration_date = calibration_date
+        tool.next_calibration_date = next_calibration_date
+        tool.update_calibration_status()
 
-                # Commit the standards separately
-                db.session.commit()
+        # Step 2: Add calibration to session and flush to get its ID
+        # This ensures the calibration record gets an ID without committing
+        db.session.add(calibration)
+        db.session.flush()  # Flush to get the ID without committing
 
-            # Create audit log
-            log = AuditLog(
-                action_type='tool_calibration',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
-            )
-            db.session.add(log)
+        # Step 3: Add calibration standards if provided
+        # Now that we have a valid calibration.id, we can link standards to it
+        if data.get('standard_ids'):
+            for standard_id in data.get('standard_ids'):
+                standard = CalibrationStandard.query.get(standard_id)
+                if standard:
+                    calibration_standard = ToolCalibrationStandard(
+                        calibration_id=calibration.id,  # This ID is now available because we flushed above
+                        standard_id=standard_id
+                    )
+                    db.session.add(calibration_standard)
 
-            # Create user activity
-            activity = UserActivity(
-                user_id=session['user_id'],
-                activity_type='tool_calibration',
-                description=f'Calibrated tool {tool.tool_number}',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
+        # Create audit log
+        log = AuditLog(
+            action_type='tool_calibration',
+            action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
+        )
+        db.session.add(log)
 
-            # Final commit for audit log and user activity
-            db.session.commit()
+        # Create user activity
+        activity = UserActivity(
+            user_id=session['user_id'],
+            activity_type='tool_calibration',
+            description=f'Calibrated tool {tool.tool_number}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(activity)
 
-            return jsonify({
-                'message': 'Calibration record added successfully',
-                'calibration': calibration.to_dict()
-            }), 201
+        # Single commit for all operations to ensure atomicity
+        db.session.commit()
 
-        except Exception as e:
-            print(f"Error adding calibration record: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        logger.info(f"Calibration record added successfully for tool {tool.tool_number}")
+
+        return jsonify({
+            'message': 'Calibration record added successfully',
+            'calibration': calibration.to_dict()
+        }), 201
 
     # Get all calibration standards
     @app.route('/api/calibration-standards', methods=['GET'])
