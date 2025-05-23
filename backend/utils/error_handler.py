@@ -1,24 +1,16 @@
 """
-Secure Error Handling Utility
+Enhanced Error Handling Utility
 
-This module provides structured error handling without information disclosure.
+This module provides comprehensive error handling with structured logging,
+transaction management, and security event tracking.
 """
 
 import logging
+import time
 from functools import wraps
-from flask import jsonify, current_app, request
+from flask import jsonify, current_app, request, session
 from sqlalchemy.exc import SQLAlchemyError
-
-# Configure logging only if no handlers exist
-if not logging.root.handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s %(levelname)s %(name)s %(message)s',
-        handlers=[
-            logging.FileHandler('app.log'),
-            logging.StreamHandler()
-        ]
-    )
+from .logging_utils import get_request_context, log_security_event
 
 logger = logging.getLogger(__name__)
 
@@ -49,32 +41,97 @@ class RateLimitError(SupplyLineError):
 
 
 def handle_errors(f):
-    """Decorator for comprehensive error handling"""
+    """Enhanced decorator for comprehensive error handling with context and transaction management"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        start_time = time.time()
+        context = get_request_context()
+
         try:
-            return f(*args, **kwargs)
+            result = f(*args, **kwargs)
+
+            # Log successful operation
+            duration = (time.time() - start_time) * 1000
+            logger.debug(f"Operation {f.__name__} completed successfully", extra={
+                **context,
+                'operation': f.__name__,
+                'duration_ms': round(duration, 2),
+                'success': True
+            })
+
+            return result
+
         except ValidationError as e:
-            logger.warning(f"Validation error in {f.__name__}: {str(e)}")
+            duration = (time.time() - start_time) * 1000
+            logger.warning(f"Validation error in {f.__name__}", extra={
+                **context,
+                'operation': f.__name__,
+                'error_type': 'ValidationError',
+                'error_message': str(e),
+                'duration_ms': round(duration, 2)
+            })
             return jsonify({'error': 'Invalid input', 'message': str(e)}), 400
+
         except AuthenticationError as e:
-            logger.warning(f"Authentication error in {f.__name__}: {str(e)}")
+            duration = (time.time() - start_time) * 1000
+            log_security_event('authentication_failure', {
+                'operation': f.__name__,
+                'error_message': str(e),
+                'ip_address': request.remote_addr if request else None
+            })
             return jsonify({'error': 'Authentication required'}), 401
+
         except AuthorizationError as e:
-            logger.warning(f"Permission error in {f.__name__}: {str(e)}")
+            duration = (time.time() - start_time) * 1000
+            log_security_event('authorization_failure', {
+                'operation': f.__name__,
+                'error_message': str(e),
+                'user_id': session.get('user_id') if session else None
+            })
             return jsonify({'error': 'Insufficient permissions', 'message': str(e)}), 403
+
         except RateLimitError as e:
-            logger.warning(f"Rate limit error in {f.__name__}: {str(e)}")
+            duration = (time.time() - start_time) * 1000
+            log_security_event('rate_limit_exceeded', {
+                'operation': f.__name__,
+                'ip_address': request.remote_addr if request else None
+            })
             return jsonify({'error': 'Too many requests', 'message': str(e)}), 429
+
         except DatabaseError as e:
-            logger.error(f"Database error in {f.__name__}: {str(e)}", exc_info=True)
-            return jsonify({'error': 'Database error occurred'}), 500
+            duration = (time.time() - start_time) * 1000
+            logger.error(f"Database error in {f.__name__}", extra={
+                **context,
+                'operation': f.__name__,
+                'error_type': 'DatabaseError',
+                'error_message': str(e),
+                'duration_ms': round(duration, 2)
+            })
+            # Database errors are automatically rolled back by SQLAlchemy
+            return jsonify({'error': 'Database operation failed'}), 500
+
         except SQLAlchemyError as e:
-            logger.error(f"SQLAlchemy error in {f.__name__}: {str(e)}", exc_info=True)
+            duration = (time.time() - start_time) * 1000
+            logger.error(f"SQLAlchemy error in {f.__name__}", extra={
+                **context,
+                'operation': f.__name__,
+                'error_type': 'SQLAlchemyError',
+                'error_message': str(e),
+                'duration_ms': round(duration, 2)
+            })
             return jsonify({'error': 'Database error occurred'}), 500
+
         except Exception as e:
-            logger.error(f"Unexpected error in {f.__name__}: {str(e)}", exc_info=True)
+            duration = (time.time() - start_time) * 1000
+            logger.error(f"Unexpected error in {f.__name__}", exc_info=True, extra={
+                **context,
+                'operation': f.__name__,
+                'error_type': type(e).__name__,
+                'error_message': str(e),
+                'duration_ms': round(duration, 2)
+            })
             return create_error_response(e, 500)
+
     return decorated_function
 
 
