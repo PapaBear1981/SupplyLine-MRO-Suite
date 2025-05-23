@@ -68,7 +68,8 @@ def create_app():
         print("Running performance indexes migration...")
         migrate_performance_indexes()
     except Exception as e:
-        print(f"Error running performance indexes migration: {str(e)}")
+        app.logger.exception("Performance indexes migration failed – aborting startup")
+        raise
 
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers

@@ -1,6 +1,7 @@
 from models import db, User
 from flask import Flask
 import os
+import sys
 
 # Create a minimal Flask app
 app = Flask(__name__)
@@ -33,7 +34,7 @@ with app.app_context():
                 print("Please save this password securely!")
         else:
             print(f"ERROR: {message}")
-            return
+            sys.exit(1)
 
     print("Admin user setup completed!")
     print("Employee Number: ADMIN001")
