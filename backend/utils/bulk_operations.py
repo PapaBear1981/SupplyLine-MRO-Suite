@@ -138,18 +138,24 @@ def bulk_update_chemical_status():
             and_(
                 Chemical.expiration_date < now,
                 Chemical.status != 'expired',
-                Chemical.is_archived == False
+                Chemical.is_archived.is_(False)
             )
-        ).update({Chemical.status: 'expired'})
+        ).update(
+            {Chemical.status: 'expired'},
+            synchronize_session=False
+        )
 
         # Update out of stock chemicals
         out_of_stock_count = db.session.query(Chemical).filter(
             and_(
                 Chemical.quantity <= 0,
                 Chemical.status != 'out_of_stock',
-                Chemical.is_archived == False
+                Chemical.is_archived.is_(False)
             )
-        ).update({Chemical.status: 'out_of_stock'})
+        ).update(
+            {Chemical.status: 'out_of_stock'},
+            synchronize_session=False
+        )
 
         logger.info(f"Bulk updated chemical status: {expired_count} expired, {out_of_stock_count} out of stock")
 
@@ -181,7 +187,7 @@ def get_dashboard_stats_optimized():
             func.count(Chemical.id).label('total_chemicals'),
             func.sum(func.case([(Chemical.status == 'expired', 1)], else_=0)).label('expired_chemicals'),
             func.sum(func.case([(Chemical.status == 'low_stock', 1)], else_=0)).label('low_stock_chemicals')
-        ).filter(Chemical.is_archived == False).first()
+        ).filter(Chemical.is_archived.is_(False)).first()
 
         return {
             'tools': {

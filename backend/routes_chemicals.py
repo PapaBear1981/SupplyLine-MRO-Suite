@@ -66,9 +66,8 @@ def register_chemical_routes(app):
                 )
             )
 
-        # Execute query and convert to list of dictionaries
+        # Execute query first
         chemicals = query.all()
-        result = [c.to_dict() for c in chemicals]
 
         # Batch update status based on expiration and stock level to avoid N+1 queries
         chemicals_to_update = []
@@ -134,6 +133,12 @@ def register_chemical_routes(app):
         # Single commit for all changes
         if chemicals_to_update or archive_logs:
             db.session.commit()
+
+        # Serialize after all mutations to ensure client gets updated data
+        result = [
+            {**c.to_dict(), **({'expiring_soon': True} if getattr(c, 'expiring_soon', False) else {})}
+            for c in chemicals
+        ]
 
         return jsonify(result)
 
