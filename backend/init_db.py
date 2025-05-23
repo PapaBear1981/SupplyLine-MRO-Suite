@@ -17,15 +17,16 @@ def init_db():
         db.create_all()
         print("Database tables created")
 
-        # Create admin user
-        admin = User(
-            name='Admin',
-            employee_number='ADMIN001',
-            department='IT',
-            is_admin=True
-        )
-        admin.set_password('admin123')
-        db.session.add(admin)
+        # Create admin user securely
+        from utils.admin_init import create_secure_admin
+        success, message, password = create_secure_admin()
+        if success:
+            print(f"Admin creation: {message}")
+            if password:
+                print(f"IMPORTANT: Generated admin password: {password}")
+        else:
+            print(f"Admin creation failed: {message}")
+            return
 
         # Create test users
         test_users = [
