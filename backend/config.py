@@ -40,7 +40,7 @@ class Config:
     SESSION_MAX_AGE = 86400  # 24 hours
 
     # Enhanced cookie settings
-    SESSION_COOKIE_SECURE = True  # Always use HTTPS in production
+    SESSION_COOKIE_SECURE = False  # Set to True only in HTTPS production
     SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
 
     # Structured logging configuration
@@ -95,7 +95,7 @@ class Config:
         'open_files': 1000,
         'db_connections': 8  # 80% of pool size
     }
-    SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests for mobile
     SESSION_USE_SIGNER = True  # Sign cookies
     SESSION_COOKIE_NAME = 'supplyline_session'  # Custom name
 
@@ -103,7 +103,7 @@ class Config:
     SESSION_VALIDATE_IP = os.environ.get('SESSION_VALIDATE_IP', 'false').lower() == 'true'
 
     # CORS settings - more restrictive in production
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.122:5173,http://100.108.111.69:5173').split(',')
     CORS_SUPPORTS_CREDENTIALS = True
 
     # Additional security headers
