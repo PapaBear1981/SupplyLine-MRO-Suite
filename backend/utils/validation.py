@@ -343,6 +343,10 @@ def validate_schema(data, schema_name):
     if 'date_fields' in schema:
         validate_dates(data, schema['date_fields'])
 
+    # Perform cross-field validation for specific schemas
+    if schema_name == 'cycle_count_batch':
+        validate_cycle_count_batch_cross_fields(data)
+
     # Sanitize string fields
     sanitized_data = {}
     for key, value in data.items():
@@ -355,3 +359,55 @@ def validate_schema(data, schema_name):
             sanitized_data[key] = value
 
     return sanitized_data
+
+
+def validate_cycle_count_batch_cross_fields(data):
+    """
+    Validate cross-field relationships for cycle count batch data
+
+    Args:
+        data: Dictionary containing cycle count batch data
+
+    Raises:
+        ValidationError: If cross-field validation fails
+    """
+    from datetime import datetime
+
+    # Validate start_date and end_date relationship
+    if 'start_date' in data and 'end_date' in data and data['start_date'] and data['end_date']:
+        try:
+            start_date = datetime.fromisoformat(data['start_date'])
+            end_date = datetime.fromisoformat(data['end_date'])
+
+            if end_date < start_date:
+                raise ValidationError("End date cannot be before start date")
+
+            # Check if dates are too far in the future (more than 1 year)
+            now = datetime.now()
+            if start_date > now.replace(year=now.year + 1):
+                raise ValidationError("Start date cannot be more than 1 year in the future")
+
+        except ValueError as e:
+            raise ValidationError(f"Invalid date format: {str(e)}")
+
+    # Validate item generation parameters
+    if data.get('generate_items', False):
+        if 'item_selection' not in data:
+            raise ValidationError("item_selection is required when generate_items is True")
+
+        # Validate item_count for random selection
+        if data.get('item_selection') == 'random':
+            if 'item_count' not in data or not data['item_count']:
+                raise ValidationError("item_count is required when item_selection is 'random'")
+            if data['item_count'] < 1:
+                raise ValidationError("item_count must be at least 1 for random selection")
+
+        # Validate category for category selection
+        if data.get('item_selection') == 'category':
+            if 'category' not in data or not data['category']:
+                raise ValidationError("category is required when item_selection is 'category'")
+
+        # Validate location for location selection
+        if data.get('item_selection') == 'location':
+            if 'location' not in data or not data['location']:
+                raise ValidationError("location is required when item_selection is 'location'")
