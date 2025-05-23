@@ -17,8 +17,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Session configuration
-    PERMANENT_SESSION_LIFETIME = timedelta(days=1)
+    # Session configuration - Enhanced security
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
     SESSION_TYPE = 'filesystem'
     # Check if we're in Docker environment (look for /flask_session volume)
     if os.path.exists('/flask_session'):
@@ -27,15 +27,27 @@ class Config:
         SESSION_FILE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
     print(f"Using session directory: {SESSION_FILE_DIR}")
 
-    # Cookie settings - adjust based on environment
-    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'  # True in production with HTTPS
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    SESSION_USE_SIGNER = True
+    # Enhanced cookie settings
+    SESSION_COOKIE_SECURE = True  # Always use HTTPS in production
+    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
+    SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF
+    SESSION_USE_SIGNER = True  # Sign cookies
+    SESSION_COOKIE_NAME = 'supplyline_session'  # Custom name
+
+    # Session security options
+    SESSION_VALIDATE_IP = os.environ.get('SESSION_VALIDATE_IP', 'false').lower() == 'true'
 
     # CORS settings - more restrictive in production
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
     CORS_SUPPORTS_CREDENTIALS = True
+
+    # Additional security headers
+    SECURITY_HEADERS = {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+    }
 
     # Account lockout settings
     ACCOUNT_LOCKOUT = {
