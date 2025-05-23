@@ -9,6 +9,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [showCountModal, setShowCountModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [countData, setCountData] = useState({
@@ -18,8 +19,8 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
     notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
-  const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
+  const [submissionError, setSubmissionError] = useState('');
   const [scanError, setScanError] = useState('');
 
   useEffect(() => {
@@ -80,6 +81,8 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
       }
     } catch (err) {
       console.error('Error submitting count:', err);
+      // Consider adding user-visible error feedback
+      setSubmissionError(err.message || 'Failed to submit count');
     } finally {
       setSubmitting(false);
     }
@@ -281,6 +284,13 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
                   />
                 </Form.Group>
               </Form>
+
+              {submissionError && (
+                <Alert variant="danger" className="mt-3">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  {submissionError}
+                </Alert>
+              )}
             </div>
           )}
         </Modal.Body>

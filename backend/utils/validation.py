@@ -388,7 +388,7 @@ def validate_cycle_count_batch_cross_fields(data):
                 raise ValidationError("Start date cannot be more than 1 year in the future")
 
         except ValueError as e:
-            raise ValidationError(f"Invalid date format: {str(e)}")
+            raise ValidationError(f"Invalid date format: {str(e)}") from e
 
     # Validate item generation parameters
     if data.get('generate_items', False):
@@ -403,11 +403,9 @@ def validate_cycle_count_batch_cross_fields(data):
                 raise ValidationError("item_count must be at least 1 for random selection")
 
         # Validate category for category selection
-        if data.get('item_selection') == 'category':
-            if 'category' not in data or not data['category']:
-                raise ValidationError("category is required when item_selection is 'category'")
+        if data.get('item_selection') == 'category' and ('category' not in data or not data['category']):
+            raise ValidationError("category is required when item_selection is 'category'")
 
         # Validate location for location selection
-        if data.get('item_selection') == 'location':
-            if 'location' not in data or not data['location']:
-                raise ValidationError("location is required when item_selection is 'location'")
+        if data.get('item_selection') == 'location' and ('location' not in data or not data['location']):
+            raise ValidationError("location is required when item_selection is 'location'")
