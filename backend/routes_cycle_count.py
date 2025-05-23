@@ -1,5 +1,5 @@
 from flask import request, jsonify, session
-from models import db, Tool, Checkout, AuditLog, Chemical
+from models import db, Tool, Checkout, AuditLog, Chemical, User
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
     CycleCountResult, CycleCountAdjustment
@@ -7,6 +7,26 @@ from models_cycle_count import (
 from datetime import datetime
 from functools import wraps
 import random
+
+# Helper function to create cycle count notifications
+def create_cycle_count_notification(notification_type, message, batch_id=None, schedule_id=None, created_by=None):
+    """Create a notification for cycle count activities"""
+    try:
+        # For now, we'll create audit log entries as notifications
+        # In a full implementation, this would integrate with a proper notification system
+        log = AuditLog(
+            action_type=f'cycle_count_notification_{notification_type}',
+            action_details=message,
+            user_id=created_by
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        # TODO: Integrate with email/push notification system
+        # TODO: Create in-app notifications for relevant users
+
+    except Exception as e:
+        print(f"Error creating cycle count notification: {str(e)}")
 
 # Helper function to generate cycle count items for a batch
 def generate_batch_items(batch_id, data):
@@ -351,18 +371,18 @@ def register_cycle_count_routes(app):
             # Get request data
             data = request.get_json()
 
-            # Validate required fields
-            if not all(key in data for key in ['name', 'frequency', 'method']):
-                return jsonify({'error': 'Missing required fields: name, frequency, method'}), 400
+            # Validate data using schema
+            from utils.validation import validate_schema
+            validated_data = validate_schema(data, 'cycle_count_schedule')
 
             # Create new schedule
             schedule = CycleCountSchedule(
-                name=data['name'],
-                description=data.get('description', ''),
-                frequency=data['frequency'],
-                method=data['method'],
+                name=validated_data['name'],
+                description=validated_data.get('description', ''),
+                frequency=validated_data['frequency'],
+                method=validated_data['method'],
                 created_by=session['user_id'],
-                is_active=data.get('is_active', True)
+                is_active=validated_data.get('is_active', True)
             )
 
             # Save to database
@@ -524,26 +544,26 @@ def register_cycle_count_routes(app):
             # Get request data
             data = request.get_json()
 
-            # Validate required fields
-            if 'name' not in data:
-                return jsonify({'error': 'Missing required field: name'}), 400
+            # Validate data using schema
+            from utils.validation import validate_schema
+            validated_data = validate_schema(data, 'cycle_count_batch')
 
             # Validate dates
-            if 'start_date' in data and 'end_date' in data and data['start_date'] and data['end_date']:
-                start_date = datetime.fromisoformat(data['start_date'])
-                end_date = datetime.fromisoformat(data['end_date'])
+            if 'start_date' in validated_data and 'end_date' in validated_data and validated_data['start_date'] and validated_data['end_date']:
+                start_date = datetime.fromisoformat(validated_data['start_date'])
+                end_date = datetime.fromisoformat(validated_data['end_date'])
                 if end_date < start_date:
                     return jsonify({'error': 'End date cannot be before start date'}), 400
 
             # Create new batch
             batch = CycleCountBatch(
-                schedule_id=data.get('schedule_id'),
-                name=data['name'],
+                schedule_id=validated_data.get('schedule_id'),
+                name=validated_data['name'],
                 status='pending',
-                start_date=datetime.fromisoformat(data['start_date']) if data.get('start_date') else None,
-                end_date=datetime.fromisoformat(data['end_date']) if data.get('end_date') else None,
+                start_date=datetime.fromisoformat(validated_data['start_date']) if validated_data.get('start_date') else None,
+                end_date=datetime.fromisoformat(validated_data['end_date']) if validated_data.get('end_date') else None,
                 created_by=session['user_id'],
-                notes=data.get('notes', '')
+                notes=validated_data.get('notes', '')
             )
 
             # Save to database
@@ -561,6 +581,14 @@ def register_cycle_count_routes(app):
             )
             db.session.add(log)
             db.session.commit()
+
+            # Create notification for batch creation
+            create_cycle_count_notification(
+                'batch_created',
+                f"New cycle count batch '{data['name']}' has been created",
+                batch_id=batch.id,
+                created_by=session['user_id']
+            )
 
             # Return result
             return jsonify(batch.to_dict()), 201
@@ -777,9 +805,9 @@ def register_cycle_count_routes(app):
             # Get request data
             data = request.get_json()
 
-            # Validate required fields
-            if not all(key in data for key in ['actual_quantity']):
-                return jsonify({'error': 'Missing required field: actual_quantity'}), 400
+            # Validate data using schema
+            from utils.validation import validate_schema
+            validated_data = validate_schema(data, 'cycle_count_result')
 
             # Get item
             item = CycleCountItem.query.get_or_404(item_id)
@@ -794,25 +822,25 @@ def register_cycle_count_routes(app):
             discrepancy_notes = []
 
             # Check quantity discrepancy
-            if item.expected_quantity != data['actual_quantity']:
+            if item.expected_quantity != validated_data['actual_quantity']:
                 has_discrepancy = True
                 discrepancy_type = 'quantity'
-                discrepancy_notes.append(f"Expected quantity: {item.expected_quantity}, Actual: {data['actual_quantity']}")
+                discrepancy_notes.append(f"Expected quantity: {item.expected_quantity}, Actual: {validated_data['actual_quantity']}")
 
             # Check location discrepancy
-            if 'actual_location' in data and item.expected_location != data['actual_location']:
+            if 'actual_location' in validated_data and item.expected_location != validated_data['actual_location']:
                 has_discrepancy = True
                 discrepancy_type = discrepancy_type or 'location'
-                discrepancy_notes.append(f"Expected location: {item.expected_location}, Actual: {data['actual_location']}")
+                discrepancy_notes.append(f"Expected location: {item.expected_location}, Actual: {validated_data['actual_location']}")
 
             # Create count result
             result = CycleCountResult(
                 item_id=item_id,
                 counted_by=session['user_id'],
-                actual_quantity=data['actual_quantity'],
-                actual_location=data.get('actual_location'),
-                condition=data.get('condition'),
-                notes=data.get('notes', ''),
+                actual_quantity=validated_data['actual_quantity'],
+                actual_location=validated_data.get('actual_location'),
+                condition=validated_data.get('condition'),
+                notes=validated_data.get('notes', ''),
                 has_discrepancy=has_discrepancy,
                 discrepancy_type=discrepancy_type,
                 discrepancy_notes='\n'.join(discrepancy_notes) if discrepancy_notes else None
@@ -832,6 +860,15 @@ def register_cycle_count_routes(app):
             )
             db.session.add(log)
             db.session.commit()
+
+            # Create notification for discrepancies
+            if has_discrepancy:
+                create_cycle_count_notification(
+                    'discrepancy_found',
+                    f"Discrepancy found in item {item.item_number}: {discrepancy_type}",
+                    batch_id=item.batch_id,
+                    created_by=session['user_id']
+                )
 
             # Return result
             return jsonify(result.to_dict()), 201

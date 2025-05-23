@@ -39,6 +39,62 @@ def tool_manager_required(f):
     return decorated_function
 
 def register_report_routes(app):
+    # Export report as PDF
+    @app.route('/api/reports/export/pdf', methods=['POST'])
+    @tool_manager_required
+    def export_report_pdf():
+        try:
+            data = request.get_json()
+            report_type = data.get('report_type')
+            report_data = data.get('report_data')
+            timeframe = data.get('timeframe', 'month')
+
+            if not report_type or not report_data:
+                return jsonify({'error': 'Missing report_type or report_data'}), 400
+
+            # Generate PDF using export utilities
+            from utils.export_utils import generate_pdf_report
+            pdf_buffer = generate_pdf_report(report_data, report_type, timeframe)
+
+            # Return PDF as response
+            from flask import make_response
+            response = make_response(pdf_buffer.getvalue())
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'attachment; filename="{report_type}-report.pdf"'
+
+            return response
+
+        except Exception as e:
+            return jsonify({'error': f'Failed to generate PDF: {str(e)}'}), 500
+
+    # Export report as Excel
+    @app.route('/api/reports/export/excel', methods=['POST'])
+    @tool_manager_required
+    def export_report_excel():
+        try:
+            data = request.get_json()
+            report_type = data.get('report_type')
+            report_data = data.get('report_data')
+            timeframe = data.get('timeframe', 'month')
+
+            if not report_type or not report_data:
+                return jsonify({'error': 'Missing report_type or report_data'}), 400
+
+            # Generate Excel using export utilities
+            from utils.export_utils import generate_excel_report
+            excel_buffer = generate_excel_report(report_data, report_type, timeframe)
+
+            # Return Excel as response
+            from flask import make_response
+            response = make_response(excel_buffer.getvalue())
+            response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            response.headers['Content-Disposition'] = f'attachment; filename="{report_type}-report.xlsx"'
+
+            return response
+
+        except Exception as e:
+            return jsonify({'error': f'Failed to generate Excel: {str(e)}'}), 500
+
     # Tool Inventory Report
     @app.route('/api/reports/tools', methods=['GET'])
     @tool_manager_required
