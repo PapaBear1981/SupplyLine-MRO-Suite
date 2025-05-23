@@ -1,5 +1,5 @@
 from flask import request, jsonify, session
-from models import db, Tool, Checkout, AuditLog, Chemical, User
+from models import db, Tool, Checkout, AuditLog, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
     CycleCountResult, CycleCountAdjustment
@@ -7,7 +7,8 @@ from models_cycle_count import (
 from datetime import datetime
 from functools import wraps
 import random
-from utils.validation import validate_schema
+import logging
+from .utils.validation import validate_schema
 
 # Helper function to create cycle count notifications
 def create_cycle_count_notification(notification_type, message, batch_id=None, schedule_id=None, created_by=None):
@@ -27,7 +28,9 @@ def create_cycle_count_notification(notification_type, message, batch_id=None, s
         # TODO: Create in-app notifications for relevant users
 
     except Exception as e:
-        print(f"Error creating cycle count notification: {str(e)}")
+        # Log the error but don't fail the main operation
+        logging.error(f"Error creating cycle count notification: {str(e)}")
+        # Consider whether to re-raise or continue silently
 
 # Helper function to generate cycle count items for a batch
 def generate_batch_items(batch_id, data):
@@ -570,13 +573,13 @@ def register_cycle_count_routes(app):
             db.session.commit()
 
             # Generate items for the batch if requested
-            if data.get('generate_items', False):
-                generate_batch_items(batch.id, data)
+            if validated_data.get('generate_items', False):
+                generate_batch_items(batch.id, validated_data)
 
             # Log the action
             log = AuditLog(
                 action_type='cycle_count_batch_created',
-                action_details=f"Cycle count batch '{data['name']}' created"
+                action_details=f"Cycle count batch '{validated_data['name']}' created"
             )
             db.session.add(log)
             db.session.commit()
@@ -584,7 +587,7 @@ def register_cycle_count_routes(app):
             # Create notification for batch creation
             create_cycle_count_notification(
                 'batch_created',
-                f"New cycle count batch '{data['name']}' has been created",
+                f"New cycle count batch '{validated_data['name']}' has been created",
                 batch_id=batch.id,
                 created_by=session['user_id']
             )

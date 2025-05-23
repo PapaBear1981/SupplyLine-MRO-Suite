@@ -1,9 +1,10 @@
-from flask import request, jsonify, session
+from flask import request, jsonify, session, make_response
 from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
+from .utils.export_utils import generate_pdf_report, generate_excel_report
 
 def calculate_date_range(timeframe):
     """Calculate start date based on timeframe parameter."""
@@ -53,11 +54,9 @@ def register_report_routes(app):
                 return jsonify({'error': 'Missing report_type or report_data'}), 400
 
             # Generate PDF using export utilities
-            from utils.export_utils import generate_pdf_report
             pdf_buffer = generate_pdf_report(report_data, report_type, timeframe)
 
             # Return PDF as response
-            from flask import make_response
             response = make_response(pdf_buffer.getvalue())
             response.headers['Content-Type'] = 'application/pdf'
             response.headers['Content-Disposition'] = f'attachment; filename="{report_type}-report.pdf"'
@@ -81,11 +80,9 @@ def register_report_routes(app):
                 return jsonify({'error': 'Missing report_type or report_data'}), 400
 
             # Generate Excel using export utilities
-            from utils.export_utils import generate_excel_report
             excel_buffer = generate_excel_report(report_data, report_type, timeframe)
 
             # Return Excel as response
-            from flask import make_response
             response = make_response(excel_buffer.getvalue())
             response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             response.headers['Content-Disposition'] = f'attachment; filename="{report_type}-report.xlsx"'
