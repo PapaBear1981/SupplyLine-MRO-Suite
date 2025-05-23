@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
-from utils.session_manager import SessionManager
+from utils.session_manager import SessionManager, secure_login_required
 import logging
 
 logger = logging.getLogger(__name__)
@@ -222,46 +222,24 @@ def register_chemical_routes(app):
         # Get and validate request data
         data = request.get_json() or {}
 
-        # Define issuance schema
-        issuance_schema = {
-            'required': ['quantity', 'hangar', 'user_id'],
-            'optional': ['purpose'],
-            'types': {
-                'quantity': (int, float),
-                'hangar': str,
-                'user_id': int,
-                'purpose': str
-            },
-            'constraints': {
-                'quantity': {'min': 0.01},
-                'hangar': {'max_length': 100},
-                'user_id': {'min': 1},
-                'purpose': {'max_length': 500}
-            }
-        }
-
-        # Validate input
-        validate_input(data, issuance_schema['required'], issuance_schema.get('optional', []))
-
-        # Validate types and constraints
-        validate_types(data, issuance_schema['types'])
-        validate_constraints(data, issuance_schema['constraints'])
+        # Use centralized schema validation
+        validated_data = validate_schema(data, 'chemical_issuance')
 
         # Ensure the user exists
-        if not User.query.get(data['user_id']):
+        if not User.query.get(validated_data['user_id']):
             raise ValidationError('Supplied user_id does not exist')
 
-        quantity = float(data['quantity'])
+        quantity = float(validated_data['quantity'])
         if quantity > chemical.quantity:
             raise ValidationError(f'Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})')
 
         # Create issuance record
         issuance = ChemicalIssuance(
             chemical_id=chemical.id,
-            user_id=data['user_id'],
+            user_id=validated_data['user_id'],
             quantity=quantity,
-            hangar=data['hangar'],
-            purpose=data.get('purpose', '')
+            hangar=validated_data['hangar'],
+            purpose=validated_data.get('purpose', '')
         )
 
         # Update chemical quantity
