@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Button, Form, Alert, Spinner, Modal, Row, Col, ButtonGroup, Dropdown } from 'react-bootstrap';
+import PropTypes from 'prop-types';
 import {
   exportCycleCountBatch,
   exportCycleCountSchedule,
@@ -337,13 +338,31 @@ const CycleCountExportImport = ({
                 Importing...
               </>
             ) : (
-              'Import Results'
+              `Import ${importType === 'results' ? 'Results' : importType === 'schedules' ? 'Schedules' : 'Batches'}`
             )}
           </Button>
         </Modal.Footer>
       </Modal>
     </div>
   );
+};
+
+CycleCountExportImport.propTypes = {
+  batchId: PropTypes.number,
+  batchName: PropTypes.string,
+  scheduleId: PropTypes.number,
+  scheduleName: PropTypes.string,
+  mode: PropTypes.oneOf(['batch', 'schedule', 'results']),
+  onImportSuccess: PropTypes.func
+};
+
+CycleCountExportImport.defaultProps = {
+  batchId: null,
+  batchName: '',
+  scheduleId: null,
+  scheduleName: '',
+  mode: 'batch',
+  onImportSuccess: null
 };
 
 export default CycleCountExportImport;
