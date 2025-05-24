@@ -50,6 +50,81 @@ const CycleCountAdvancedAnalytics = () => {
     }));
   };
 
+  // Chart configurations - memoized for performance (must be at top level)
+  const accuracyTrendData = useMemo(() => ({
+    labels: analytics?.accuracy_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
+    datasets: [
+      {
+        label: 'Accuracy Rate (%)',
+        data: analytics?.accuracy_trends?.map(trend => trend.accuracy_rate) || [],
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        tension: 0.1,
+      },
+    ],
+  }), [analytics?.accuracy_trends]);
+
+  const discrepancyTypeData = useMemo(() => ({
+    labels: analytics?.discrepancy_types?.map(type => type.type) || [],
+    datasets: [
+      {
+        data: analytics?.discrepancy_types?.map(type => type.count) || [],
+        backgroundColor: [
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(139, 92, 246, 0.8)',
+          'rgba(236, 72, 153, 0.8)',
+        ],
+      },
+    ],
+  }), [analytics?.discrepancy_types]);
+
+  const userPerformanceData = useMemo(() => ({
+    labels: analytics?.user_performance?.map(user => `User ${user.user_id}`) || [],
+    datasets: [
+      {
+        label: 'Accuracy Rate (%)',
+        data: analytics?.user_performance?.map(user => user.accuracy_rate) || [],
+        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+      },
+    ],
+  }), [analytics?.user_performance]);
+
+  const batchTrendData = useMemo(() => ({
+    labels: analytics?.batch_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
+    datasets: [
+      {
+        label: 'Batches Created',
+        data: analytics?.batch_trends?.map(trend => trend.batches_created) || [],
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        tension: 0.1,
+      },
+      {
+        label: 'Batches Completed',
+        data: analytics?.batch_trends?.map(trend => trend.batches_completed) || [],
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        tension: 0.1,
+      },
+    ],
+  }), [analytics?.batch_trends]);
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
+  }), []);
+
   const refreshAnalytics = () => {
     dispatch(fetchCycleCountAnalytics(dateRange));
   };
@@ -79,81 +154,6 @@ const CycleCountAdvancedAnalytics = () => {
       </Alert>
     );
   }
-
-  // Chart configurations - memoized for performance
-  const accuracyTrendData = useMemo(() => ({
-    labels: analytics.accuracy_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
-    datasets: [
-      {
-        label: 'Accuracy Rate (%)',
-        data: analytics.accuracy_trends?.map(trend => trend.accuracy_rate) || [],
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.2)',
-        tension: 0.1,
-      },
-    ],
-  }), [analytics.accuracy_trends]);
-
-  const discrepancyTypeData = useMemo(() => ({
-    labels: analytics.discrepancy_types?.map(type => type.type) || [],
-    datasets: [
-      {
-        data: analytics.discrepancy_types?.map(type => type.count) || [],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(139, 92, 246, 0.8)',
-          'rgba(236, 72, 153, 0.8)',
-        ],
-      },
-    ],
-  }), [analytics.discrepancy_types]);
-
-  const userPerformanceData = useMemo(() => ({
-    labels: analytics.user_performance?.map(user => `User ${user.user_id}`) || [],
-    datasets: [
-      {
-        label: 'Accuracy Rate (%)',
-        data: analytics.user_performance?.map(user => user.accuracy_rate) || [],
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-      },
-    ],
-  }), [analytics.user_performance]);
-
-  const batchTrendData = useMemo(() => ({
-    labels: analytics.batch_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
-    datasets: [
-      {
-        label: 'Batches Created',
-        data: analytics.batch_trends?.map(trend => trend.batches_created) || [],
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-        tension: 0.1,
-      },
-      {
-        label: 'Batches Completed',
-        data: analytics.batch_trends?.map(trend => trend.batches_completed) || [],
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.2)',
-        tension: 0.1,
-      },
-    ],
-  }), [analytics.batch_trends]);
-
-  const chartOptions = useMemo(() => ({
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  }), []);
 
   return (
     <div>
