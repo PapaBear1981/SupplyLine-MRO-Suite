@@ -7,6 +7,7 @@ import CycleCountScheduleList from '../components/cycleCount/CycleCountScheduleL
 import CycleCountBatchList from '../components/cycleCount/CycleCountBatchList';
 import CycleCountDiscrepancyList from '../components/cycleCount/CycleCountDiscrepancyList';
 import CycleCountStatsOverview from '../components/cycleCount/CycleCountStatsOverview';
+import CycleCountAdvancedAnalytics from '../components/cycleCount/CycleCountAdvancedAnalytics';
 import { useHelp } from '../context/HelpContext';
 
 const CycleCountDashboardPage = () => {
@@ -92,6 +93,9 @@ const CycleCountDashboardPage = () => {
             </Tab>
             <Tab eventKey="discrepancies" title="Discrepancies">
               <CycleCountDiscrepancyList />
+            </Tab>
+            <Tab eventKey="analytics" title="Advanced Analytics">
+              <CycleCountAdvancedAnalytics />
             </Tab>
           </Tabs>
         </Card.Header>

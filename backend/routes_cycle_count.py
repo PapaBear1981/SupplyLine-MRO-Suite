@@ -310,6 +310,81 @@ def generate_batch_items(batch_id, data):
 
     return len(items_to_add)
 
+def update_item_from_count_result(cycle_count_item, count_result):
+    """Update the actual tool or chemical based on cycle count results"""
+    try:
+        if cycle_count_item.item_type == 'tool':
+            # Update tool
+            tool = Tool.query.get(cycle_count_item.item_id)
+            if tool:
+                # Update location if different
+                if count_result.actual_location and count_result.actual_location != tool.location:
+                    old_location = tool.location
+                    tool.location = count_result.actual_location
+
+                    # Log location change
+                    log = AuditLog(
+                        action_type='tool_location_updated_from_cycle_count',
+                        action_details=f"Tool {tool.part_number} location updated from '{old_location}' to '{count_result.actual_location}' based on cycle count"
+                    )
+                    db.session.add(log)
+
+                # Update condition if provided
+                if count_result.condition and count_result.condition != tool.condition:
+                    old_condition = tool.condition
+                    tool.condition = count_result.condition
+
+                    # Log condition change
+                    log = AuditLog(
+                        action_type='tool_condition_updated_from_cycle_count',
+                        action_details=f"Tool {tool.part_number} condition updated from '{old_condition}' to '{count_result.condition}' based on cycle count"
+                    )
+                    db.session.add(log)
+
+                db.session.commit()
+
+        elif cycle_count_item.item_type == 'chemical':
+            # Update chemical
+            chemical = Chemical.query.get(cycle_count_item.item_id)
+            if chemical:
+                # Update quantity if different
+                if count_result.actual_quantity != chemical.quantity:
+                    old_quantity = chemical.quantity
+                    chemical.quantity = count_result.actual_quantity
+
+                    # Update status based on new quantity
+                    if chemical.quantity <= 0:
+                        chemical.status = 'out_of_stock'
+                    elif chemical.is_low_stock():
+                        chemical.status = 'low_stock'
+                    else:
+                        chemical.status = 'available'
+
+                    # Log quantity change
+                    log = AuditLog(
+                        action_type='chemical_quantity_updated_from_cycle_count',
+                        action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} quantity updated from {old_quantity} to {count_result.actual_quantity} based on cycle count"
+                    )
+                    db.session.add(log)
+
+                # Update location if different
+                if count_result.actual_location and count_result.actual_location != chemical.location:
+                    old_location = chemical.location
+                    chemical.location = count_result.actual_location
+
+                    # Log location change
+                    log = AuditLog(
+                        action_type='chemical_location_updated_from_cycle_count',
+                        action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} location updated from '{old_location}' to '{count_result.actual_location}' based on cycle count"
+                    )
+                    db.session.add(log)
+
+                db.session.commit()
+
+    except Exception as e:
+        print(f"Error updating item from count result: {str(e)}")
+        # Don't raise the exception to avoid breaking the count submission
+
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -854,6 +929,10 @@ def register_cycle_count_routes(app):
             db.session.add(result)
             db.session.commit()
 
+            # Update the actual item based on count results if there are discrepancies
+            if has_discrepancy:
+                update_item_from_count_result(item, result)
+
             # Log the action
             log = AuditLog(
                 action_type='cycle_count_result_submitted',
@@ -1084,3 +1163,927 @@ def register_cycle_count_routes(app):
         except Exception as e:
             print(f"Error getting cycle count statistics: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching cycle count statistics'}), 500
+
+    # Export cycle count batch data
+    @app.route('/api/cycle-counts/batches/<int:batch_id>/export', methods=['GET'])
+    @tool_manager_required
+    def export_cycle_count_batch(batch_id):
+        try:
+            from io import StringIO
+            import csv
+            from flask import make_response
+
+            # Get format parameter
+            format_type = request.args.get('format', 'csv').lower()
+
+            # Get batch
+            batch = CycleCountBatch.query.get_or_404(batch_id)
+
+            # Get all items for the batch
+            items = CycleCountItem.query.filter_by(batch_id=batch_id).all()
+
+            if format_type == 'excel':
+                # Excel export using openpyxl
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill
+                import io
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Batch Items"
+
+                # Add batch information
+                ws['A1'] = f"Cycle Count Batch: {batch.name}"
+                ws['A1'].font = Font(size=16, bold=True)
+
+                ws['A3'] = f"Batch ID: {batch.id}"
+                ws['A4'] = f"Status: {batch.status}"
+                ws['A5'] = f"Created: {batch.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+                ws['A6'] = f"Total Items: {len(items)}"
+
+                # Headers
+                headers = [
+                    'Item ID', 'Item Type', 'Item Reference ID', 'Expected Quantity',
+                    'Expected Location', 'Status', 'Assigned To'
+                ]
+
+                for col, header in enumerate(headers, 1):
+                    cell = ws.cell(row=8, column=col, value=header)
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+
+                # Add data
+                for row, item in enumerate(items, 9):
+                    ws.cell(row=row, column=1, value=item.id)
+                    ws.cell(row=row, column=2, value=item.item_type)
+                    ws.cell(row=row, column=3, value=item.item_id)
+                    ws.cell(row=row, column=4, value=item.expected_quantity)
+                    ws.cell(row=row, column=5, value=item.expected_location)
+                    ws.cell(row=row, column=6, value=item.status)
+                    ws.cell(row=row, column=7, value=item.assigned_to or '')
+
+                # Save to buffer
+                buffer = io.BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+
+                # Create response
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_batch_{batch_id}.xlsx'
+
+                return response
+
+            else:
+                # CSV export
+                output = StringIO()
+                writer = csv.writer(output)
+
+                # Write header
+                writer.writerow([
+                    'Item ID', 'Item Type', 'Item Reference ID', 'Expected Quantity',
+                    'Expected Location', 'Status', 'Assigned To'
+                ])
+
+                # Write data rows
+                for item in items:
+                    writer.writerow([
+                        item.id,
+                        item.item_type,
+                        item.item_id,
+                        item.expected_quantity,
+                        item.expected_location,
+                        item.status,
+                        item.assigned_to or ''
+                    ])
+
+                # Create response
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'text/csv'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_batch_{batch_id}.csv'
+
+                return response
+
+        except Exception as e:
+            print(f"Error exporting cycle count batch {batch_id}: {str(e)}")
+            return jsonify({'error': f'An error occurred while exporting cycle count batch {batch_id}'}), 500
+
+    # Import cycle count results
+    @app.route('/api/cycle-counts/batches/<int:batch_id>/import', methods=['POST'])
+    @tool_manager_required
+    def import_cycle_count_results(batch_id):
+        try:
+            import csv
+            from io import StringIO
+
+            # Get batch
+            batch = CycleCountBatch.query.get_or_404(batch_id)
+
+            # Get uploaded file
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file uploaded'}), 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+
+            # Read CSV data
+            csv_data = file.read().decode('utf-8')
+            csv_reader = csv.DictReader(StringIO(csv_data))
+
+            imported_count = 0
+            errors = []
+
+            for row_num, row in enumerate(csv_reader, start=2):
+                try:
+                    # Validate required fields
+                    if not row.get('Item ID'):
+                        errors.append(f"Row {row_num}: Missing Item ID")
+                        continue
+
+                    item_id = int(row['Item ID'])
+
+                    # Get the cycle count item
+                    item = CycleCountItem.query.filter_by(
+                        id=item_id,
+                        batch_id=batch_id
+                    ).first()
+
+                    if not item:
+                        errors.append(f"Row {row_num}: Item ID {item_id} not found in batch")
+                        continue
+
+                    # Check if already counted
+                    if item.status == 'counted':
+                        errors.append(f"Row {row_num}: Item {item_id} already counted")
+                        continue
+
+                    # Get count data
+                    actual_quantity = float(row.get('Actual Quantity', 0))
+                    actual_location = row.get('Actual Location', '')
+                    condition = row.get('Condition', '')
+                    notes = row.get('Notes', '')
+
+                    # Determine discrepancy
+                    has_discrepancy = False
+                    discrepancy_type = None
+                    discrepancy_notes = []
+
+                    if actual_quantity != item.expected_quantity:
+                        has_discrepancy = True
+                        discrepancy_type = 'quantity'
+                        discrepancy_notes.append(f"Expected: {item.expected_quantity}, Actual: {actual_quantity}")
+
+                    if actual_location != item.expected_location:
+                        has_discrepancy = True
+                        if not discrepancy_type:
+                            discrepancy_type = 'location'
+                        discrepancy_notes.append(f"Expected location: {item.expected_location}, Actual: {actual_location}")
+
+                    # Create count result
+                    result = CycleCountResult(
+                        item_id=item_id,
+                        counted_by=session['user_id'],
+                        actual_quantity=actual_quantity,
+                        actual_location=actual_location,
+                        condition=condition,
+                        notes=notes,
+                        has_discrepancy=has_discrepancy,
+                        discrepancy_type=discrepancy_type,
+                        discrepancy_notes='\n'.join(discrepancy_notes) if discrepancy_notes else None
+                    )
+
+                    # Update item status
+                    item.status = 'counted'
+
+                    # Save to database
+                    db.session.add(result)
+                    imported_count += 1
+
+                except ValueError as ve:
+                    errors.append(f"Row {row_num}: Invalid data - {str(ve)}")
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error - {str(e)}")
+
+            # Commit changes
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='cycle_count_results_imported',
+                action_details=f"Imported {imported_count} count results for batch {batch_id}"
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({
+                'message': f'Successfully imported {imported_count} count results',
+                'imported_count': imported_count,
+                'errors': errors
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error importing cycle count results for batch {batch_id}: {str(e)}")
+            return jsonify({'error': 'An error occurred while importing cycle count results'}), 500
+
+    # Get advanced cycle count analytics
+    @app.route('/api/cycle-counts/analytics', methods=['GET'])
+    @tool_manager_required
+    def get_cycle_count_analytics():
+        try:
+            from datetime import datetime, timedelta
+            from sqlalchemy import func, and_
+
+            # Get query parameters
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+
+            # Default to last 30 days if no dates provided
+            if not start_date:
+                start_date = (datetime.now() - timedelta(days=30)).isoformat()
+            if not end_date:
+                end_date = datetime.now().isoformat()
+
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+
+            # Accuracy trends over time - using simpler approach for SQLite compatibility
+            accuracy_trends_raw = db.session.query(
+                func.date(CycleCountResult.counted_at).label('date'),
+                func.count(CycleCountResult.id).label('total_counts'),
+                func.count(CycleCountResult.id).filter(~CycleCountResult.has_discrepancy).label('accurate_counts')
+            ).filter(
+                and_(
+                    CycleCountResult.counted_at >= start_dt,
+                    CycleCountResult.counted_at <= end_dt
+                )
+            ).group_by(
+                func.date(CycleCountResult.counted_at)
+            ).order_by(
+                func.date(CycleCountResult.counted_at)
+            ).all()
+
+            # Convert to list for easier handling
+            accuracy_trends = []
+            for trend in accuracy_trends_raw:
+                accuracy_trends.append({
+                    'date': trend.date,
+                    'total_counts': trend.total_counts,
+                    'accurate_counts': trend.accurate_counts or 0
+                })
+
+            # Discrepancy analysis by type
+            discrepancy_types = db.session.query(
+                CycleCountResult.discrepancy_type,
+                func.count(CycleCountResult.id).label('count')
+            ).filter(
+                and_(
+                    CycleCountResult.has_discrepancy,
+                    CycleCountResult.counted_at >= start_dt,
+                    CycleCountResult.counted_at <= end_dt
+                )
+            ).group_by(
+                CycleCountResult.discrepancy_type
+            ).all()
+
+            # Performance by user - using simpler approach for SQLite compatibility
+            user_performance_raw = db.session.query(
+                CycleCountResult.counted_by,
+                func.count(CycleCountResult.id).label('total_counts'),
+                func.count(CycleCountResult.id).filter(~CycleCountResult.has_discrepancy).label('accurate_counts')
+            ).filter(
+                and_(
+                    CycleCountResult.counted_at >= start_dt,
+                    CycleCountResult.counted_at <= end_dt
+                )
+            ).group_by(
+                CycleCountResult.counted_by
+            ).all()
+
+            # Convert to list for easier handling
+            user_performance = []
+            for perf in user_performance_raw:
+                user_performance.append({
+                    'counted_by': perf.counted_by,
+                    'total_counts': perf.total_counts,
+                    'accurate_counts': perf.accurate_counts or 0,
+                    'avg_time_to_count': 0  # Simplified for now
+                })
+
+            # Coverage analysis
+            total_tools = Tool.query.count()
+            total_chemicals = Chemical.query.count()
+
+            counted_tools = db.session.query(
+                func.count(func.distinct(CycleCountItem.item_id))
+            ).filter(
+                and_(
+                    CycleCountItem.item_type == 'tool',
+                    CycleCountItem.status == 'counted',
+                    CycleCountItem.created_at >= start_dt
+                )
+            ).scalar()
+
+            counted_chemicals = db.session.query(
+                func.count(func.distinct(CycleCountItem.item_id))
+            ).filter(
+                and_(
+                    CycleCountItem.item_type == 'chemical',
+                    CycleCountItem.status == 'counted',
+                    CycleCountItem.created_at >= start_dt
+                )
+            ).scalar()
+
+            # Batch completion trends - using simpler approach for SQLite compatibility
+            batch_trends_raw = db.session.query(
+                func.date(CycleCountBatch.created_at).label('date'),
+                func.count(CycleCountBatch.id).label('batches_created'),
+                func.count(CycleCountBatch.id).filter(CycleCountBatch.status == 'completed').label('batches_completed')
+            ).filter(
+                and_(
+                    CycleCountBatch.created_at >= start_dt,
+                    CycleCountBatch.created_at <= end_dt
+                )
+            ).group_by(
+                func.date(CycleCountBatch.created_at)
+            ).order_by(
+                func.date(CycleCountBatch.created_at)
+            ).all()
+
+            # Convert to list for easier handling
+            batch_trends = []
+            for trend in batch_trends_raw:
+                batch_trends.append({
+                    'date': trend.date,
+                    'batches_created': trend.batches_created,
+                    'batches_completed': trend.batches_completed or 0
+                })
+
+            # Format results
+            analytics = {
+                'accuracy_trends': [
+                    {
+                        'date': trend['date'] if isinstance(trend['date'], str) else trend['date'].isoformat(),
+                        'total_counts': trend['total_counts'],
+                        'accurate_counts': trend['accurate_counts'],
+                        'accuracy_rate': round((trend['accurate_counts'] / trend['total_counts']) * 100, 2) if trend['total_counts'] > 0 else 0
+                    }
+                    for trend in accuracy_trends
+                ],
+                'discrepancy_types': [
+                    {
+                        'type': disc.discrepancy_type or 'unknown',
+                        'count': disc.count
+                    }
+                    for disc in discrepancy_types
+                ],
+                'user_performance': [
+                    {
+                        'user_id': perf['counted_by'],
+                        'total_counts': perf['total_counts'],
+                        'accurate_counts': perf['accurate_counts'],
+                        'accuracy_rate': round((perf['accurate_counts'] / perf['total_counts']) * 100, 2) if perf['total_counts'] > 0 else 0,
+                        'avg_time_to_count': perf['avg_time_to_count']
+                    }
+                    for perf in user_performance
+                ],
+                'coverage': {
+                    'tools': {
+                        'total': total_tools,
+                        'counted': counted_tools or 0,
+                        'coverage_rate': round((counted_tools / total_tools) * 100, 2) if total_tools > 0 else 0
+                    },
+                    'chemicals': {
+                        'total': total_chemicals,
+                        'counted': counted_chemicals or 0,
+                        'coverage_rate': round((counted_chemicals / total_chemicals) * 100, 2) if total_chemicals > 0 else 0
+                    }
+                },
+                'batch_trends': [
+                    {
+                        'date': trend['date'] if isinstance(trend['date'], str) else trend['date'].isoformat(),
+                        'batches_created': trend['batches_created'],
+                        'batches_completed': trend['batches_completed'],
+                        'completion_rate': round((trend['batches_completed'] / trend['batches_created']) * 100, 2) if trend['batches_created'] > 0 else 0
+                    }
+                    for trend in batch_trends
+                ]
+            }
+
+            return jsonify(analytics), 200
+
+        except Exception as e:
+            print(f"Error getting cycle count analytics: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching cycle count analytics'}), 500
+
+    # Export cycle count schedule data
+    @app.route('/api/cycle-counts/schedules/<int:schedule_id>/export', methods=['GET'])
+    @tool_manager_required
+    def export_cycle_count_schedule(schedule_id):
+        try:
+            from io import StringIO
+            import csv
+            from flask import make_response
+
+            # Get format parameter
+            format_type = request.args.get('format', 'csv').lower()
+
+            # Get schedule
+            schedule = CycleCountSchedule.query.get_or_404(schedule_id)
+
+            # Get all batches for the schedule
+            batches = CycleCountBatch.query.filter_by(schedule_id=schedule_id).all()
+
+            if format_type == 'excel':
+                # Excel export using openpyxl
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill
+                import io
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Schedule Details"
+
+                # Add schedule information
+                ws['A1'] = "Cycle Count Schedule Export"
+                ws['A1'].font = Font(size=16, bold=True)
+
+                ws['A3'] = "Schedule Name:"
+                ws['B3'] = schedule.name
+                ws['A4'] = "Description:"
+                ws['B4'] = schedule.description or ''
+                ws['A5'] = "Frequency:"
+                ws['B5'] = schedule.frequency
+                ws['A6'] = "Method:"
+                ws['B6'] = schedule.method
+                ws['A7'] = "Created:"
+                ws['B7'] = schedule.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                ws['A8'] = "Active:"
+                ws['B8'] = 'Yes' if schedule.is_active else 'No'
+
+                # Add batch information
+                ws['A10'] = "Associated Batches"
+                ws['A10'].font = Font(bold=True)
+
+                # Headers for batch data
+                headers = ['Batch ID', 'Batch Name', 'Status', 'Created Date', 'Start Date', 'End Date', 'Progress']
+                for col, header in enumerate(headers, 1):
+                    cell = ws.cell(row=11, column=col, value=header)
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+
+                # Add batch data
+                for row, batch in enumerate(batches, 12):
+                    ws.cell(row=row, column=1, value=batch.id)
+                    ws.cell(row=row, column=2, value=batch.name)
+                    ws.cell(row=row, column=3, value=batch.status)
+                    ws.cell(row=row, column=4, value=batch.created_at.strftime('%Y-%m-%d %H:%M:%S'))
+                    ws.cell(row=row, column=5, value=batch.start_date.strftime('%Y-%m-%d %H:%M:%S') if batch.start_date else '')
+                    ws.cell(row=row, column=6, value=batch.end_date.strftime('%Y-%m-%d %H:%M:%S') if batch.end_date else '')
+
+                    # Calculate progress
+                    total_items = CycleCountItem.query.filter_by(batch_id=batch.id).count()
+                    counted_items = CycleCountItem.query.filter_by(batch_id=batch.id, status='counted').count()
+                    progress = f"{counted_items}/{total_items} ({round((counted_items/total_items)*100, 1) if total_items > 0 else 0}%)"
+                    ws.cell(row=row, column=7, value=progress)
+
+                # Save to buffer
+                buffer = io.BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+
+                # Create response
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_schedule_{schedule_id}.xlsx'
+
+                return response
+
+            else:
+                # CSV export
+                output = StringIO()
+                writer = csv.writer(output)
+
+                # Write schedule information
+                writer.writerow(['Cycle Count Schedule Export'])
+                writer.writerow([])
+                writer.writerow(['Schedule Name', schedule.name])
+                writer.writerow(['Description', schedule.description or ''])
+                writer.writerow(['Frequency', schedule.frequency])
+                writer.writerow(['Method', schedule.method])
+                writer.writerow(['Created', schedule.created_at.strftime('%Y-%m-%d %H:%M:%S')])
+                writer.writerow(['Active', 'Yes' if schedule.is_active else 'No'])
+                writer.writerow([])
+
+                # Write batch information
+                writer.writerow(['Associated Batches'])
+                writer.writerow(['Batch ID', 'Batch Name', 'Status', 'Created Date', 'Start Date', 'End Date', 'Progress'])
+
+                for batch in batches:
+                    # Calculate progress
+                    total_items = CycleCountItem.query.filter_by(batch_id=batch.id).count()
+                    counted_items = CycleCountItem.query.filter_by(batch_id=batch.id, status='counted').count()
+                    progress = f"{counted_items}/{total_items} ({round((counted_items/total_items)*100, 1) if total_items > 0 else 0}%)"
+
+                    writer.writerow([
+                        batch.id,
+                        batch.name,
+                        batch.status,
+                        batch.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        batch.start_date.strftime('%Y-%m-%d %H:%M:%S') if batch.start_date else '',
+                        batch.end_date.strftime('%Y-%m-%d %H:%M:%S') if batch.end_date else '',
+                        progress
+                    ])
+
+                # Create response
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'text/csv'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_schedule_{schedule_id}.csv'
+
+                return response
+
+        except Exception as e:
+            print(f"Error exporting cycle count schedule {schedule_id}: {str(e)}")
+            return jsonify({'error': f'An error occurred while exporting cycle count schedule {schedule_id}'}), 500
+
+    # Export cycle count results with discrepancy information
+    @app.route('/api/cycle-counts/results/export', methods=['GET'])
+    @tool_manager_required
+    def export_cycle_count_results():
+        try:
+            from io import StringIO
+            import csv
+            from flask import make_response
+            from sqlalchemy import and_
+
+            # Get query parameters
+            format_type = request.args.get('format', 'csv').lower()
+            batch_id = request.args.get('batch_id')
+            schedule_id = request.args.get('schedule_id')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            discrepancies_only = request.args.get('discrepancies_only', 'false').lower() == 'true'
+
+            # Build query for results
+            query = db.session.query(
+                CycleCountResult,
+                CycleCountItem,
+                CycleCountBatch
+            ).join(
+                CycleCountItem, CycleCountResult.item_id == CycleCountItem.id
+            ).join(
+                CycleCountBatch, CycleCountItem.batch_id == CycleCountBatch.id
+            )
+
+            # Apply filters
+            if batch_id:
+                query = query.filter(CycleCountBatch.id == batch_id)
+            if schedule_id:
+                query = query.filter(CycleCountBatch.schedule_id == schedule_id)
+            if start_date:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(CycleCountResult.counted_at >= start_dt)
+            if end_date:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                query = query.filter(CycleCountResult.counted_at <= end_dt)
+            if discrepancies_only:
+                query = query.filter(CycleCountResult.has_discrepancy)
+
+            # Execute query
+            results = query.order_by(CycleCountResult.counted_at.desc()).all()
+
+            if format_type == 'excel':
+                # Excel export using openpyxl
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill
+                import io
+
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Count Results"
+
+                # Add title
+                ws['A1'] = "Cycle Count Results Export"
+                ws['A1'].font = Font(size=16, bold=True)
+
+                ws['A3'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                ws['A4'] = f"Total Results: {len(results)}"
+                if discrepancies_only:
+                    ws['A5'] = "Filter: Discrepancies Only"
+
+                # Headers
+                headers = [
+                    'Result ID', 'Batch Name', 'Item Type', 'Item ID', 'Expected Qty',
+                    'Actual Qty', 'Expected Location', 'Actual Location', 'Has Discrepancy',
+                    'Discrepancy Type', 'Condition', 'Counted By', 'Counted At', 'Notes'
+                ]
+
+                for col, header in enumerate(headers, 1):
+                    cell = ws.cell(row=7, column=col, value=header)
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+
+                # Add data
+                for row, (result, item, batch) in enumerate(results, 8):
+                    ws.cell(row=row, column=1, value=result.id)
+                    ws.cell(row=row, column=2, value=batch.name)
+                    ws.cell(row=row, column=3, value=item.item_type)
+                    ws.cell(row=row, column=4, value=item.item_id)
+                    ws.cell(row=row, column=5, value=item.expected_quantity)
+                    ws.cell(row=row, column=6, value=result.actual_quantity)
+                    ws.cell(row=row, column=7, value=item.expected_location)
+                    ws.cell(row=row, column=8, value=result.actual_location)
+                    ws.cell(row=row, column=9, value='Yes' if result.has_discrepancy else 'No')
+                    ws.cell(row=row, column=10, value=result.discrepancy_type or '')
+                    ws.cell(row=row, column=11, value=result.condition or '')
+                    ws.cell(row=row, column=12, value=result.counted_by)
+                    ws.cell(row=row, column=13, value=result.counted_at.strftime('%Y-%m-%d %H:%M:%S'))
+                    ws.cell(row=row, column=14, value=result.notes or '')
+
+                # Save to buffer
+                buffer = io.BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+
+                # Create response
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_results_{datetime.now().strftime("%Y%m%d")}.xlsx'
+
+                return response
+
+            else:
+                # CSV export
+                output = StringIO()
+                writer = csv.writer(output)
+
+                # Write header information
+                writer.writerow(['Cycle Count Results Export'])
+                writer.writerow([f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'])
+                writer.writerow([f'Total Results: {len(results)}'])
+                if discrepancies_only:
+                    writer.writerow(['Filter: Discrepancies Only'])
+                writer.writerow([])
+
+                # Write column headers
+                writer.writerow([
+                    'Result ID', 'Batch Name', 'Item Type', 'Item ID', 'Expected Qty',
+                    'Actual Qty', 'Expected Location', 'Actual Location', 'Has Discrepancy',
+                    'Discrepancy Type', 'Condition', 'Counted By', 'Counted At', 'Notes'
+                ])
+
+                # Write data
+                for result, item, batch in results:
+                    writer.writerow([
+                        result.id,
+                        batch.name,
+                        item.item_type,
+                        item.item_id,
+                        item.expected_quantity,
+                        result.actual_quantity,
+                        item.expected_location,
+                        result.actual_location,
+                        'Yes' if result.has_discrepancy else 'No',
+                        result.discrepancy_type or '',
+                        result.condition or '',
+                        result.counted_by,
+                        result.counted_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        result.notes or ''
+                    ])
+
+                # Create response
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'text/csv'
+                response.headers['Content-Disposition'] = f'attachment; filename=cycle_count_results_{datetime.now().strftime("%Y%m%d")}.csv'
+
+                return response
+
+        except Exception as e:
+            print(f"Error exporting cycle count results: {str(e)}")
+            return jsonify({'error': 'An error occurred while exporting cycle count results'}), 500
+
+    # Import cycle count schedules
+    @app.route('/api/cycle-counts/schedules/import', methods=['POST'])
+    @tool_manager_required
+    def import_cycle_count_schedules():
+        try:
+            import csv
+            from io import StringIO
+
+            # Get uploaded file
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file uploaded'}), 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+
+            # Read CSV data
+            csv_data = file.read().decode('utf-8')
+            csv_reader = csv.DictReader(StringIO(csv_data))
+
+            imported_count = 0
+            errors = []
+
+            for row_num, row in enumerate(csv_reader, start=2):
+                try:
+                    # Validate required fields
+                    if not row.get('Schedule Name'):
+                        errors.append(f"Row {row_num}: Missing Schedule Name")
+                        continue
+
+                    if not row.get('Frequency'):
+                        errors.append(f"Row {row_num}: Missing Frequency")
+                        continue
+
+                    if not row.get('Method'):
+                        errors.append(f"Row {row_num}: Missing Method")
+                        continue
+
+                    # Validate frequency
+                    valid_frequencies = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly']
+                    frequency = row['Frequency'].lower()
+                    if frequency not in valid_frequencies:
+                        errors.append(f"Row {row_num}: Invalid frequency '{row['Frequency']}'. Must be one of: {', '.join(valid_frequencies)}")
+                        continue
+
+                    # Validate method
+                    valid_methods = ['ABC', 'random', 'location', 'category']
+                    method = row['Method'].lower()
+                    if method not in valid_methods:
+                        errors.append(f"Row {row_num}: Invalid method '{row['Method']}'. Must be one of: {', '.join(valid_methods)}")
+                        continue
+
+                    # Check if schedule already exists
+                    existing_schedule = CycleCountSchedule.query.filter_by(name=row['Schedule Name']).first()
+                    if existing_schedule:
+                        errors.append(f"Row {row_num}: Schedule '{row['Schedule Name']}' already exists")
+                        continue
+
+                    # Parse active status
+                    is_active = True
+                    if row.get('Active'):
+                        is_active = row['Active'].lower() in ['yes', 'true', '1', 'active']
+
+                    # Create new schedule
+                    schedule = CycleCountSchedule(
+                        name=row['Schedule Name'],
+                        description=row.get('Description', ''),
+                        frequency=frequency,
+                        method=method,
+                        created_by=session['user_id'],
+                        is_active=is_active
+                    )
+
+                    # Save to database
+                    db.session.add(schedule)
+                    imported_count += 1
+
+                except ValueError as ve:
+                    errors.append(f"Row {row_num}: Invalid data - {str(ve)}")
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error - {str(e)}")
+
+            # Commit changes
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='cycle_count_schedules_imported',
+                action_details=f"Imported {imported_count} cycle count schedules"
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({
+                'message': f'Successfully imported {imported_count} schedules',
+                'imported_count': imported_count,
+                'errors': errors
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error importing cycle count schedules: {str(e)}")
+            return jsonify({'error': 'An error occurred while importing cycle count schedules'}), 500
+
+    # Import cycle count batches
+    @app.route('/api/cycle-counts/batches/import', methods=['POST'])
+    @tool_manager_required
+    def import_cycle_count_batches():
+        try:
+            import csv
+            from io import StringIO
+
+            # Get uploaded file
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file uploaded'}), 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+
+            # Read CSV data
+            csv_data = file.read().decode('utf-8')
+            csv_reader = csv.DictReader(StringIO(csv_data))
+
+            imported_count = 0
+            errors = []
+
+            for row_num, row in enumerate(csv_reader, start=2):
+                try:
+                    # Validate required fields
+                    if not row.get('Batch Name'):
+                        errors.append(f"Row {row_num}: Missing Batch Name")
+                        continue
+
+                    # Check if batch already exists
+                    existing_batch = CycleCountBatch.query.filter_by(name=row['Batch Name']).first()
+                    if existing_batch:
+                        errors.append(f"Row {row_num}: Batch '{row['Batch Name']}' already exists")
+                        continue
+
+                    # Get schedule if specified
+                    schedule_id = None
+                    if row.get('Schedule Name'):
+                        schedule = CycleCountSchedule.query.filter_by(name=row['Schedule Name']).first()
+                        if schedule:
+                            schedule_id = schedule.id
+                        else:
+                            errors.append(f"Row {row_num}: Schedule '{row['Schedule Name']}' not found")
+                            continue
+
+                    # Parse dates
+                    start_date = None
+                    end_date = None
+                    if row.get('Start Date'):
+                        try:
+                            start_date = datetime.strptime(row['Start Date'], '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            try:
+                                start_date = datetime.strptime(row['Start Date'], '%Y-%m-%d')
+                            except ValueError:
+                                errors.append(f"Row {row_num}: Invalid start date format. Use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS")
+                                continue
+
+                    if row.get('End Date'):
+                        try:
+                            end_date = datetime.strptime(row['End Date'], '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            try:
+                                end_date = datetime.strptime(row['End Date'], '%Y-%m-%d')
+                            except ValueError:
+                                errors.append(f"Row {row_num}: Invalid end date format. Use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS")
+                                continue
+
+                    # Validate status
+                    status = 'pending'
+                    if row.get('Status'):
+                        valid_statuses = ['pending', 'in_progress', 'completed', 'cancelled']
+                        if row['Status'].lower() in valid_statuses:
+                            status = row['Status'].lower()
+                        else:
+                            errors.append(f"Row {row_num}: Invalid status '{row['Status']}'. Must be one of: {', '.join(valid_statuses)}")
+                            continue
+
+                    # Create new batch
+                    batch = CycleCountBatch(
+                        name=row['Batch Name'],
+                        description=row.get('Description', ''),
+                        schedule_id=schedule_id,
+                        status=status,
+                        start_date=start_date,
+                        end_date=end_date,
+                        created_by=session['user_id']
+                    )
+
+                    # Save to database
+                    db.session.add(batch)
+                    imported_count += 1
+
+                except ValueError as ve:
+                    errors.append(f"Row {row_num}: Invalid data - {str(ve)}")
+                except Exception as e:
+                    errors.append(f"Row {row_num}: Error - {str(e)}")
+
+            # Commit changes
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='cycle_count_batches_imported',
+                action_details=f"Imported {imported_count} cycle count batches"
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({
+                'message': f'Successfully imported {imported_count} batches',
+                'imported_count': imported_count,
+                'errors': errors
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error importing cycle count batches: {str(e)}")
+            return jsonify({'error': 'An error occurred while importing cycle count batches'}), 500

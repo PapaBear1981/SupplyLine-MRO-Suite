@@ -198,6 +198,161 @@ export const fetchCycleCountStats = createAsyncThunk(
   }
 );
 
+export const fetchCycleCountAnalytics = createAsyncThunk(
+  'cycleCount/fetchAnalytics',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await axios.get('/api/cycle-counts/analytics', { params });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count analytics' });
+    }
+  }
+);
+
+export const exportCycleCountBatch = createAsyncThunk(
+  'cycleCount/exportBatch',
+  async ({ batchId, format = 'csv' }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/cycle-counts/batches/${batchId}/export?format=${format}`, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const extension = format === 'excel' ? 'xlsx' : 'csv';
+      link.setAttribute('download', `cycle_count_batch_${batchId}.${extension}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      return { batchId, format, message: 'Export completed successfully' };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to export cycle count batch' });
+    }
+  }
+);
+
+// Export cycle count schedule
+export const exportCycleCountSchedule = createAsyncThunk(
+  'cycleCount/exportSchedule',
+  async ({ scheduleId, format = 'csv' }, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/cycle-counts/schedules/${scheduleId}/export?format=${format}`, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const extension = format === 'excel' ? 'xlsx' : 'csv';
+      link.setAttribute('download', `cycle_count_schedule_${scheduleId}.${extension}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      return { scheduleId, format, message: 'Export completed successfully' };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to export cycle count schedule' });
+    }
+  }
+);
+
+// Export cycle count results
+export const exportCycleCountResults = createAsyncThunk(
+  'cycleCount/exportResults',
+  async ({ filters = {}, format = 'csv' }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams({ format, ...filters });
+      const response = await axios.get(`/api/cycle-counts/results/export?${params}`, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const extension = format === 'excel' ? 'xlsx' : 'csv';
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `cycle_count_results_${timestamp}.${extension}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      return { filters, format, message: 'Export completed successfully' };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to export cycle count results' });
+    }
+  }
+);
+
+export const importCycleCountResults = createAsyncThunk(
+  'cycleCount/importResults',
+  async ({ batchId, file }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(`/api/cycle-counts/batches/${batchId}/import`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count results' });
+    }
+  }
+);
+
+// Import cycle count schedules
+export const importCycleCountSchedules = createAsyncThunk(
+  'cycleCount/importSchedules',
+  async ({ file }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('/api/cycle-counts/schedules/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count schedules' });
+    }
+  }
+);
+
+// Import cycle count batches
+export const importCycleCountBatches = createAsyncThunk(
+  'cycleCount/importBatches',
+  async ({ file }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post('/api/cycle-counts/batches/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count batches' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   schedules: {
@@ -234,6 +389,20 @@ const initialState = {
     data: null,
     loading: false,
     error: null
+  },
+  analytics: {
+    data: null,
+    loading: false,
+    error: null
+  },
+  export: {
+    loading: false,
+    error: null
+  },
+  import: {
+    loading: false,
+    error: null,
+    result: null
   }
 };
 
@@ -406,6 +575,103 @@ const cycleCountSlice = createSlice({
       .addCase(fetchCycleCountStats.rejected, (state, action) => {
         state.stats.loading = false;
         state.stats.error = action.payload || { error: 'Failed to fetch stats' };
+      });
+
+    // Analytics
+    builder
+      .addCase(fetchCycleCountAnalytics.pending, (state) => {
+        state.analytics.loading = true;
+        state.analytics.error = null;
+      })
+      .addCase(fetchCycleCountAnalytics.fulfilled, (state, action) => {
+        state.analytics.loading = false;
+        state.analytics.data = action.payload;
+      })
+      .addCase(fetchCycleCountAnalytics.rejected, (state, action) => {
+        state.analytics.loading = false;
+        state.analytics.error = action.payload || { error: 'Failed to fetch analytics' };
+      });
+
+    // Export
+    builder
+      .addCase(exportCycleCountBatch.pending, (state) => {
+        state.export.loading = true;
+        state.export.error = null;
+      })
+      .addCase(exportCycleCountBatch.fulfilled, (state) => {
+        state.export.loading = false;
+      })
+      .addCase(exportCycleCountBatch.rejected, (state, action) => {
+        state.export.loading = false;
+        state.export.error = action.payload || { error: 'Failed to export batch' };
+      })
+      .addCase(exportCycleCountSchedule.pending, (state) => {
+        state.export.loading = true;
+        state.export.error = null;
+      })
+      .addCase(exportCycleCountSchedule.fulfilled, (state) => {
+        state.export.loading = false;
+      })
+      .addCase(exportCycleCountSchedule.rejected, (state, action) => {
+        state.export.loading = false;
+        state.export.error = action.payload || { error: 'Failed to export schedule' };
+      })
+      .addCase(exportCycleCountResults.pending, (state) => {
+        state.export.loading = true;
+        state.export.error = null;
+      })
+      .addCase(exportCycleCountResults.fulfilled, (state) => {
+        state.export.loading = false;
+      })
+      .addCase(exportCycleCountResults.rejected, (state, action) => {
+        state.export.loading = false;
+        state.export.error = action.payload || { error: 'Failed to export results' };
+      });
+
+    // Import
+    builder
+      .addCase(importCycleCountResults.pending, (state) => {
+        state.import.loading = true;
+        state.import.error = null;
+        state.import.result = null;
+      })
+      .addCase(importCycleCountResults.fulfilled, (state, action) => {
+        state.import.loading = false;
+        state.import.result = action.payload;
+      })
+      .addCase(importCycleCountResults.rejected, (state, action) => {
+        state.import.loading = false;
+        state.import.error = action.payload || { error: 'Failed to import results' };
+      })
+      .addCase(importCycleCountSchedules.pending, (state) => {
+        state.import.loading = true;
+        state.import.error = null;
+        state.import.result = null;
+      })
+      .addCase(importCycleCountSchedules.fulfilled, (state, action) => {
+        state.import.loading = false;
+        state.import.result = action.payload;
+        // Refresh schedules list after successful import
+        // Note: In a real app, you might want to trigger a refetch
+      })
+      .addCase(importCycleCountSchedules.rejected, (state, action) => {
+        state.import.loading = false;
+        state.import.error = action.payload || { error: 'Failed to import schedules' };
+      })
+      .addCase(importCycleCountBatches.pending, (state) => {
+        state.import.loading = true;
+        state.import.error = null;
+        state.import.result = null;
+      })
+      .addCase(importCycleCountBatches.fulfilled, (state, action) => {
+        state.import.loading = false;
+        state.import.result = action.payload;
+        // Refresh batches list after successful import
+        // Note: In a real app, you might want to trigger a refetch
+      })
+      .addCase(importCycleCountBatches.rejected, (state, action) => {
+        state.import.loading = false;
+        state.import.error = action.payload || { error: 'Failed to import batches' };
       });
   }
 });

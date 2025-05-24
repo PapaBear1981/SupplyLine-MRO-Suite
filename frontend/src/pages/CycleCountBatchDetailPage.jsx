@@ -25,6 +25,7 @@ import {
 import { useHelp } from '../context/HelpContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import CycleCountItemForm from '../components/cycleCount/CycleCountItemForm';
+import CycleCountExportImport from '../components/cycleCount/CycleCountExportImport';
 
 const CycleCountBatchDetailPage = () => {
   const { id } = useParams();
@@ -352,6 +353,20 @@ const CycleCountBatchDetailPage = () => {
               </Row>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Export/Import Section */}
+      <Row className="mb-4">
+        <Col>
+          <CycleCountExportImport
+            batchId={id}
+            batchName={batch.name}
+            onImportSuccess={() => {
+              // Refresh items after import
+              dispatch(fetchCycleCountItems({ batchId: id }));
+            }}
+          />
         </Col>
       </Row>
 
