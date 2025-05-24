@@ -29,13 +29,13 @@ class CycleCountTestCase(unittest.TestCase):
         self.app = app
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
-        
+
         # Create a temporary database
         self.db_fd, self.app.config['DATABASE'] = tempfile.mkstemp()
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + self.app.config['DATABASE']
-        
+
         self.client = self.app.test_client()
-        
+
         with self.app.app_context():
             db.create_all()
             self._create_test_data()
@@ -60,7 +60,7 @@ class CycleCountTestCase(unittest.TestCase):
         )
         self.test_user.set_password('test123')
         db.session.add(self.test_user)
-        
+
         # Create test tools
         self.test_tool = Tool(
             tool_number='T001',
@@ -71,11 +71,11 @@ class CycleCountTestCase(unittest.TestCase):
             status='available'
         )
         db.session.add(self.test_tool)
-        
+
         # Create test chemical
         self.test_chemical = Chemical(
             part_number='C001',
-            name='Test Chemical',
+            description='Test Chemical',
             category='Testing',
             quantity=100.0,
             unit='ml',
@@ -83,12 +83,12 @@ class CycleCountTestCase(unittest.TestCase):
             status='available'
         )
         db.session.add(self.test_chemical)
-        
+
         db.session.commit()
 
     def _login(self):
         """Helper method to log in"""
-        return self.client.post('/api/login', 
+        return self.client.post('/api/login',
                               data=json.dumps({
                                   'employee_number': 'TEST001',
                                   'password': 'test123'
@@ -102,18 +102,18 @@ class TestCycleCountSchedules(CycleCountTestCase):
     def test_create_schedule(self):
         """Test creating a cycle count schedule"""
         self._login()
-        
+
         schedule_data = {
             'name': 'Test Schedule',
             'description': 'Test Description',
             'frequency': 'monthly',
             'method': 'ABC'
         }
-        
+
         response = self.client.post('/api/cycle-count/schedules',
                                   data=json.dumps(schedule_data),
                                   content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)
         self.assertEqual(data['name'], 'Test Schedule')
@@ -122,7 +122,7 @@ class TestCycleCountSchedules(CycleCountTestCase):
     def test_get_schedules(self):
         """Test retrieving cycle count schedules"""
         self._login()
-        
+
         # Create a test schedule
         with self.app.app_context():
             schedule = CycleCountSchedule(
@@ -133,10 +133,10 @@ class TestCycleCountSchedules(CycleCountTestCase):
             )
             db.session.add(schedule)
             db.session.commit()
-        
+
         response = self.client.get('/api/cycle-count/schedules')
         self.assertEqual(response.status_code, 200)
-        
+
         data = json.loads(response.data)
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 1)
@@ -145,7 +145,7 @@ class TestCycleCountSchedules(CycleCountTestCase):
     def test_update_schedule(self):
         """Test updating a cycle count schedule"""
         self._login()
-        
+
         # Create a test schedule
         with self.app.app_context():
             schedule = CycleCountSchedule(
@@ -157,16 +157,16 @@ class TestCycleCountSchedules(CycleCountTestCase):
             db.session.add(schedule)
             db.session.commit()
             schedule_id = schedule.id
-        
+
         update_data = {
             'name': 'Updated Schedule',
             'frequency': 'monthly'
         }
-        
+
         response = self.client.put(f'/api/cycle-count/schedules/{schedule_id}',
                                  data=json.dumps(update_data),
                                  content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['name'], 'Updated Schedule')
@@ -192,18 +192,18 @@ class TestCycleCountBatches(CycleCountTestCase):
     def test_create_batch(self):
         """Test creating a cycle count batch"""
         self._login()
-        
+
         batch_data = {
             'schedule_id': self.test_schedule.id,
             'name': 'Test Batch',
             'start_date': datetime.now().isoformat(),
             'end_date': (datetime.now() + timedelta(days=7)).isoformat()
         }
-        
+
         response = self.client.post('/api/cycle-count/batches',
                                   data=json.dumps(batch_data),
                                   content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)
         self.assertEqual(data['name'], 'Test Batch')
@@ -212,7 +212,7 @@ class TestCycleCountBatches(CycleCountTestCase):
     def test_generate_batch_items(self):
         """Test generating items for a batch"""
         self._login()
-        
+
         # Create a test batch
         with self.app.app_context():
             batch = CycleCountBatch(
@@ -224,16 +224,16 @@ class TestCycleCountBatches(CycleCountTestCase):
             db.session.add(batch)
             db.session.commit()
             batch_id = batch.id
-        
+
         generate_data = {
             'item_types': ['tool', 'chemical'],
             'sample_size': 10
         }
-        
+
         response = self.client.post(f'/api/cycle-count/batches/{batch_id}/generate-items',
                                   data=json.dumps(generate_data),
                                   content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertIn('items_generated', data)
@@ -253,7 +253,7 @@ class TestCycleCountItems(CycleCountTestCase):
                 created_by=self.test_user.id
             )
             db.session.add(self.test_schedule)
-            
+
             self.test_batch = CycleCountBatch(
                 schedule_id=self.test_schedule.id,
                 name='Test Batch',
@@ -261,7 +261,7 @@ class TestCycleCountItems(CycleCountTestCase):
                 created_by=self.test_user.id
             )
             db.session.add(self.test_batch)
-            
+
             self.test_item = CycleCountItem(
                 batch_id=self.test_batch.id,
                 item_type='tool',
@@ -271,16 +271,16 @@ class TestCycleCountItems(CycleCountTestCase):
                 status='pending'
             )
             db.session.add(self.test_item)
-            
+
             db.session.commit()
 
     def test_get_batch_items(self):
         """Test retrieving items for a batch"""
         self._login()
-        
+
         response = self.client.get(f'/api/cycle-count/batches/{self.test_batch.id}/items')
         self.assertEqual(response.status_code, 200)
-        
+
         data = json.loads(response.data)
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 1)
@@ -289,18 +289,18 @@ class TestCycleCountItems(CycleCountTestCase):
     def test_submit_count_result(self):
         """Test submitting a count result"""
         self._login()
-        
+
         result_data = {
             'actual_quantity': 1,
             'actual_location': 'Test Location',
             'condition': 'good',
             'notes': 'Test count'
         }
-        
+
         response = self.client.post(f'/api/cycle-count/items/{self.test_item.id}/count',
                                   data=json.dumps(result_data),
                                   content_type='application/json')
-        
+
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)
         self.assertEqual(data['actual_quantity'], 1)
