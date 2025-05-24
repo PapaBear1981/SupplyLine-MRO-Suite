@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Button, Form, Alert, Badge, ListGroup, Modal, Spinner } from 'react-bootstrap';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { fetchCycleCountItems, submitCountResult } from '../../../store/cycleCountSlice';
 
 const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
@@ -22,6 +23,10 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   const [scanInput, setScanInput] = useState('');
   const [submissionError, setSubmissionError] = useState('');
   const [scanError, setScanError] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerInitialized, setScannerInitialized] = useState(false);
+  const scannerRef = useRef(null);
+  const html5QrcodeScannerRef = useRef(null);
 
   useEffect(() => {
     if (batchId) {
@@ -91,7 +96,67 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   const handleScanBarcode = () => {
     setScanInput('');
     setScanError('');
+    setIsScanning(false);
+    setScannerInitialized(false);
     setShowScanModal(true);
+  };
+
+  const initializeScanner = () => {
+    if (html5QrcodeScannerRef.current) {
+      html5QrcodeScannerRef.current.clear();
+    }
+
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      supportedScanTypes: [
+        Html5QrcodeScanner.SCAN_TYPE_CAMERA,
+        Html5QrcodeScanner.SCAN_TYPE_FILE
+      ]
+    };
+
+    html5QrcodeScannerRef.current = new Html5QrcodeScanner(
+      "qr-reader",
+      config,
+      false
+    );
+
+    html5QrcodeScannerRef.current.render(
+      (decodedText) => {
+        // Success callback
+        handleScanSuccess(decodedText);
+      },
+      (error) => {
+        // Error callback - we can ignore most errors as they're just "no QR code found"
+        if (error.includes('NotFoundException')) {
+          // This is normal when no code is detected
+          return;
+        }
+        console.warn('QR Code scan error:', error);
+      }
+    );
+
+    setScannerInitialized(true);
+  };
+
+  const handleScanSuccess = (decodedText) => {
+    const item = items.find(i =>
+      i.item_number === decodedText.trim() ||
+      i.barcode === decodedText.trim() ||
+      i.id.toString() === decodedText.trim()
+    );
+
+    if (item) {
+      // Stop scanner and close modal
+      if (html5QrcodeScannerRef.current) {
+        html5QrcodeScannerRef.current.clear();
+      }
+      setShowScanModal(false);
+      handleItemSelect(item);
+    } else {
+      setScanError(`Item not found: ${decodedText}`);
+    }
   };
 
   const handleScanSubmit = () => {
@@ -100,17 +165,23 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
       return;
     }
 
-    const item = items.find(i =>
-      i.item_number === scanInput.trim() ||
-      i.barcode === scanInput.trim()
-    );
+    handleScanSuccess(scanInput.trim());
+  };
 
-    if (item) {
-      setShowScanModal(false);
-      handleItemSelect(item);
-    } else {
-      setScanError('Item not found in this batch');
+  const startCameraScanning = () => {
+    setIsScanning(true);
+    setScanError('');
+    setTimeout(() => {
+      initializeScanner();
+    }, 100);
+  };
+
+  const stopScanning = () => {
+    if (html5QrcodeScannerRef.current) {
+      html5QrcodeScannerRef.current.clear();
     }
+    setIsScanning(false);
+    setScannerInitialized(false);
   };
 
   const getStatusBadge = (status) => {
@@ -322,57 +393,98 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
       {/* Scan Modal */}
       <Modal
         show={showScanModal}
-        onHide={() => setShowScanModal(false)}
+        onHide={() => {
+          stopScanning();
+          setShowScanModal(false);
+        }}
+        size="lg"
         centered
       >
         <Modal.Header closeButton>
           <Modal.Title>Scan Barcode</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Barcode or Item Number</Form.Label>
-              <Form.Control
-                type="text"
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                placeholder="Enter barcode or item number..."
-                autoFocus
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleScanSubmit();
-                  }
-                }}
-              />
-              <Form.Text className="text-muted">
-                In production, this would integrate with a barcode scanner
-              </Form.Text>
-            </Form.Group>
-            {scanError && (
-              <Alert variant="danger" className="mb-0">
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                {scanError}
-              </Alert>
-            )}
-          </Form>
+          {!isScanning ? (
+            <div>
+              <div className="d-grid gap-2 mb-3">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={startCameraScanning}
+                >
+                  <i className="bi bi-camera me-2"></i>
+                  Use Camera Scanner
+                </Button>
+              </div>
+
+              <div className="text-center mb-3">
+                <span className="text-muted">or</span>
+              </div>
+
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>Manual Entry</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={scanInput}
+                    onChange={(e) => setScanInput(e.target.value)}
+                    placeholder="Enter barcode or item number..."
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleScanSubmit();
+                      }
+                    }}
+                  />
+                </Form.Group>
+              </Form>
+            </div>
+          ) : (
+            <div>
+              <div className="text-center mb-3">
+                <h6>Position barcode in the scanner area</h6>
+                <p className="text-muted">The scanner will automatically detect and process barcodes</p>
+              </div>
+
+              <div id="qr-reader" ref={scannerRef} style={{ width: '100%' }}></div>
+
+              <div className="text-center mt-3">
+                <Button
+                  variant="outline-secondary"
+                  onClick={stopScanning}
+                >
+                  <i className="bi bi-stop-circle me-2"></i>
+                  Stop Scanner
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {scanError && (
+            <Alert variant="danger" className="mt-3">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              {scanError}
+            </Alert>
+          )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowScanModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleScanSubmit}
-            disabled={!scanInput.trim()}
-          >
-            <i className="bi bi-search me-2"></i>
-            Find Item
-          </Button>
-        </Modal.Footer>
+        {!isScanning && (
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowScanModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleScanSubmit}
+              disabled={!scanInput.trim()}
+            >
+              <i className="bi bi-search me-2"></i>
+              Find Item
+            </Button>
+          </Modal.Footer>
+        )}
       </Modal>
     </div>
   );
