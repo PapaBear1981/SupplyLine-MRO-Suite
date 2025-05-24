@@ -85,9 +85,21 @@ class ResourceMonitor:
                 })
 
             # Disk usage (use appropriate path for OS)
-            disk_path = 'C:' if os.name == 'nt' else '/'
-            disk = psutil.disk_usage(disk_path)
-            if disk.percent > self.thresholds['disk_percent']:
+            disk = None
+            disk_path = None
+            try:
+                import os
+                if os.name == 'nt':
+                    # On Windows, use the current working directory's drive
+                    disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
+                else:
+                    disk_path = '/'
+                disk = psutil.disk_usage(disk_path)
+            except Exception as disk_error:
+                logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
+                # Skip disk usage check if it fails
+                disk = None
+            if disk and disk.percent > self.thresholds['disk_percent']:
                 logger.warning("High disk usage detected", extra={
                     'metric_type': 'disk_usage',
                     'current_percent': disk.percent,
@@ -136,7 +148,7 @@ class ResourceMonitor:
             logger.debug("Resource check completed", extra={
                 'metric_type': 'resource_check',
                 'memory_percent': memory.percent,
-                'disk_percent': disk.percent,
+                'disk_percent': disk.percent if disk else 0,
                 'cpu_percent': psutil.cpu_percent(interval=1)
             })
 
@@ -155,8 +167,24 @@ class ResourceMonitor:
             memory = psutil.virtual_memory()
 
             # Disk (use appropriate path for OS)
-            disk_path = 'C:' if os.name == 'nt' else '/'
-            disk = psutil.disk_usage(disk_path)
+            disk_path = None
+            try:
+                import os
+                if os.name == 'nt':
+                    # On Windows, use the current working directory's drive
+                    disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
+                else:
+                    disk_path = '/'
+                disk = psutil.disk_usage(disk_path)
+            except Exception as disk_error:
+                logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
+                # Use mock data if disk usage fails
+                disk = type('MockDisk', (), {
+                    'percent': 0,
+                    'free': 0,
+                    'total': 0,
+                    'used': 0
+                })()
 
             # CPU
             cpu_percent = psutil.cpu_percent(interval=1)
