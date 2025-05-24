@@ -1385,7 +1385,7 @@ def register_cycle_count_routes(app):
         except Exception as e:
             db.session.rollback()
             print(f"Error importing cycle count results for batch {batch_id}: {str(e)}")
-            return jsonify({'error': f'An error occurred while importing cycle count results'}), 500
+            return jsonify({'error': 'An error occurred while importing cycle count results'}), 500
 
     # Get advanced cycle count analytics
     @app.route('/api/cycle-counts/analytics', methods=['GET'])
@@ -1412,7 +1412,7 @@ def register_cycle_count_routes(app):
             accuracy_trends_raw = db.session.query(
                 func.date(CycleCountResult.counted_at).label('date'),
                 func.count(CycleCountResult.id).label('total_counts'),
-                func.count(CycleCountResult.id).filter(CycleCountResult.has_discrepancy == False).label('accurate_counts')
+                func.count(CycleCountResult.id).filter(~CycleCountResult.has_discrepancy).label('accurate_counts')
             ).filter(
                 and_(
                     CycleCountResult.counted_at >= start_dt,
@@ -1439,7 +1439,7 @@ def register_cycle_count_routes(app):
                 func.count(CycleCountResult.id).label('count')
             ).filter(
                 and_(
-                    CycleCountResult.has_discrepancy == True,
+                    CycleCountResult.has_discrepancy,
                     CycleCountResult.counted_at >= start_dt,
                     CycleCountResult.counted_at <= end_dt
                 )
@@ -1451,7 +1451,7 @@ def register_cycle_count_routes(app):
             user_performance_raw = db.session.query(
                 CycleCountResult.counted_by,
                 func.count(CycleCountResult.id).label('total_counts'),
-                func.count(CycleCountResult.id).filter(CycleCountResult.has_discrepancy == False).label('accurate_counts')
+                func.count(CycleCountResult.id).filter(~CycleCountResult.has_discrepancy).label('accurate_counts')
             ).filter(
                 and_(
                     CycleCountResult.counted_at >= start_dt,
@@ -1748,7 +1748,7 @@ def register_cycle_count_routes(app):
                 end_dt = datetime.strptime(end_date, '%Y-%m-%d')
                 query = query.filter(CycleCountResult.counted_at <= end_dt)
             if discrepancies_only:
-                query = query.filter(CycleCountResult.has_discrepancy == True)
+                query = query.filter(CycleCountResult.has_discrepancy)
 
             # Execute query
             results = query.order_by(CycleCountResult.counted_at.desc()).all()

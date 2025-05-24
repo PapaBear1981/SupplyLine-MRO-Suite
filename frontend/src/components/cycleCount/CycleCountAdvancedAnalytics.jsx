@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Line, Bar, Pie } from 'react-chartjs-2';
@@ -80,8 +80,8 @@ const CycleCountAdvancedAnalytics = () => {
     );
   }
 
-  // Chart configurations
-  const accuracyTrendData = {
+  // Chart configurations - memoized for performance
+  const accuracyTrendData = useMemo(() => ({
     labels: analytics.accuracy_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
     datasets: [
       {
@@ -92,9 +92,9 @@ const CycleCountAdvancedAnalytics = () => {
         tension: 0.1,
       },
     ],
-  };
+  }), [analytics.accuracy_trends]);
 
-  const discrepancyTypeData = {
+  const discrepancyTypeData = useMemo(() => ({
     labels: analytics.discrepancy_types?.map(type => type.type) || [],
     datasets: [
       {
@@ -108,9 +108,9 @@ const CycleCountAdvancedAnalytics = () => {
         ],
       },
     ],
-  };
+  }), [analytics.discrepancy_types]);
 
-  const userPerformanceData = {
+  const userPerformanceData = useMemo(() => ({
     labels: analytics.user_performance?.map(user => `User ${user.user_id}`) || [],
     datasets: [
       {
@@ -119,9 +119,9 @@ const CycleCountAdvancedAnalytics = () => {
         backgroundColor: 'rgba(59, 130, 246, 0.8)',
       },
     ],
-  };
+  }), [analytics.user_performance]);
 
-  const batchTrendData = {
+  const batchTrendData = useMemo(() => ({
     labels: analytics.batch_trends?.map(trend => new Date(trend.date).toLocaleDateString()) || [],
     datasets: [
       {
@@ -139,9 +139,9 @@ const CycleCountAdvancedAnalytics = () => {
         tension: 0.1,
       },
     ],
-  };
+  }), [analytics.batch_trends]);
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     responsive: true,
     plugins: {
       legend: {
@@ -153,7 +153,7 @@ const CycleCountAdvancedAnalytics = () => {
         beginAtZero: true,
       },
     },
-  };
+  }), []);
 
   return (
     <div>
