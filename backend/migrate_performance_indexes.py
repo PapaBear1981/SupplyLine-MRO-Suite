@@ -73,6 +73,33 @@ def create_indexes():
             ("idx_user_activity_timestamp", "user_activity", "timestamp"),
             ("idx_user_activity_user_id", "user_activity", "user_id"),
             ("idx_user_activity_activity_type", "user_activity", "activity_type"),
+
+            # Cycle count indexes
+            ("idx_cycle_count_schedules_is_active", "cycle_count_schedules", "is_active"),
+            ("idx_cycle_count_schedules_created_by", "cycle_count_schedules", "created_by"),
+            ("idx_cycle_count_schedules_frequency", "cycle_count_schedules", "frequency"),
+            ("idx_cycle_count_schedules_method", "cycle_count_schedules", "method"),
+
+            ("idx_cycle_count_batches_status", "cycle_count_batches", "status"),
+            ("idx_cycle_count_batches_schedule_id", "cycle_count_batches", "schedule_id"),
+            ("idx_cycle_count_batches_created_by", "cycle_count_batches", "created_by"),
+            ("idx_cycle_count_batches_start_date", "cycle_count_batches", "start_date"),
+            ("idx_cycle_count_batches_end_date", "cycle_count_batches", "end_date"),
+
+            ("idx_cycle_count_items_batch_id", "cycle_count_items", "batch_id"),
+            ("idx_cycle_count_items_status", "cycle_count_items", "status"),
+            ("idx_cycle_count_items_item_type", "cycle_count_items", "item_type"),
+            ("idx_cycle_count_items_assigned_to", "cycle_count_items", "assigned_to"),
+
+            ("idx_cycle_count_results_item_id", "cycle_count_results", "item_id"),
+            ("idx_cycle_count_results_counted_by", "cycle_count_results", "counted_by"),
+            ("idx_cycle_count_results_counted_at", "cycle_count_results", "counted_at"),
+            ("idx_cycle_count_results_has_discrepancy", "cycle_count_results", "has_discrepancy"),
+            ("idx_cycle_count_results_discrepancy_type", "cycle_count_results", "discrepancy_type"),
+
+            ("idx_cycle_count_adjustments_result_id", "cycle_count_adjustments", "result_id"),
+            ("idx_cycle_count_adjustments_approved_by", "cycle_count_adjustments", "approved_by"),
+            ("idx_cycle_count_adjustments_approved_at", "cycle_count_adjustments", "approved_at"),
         ]
 
         # Composite indexes for complex queries
@@ -80,6 +107,13 @@ def create_indexes():
             ("idx_tools_status_category", "tools", ["status", "category"]),
             ("idx_chemicals_archived_status", "chemicals", ["is_archived", "status"]),
             ("idx_checkouts_return_tool", "checkouts", ["return_date", "tool_id"]),
+
+            # Cycle count composite indexes
+            ("idx_cycle_count_items_batch_status", "cycle_count_items", ["batch_id", "status"]),
+            ("idx_cycle_count_items_type_id", "cycle_count_items", ["item_type", "item_id"]),
+            ("idx_cycle_count_items_assigned_status", "cycle_count_items", ["assigned_to", "status"]),
+            ("idx_cycle_count_results_discrepancy", "cycle_count_results", ["has_discrepancy", "discrepancy_type"]),
+            ("idx_cycle_count_batches_schedule_status", "cycle_count_batches", ["schedule_id", "status"]),
         ]
 
         created_count = 0
