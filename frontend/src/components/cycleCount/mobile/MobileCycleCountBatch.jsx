@@ -6,7 +6,11 @@ import { fetchCycleCountItems, submitCountResult } from '../../../store/cycleCou
 
 const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   const dispatch = useDispatch();
-  const { items, loading, error } = useSelector(state => state.cycleCount);
+  const { items, loading, error } = useSelector(state => ({
+    items: state.cycleCount.items.byBatchId[batchId] || [],
+    loading: state.cycleCount.items.loadingByBatchId[batchId] || false,
+    error: state.cycleCount.items.errorByBatchId[batchId] || null
+  }));
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [showCountModal, setShowCountModal] = useState(false);
