@@ -3,10 +3,13 @@ import { Card, Badge, Button, Form, InputGroup } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import MobilePullToRefresh from './MobilePullToRefresh';
 import MobileSwipeActions from './MobileSwipeActions';
+import MobileCheckoutModal from './MobileCheckoutModal';
 
 const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRefresh = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [selectedTool, setSelectedTool] = useState(null);
 
   const filteredTools = (tools || []).filter(tool => {
     const matchesSearch = tool.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,8 +42,8 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
   const handleSwipeAction = (tool, action) => {
     switch (action) {
       case 'checkout':
-        // Navigate to checkout page
-        window.location.href = `/checkout/${tool.id}`;
+        setSelectedTool(tool);
+        setShowCheckoutModal(true);
         break;
       case 'details':
         // Navigate to tool details
@@ -52,6 +55,20 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
         break;
       default:
         break;
+    }
+  };
+
+  const handleCheckoutClick = (tool) => {
+    setSelectedTool(tool);
+    setShowCheckoutModal(true);
+  };
+
+  const handleCheckoutModalClose = () => {
+    setShowCheckoutModal(false);
+    setSelectedTool(null);
+    // Refresh the tools list to show updated status
+    if (onRefresh) {
+      onRefresh();
     }
   };
 
@@ -186,8 +203,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
 
                       {tool.status === 'available' && (
                         <Button
-                          as={Link}
-                          to={`/checkout/${tool.id}`}
+                          onClick={() => handleCheckoutClick(tool)}
                           variant="success"
                           size="sm"
                           className="flex-grow-1"
@@ -311,8 +327,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
 
                       {tool.status === 'available' && (
                         <Button
-                          as={Link}
-                          to={`/checkout/${tool.id}`}
+                          onClick={() => handleCheckoutClick(tool)}
                           variant="success"
                           size="sm"
                           className="flex-grow-1"
@@ -337,6 +352,13 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
           )}
         </div>
       )}
+
+      {/* Checkout Modal */}
+      <MobileCheckoutModal
+        show={showCheckoutModal}
+        onHide={handleCheckoutModalClose}
+        tool={selectedTool}
+      />
     </div>
   );
 };
