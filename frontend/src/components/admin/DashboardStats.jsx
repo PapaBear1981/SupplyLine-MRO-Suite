@@ -1,9 +1,13 @@
 import React from 'react';
 import { Card, Row, Col, Badge, ListGroup, Alert } from 'react-bootstrap';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import LoadingSpinner from '../common/LoadingSpinner';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const DashboardStats = ({ stats, loading }) => {
+  const { showTooltips } = useHelp();
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -18,7 +22,7 @@ const DashboardStats = ({ stats, loading }) => {
 
   // Format activity data for chart
   const activityData = stats.activityOverTime || [];
-  
+
   // Format department data for pie chart
   const departmentData = stats.departmentDistribution || [];
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -30,32 +34,46 @@ const DashboardStats = ({ stats, loading }) => {
         <Card.Body>
           <Row>
             <Col md={3} sm={6} className="mb-3">
-              <div className="stat-card">
-                <h3>{stats.counts?.users || 0}</h3>
-                <p>Total Users</p>
-                <Badge bg="info">{stats.counts?.activeUsers || 0} Active</Badge>
-              </div>
+              <Tooltip text="Total number of registered users in the system" placement="top" show={showTooltips}>
+                <div className="stat-card">
+                  <h3>{stats.counts?.users || 0}</h3>
+                  <p>Total Users</p>
+                  <Tooltip text="Number of users who have logged in recently" placement="bottom" show={showTooltips}>
+                    <Badge bg="info">{stats.counts?.activeUsers || 0} Active</Badge>
+                  </Tooltip>
+                </div>
+              </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <div className="stat-card">
-                <h3>{stats.counts?.tools || 0}</h3>
-                <p>Total Tools</p>
-                <Badge bg="success">{stats.counts?.availableTools || 0} Available</Badge>
-              </div>
+              <Tooltip text="Total number of tools in the inventory system" placement="top" show={showTooltips}>
+                <div className="stat-card">
+                  <h3>{stats.counts?.tools || 0}</h3>
+                  <p>Total Tools</p>
+                  <Tooltip text="Number of tools currently available for checkout" placement="bottom" show={showTooltips}>
+                    <Badge bg="success">{stats.counts?.availableTools || 0} Available</Badge>
+                  </Tooltip>
+                </div>
+              </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <div className="stat-card">
-                <h3>{stats.counts?.checkouts || 0}</h3>
-                <p>Total Checkouts</p>
-                <Badge bg="warning">{stats.counts?.activeCheckouts || 0} Active</Badge>
-              </div>
+              <Tooltip text="Total number of tool checkout transactions" placement="top" show={showTooltips}>
+                <div className="stat-card">
+                  <h3>{stats.counts?.checkouts || 0}</h3>
+                  <p>Total Checkouts</p>
+                  <Tooltip text="Number of tools currently checked out to users" placement="bottom" show={showTooltips}>
+                    <Badge bg="warning">{stats.counts?.activeCheckouts || 0} Active</Badge>
+                  </Tooltip>
+                </div>
+              </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <div className="stat-card">
-                <h3>{stats.counts?.pendingRegistrations || 0}</h3>
-                <p>Pending Registrations</p>
-                <Badge bg="danger">Require Approval</Badge>
-              </div>
+              <Tooltip text="Number of user registration requests awaiting admin approval" placement="top" show={showTooltips}>
+                <div className="stat-card">
+                  <h3>{stats.counts?.pendingRegistrations || 0}</h3>
+                  <p>Pending Registrations</p>
+                  <Badge bg="danger">Require Approval</Badge>
+                </div>
+              </Tooltip>
             </Col>
           </Row>
         </Card.Body>
@@ -72,7 +90,7 @@ const DashboardStats = ({ stats, loading }) => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip />
+                    <ChartTooltip />
                     <Bar dataKey="count" fill="#8884d8" name="Activities" />
                   </BarChart>
                 </ResponsiveContainer>
