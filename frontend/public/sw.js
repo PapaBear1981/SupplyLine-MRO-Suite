@@ -2,9 +2,9 @@
 const CACHE_NAME = 'supplyline-v1';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json'
+  // Note: In production, consider using a build-time generated manifest
+  // or a PWA plugin like vite-plugin-pwa for automatic asset caching
 ];
 
 // Install event
@@ -22,8 +22,17 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).catch((error) => {
+          console.error('Fetch failed:', error);
+          // Return a fallback response for navigation requests
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
+          throw error;
+        });
       })
   );
 });

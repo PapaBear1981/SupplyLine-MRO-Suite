@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useDispatch, useSelector } from 'react-redux';
 import { Modal, Button, Form, Alert, InputGroup, Badge } from 'react-bootstrap';
 import { checkoutTool, checkoutToolToUser } from '../../store/checkoutsSlice';
@@ -15,6 +16,7 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [validated, setValidated] = useState(false);
   const [employeeNumberSearch, setEmployeeNumberSearch] = useState('');
+  const [searchError, setSearchError] = useState('');
 
   // Set default expected return date to 7 days from now
   useEffect(() => {
@@ -36,12 +38,14 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
       setCheckoutType('self');
       setSelectedUserId('');
       setEmployeeNumberSearch('');
+      setSearchError('');
       setValidated(false);
     }
   }, [show]);
 
   // Handle employee number search
   const handleEmployeeNumberSearch = () => {
+    setSearchError('');
     if (employeeNumberSearch.trim()) {
       dispatch(searchUsersByEmployeeNumber(employeeNumberSearch.trim()))
         .unwrap()
@@ -49,10 +53,13 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
           // If only one user is found, auto-select them
           if (result.length === 1) {
             setSelectedUserId(result[0].id.toString());
+          } else if (result.length === 0) {
+            setSearchError('No users found with that employee number');
           }
         })
         .catch((error) => {
           console.error('Error searching for users:', error);
+          setSearchError('Failed to search for users. Please try again.');
         });
     } else {
       dispatch(fetchUsers());
@@ -72,7 +79,7 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
     setValidated(true);
 
     // Determine which checkout action to dispatch
-    const checkoutAction = checkoutType === 'self' 
+    const checkoutAction = checkoutType === 'self'
       ? checkoutTool({
           toolId: tool.id,
           expectedReturnDate
@@ -86,6 +93,7 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
     dispatch(checkoutAction)
       .unwrap()
       .then(() => {
+        setValidated(false);
         onHide();
         // Optionally show success message or refresh data
       })
@@ -109,7 +117,7 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
           {error && <Alert variant="danger">{error.message}</Alert>}
 
           {/* Tool Information */}
-          <div className="mb-3 p-3 bg-light rounded">
+          <div className="mb-3 p-3 bg-body-secondary rounded border">
             <h6 className="mb-2">
               <i className="bi bi-tools me-2"></i>
               Tool Information
@@ -192,6 +200,12 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
                     <i className="bi bi-x"></i>
                   </Button>
                 </InputGroup>
+                {searchError && (
+                  <div className="text-danger small mt-1">
+                    <i className="bi bi-exclamation-triangle me-1"></i>
+                    {searchError}
+                  </div>
+                )}
               </Form.Group>
 
               <Form.Group className="mb-3" controlId="userId">
@@ -235,12 +249,13 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
               onChange={(e) => setExpectedReturnDate(e.target.value)}
               required
               min={new Date().toISOString().split('T')[0]}
+              max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
             />
             <Form.Control.Feedback type="invalid">
-              Please select an expected return date.
+              Please select a valid expected return date (today or later, within one year).
             </Form.Control.Feedback>
             <Form.Text className="text-muted">
-              Default is 7 days from today
+              Default is 7 days from today. Maximum checkout period is one year.
             </Form.Text>
           </Form.Group>
         </Modal.Body>
@@ -248,9 +263,9 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
           <Button variant="secondary" onClick={onHide} disabled={checkoutLoading}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            variant="success" 
+          <Button
+            type="submit"
+            variant="success"
             disabled={checkoutLoading || (checkoutType === 'other' && !selectedUserId)}
           >
             {checkoutLoading ? (
@@ -269,6 +284,12 @@ const MobileCheckoutModal = ({ show, onHide, tool }) => {
       </Form>
     </Modal>
   );
+};
+
+MobileCheckoutModal.propTypes = {
+  show: PropTypes.bool.isRequired,
+  onHide: PropTypes.func.isRequired,
+  tool: PropTypes.object,
 };
 
 export default MobileCheckoutModal;
