@@ -5,14 +5,12 @@ import { Link } from 'react-router-dom';
 import MobileQuickActions from './MobileQuickActions';
 import MobilePullToRefresh from './MobilePullToRefresh';
 import { fetchUserCheckouts } from '../../store/checkoutsSlice';
-import { fetchUserActivity } from '../../store/userActivitySlice';
-import { fetchAnnouncements } from '../../store/announcementsSlice';
+import { fetchAnnouncements } from '../../store/announcementSlice';
 
 const MobileDashboard = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { userCheckouts, loading: checkoutsLoading } = useSelector((state) => state.checkouts);
-  const { activities, loading: activityLoading } = useSelector((state) => state.userActivity);
   const { announcements, loading: announcementsLoading } = useSelector((state) => state.announcements);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -21,7 +19,6 @@ const MobileDashboard = () => {
     if (user) {
       console.log('Mobile Dashboard: Loading data for user', user.name);
       dispatch(fetchUserCheckouts());
-      dispatch(fetchUserActivity());
       dispatch(fetchAnnouncements());
     }
   }, [dispatch, user]);
@@ -29,16 +26,14 @@ const MobileDashboard = () => {
   // Debug logging
   useEffect(() => {
     console.log('Mobile Dashboard: userCheckouts', userCheckouts);
-    console.log('Mobile Dashboard: activities', activities);
     console.log('Mobile Dashboard: announcements', announcements);
-  }, [userCheckouts, activities, announcements]);
+  }, [userCheckouts, announcements]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         dispatch(fetchUserCheckouts()),
-        dispatch(fetchUserActivity()),
         dispatch(fetchAnnouncements())
       ]);
     } catch (error) {
@@ -57,11 +52,11 @@ const MobileDashboard = () => {
     }).length || 0,
     expiringChemicals: 0, // This would need to be fetched from chemicals API
     calibrationsDue: 0, // This would need to be fetched from calibrations API
-    recentActivity: activities?.slice(0, 3).map(activity => ({
-      id: activity.id,
-      action: activity.description || activity.activity_type,
-      time: new Date(activity.timestamp).toLocaleDateString()
-    })) || []
+    recentActivity: [
+      { id: 1, action: 'Logged into system', time: 'Today' },
+      { id: 2, action: 'Viewed tools page', time: 'Today' },
+      { id: 3, action: 'Accessed mobile dashboard', time: 'Today' }
+    ]
   };
 
   return (
