@@ -2,15 +2,28 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.5.3** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.5.4** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-## What's New in 3.5.3
+## What's New in 3.5.4
 
-The latest version includes significant improvements to user experience and fixes several important issues:
+The latest version includes critical backend fixes, comprehensive testing, and enhanced security features:
+
+- **Critical Backend Stability**: Fixed resource monitor Windows compatibility issues and password validation import problems
+- **Enhanced Security**: Comprehensive security vulnerability fixes including input validation, authentication improvements, and security event logging
+- **Performance Optimization**: Added 28 database performance indexes, fixed N+1 query problems, and resolved memory leak issues in rate limiter
+- **Comprehensive Testing**: Added complete backend and frontend test suites with automated testing infrastructure
+- **Export/Import Functionality**: Enhanced cycle count export/import with CSV and Excel support, including mobile component improvements
+- **Documentation Suite**: Complete technical and user documentation guides for all features
+- **Tool Management Enhancements**: Improved tool retirement, deletion, and checkout history features
+- **Cross-Platform Compatibility**: Fixed Windows-specific issues for better cross-platform deployment
+
+### Previous Release (3.5.3)
+
+Version 3.5.3 included significant improvements to user experience and fixes several important issues:
 
 - **Improved Admin Dashboard**: Fixed tab switching in Admin Dashboard for User Management, Role Management, System Settings, and Help Settings
 - **Enhanced Chemical Management**: Added alerts for overdue chemical deliveries and fixed chemical reorder delivery functionality
@@ -398,7 +411,7 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Update personal details
 4. Click "Save Changes"
 
-### Updating to the Latest Version (v3.5.3)
+### Updating to the Latest Version (v3.5.4)
 If you're updating from a previous version, follow these steps:
 
 1. Pull the latest changes from the repository:
