@@ -29,7 +29,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
   const getStatusIcon = (status) => {
     switch (status) {
       case 'available': return 'check-circle';
-      case 'checked_out': return 'person-check';
+      case 'checked_out': return 'clock';
       case 'maintenance': return 'wrench';
       case 'calibration': return 'speedometer2';
       default: return 'question-circle';
@@ -89,9 +89,131 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
       {enablePullToRefresh ? (
         <MobilePullToRefresh onRefresh={onRefresh} refreshing={loading}>
           <div className="mobile-tool-cards">
+          {loading && filteredTools.length === 0 && (
+            <div className="mobile-loading">
+              <div className="text-center">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p className="mt-2 text-muted">Loading tools...</p>
+              </div>
+            </div>
+          )}
+
+          {filteredTools.map(tool => (
+            <MobileSwipeActions
+              key={tool.id}
+              actions={[
+                {
+                  icon: 'eye',
+                  label: 'Details',
+                  variant: 'info',
+                  action: () => handleSwipeAction(tool, 'details')
+                },
+                ...(tool.status === 'available' ? [{
+                  icon: 'clipboard-check',
+                  label: 'Checkout',
+                  variant: 'success',
+                  action: () => handleSwipeAction(tool, 'checkout')
+                }] : []),
+                {
+                  icon: 'pencil',
+                  label: 'Edit',
+                  variant: 'warning',
+                  action: () => handleSwipeAction(tool, 'edit')
+                }
+              ]}
+            >
+              <Card className="mobile-tool-card mb-2">
+                <Card.Body className="p-3">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="flex-grow-1">
+                      <h6 className="mobile-tool-name mb-1">
+                        <Link to={`/tools/${tool.id}`} className="text-decoration-none">
+                          {tool.description}
+                        </Link>
+                      </h6>
+                      <p className="mobile-tool-part text-muted mb-1">
+                        {tool.tool_number} • {tool.serial_number}
+                      </p>
+                    </div>
+                    <Badge
+                      bg={getStatusVariant(tool.status)}
+                      className="mobile-tool-status"
+                    >
+                      <i className={`bi bi-${getStatusIcon(tool.status)} me-1`}></i>
+                      {tool.status?.replace('_', ' ')}
+                    </Badge>
+                  </div>
+
+                  <div className="mobile-tool-details">
+                    <div className="d-flex justify-content-between text-muted small">
+                      <span>
+                        <i className="bi bi-geo-alt me-1"></i>
+                        {tool.location || 'No location'}
+                      </span>
+                      {tool.status === 'checked_out' && tool.checked_out_to && (
+                        <span>
+                          <i className="bi bi-person me-1"></i>
+                          {tool.checked_out_to}
+                        </span>
+                      )}
+                    </div>
+
+                    {tool.due_date && (
+                      <div className="mt-1">
+                        <small className={`text-${new Date(tool.due_date) < new Date() ? 'danger' : 'warning'}`}>
+                          <i className="bi bi-calendar me-1"></i>
+                          Due: {new Date(tool.due_date).toLocaleDateString()}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="mobile-tool-actions mt-2">
+                    <div className="d-flex gap-2">
+                      <Button
+                        as={Link}
+                        to={`/tools/${tool.id}`}
+                        variant="outline-primary"
+                        size="sm"
+                        className="flex-grow-1"
+                      >
+                        <i className="bi bi-eye me-1"></i>
+                        View
+                      </Button>
+
+                      {tool.status === 'available' && (
+                        <Button
+                          as={Link}
+                          to={`/checkout/${tool.id}`}
+                          variant="success"
+                          size="sm"
+                          className="flex-grow-1"
+                        >
+                          <i className="bi bi-clipboard-check me-1"></i>
+                          Checkout
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </MobileSwipeActions>
+          ))}
+
+          {filteredTools.length === 0 && !loading && (
+            <div className="mobile-empty">
+              <i className="bi bi-tools"></i>
+              <h5>No tools found</h5>
+              <p>Try adjusting your search or filter criteria</p>
+            </div>
+          )}
+          </div>
+        </MobilePullToRefresh>
       ) : (
         <div className="mobile-tool-cards">
-      )}
           {loading && filteredTools.length === 0 && (
             <div className="mobile-loading">
               <div className="text-center">
@@ -214,9 +336,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
             </div>
           )}
         </div>
-      {enablePullToRefresh ? (
-        </MobilePullToRefresh>
-      ) : null}
+      )}
     </div>
   );
 };
