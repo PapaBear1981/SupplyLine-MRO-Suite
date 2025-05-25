@@ -1,0 +1,22 @@
+{
+  "name": "SupplyLine MRO Suite",
+  "short_name": "SupplyLine",
+  "description": "Mobile-optimized tool and inventory management system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6efd",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "en-US",
+  "scope": "/",
+  "prefer_related_applications": false
+}
