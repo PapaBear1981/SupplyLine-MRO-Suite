@@ -11,6 +11,7 @@ import { HelpProvider } from './context/HelpContext';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
+import ResponsiveLayout from './components/common/ResponsiveLayout';
 import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
 
 // Import pages
@@ -35,6 +36,10 @@ import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
 import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
 import CycleCountItemCountPage from './pages/CycleCountItemCountPage';
 import CycleCountMobilePage from './pages/CycleCountMobilePage';
+
+// Import mobile pages
+import MobileUserDashboardPage from './pages/mobile/MobileUserDashboardPage';
+import MobileToolsManagementPage from './pages/mobile/MobileToolsManagementPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -73,25 +78,25 @@ function App() {
         {/* Protected routes - Dashboard as default landing page */}
         <Route path="/" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout mobileComponent={<MobileUserDashboardPage />}>
               <UserDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout mobileComponent={<MobileUserDashboardPage />}>
               <UserDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/tools" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout mobileComponent={<MobileToolsManagementPage />}>
               <ToolsManagement />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
@@ -129,17 +134,17 @@ function App() {
 
         <Route path="/checkouts" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CheckoutsPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/my-checkouts" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <UserCheckoutsPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 

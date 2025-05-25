@@ -1,5 +1,355 @@
-/* Mobile-specific styles for cycle count functionality */
+/* Mobile-specific styles for the entire application */
 
+/* Mobile Layout */
+.mobile-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mobile-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px; /* Space for bottom nav */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile Header */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--bs-dark);
+  color: white;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 1rem;
+}
+
+.mobile-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-menu-btn {
+  color: white !important;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.mobile-brand {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.mobile-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-search-btn,
+.mobile-notifications-btn {
+  color: white !important;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.mobile-search-form {
+  flex: 1;
+  margin: 0 1rem;
+}
+
+.mobile-profile-btn {
+  text-decoration: none;
+}
+
+.mobile-avatar,
+.mobile-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.mobile-avatar-placeholder {
+  background: var(--bs-primary);
+  color: white;
+}
+
+/* Mobile Bottom Navigation */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: var(--bs-light);
+  border-top: 1px solid var(--bs-border-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-bs-theme="dark"] .mobile-bottom-nav {
+  background: var(--bs-dark);
+  border-color: var(--bs-border-color);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  min-width: 60px;
+  text-decoration: none;
+  color: var(--bs-secondary);
+  transition: color 0.2s;
+  position: relative;
+}
+
+.mobile-nav-item.active {
+  color: var(--bs-primary);
+}
+
+.mobile-nav-icon {
+  position: relative;
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.mobile-nav-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.6rem;
+  min-width: 16px;
+  height: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-nav-label {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Mobile Menu (Hamburger) */
+.mobile-menu .offcanvas-body {
+  padding-top: 0;
+}
+
+.mobile-menu .nav-link {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.25rem;
+  color: var(--bs-body-color);
+}
+
+.mobile-menu .nav-link:hover {
+  background-color: var(--bs-light);
+}
+
+[data-bs-theme="dark"] .mobile-menu .nav-link:hover {
+  background-color: var(--bs-dark);
+}
+
+/* Mobile Dashboard */
+.mobile-dashboard {
+  padding: 1rem;
+  padding-top: 80px; /* Account for fixed header */
+}
+
+.mobile-welcome-section {
+  margin-bottom: 1.5rem;
+}
+
+.mobile-welcome-section h4 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+/* Mobile Quick Actions */
+.mobile-quick-actions h6 {
+  font-weight: 600;
+  color: var(--bs-secondary);
+}
+
+.mobile-quick-action-btn {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+}
+
+.mobile-quick-action-content {
+  text-align: center;
+}
+
+.mobile-quick-action-content i {
+  font-size: 1.5rem;
+  display: block;
+}
+
+.mobile-quick-action-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Mobile Cards */
+.mobile-card {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--bs-border-color);
+}
+
+.mobile-card-icon {
+  font-size: 2rem;
+  opacity: 0.7;
+}
+
+.mobile-status-cards .mobile-card {
+  transition: transform 0.2s ease;
+}
+
+.mobile-status-cards .mobile-card:active {
+  transform: scale(0.98);
+}
+
+/* Mobile Activity Items */
+.mobile-activity-item {
+  padding: 1rem;
+}
+
+.mobile-activity-content p {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Mobile Tool List */
+.mobile-tool-list {
+  padding: 1rem;
+  padding-top: 80px; /* Account for fixed header */
+}
+
+.mobile-search-filter {
+  position: sticky;
+  top: 60px; /* Below fixed header */
+  background: var(--bs-body-bg);
+  z-index: 10;
+  padding: 1rem 0;
+  margin: -1rem 0 1rem 0;
+}
+
+.mobile-tool-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-tool-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-tool-name {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.mobile-tool-part {
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.mobile-tool-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.mobile-tool-details {
+  font-size: 0.875rem;
+}
+
+.mobile-tool-actions {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* Mobile Swipe Actions */
+.mobile-swipe-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-swipe-content {
+  position: relative;
+  z-index: 1;
+  background: var(--bs-body-bg);
+}
+
+.mobile-swipe-actions {
+  background: var(--bs-light);
+}
+
+[data-bs-theme="dark"] .mobile-swipe-actions {
+  background: var(--bs-dark);
+}
+
+.mobile-swipe-action {
+  border: none !important;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Pull to Refresh */
+.mobile-pull-to-refresh-container {
+  position: relative;
+}
+
+.mobile-pull-to-refresh-indicator {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 20px;
+  padding: 10px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.mobile-pull-to-refresh-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mobile cycle count specific styles */
 .mobile-cycle-count {
   padding-bottom: 80px; /* Space for fixed bottom actions */
 }
