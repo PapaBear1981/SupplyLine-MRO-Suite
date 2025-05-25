@@ -18,7 +18,7 @@
   - Replaced all datetime.utcnow() calls with local time equivalents
   - Added get_current_time() utility function for consistency
 - Enhanced tool management features (Phase 2)
-  - Admin tool deletion capability with multi-step confirmation
+  - Admin tool deletion capability with multistep confirmation
   - Enhanced tool history with detailed transaction modals
   - Improved calibration workflow with visual status indicators
 - Added new cycle count reports
