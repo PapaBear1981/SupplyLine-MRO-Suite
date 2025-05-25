@@ -4,9 +4,12 @@ import { Card, Badge, ListGroup, Button, Alert, Spinner } from 'react-bootstrap'
 import { Link } from 'react-router-dom';
 import { fetchUserCheckouts } from '../../store/checkoutsSlice';
 import { formatDate } from '../../utils/dateUtils';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const UserCheckoutStatus = () => {
   const dispatch = useDispatch();
+  const { showTooltips } = useHelp();
   const { userCheckouts, loading, error } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
 
@@ -69,9 +72,11 @@ const UserCheckoutStatus = () => {
     <Card className="shadow-sm mb-4">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">My Checked Out Tools</h4>
-        <Badge bg={activeCheckouts.length > 0 ? "primary" : "success"} pill>
-          {activeCheckouts.length}
-        </Badge>
+        <Tooltip text={`You have ${activeCheckouts.length} tools currently checked out`} placement="left" show={showTooltips}>
+          <Badge bg={activeCheckouts.length > 0 ? "primary" : "success"} pill>
+            {activeCheckouts.length}
+          </Badge>
+        </Tooltip>
       </Card.Header>
       <Card.Body className="p-0">
         {activeCheckouts.length === 0 ? (
@@ -104,21 +109,33 @@ const UserCheckoutStatus = () => {
                     </div>
                   </div>
                   <div className="d-flex align-items-center">
-                    <Badge
-                      bg={badgeVariant}
-                      className="me-2"
+                    <Tooltip
+                      text={
+                        badgeVariant === 'danger' ? 'This tool is overdue for return' :
+                        badgeVariant === 'warning' ? 'This tool is due for return soon' :
+                        'This tool is currently checked out to you'
+                      }
+                      placement="left"
+                      show={showTooltips}
                     >
-                      {badgeVariant === 'danger' ? 'Overdue' :
-                       badgeVariant === 'warning' ? 'Due Soon' : 'Checked Out'}
-                    </Badge>
-                    <Button
-                      as={Link}
-                      to={`/tools/${checkout.tool_id}`}
-                      variant="outline-primary"
-                      size="sm"
-                    >
-                      View
-                    </Button>
+                      <Badge
+                        bg={badgeVariant}
+                        className="me-2"
+                      >
+                        {badgeVariant === 'danger' ? 'Overdue' :
+                         badgeVariant === 'warning' ? 'Due Soon' : 'Checked Out'}
+                      </Badge>
+                    </Tooltip>
+                    <Tooltip text="View detailed information about this tool" placement="left" show={showTooltips}>
+                      <Button
+                        as={Link}
+                        to={`/tools/${checkout.tool_id}`}
+                        variant="outline-primary"
+                        size="sm"
+                      >
+                        View
+                      </Button>
+                    </Tooltip>
                   </div>
                 </ListGroup.Item>
               );

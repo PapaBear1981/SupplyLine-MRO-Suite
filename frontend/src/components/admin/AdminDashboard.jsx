@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Card, Nav, Tab, Alert, Row, Col } from 'react-bootstrap';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
@@ -16,6 +18,7 @@ import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const dispatch = useDispatch();
+  const { showTooltips } = useHelp();
   const { user: currentUser, isLoading: authLoading } = useSelector((state) => state.auth);
   const {
     dashboardStats,
@@ -96,42 +99,58 @@ const AdminDashboard = () => {
             <Nav variant="tabs">
               {canViewDashboard && (
                 <Nav.Item>
-                  <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
+                  <Tooltip text="View system overview and statistics" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewUsers && (
                 <Nav.Item>
-                  <Nav.Link eventKey="users">User Management</Nav.Link>
+                  <Tooltip text="Manage user accounts and permissions" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="users">User Management</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageRoles && (
                 <Nav.Item>
-                  <Nav.Link eventKey="roles">Role Management</Nav.Link>
+                  <Tooltip text="Configure user roles and permissions" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="roles">Role Management</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewRegistrations && (
                 <Nav.Item>
-                  <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
+                  <Tooltip text="Review and approve new user registrations" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewAudit && (
                 <Nav.Item>
-                  <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
+                  <Tooltip text="View system activity and audit trail" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageSettings && (
                 <Nav.Item>
-                  <Nav.Link eventKey="settings">System Settings</Nav.Link>
+                  <Tooltip text="Configure system-wide settings and preferences" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="settings">System Settings</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageHelp && (
                 <Nav.Item>
-                  <Nav.Link eventKey="help">Help Settings</Nav.Link>
+                  <Tooltip text="Manage help content and documentation" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="help">Help Settings</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageAnnouncements && (
                 <Nav.Item>
-                  <Nav.Link eventKey="announcements">Announcements</Nav.Link>
+                  <Tooltip text="Create and manage system announcements" placement="bottom" show={showTooltips}>
+                    <Nav.Link eventKey="announcements">Announcements</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
             </Nav>

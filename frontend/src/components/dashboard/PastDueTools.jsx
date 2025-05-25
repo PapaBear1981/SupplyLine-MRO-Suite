@@ -3,11 +3,15 @@ import { Card, ListGroup, Badge, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../../services/api';
+import { formatDate } from '../../utils/dateUtils';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const PastDueTools = () => {
   const [pastDueTools, setPastDueTools] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { showTooltips } = useHelp();
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin || user?.department === 'Materials';
   const dataFetchedRef = useRef(false);
@@ -102,7 +106,9 @@ const PastDueTools = () => {
     <Card className="shadow-sm mb-4">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Past Due Tools</h4>
-        <Badge bg="danger" pill>{pastDueTools.length}</Badge>
+        <Tooltip text={`${pastDueTools.length} tools are currently overdue for return`} placement="left" show={showTooltips}>
+          <Badge bg="danger" pill>{pastDueTools.length}</Badge>
+        </Tooltip>
       </Card.Header>
       <Card.Body className="p-0">
         <Alert variant="info" className="m-2 mb-0">
@@ -119,20 +125,24 @@ const PastDueTools = () => {
                 </div>
               </div>
               <div className="d-flex align-items-center">
-                <Badge
-                  bg={getOverdueBadgeVariant(tool.days_overdue)}
-                  className="me-2"
-                >
-                  {tool.days_overdue} days overdue
-                </Badge>
-                <Button
-                  as={Link}
-                  to={`/checkouts/all`}
-                  variant="outline-primary"
-                  size="sm"
-                >
-                  View
-                </Button>
+                <Tooltip text={`This tool is ${tool.days_overdue} days past its return date`} placement="left" show={showTooltips}>
+                  <Badge
+                    bg={getOverdueBadgeVariant(tool.days_overdue)}
+                    className="me-2"
+                  >
+                    {tool.days_overdue} days overdue
+                  </Badge>
+                </Tooltip>
+                <Tooltip text="View all checkouts to manage overdue tools" placement="left" show={showTooltips}>
+                  <Button
+                    as={Link}
+                    to={`/checkouts/all`}
+                    variant="outline-primary"
+                    size="sm"
+                  >
+                    View
+                  </Button>
+                </Tooltip>
               </div>
             </ListGroup.Item>
           ))}
