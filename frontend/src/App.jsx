@@ -102,33 +102,33 @@ function App() {
 
         <Route path="/tools/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <NewToolPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/tools/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ToolDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/tools/:id/edit" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <EditToolPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/checkout/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CheckoutPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
@@ -150,139 +150,141 @@ function App() {
 
         <Route path="/checkouts/all" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <AllCheckoutsPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
 
         <Route path="/reports" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ReportingPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/admin/dashboard" element={
           <AdminRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <AdminDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </AdminRoute>
         } />
 
         <Route path="/profile" element={
           <ProtectedRoute>
-            <ProfilePageNew />
+            <ResponsiveLayout>
+              <ProfilePageNew />
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         {/* Chemical routes */}
         <Route path="/chemicals" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ChemicalsManagement />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/chemicals/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <NewChemicalPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/chemicals/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ChemicalDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/chemicals/:id/edit" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <EditChemicalPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/chemicals/:id/issue" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ChemicalIssuePage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         {/* Calibration routes */}
         <Route path="/calibrations" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationManagement />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/tools/:id/calibrations/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ToolCalibrationForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/tools/:id/calibrations/:calibrationId" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/calibration-standards" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationManagement />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/calibration-standards/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationStandardForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/calibration-standards/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationManagement />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/calibration-standards/:id/edit" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CalibrationStandardForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         {/* Scanner route */}
         <Route path="/scanner" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <ScannerPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
@@ -290,105 +292,107 @@ function App() {
         {/* Cycle Count Form Routes - More specific routes first */}
         <Route path="/cycle-counts/schedules/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountScheduleForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/schedules/:id/edit" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountScheduleForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/schedules/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountScheduleDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/batches/new" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountBatchForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/batches/:id/edit" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountBatchForm />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/batches/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountBatchDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/items/:id/count" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountItemCountPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/discrepancies/:id" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountDiscrepancyDetailPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         {/* General Cycle Count routes */}
         <Route path="/cycle-counts/schedules" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/batches" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts/discrepancies" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/cycle-counts" element={
           <ProtectedRoute>
-            <MainLayout>
+            <ResponsiveLayout>
               <CycleCountDashboardPage />
-            </MainLayout>
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
         {/* Mobile Cycle Count route */}
         <Route path="/cycle-counts/mobile" element={
           <ProtectedRoute>
-            <CycleCountMobilePage />
+            <ResponsiveLayout>
+              <CycleCountMobilePage />
+            </ResponsiveLayout>
           </ProtectedRoute>
         } />
 
