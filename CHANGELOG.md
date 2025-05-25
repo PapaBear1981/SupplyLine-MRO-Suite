@@ -2,6 +2,74 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.4] - 2025-05-24
+
+### Fixed
+- Fixed critical backend issues (Issues #215, #216, #217, #218)
+  - Fixed resource monitor Windows compatibility with proper disk path format and error handling
+  - Fixed password validation import issue using importlib.util for proper module loading
+  - Resource monitor now gracefully handles Windows disk path errors instead of crashing
+  - Password validation works correctly without falling back to dummy validation
+  - Backend server runs cleanly without critical errors
+- Fixed security vulnerabilities (Issues #192, #193, #194, #195, #196, #197, #198)
+  - Comprehensive input validation system with schemas for all data types
+  - Enhanced authentication and authorization with secure session validation
+  - Added security event logging for unauthorized access attempts
+  - HTML escaping and dangerous character removal
+  - Role-based access control enhancements
+- Fixed performance and reliability issues (Issues #194, #195, #196, #197)
+  - Fixed N+1 query problems in chemical routes with batch operations
+  - Added 28 database performance indexes for improved query performance
+  - Fixed memory leak in rate limiter with automatic cleanup mechanism
+  - Replaced generic exception handling with structured error handling
+  - Integrated error_handler.py decorators across all routes
+
+### Added
+- Comprehensive testing infrastructure
+  - Created complete backend test suite (test_cycle_count.py)
+  - Added frontend component tests (CycleCount.test.js)
+  - Implemented test coverage for schedules, batches, items, and results
+  - Added Redux integration testing and error handling tests
+  - Updated requirements.txt with pytest and pytest-flask dependencies
+- Enhanced export/import functionality
+  - Comprehensive export/import component with multiple modes (batch, schedule, results)
+  - CSV and Excel export formats for all cycle count data types
+  - Advanced filtering for results export (date range, discrepancies only)
+  - Dynamic import functionality with context-aware UI
+  - Added export dependencies (reportlab, openpyxl) to requirements.txt
+- Documentation suite
+  - Created detailed user guide (cycle-count-user-guide.md)
+  - Created technical documentation (cycle-count-technical-guide.md)
+  - Complete workflow documentation with step-by-step instructions
+  - Architecture overview and component hierarchy documentation
+  - Database schema with relationships and indexes
+  - Complete API documentation with examples
+
+### Changed
+- Enhanced tool management features
+  - Improved tool retirement, deletion, and checkout history features
+  - Fixed React Router navigation using useNavigate instead of window.location.href
+  - Added accessibility support for reduced motion preference
+  - Improved error handling with better HTTP status reporting
+- Performance optimizations
+  - Added eager loading for relationships to avoid multiple queries
+  - Implemented bulk operations utility for efficient database operations
+  - Optimized chemical status updates with single commit transactions
+  - Added bulk activity and audit logging functions
+- Code quality improvements
+  - Removed print statements and replaced with proper logging
+  - Added comprehensive error handling decorators
+  - Created reusable bulk operations utilities
+  - Improved code structure and maintainability
+
+## [3.5.3] - 2025-05-18
+
+### Fixed
+- Fixed tool return functionality (Issues #3, #9)
+- Fixed issue where returned tools remained in active checkouts list and showed as "Checked Out" in tools list
+- Updated backend to properly set tool status to "available" when returned
+- Enhanced frontend to update tool status across all interfaces when a tool is returned
+
 ## [3.5.2] - 2025-05-19
 
 ### Fixed
