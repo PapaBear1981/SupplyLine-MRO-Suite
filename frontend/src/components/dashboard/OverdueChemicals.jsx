@@ -134,7 +134,7 @@ const OverdueChemicals = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center">
-                  <Tooltip text={`This chemical delivery is ${daysOverdue} days overdue`} placement="left" show={showTooltips}>
+                  <Tooltip text={showTooltips ? `This chemical delivery is ${daysOverdue} days overdue` : null} placement="left">
                     <Badge
                       bg={getOverdueBadgeVariant(daysOverdue)}
                       className="me-2"
@@ -142,7 +142,7 @@ const OverdueChemicals = () => {
                       {daysOverdue} days overdue
                     </Badge>
                   </Tooltip>
-                  <Tooltip text="View detailed information about this chemical" placement="left" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "View detailed information about this chemical" : null} placement="left">
                     <Button
                       as={Link}
                       to={`/chemicals/${chemical.id}`}

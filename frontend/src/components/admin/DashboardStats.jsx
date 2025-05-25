@@ -34,40 +34,40 @@ const DashboardStats = ({ stats, loading }) => {
         <Card.Body>
           <Row>
             <Col md={3} sm={6} className="mb-3">
-              <Tooltip text="Total number of registered users in the system" placement="top" show={showTooltips}>
+              <Tooltip text={showTooltips ? "Total number of registered users in the system" : null} placement="top">
                 <div className="stat-card">
                   <h3>{stats.counts?.users || 0}</h3>
                   <p>Total Users</p>
-                  <Tooltip text="Number of users who have logged in recently" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Number of users who have logged in recently" : null} placement="bottom">
                     <Badge bg="info">{stats.counts?.activeUsers || 0} Active</Badge>
                   </Tooltip>
                 </div>
               </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <Tooltip text="Total number of tools in the inventory system" placement="top" show={showTooltips}>
+              <Tooltip text={showTooltips ? "Total number of tools in the inventory system" : null} placement="top">
                 <div className="stat-card">
                   <h3>{stats.counts?.tools || 0}</h3>
                   <p>Total Tools</p>
-                  <Tooltip text="Number of tools currently available for checkout" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Number of tools currently available for checkout" : null} placement="bottom">
                     <Badge bg="success">{stats.counts?.availableTools || 0} Available</Badge>
                   </Tooltip>
                 </div>
               </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <Tooltip text="Total number of tool checkout transactions" placement="top" show={showTooltips}>
+              <Tooltip text={showTooltips ? "Total number of tool checkout transactions" : null} placement="top">
                 <div className="stat-card">
                   <h3>{stats.counts?.checkouts || 0}</h3>
                   <p>Total Checkouts</p>
-                  <Tooltip text="Number of tools currently checked out to users" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Number of tools currently checked out to users" : null} placement="bottom">
                     <Badge bg="warning">{stats.counts?.activeCheckouts || 0} Active</Badge>
                   </Tooltip>
                 </div>
               </Tooltip>
             </Col>
             <Col md={3} sm={6} className="mb-3">
-              <Tooltip text="Number of user registration requests awaiting admin approval" placement="top" show={showTooltips}>
+              <Tooltip text={showTooltips ? "Number of user registration requests awaiting admin approval" : null} placement="top">
                 <div className="stat-card">
                   <h3>{stats.counts?.pendingRegistrations || 0}</h3>
                   <p>Pending Registrations</p>

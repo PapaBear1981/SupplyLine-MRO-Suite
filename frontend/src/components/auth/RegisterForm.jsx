@@ -95,7 +95,7 @@ const RegisterForm = () => {
         </Form.Control.Feedback>
       </Form.Group>
       <Form.Group className="mb-3" controlId="formDepartment">
-        <Tooltip text="Select your work department - this determines your access permissions" placement="right" show={showTooltips}>
+        <Tooltip text={showTooltips ? "Select your work department - this determines your access permissions" : null} placement="right">
           <Form.Label>Department</Form.Label>
         </Tooltip>
         <Form.Select

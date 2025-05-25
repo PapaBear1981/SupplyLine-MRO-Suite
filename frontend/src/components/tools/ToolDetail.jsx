@@ -106,25 +106,25 @@ const ToolDetail = () => {
             )}
           </div>
           <div>
-            <Tooltip text="Return to tool inventory" placement="top" show={showTooltips}>
+            <Tooltip text={showTooltips ? "Return to tool inventory" : null} placement="top">
               <Button as={Link} to="/tools" variant="secondary" className="me-2">
                 Back to Tools
               </Button>
             </Tooltip>
-            <Tooltip text="Generate barcode/QR code" placement="top" show={showTooltips}>
+            <Tooltip text={showTooltips ? "Generate barcode/QR code" : null} placement="top">
               <Button variant="info" className="me-2" onClick={() => setShowBarcodeModal(true)}>
                 <i className="bi bi-upc-scan me-1"></i> Barcode/QR
               </Button>
             </Tooltip>
             {isAdmin && (
               <>
-                <Tooltip text="Edit tool information" placement="top" show={showTooltips}>
+                <Tooltip text={showTooltips ? "Edit tool information" : null} placement="top">
                   <Button as={Link} to={`/tools/${id}/edit`} variant="primary" className="me-2">
                     Edit Tool
                   </Button>
                 </Tooltip>
                 {user?.is_admin && (
-                  <Tooltip text="Delete or retire this tool" placement="top" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Delete or retire this tool" : null} placement="top">
                     <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
                       <i className="bi bi-trash me-1"></i> Delete
                     </Button>
@@ -231,12 +231,12 @@ const ToolDetail = () => {
                 <div className="d-flex flex-wrap gap-2">
                   {currentTool.status === 'available' && (
                     <>
-                      <Tooltip text="Check out this tool to yourself" placement="top" show={showTooltips}>
+                      <Tooltip text={showTooltips ? "Check out this tool to yourself" : null} placement="top">
                         <Button as={Link} to={`/checkout/${currentTool.id}`} variant="success">
                           Checkout to Me
                         </Button>
                       </Tooltip>
-                      <Tooltip text="Check out this tool to another user" placement="top" show={showTooltips}>
+                      <Tooltip text={showTooltips ? "Check out this tool to another user" : null} placement="top">
                         <Button
                           variant="primary"
                           onClick={() => setShowCheckoutModal(true)}
@@ -246,7 +246,7 @@ const ToolDetail = () => {
                       </Tooltip>
                       {isAdmin && (
                         <>
-                          <Tooltip text="Mark this tool as under maintenance or retired" placement="top" show={showTooltips}>
+                          <Tooltip text={showTooltips ? "Mark this tool as under maintenance or retired" : null} placement="top">
                             <Button
                               variant="warning"
                               onClick={() => setShowRemoveFromServiceModal(true)}
@@ -256,7 +256,7 @@ const ToolDetail = () => {
                             </Button>
                           </Tooltip>
                           {currentTool.requires_calibration && (
-                            <Tooltip text="Perform calibration on this tool" placement="top" show={showTooltips}>
+                            <Tooltip text={showTooltips ? "Perform calibration on this tool" : null} placement="top">
                               <Button
                                 as={Link}
                                 to={`/tools/${currentTool.id}/calibrations/new`}
@@ -283,7 +283,7 @@ const ToolDetail = () => {
                         Out of Service
                       </Button>
                       {isAdmin && (
-                        <Tooltip text="Return this tool to available status" placement="top" show={showTooltips}>
+                        <Tooltip text={showTooltips ? "Return this tool to available status" : null} placement="top">
                           <Button
                             variant="success"
                             onClick={() => setShowReturnToServiceModal(true)}

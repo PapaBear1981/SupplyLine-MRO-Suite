@@ -40,7 +40,7 @@ const LoginForm = () => {
       {error && <Alert variant="danger">{error.message || error.error || JSON.stringify(error)}</Alert>}
 
       <Form.Group className="mb-3" controlId="formUsername">
-        <Tooltip text="Enter your unique employee identification number" placement="right" show={showTooltips}>
+        <Tooltip text={showTooltips ? "Enter your unique employee identification number" : null} placement="right">
           <Form.Label>Employee Number</Form.Label>
         </Tooltip>
         <Form.Control
@@ -60,7 +60,7 @@ const LoginForm = () => {
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formPassword">
-        <Tooltip text="Enter your account password" placement="right" show={showTooltips}>
+        <Tooltip text={showTooltips ? "Enter your account password" : null} placement="right">
           <Form.Label>Password</Form.Label>
         </Tooltip>
         <Form.Control

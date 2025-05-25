@@ -99,56 +99,56 @@ const AdminDashboard = () => {
             <Nav variant="tabs">
               {canViewDashboard && (
                 <Nav.Item>
-                  <Tooltip text="View system overview and statistics" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "View system overview and statistics" : null} placement="bottom">
                     <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canViewUsers && (
                 <Nav.Item>
-                  <Tooltip text="Manage user accounts and permissions" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Manage user accounts and permissions" : null} placement="bottom">
                     <Nav.Link eventKey="users">User Management</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canManageRoles && (
                 <Nav.Item>
-                  <Tooltip text="Configure user roles and permissions" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Configure user roles and permissions" : null} placement="bottom">
                     <Nav.Link eventKey="roles">Role Management</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canViewRegistrations && (
                 <Nav.Item>
-                  <Tooltip text="Review and approve new user registrations" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Review and approve new user registrations" : null} placement="bottom">
                     <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canViewAudit && (
                 <Nav.Item>
-                  <Tooltip text="View system activity and audit trail" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "View system activity and audit trail" : null} placement="bottom">
                     <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canManageSettings && (
                 <Nav.Item>
-                  <Tooltip text="Configure system-wide settings and preferences" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Configure system-wide settings and preferences" : null} placement="bottom">
                     <Nav.Link eventKey="settings">System Settings</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canManageHelp && (
                 <Nav.Item>
-                  <Tooltip text="Manage help content and documentation" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Manage help content and documentation" : null} placement="bottom">
                     <Nav.Link eventKey="help">Help Settings</Nav.Link>
                   </Tooltip>
                 </Nav.Item>
               )}
               {canManageAnnouncements && (
                 <Nav.Item>
-                  <Tooltip text="Create and manage system announcements" placement="bottom" show={showTooltips}>
+                  <Tooltip text={showTooltips ? "Create and manage system announcements" : null} placement="bottom">
                     <Nav.Link eventKey="announcements">Announcements</Nav.Link>
                   </Tooltip>
                 </Nav.Item>

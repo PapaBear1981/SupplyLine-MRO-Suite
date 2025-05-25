@@ -68,7 +68,7 @@ const ProfileModal = ({ show, onHide }) => {
         <div className="mb-4">
           <h6 className="mb-3">Preferences</h6>
           <Form>
-            <Tooltip text="Switch between light and dark theme modes" placement="right" show={showTooltips}>
+            <Tooltip text={showTooltips ? "Switch between light and dark theme modes" : null} placement="right">
               <Form.Check
                 type="switch"
                 id="theme-switch"

@@ -106,7 +106,7 @@ const PastDueTools = () => {
     <Card className="shadow-sm mb-4">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Past Due Tools</h4>
-        <Tooltip text={`${pastDueTools.length} tools are currently overdue for return`} placement="left" show={showTooltips}>
+        <Tooltip text={showTooltips ? `${pastDueTools.length} tools are currently overdue for return` : null} placement="left">
           <Badge bg="danger" pill>{pastDueTools.length}</Badge>
         </Tooltip>
       </Card.Header>
@@ -125,7 +125,7 @@ const PastDueTools = () => {
                 </div>
               </div>
               <div className="d-flex align-items-center">
-                <Tooltip text={`This tool is ${tool.days_overdue} days past its return date`} placement="left" show={showTooltips}>
+                <Tooltip text={showTooltips ? `This tool is ${tool.days_overdue} days past its return date` : null} placement="left">
                   <Badge
                     bg={getOverdueBadgeVariant(tool.days_overdue)}
                     className="me-2"
@@ -133,7 +133,7 @@ const PastDueTools = () => {
                     {tool.days_overdue} days overdue
                   </Badge>
                 </Tooltip>
-                <Tooltip text="View all checkouts to manage overdue tools" placement="left" show={showTooltips}>
+                <Tooltip text={showTooltips ? "View all checkouts to manage overdue tools" : null} placement="left">
                   <Button
                     as={Link}
                     to={`/checkouts/all`}

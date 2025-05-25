@@ -72,7 +72,7 @@ const UserCheckoutStatus = () => {
     <Card className="shadow-sm mb-4">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">My Checked Out Tools</h4>
-        <Tooltip text={`You have ${activeCheckouts.length} tools currently checked out`} placement="left" show={showTooltips}>
+        <Tooltip text={showTooltips ? `You have ${activeCheckouts.length} tools currently checked out` : null} placement="left">
           <Badge bg={activeCheckouts.length > 0 ? "primary" : "success"} pill>
             {activeCheckouts.length}
           </Badge>
@@ -110,13 +110,12 @@ const UserCheckoutStatus = () => {
                   </div>
                   <div className="d-flex align-items-center">
                     <Tooltip
-                      text={
+                      text={showTooltips ? (
                         badgeVariant === 'danger' ? 'This tool is overdue for return' :
                         badgeVariant === 'warning' ? 'This tool is due for return soon' :
                         'This tool is currently checked out to you'
-                      }
+                      ) : null}
                       placement="left"
-                      show={showTooltips}
                     >
                       <Badge
                         bg={badgeVariant}
@@ -126,7 +125,7 @@ const UserCheckoutStatus = () => {
                          badgeVariant === 'warning' ? 'Due Soon' : 'Checked Out'}
                       </Badge>
                     </Tooltip>
-                    <Tooltip text="View detailed information about this tool" placement="left" show={showTooltips}>
+                    <Tooltip text={showTooltips ? "View detailed information about this tool" : null} placement="left">
                       <Button
                         as={Link}
                         to={`/tools/${checkout.tool_id}`}
