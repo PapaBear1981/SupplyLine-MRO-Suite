@@ -131,7 +131,7 @@ const QuickActions = () => {
         <Row className="g-2">
           {actions.map((action, index) => (
             <Col xs={6} key={index}>
-              <Tooltip text={action.tooltip} placement="top" show={showTooltips}>
+              <Tooltip text={showTooltips ? action.tooltip : null} placement="top">
                 <Button
                   as={Link}
                   to={action.link}

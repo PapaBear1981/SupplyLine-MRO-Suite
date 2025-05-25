@@ -35,6 +35,12 @@
   - Enhanced session management security
   - Improved error handling with structured logging
   - Input validation and sanitization improvements
+- UI/UX and accessibility enhancements
+  - Added comprehensive tooltips across all components (QuickActions, DashboardStats, AdminDashboard, UserCheckoutStatus, OverdueChemicals, PastDueTools, ProfileModal, LoginForm, RegisterForm)
+  - Standardized styling with unified Bootstrap-compatible CSS variables
+  - Consistent button variants, sizes, focus states, and badge colors
+  - Enhanced accessibility with ARIA labels, screen reader support, keyboard navigation focus indicators
+  - Added support for high-contrast mode and reduced-motion preferences
 
 ### Version 3.5.3 (2025-05-20)
 - Fixed login functionality for non-admin users

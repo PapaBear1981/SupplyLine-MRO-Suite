@@ -166,7 +166,7 @@ const CalibrationDueList = () => {
                 </td>
                 <td>
                   <div className="d-flex gap-2">
-                    <Tooltip text="View tool details" placement="top" show={showTooltips}>
+                    <Tooltip text={showTooltips ? "View tool details" : null} placement="top">
                       <Button
                         as={Link}
                         to={`/tools/${tool.id}`}
@@ -176,7 +176,7 @@ const CalibrationDueList = () => {
                         View Tool
                       </Button>
                     </Tooltip>
-                    <Tooltip text="Perform calibration on this tool" placement="top" show={showTooltips}>
+                    <Tooltip text={showTooltips ? "Perform calibration on this tool" : null} placement="top">
                       <Button
                         as={Link}
                         to={`/tools/${tool.id}/calibrations/new`}

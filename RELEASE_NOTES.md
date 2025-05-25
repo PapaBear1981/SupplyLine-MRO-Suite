@@ -26,6 +26,11 @@
   - Users can now properly navigate between Tools, Chemicals, Reports, Admin Dashboard
   - Restored primary navigation functionality
 
+- **UI/UX Enhancements** (#229)
+  - Added descriptive tooltips to quick action buttons, dashboard statistics, tab navigation, status badges, action buttons, preference switches, and form fields
+  - Standardized button variants, sizes, focus styles, and badge colors using unified Bootstrap-compatible CSS variables
+  - Improved accessibility with ARIA labels, enhanced screen reader support, keyboard navigation focus indicators, high-contrast mode, and reduced-motion support
+
 ### Performance Improvements
 
 #### Database Optimization
