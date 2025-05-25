@@ -257,15 +257,18 @@
 .mobile-tool-list {
   padding: 1rem;
   min-height: calc(100vh - 140px); /* Account for header and bottom nav */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-search-filter {
   position: sticky;
-  top: 60px; /* Below fixed header */
+  top: 0; /* Stick to top of scrollable area */
   background: var(--bs-body-bg);
   z-index: 10;
   padding: 1rem 0;
   margin: -1rem 0 1rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 .mobile-tool-card {
@@ -378,6 +381,14 @@
 /* Fix for Android Chrome scrolling */
 .mobile-content {
   overscroll-behavior: contain;
+  touch-action: pan-y; /* Allow vertical scrolling only */
+}
+
+/* Prevent pull-to-refresh interference */
+.mobile-tool-list,
+.mobile-tool-cards {
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
 /* Prevent horizontal scrolling */

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import MobilePullToRefresh from './MobilePullToRefresh';
 import MobileSwipeActions from './MobileSwipeActions';
 
-const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
+const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRefresh = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -86,8 +86,12 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
         </Form.Select>
       </div>
 
-      <MobilePullToRefresh onRefresh={onRefresh} refreshing={loading}>
+      {enablePullToRefresh ? (
+        <MobilePullToRefresh onRefresh={onRefresh} refreshing={loading}>
+          <div className="mobile-tool-cards">
+      ) : (
         <div className="mobile-tool-cards">
+      )}
           {loading && filteredTools.length === 0 && (
             <div className="mobile-loading">
               <div className="text-center">
@@ -210,7 +214,9 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
             </div>
           )}
         </div>
-      </MobilePullToRefresh>
+      {enablePullToRefresh ? (
+        </MobilePullToRefresh>
+      ) : null}
     </div>
   );
 };

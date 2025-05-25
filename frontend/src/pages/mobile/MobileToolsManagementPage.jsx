@@ -19,18 +19,19 @@ const MobileToolsManagementPage = () => {
 
   // Apply search filter from URL params
   const searchQuery = searchParams.get('search') || '';
-  const filteredTools = searchQuery 
-    ? tools.filter(tool => 
+  const filteredTools = searchQuery
+    ? tools.filter(tool =>
         tool.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tool.part_number?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : tools;
 
   return (
-    <MobileToolList 
+    <MobileToolList
       tools={filteredTools}
       loading={loading}
       onRefresh={handleRefresh}
+      enablePullToRefresh={false}
     />
   );
 };
