@@ -1,32 +1,67 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import MobileQuickActions from './MobileQuickActions';
 import MobilePullToRefresh from './MobilePullToRefresh';
+import { fetchUserCheckouts } from '../../store/checkoutsSlice';
+import { fetchUserActivity } from '../../store/userActivitySlice';
+import { fetchAnnouncements } from '../../store/announcementsSlice';
 
 const MobileDashboard = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { userCheckouts, loading: checkoutsLoading } = useSelector((state) => state.checkouts);
+  const { activities, loading: activityLoading } = useSelector((state) => state.userActivity);
+  const { announcements, loading: announcementsLoading } = useSelector((state) => state.announcements);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Load initial data
+    if (user) {
+      console.log('Mobile Dashboard: Loading data for user', user.name);
+      dispatch(fetchUserCheckouts());
+      dispatch(fetchUserActivity());
+      dispatch(fetchAnnouncements());
+    }
+  }, [dispatch, user]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Mobile Dashboard: userCheckouts', userCheckouts);
+    console.log('Mobile Dashboard: activities', activities);
+    console.log('Mobile Dashboard: announcements', announcements);
+  }, [userCheckouts, activities, announcements]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        dispatch(fetchUserCheckouts()),
+        dispatch(fetchUserActivity()),
+        dispatch(fetchAnnouncements())
+      ]);
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  // Mock data - in real implementation, this would come from Redux store
+  // Calculate dashboard metrics from real data
   const dashboardData = {
-    myCheckouts: 3,
-    overdueTools: 1,
-    expiringChemicals: 2,
-    calibrationsDue: 1,
-    recentActivity: [
-      { id: 1, action: 'Checked out Tool #T001', time: '2 hours ago' },
-      { id: 2, action: 'Returned Tool #T005', time: '1 day ago' },
-      { id: 3, action: 'Chemical issued: Acetone', time: '2 days ago' }
-    ]
+    myCheckouts: userCheckouts?.length || 0,
+    overdueTools: userCheckouts?.filter(checkout => {
+      const dueDate = new Date(checkout.due_date);
+      return dueDate < new Date() && !checkout.return_date;
+    }).length || 0,
+    expiringChemicals: 0, // This would need to be fetched from chemicals API
+    calibrationsDue: 0, // This would need to be fetched from calibrations API
+    recentActivity: activities?.slice(0, 3).map(activity => ({
+      id: activity.id,
+      action: activity.description || activity.activity_type,
+      time: new Date(activity.timestamp).toLocaleDateString()
+    })) || []
   };
 
   return (
@@ -125,8 +160,8 @@ const MobileDashboard = () => {
           </Card.Header>
           <Card.Body className="p-0">
             {dashboardData.recentActivity.map((activity, index) => (
-              <div 
-                key={activity.id} 
+              <div
+                key={activity.id}
                 className={`mobile-activity-item ${index !== dashboardData.recentActivity.length - 1 ? 'border-bottom' : ''}`}
               >
                 <div className="mobile-activity-content">

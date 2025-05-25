@@ -8,9 +8,10 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const filteredTools = tools.filter(tool => {
-    const matchesSearch = tool.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tool.part_number?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredTools = (tools || []).filter(tool => {
+    const matchesSearch = tool.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tool.tool_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tool.serial_number?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || tool.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -87,6 +88,17 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
 
       <MobilePullToRefresh onRefresh={onRefresh} refreshing={loading}>
         <div className="mobile-tool-cards">
+          {loading && filteredTools.length === 0 && (
+            <div className="mobile-loading">
+              <div className="text-center">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p className="mt-2 text-muted">Loading tools...</p>
+              </div>
+            </div>
+          )}
+
           {filteredTools.map(tool => (
             <MobileSwipeActions
               key={tool.id}
@@ -117,14 +129,14 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
                     <div className="flex-grow-1">
                       <h6 className="mobile-tool-name mb-1">
                         <Link to={`/tools/${tool.id}`} className="text-decoration-none">
-                          {tool.name}
+                          {tool.description}
                         </Link>
                       </h6>
                       <p className="mobile-tool-part text-muted mb-1">
-                        {tool.part_number}
+                        {tool.tool_number} • {tool.serial_number}
                       </p>
                     </div>
-                    <Badge 
+                    <Badge
                       bg={getStatusVariant(tool.status)}
                       className="mobile-tool-status"
                     >
@@ -139,7 +151,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
                         <i className="bi bi-geo-alt me-1"></i>
                         {tool.location || 'No location'}
                       </span>
-                      {tool.checked_out_to && (
+                      {tool.status === 'checked_out' && tool.checked_out_to && (
                         <span>
                           <i className="bi bi-person me-1"></i>
                           {tool.checked_out_to}
@@ -170,7 +182,7 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
                         <i className="bi bi-eye me-1"></i>
                         View
                       </Button>
-                      
+
                       {tool.status === 'available' && (
                         <Button
                           as={Link}
@@ -191,9 +203,10 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh }) => {
           ))}
 
           {filteredTools.length === 0 && !loading && (
-            <div className="text-center py-4">
-              <i className="bi bi-search text-muted" style={{ fontSize: '2rem' }}></i>
-              <p className="text-muted mt-2">No tools found</p>
+            <div className="mobile-empty">
+              <i className="bi bi-tools"></i>
+              <h5>No tools found</h5>
+              <p>Try adjusting your search or filter criteria</p>
             </div>
           )}
         </div>

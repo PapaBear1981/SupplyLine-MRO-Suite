@@ -6,13 +6,18 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
 .mobile-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 60px; /* Space for fixed header */
   padding-bottom: 80px; /* Space for bottom nav */
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 1;
 }
 
 /* Mobile Header */
@@ -178,7 +183,7 @@
 /* Mobile Dashboard */
 .mobile-dashboard {
   padding: 1rem;
-  padding-top: 80px; /* Account for fixed header */
+  min-height: calc(100vh - 140px); /* Account for header and bottom nav */
 }
 
 .mobile-welcome-section {
@@ -251,7 +256,7 @@
 /* Mobile Tool List */
 .mobile-tool-list {
   padding: 1rem;
-  padding-top: 80px; /* Account for fixed header */
+  min-height: calc(100vh - 140px); /* Account for header and bottom nav */
 }
 
 .mobile-search-filter {
@@ -352,6 +357,67 @@
 /* Mobile cycle count specific styles */
 .mobile-cycle-count {
   padding-bottom: 80px; /* Space for fixed bottom actions */
+}
+
+/* Fix for iOS Safari scrolling issues */
+.mobile-layout,
+.mobile-content,
+.mobile-dashboard,
+.mobile-tool-list {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+}
+
+/* Ensure proper touch scrolling on all mobile devices */
+@supports (-webkit-overflow-scrolling: touch) {
+  .mobile-content {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Fix for Android Chrome scrolling */
+.mobile-content {
+  overscroll-behavior: contain;
+}
+
+/* Prevent horizontal scrolling */
+.mobile-layout {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Ensure content doesn't get cut off */
+.mobile-dashboard,
+.mobile-tool-list {
+  padding-bottom: 2rem;
+}
+
+/* Loading states */
+.mobile-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Error states */
+.mobile-error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--bs-danger);
+}
+
+/* Empty states */
+.mobile-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--bs-secondary);
+}
+
+.mobile-empty i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 /* Mobile-optimized list items */
