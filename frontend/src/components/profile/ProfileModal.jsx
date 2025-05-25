@@ -4,10 +4,13 @@ import { Modal, Button, Form, ListGroup } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../../store/authSlice';
 import { toggleTheme } from '../../store/themeSlice';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const ProfileModal = ({ show, onHide }) => {
   const { user } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.theme);
+  const { showTooltips } = useHelp();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -65,13 +68,15 @@ const ProfileModal = ({ show, onHide }) => {
         <div className="mb-4">
           <h6 className="mb-3">Preferences</h6>
           <Form>
-            <Form.Check
-              type="switch"
-              id="theme-switch"
-              label={`Theme: ${theme === 'light' ? 'Light' : 'Dark'}`}
-              checked={theme === 'dark'}
-              onChange={handleThemeToggle}
-            />
+            <Tooltip text={showTooltips ? "Switch between light and dark theme modes" : null} placement="right">
+              <Form.Check
+                type="switch"
+                id="theme-switch"
+                label={`Theme: ${theme === 'light' ? 'Light' : 'Dark'}`}
+                checked={theme === 'dark'}
+                onChange={handleThemeToggle}
+              />
+            </Tooltip>
           </Form>
         </div>
       </Modal.Body>

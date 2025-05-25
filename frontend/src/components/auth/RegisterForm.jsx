@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { register } from '../../store/authSlice';
 import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +16,7 @@ const RegisterForm = () => {
   });
   const [validated, setValidated] = useState(false);
   const [passwordValid, setPasswordValid] = useState(false);
+  const { showTooltips } = useHelp();
 
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
@@ -92,12 +95,15 @@ const RegisterForm = () => {
         </Form.Control.Feedback>
       </Form.Group>
       <Form.Group className="mb-3" controlId="formDepartment">
-        <Form.Label>Department</Form.Label>
+        <Tooltip text={showTooltips ? "Select your work department - this determines your access permissions" : null} placement="right">
+          <Form.Label>Department</Form.Label>
+        </Tooltip>
         <Form.Select
           name="department"
           value={formData.department}
           onChange={handleChange}
           required
+          aria-describedby="department-help"
         >
           <option value="">Select Department</option>
           <option value="Engineering">Engineering</option>
@@ -109,6 +115,9 @@ const RegisterForm = () => {
         <Form.Control.Feedback type="invalid">
           Please select a department.
         </Form.Control.Feedback>
+        <Form.Text id="department-help" className="text-muted">
+          Materials department users have additional tool management permissions.
+        </Form.Text>
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="formPassword">

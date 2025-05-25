@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Card, Nav, Tab, Alert, Row, Col } from 'react-bootstrap';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
@@ -16,6 +18,7 @@ import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const dispatch = useDispatch();
+  const { showTooltips } = useHelp();
   const { user: currentUser, isLoading: authLoading } = useSelector((state) => state.auth);
   const {
     dashboardStats,
@@ -96,42 +99,58 @@ const AdminDashboard = () => {
             <Nav variant="tabs">
               {canViewDashboard && (
                 <Nav.Item>
-                  <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
+                  <Tooltip text={showTooltips ? "View system overview and statistics" : null} placement="bottom">
+                    <Nav.Link eventKey="dashboard">Dashboard</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewUsers && (
                 <Nav.Item>
-                  <Nav.Link eventKey="users">User Management</Nav.Link>
+                  <Tooltip text={showTooltips ? "Manage user accounts and permissions" : null} placement="bottom">
+                    <Nav.Link eventKey="users">User Management</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageRoles && (
                 <Nav.Item>
-                  <Nav.Link eventKey="roles">Role Management</Nav.Link>
+                  <Tooltip text={showTooltips ? "Configure user roles and permissions" : null} placement="bottom">
+                    <Nav.Link eventKey="roles">Role Management</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewRegistrations && (
                 <Nav.Item>
-                  <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
+                  <Tooltip text={showTooltips ? "Review and approve new user registrations" : null} placement="bottom">
+                    <Nav.Link eventKey="registrations">Registration Requests</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canViewAudit && (
                 <Nav.Item>
-                  <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
+                  <Tooltip text={showTooltips ? "View system activity and audit trail" : null} placement="bottom">
+                    <Nav.Link eventKey="audit">Audit Logs</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageSettings && (
                 <Nav.Item>
-                  <Nav.Link eventKey="settings">System Settings</Nav.Link>
+                  <Tooltip text={showTooltips ? "Configure system-wide settings and preferences" : null} placement="bottom">
+                    <Nav.Link eventKey="settings">System Settings</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageHelp && (
                 <Nav.Item>
-                  <Nav.Link eventKey="help">Help Settings</Nav.Link>
+                  <Tooltip text={showTooltips ? "Manage help content and documentation" : null} placement="bottom">
+                    <Nav.Link eventKey="help">Help Settings</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
               {canManageAnnouncements && (
                 <Nav.Item>
-                  <Nav.Link eventKey="announcements">Announcements</Nav.Link>
+                  <Tooltip text={showTooltips ? "Create and manage system announcements" : null} placement="bottom">
+                    <Nav.Link eventKey="announcements">Announcements</Nav.Link>
+                  </Tooltip>
                 </Nav.Item>
               )}
             </Nav>
