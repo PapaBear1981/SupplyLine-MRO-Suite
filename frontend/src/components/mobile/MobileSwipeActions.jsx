@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 
 const MobileSwipeActions = ({ children, actions = [] }) => {
@@ -27,7 +28,7 @@ const MobileSwipeActions = ({ children, actions = [] }) => {
 
       touchCurrentX = e.touches[0].clientX;
       const distance = touchStartX - touchCurrentX;
-      
+
       // Only allow left swipe (positive distance)
       if (distance > 0) {
         e.preventDefault();
@@ -42,7 +43,7 @@ const MobileSwipeActions = ({ children, actions = [] }) => {
 
     const handleTouchEnd = () => {
       isSwiping = false;
-      
+
       // If swipe distance is less than threshold, snap back
       if (swipeDistance < maxSwipeDistance * 0.3) {
         setSwipeDistance(0);
@@ -83,7 +84,7 @@ const MobileSwipeActions = ({ children, actions = [] }) => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="mobile-swipe-container"
       style={{ position: 'relative', overflow: 'hidden' }}
@@ -138,6 +139,18 @@ const MobileSwipeActions = ({ children, actions = [] }) => {
       </div>
     </div>
   );
+};
+
+MobileSwipeActions.propTypes = {
+  children: PropTypes.node.isRequired,
+  actions: PropTypes.arrayOf(
+    PropTypes.shape({
+      icon: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      variant: PropTypes.string,
+      action: PropTypes.func.isRequired,
+    })
+  ),
 };
 
 export default MobileSwipeActions;

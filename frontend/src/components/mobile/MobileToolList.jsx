@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { Card, Badge, Button, Form, InputGroup } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import MobilePullToRefresh from './MobilePullToRefresh';
@@ -11,13 +12,20 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedTool, setSelectedTool] = useState(null);
 
-  const filteredTools = (tools || []).filter(tool => {
-    const matchesSearch = tool.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tool.tool_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tool.serial_number?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || tool.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  // Memoize filtered tools for better performance
+  const filteredTools = useMemo(() => {
+    if (!tools || tools.length === 0) return [];
+
+    const lowerSearchQuery = searchQuery.toLowerCase();
+    return tools.filter(tool => {
+      const matchesSearch = !searchQuery ||
+        tool.description?.toLowerCase().includes(lowerSearchQuery) ||
+        tool.tool_number?.toLowerCase().includes(lowerSearchQuery) ||
+        tool.serial_number?.toLowerCase().includes(lowerSearchQuery);
+      const matchesFilter = filterStatus === 'all' || tool.status === filterStatus;
+      return matchesSearch && matchesFilter;
+    });
+  }, [tools, searchQuery, filterStatus]);
 
   const getStatusVariant = (status) => {
     switch (status) {
@@ -361,6 +369,14 @@ const MobileToolList = ({ tools = [], loading = false, onRefresh, enablePullToRe
       />
     </div>
   );
+};
+
+MobileToolList.propTypes = {
+  tools: PropTypes.array,
+  loading: PropTypes.bool,
+  error: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  onRefresh: PropTypes.func,
+  enablePullToRefresh: PropTypes.bool,
 };
 
 export default MobileToolList;
