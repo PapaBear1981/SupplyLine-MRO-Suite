@@ -404,7 +404,7 @@ const ToolList = () => {
                       </td>
                       <td>
                         <div className="d-flex gap-1 flex-wrap">
-                          <Tooltip text="View tool details" placement="top" show={showTooltips}>
+                          <Tooltip text={showTooltips ? "View tool details" : null} placement="top">
                             <Button
                               as={Link}
                               to={`/tools/${tool.id}`}
@@ -416,7 +416,7 @@ const ToolList = () => {
                           </Tooltip>
                           {tool.status === 'available' && (
                             <>
-                              <Tooltip text="Check out this tool to yourself" placement="top" show={showTooltips}>
+                              <Tooltip text={showTooltips ? "Check out this tool to yourself" : null} placement="top">
                                 <Button
                                   as={Link}
                                   to={`/checkout/${tool.id}`}
@@ -427,7 +427,7 @@ const ToolList = () => {
                                 </Button>
                               </Tooltip>
                               {isAdmin && (
-                                <Tooltip text="Check out this tool to another user" placement="top" show={showTooltips}>
+                                <Tooltip text={showTooltips ? "Check out this tool to another user" : null} placement="top">
                                   <Button
                                     variant="primary"
                                     size="sm"
@@ -439,7 +439,7 @@ const ToolList = () => {
                               )}
                             </>
                           )}
-                          <Tooltip text="Generate barcode/QR code for this tool" placement="top" show={showTooltips}>
+                          <Tooltip text={showTooltips ? "Generate barcode/QR code for this tool" : null} placement="top">
                             <Button
                               variant="info"
                               size="sm"

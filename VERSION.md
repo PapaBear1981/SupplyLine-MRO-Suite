@@ -2,6 +2,46 @@
 
 ## Version History
 
+### Version 3.5.4 (2025-05-24)
+- Fixed critical backend infrastructure issues
+  - Fixed Resource Monitor Windows Compatibility (SystemError in disk usage monitoring)
+  - Fixed Password Validation Import Issue (restored strong password validation)
+- Fixed critical navigation issues
+  - Fixed Admin Dashboard Tab Switching (User Management, Role Management, Audit Logs)
+  - Fixed Main Navigation Menu Links (Tools, Chemicals, Reports, Admin Dashboard)
+- Added major performance improvements
+  - Added 26 new database indexes for cycle count functionality
+  - Implemented composite indexes for complex queries
+  - Enhanced query performance significantly improved
+- Fixed comprehensive time handling
+  - Updated all database models to use local time instead of UTC
+  - Replaced all datetime.utcnow() calls with local time equivalents
+  - Added get_current_time() utility function for consistency
+- Enhanced tool management features (Phase 2)
+  - Admin tool deletion capability with multistep confirmation
+  - Enhanced tool history with detailed transaction modals
+  - Improved calibration workflow with visual status indicators
+- Added new cycle count reports
+  - Inventory Accuracy Report with trend analysis
+  - Discrepancy Report with detailed variance tracking
+  - Performance Report with efficiency metrics
+  - Coverage Report with completion tracking
+- Comprehensive testing and documentation
+  - Backend test suite with pytest integration
+  - Frontend test suite with React Testing Library
+  - Complete user guide (356 lines) with step-by-step instructions
+  - Technical guide with architecture and API documentation
+- Security improvements
+  - Enhanced session management security
+  - Improved error handling with structured logging
+  - Input validation and sanitization improvements
+- UI/UX and accessibility enhancements
+  - Added comprehensive tooltips across all components (QuickActions, DashboardStats, AdminDashboard, UserCheckoutStatus, OverdueChemicals, PastDueTools, ProfileModal, LoginForm, RegisterForm)
+  - Standardized styling with unified Bootstrap-compatible CSS variables
+  - Consistent button variants, sizes, focus states, and badge colors
+  - Enhanced accessibility with ARIA labels, screen reader support, keyboard navigation focus indicators
+  - Added support for high-contrast mode and reduced-motion preferences
+
 ### Version 3.5.3 (2025-05-20)
 - Fixed login functionality for non-admin users
 - Fixed Admin Dashboard tab switching for User Management, Role Management, System Settings, and Help Settings

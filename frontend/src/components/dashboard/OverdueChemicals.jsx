@@ -4,11 +4,14 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useSelector } from 'react-redux';
 import { formatDate, getDaysFromToday } from '../../utils/dateUtils';
+import Tooltip from '../common/Tooltip';
+import { useHelp } from '../../context/HelpContext';
 
 const OverdueChemicals = () => {
   const [overdueChemicals, setOverdueChemicals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { showTooltips } = useHelp();
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
@@ -131,20 +134,24 @@ const OverdueChemicals = () => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center">
-                  <Badge
-                    bg={getOverdueBadgeVariant(daysOverdue)}
-                    className="me-2"
-                  >
-                    {daysOverdue} days overdue
-                  </Badge>
-                  <Button
-                    as={Link}
-                    to={`/chemicals/${chemical.id}`}
-                    variant="outline-primary"
-                    size="sm"
-                  >
-                    View
-                  </Button>
+                  <Tooltip text={showTooltips ? `This chemical delivery is ${daysOverdue} days overdue` : null} placement="left">
+                    <Badge
+                      bg={getOverdueBadgeVariant(daysOverdue)}
+                      className="me-2"
+                    >
+                      {daysOverdue} days overdue
+                    </Badge>
+                  </Tooltip>
+                  <Tooltip text={showTooltips ? "View detailed information about this chemical" : null} placement="left">
+                    <Button
+                      as={Link}
+                      to={`/chemicals/${chemical.id}`}
+                      variant="outline-primary"
+                      size="sm"
+                    >
+                      View
+                    </Button>
+                  </Tooltip>
                 </div>
               </ListGroup.Item>
             );
