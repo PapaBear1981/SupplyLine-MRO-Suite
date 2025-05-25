@@ -19,23 +19,34 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
       if (container.scrollTop === 0) {
         touchStartY = e.touches[0].clientY;
         setStartY(touchStartY);
-        setIsPulling(true);
+        // Don't set pulling to true immediately, wait for actual pull motion
       }
     };
 
     const handleTouchMove = (e) => {
-      if (!isPulling || container.scrollTop > 0) {
+      // Only start pulling if we're at the top and moving down
+      if (container.scrollTop > 0) {
         setIsPulling(false);
         setPullDistance(0);
         return;
       }
 
       touchCurrentY = e.touches[0].clientY;
-      const distance = Math.max(0, (touchCurrentY - touchStartY) * 0.5);
-      
-      if (distance > 0) {
-        e.preventDefault();
-        setPullDistance(Math.min(distance, threshold * 1.5));
+      const distance = touchCurrentY - touchStartY;
+
+      // Only activate pull-to-refresh for significant downward motion
+      if (distance > 10) { // 10px threshold before activating
+        setIsPulling(true);
+        const pullDistance = Math.max(0, distance * 0.5);
+
+        if (pullDistance > 0) {
+          e.preventDefault();
+          setPullDistance(Math.min(pullDistance, threshold * 1.5));
+        }
+      } else if (distance < -10) {
+        // If scrolling up, disable pull-to-refresh
+        setIsPulling(false);
+        setPullDistance(0);
       }
     };
 
@@ -43,7 +54,7 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
       if (isPulling && pullDistance >= threshold && !refreshing) {
         onRefresh();
       }
-      
+
       setIsPulling(false);
       setPullDistance(0);
     };
@@ -62,7 +73,7 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
   const getRefreshIndicatorStyle = () => {
     const opacity = Math.min(pullDistance / threshold, 1);
     const scale = Math.min(pullDistance / threshold, 1);
-    
+
     return {
       transform: `translateY(${Math.min(pullDistance, threshold)}px) scale(${scale})`,
       opacity: opacity
@@ -70,7 +81,7 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="mobile-pull-to-refresh-container"
       style={{
@@ -79,7 +90,7 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
       }}
     >
       {/* Pull to refresh indicator */}
-      <div 
+      <div
         className="mobile-pull-to-refresh-indicator"
         style={getRefreshIndicatorStyle()}
       >
@@ -90,7 +101,7 @@ const MobilePullToRefresh = ({ children, onRefresh, refreshing = false }) => {
           </div>
         ) : (
           <div className="d-flex align-items-center">
-            <i 
+            <i
               className={`bi bi-arrow-down me-2 ${pullDistance >= threshold ? 'text-success' : 'text-muted'}`}
               style={{
                 transform: pullDistance >= threshold ? 'rotate(180deg)' : 'rotate(0deg)',
