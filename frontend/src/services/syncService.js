@@ -82,8 +82,8 @@ class SyncService {
 
     try {
       // Sync each table
-      const tables = ['users', 'tools', 'checkouts', 'chemicals', 'audit_log'];
-      
+      const tables = ['users', 'tools', 'checkouts', 'chemicals'];
+
       for (const table of tables) {
         await this.syncTable(table);
       }
@@ -93,7 +93,12 @@ class SyncService {
 
       // Update last sync time
       this.lastSyncTime = new Date().toISOString();
-      await offlineStorage.setItem('lastSyncTime', this.lastSyncTime);
+      try {
+        await offlineStorage.setItem('lastSyncTime', this.lastSyncTime);
+      } catch (error) {
+        console.warn('Failed to save last sync time:', error.message);
+        // Continue anyway, this is not critical
+      }
 
       console.log('Synchronization completed successfully');
       
@@ -118,17 +123,21 @@ class SyncService {
     try {
       // Get local data
       const localData = await offlineStorage.getTable(tableName);
-      
+
       // Get remote data (only changes since last sync)
       let remoteQuery = {};
       if (this.lastSyncTime) {
-        remoteQuery = {
-          updated_at: { operator: 'gte', value: this.lastSyncTime }
-        };
+        // Only use updated_at filter for tables that have this column
+        const tablesWithUpdatedAt = ['users', 'tools', 'checkouts', 'chemicals'];
+        if (tablesWithUpdatedAt.includes(tableName)) {
+          remoteQuery = {
+            updated_at: { operator: 'gte', value: this.lastSyncTime }
+          };
+        }
       }
-      
+
       const { data: remoteData, error } = await supabaseService.select(tableName, '*', remoteQuery);
-      
+
       if (error) {
         console.error(`Failed to fetch remote data for ${tableName}:`, error);
         return;
@@ -136,7 +145,7 @@ class SyncService {
 
       // Merge data and resolve conflicts
       await this.mergeTableData(tableName, localData, remoteData || []);
-      
+
     } catch (error) {
       console.error(`Failed to sync table ${tableName}:`, error);
     }
