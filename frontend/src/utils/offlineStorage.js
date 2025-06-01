@@ -1,9 +1,9 @@
 class OfflineStorage {
   constructor() {
     this.dbName = 'SupplyLineMRO';
-    this.dbVersion = 1;
+    this.dbVersion = 2; // Incremented to force recreation with settings table
     this.db = null;
-    this.tables = ['users', 'tools', 'checkouts', 'chemicals', 'audit_log', 'pending_sync'];
+    this.tables = ['users', 'tools', 'checkouts', 'chemicals', 'audit_log', 'pending_sync', 'settings'];
   }
 
   async initialize() {
@@ -25,8 +25,10 @@ class OfflineStorage {
         // Create object stores for each table
         this.tables.forEach(tableName => {
           if (!db.objectStoreNames.contains(tableName)) {
-            const store = db.createObjectStore(tableName, { keyPath: 'id' });
-            
+            // Settings table uses a different key structure
+            const keyPath = tableName === 'settings' ? 'id' : 'id';
+            const store = db.createObjectStore(tableName, { keyPath });
+
             // Create indexes for common queries
             if (tableName === 'tools') {
               store.createIndex('tool_number', 'tool_number', { unique: false });
@@ -40,6 +42,7 @@ class OfflineStorage {
               store.createIndex('part_number', 'part_number', { unique: false });
               store.createIndex('status', 'status', { unique: false });
             }
+            // Settings table doesn't need indexes
           }
         });
       };
@@ -235,36 +238,47 @@ class OfflineStorage {
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['settings'], 'readwrite');
-      
-      // Create settings store if it doesn't exist
-      let store;
       try {
-        store = transaction.objectStore('settings');
+        // Check if settings store exists
+        if (!this.db.objectStoreNames.contains('settings')) {
+          // Fallback to localStorage if settings store doesn't exist
+          localStorage.setItem(key, JSON.stringify(value));
+          resolve(true);
+          return;
+        }
+
+        const transaction = this.db.transaction(['settings'], 'readwrite');
+        const store = transaction.objectStore('settings');
+        const request = store.put(data);
+
+        request.onsuccess = () => {
+          resolve(true);
+        };
+
+        request.onerror = () => {
+          // Fallback to localStorage
+          localStorage.setItem(key, JSON.stringify(value));
+          resolve(true);
+        };
       } catch (error) {
-        // Store doesn't exist, we'll handle this gracefully
-        localStorage.setItem(key, JSON.stringify(value));
-        resolve(true);
-        return;
-      }
-
-      const request = store.put(data);
-
-      request.onsuccess = () => {
-        resolve(true);
-      };
-
-      request.onerror = () => {
         // Fallback to localStorage
         localStorage.setItem(key, JSON.stringify(value));
         resolve(true);
-      };
+      }
     });
   }
 
   async getItem(key) {
     return new Promise((resolve, reject) => {
       try {
+        // Check if settings store exists
+        if (!this.db.objectStoreNames.contains('settings')) {
+          // Fallback to localStorage if settings store doesn't exist
+          const value = localStorage.getItem(key);
+          resolve(value ? JSON.parse(value) : null);
+          return;
+        }
+
         const transaction = this.db.transaction(['settings'], 'readonly');
         const store = transaction.objectStore('settings');
         const request = store.get(key);

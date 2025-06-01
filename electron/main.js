@@ -1,12 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
-const Store = require('electron-store');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 
-// Initialize electron-store for persistent settings
-const store = new Store();
+// Initialize electron-store for persistent settings (using dynamic import)
+let Store;
+let store;
 
 let mainWindow;
 let backendProcess;
@@ -89,7 +89,33 @@ function stopBackendServer() {
 }
 
 // App event handlers
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Initialize electron-store with dynamic import
+  try {
+    Store = (await import('electron-store')).default;
+    store = new Store();
+  } catch (error) {
+    console.error('Failed to load electron-store:', error);
+    // Fallback to simple storage
+    store = {
+      get: (key, defaultValue) => {
+        try {
+          const value = fs.readFileSync(path.join(app.getPath('userData'), `${key}.json`), 'utf8');
+          return JSON.parse(value);
+        } catch {
+          return defaultValue;
+        }
+      },
+      set: (key, value) => {
+        try {
+          fs.writeFileSync(path.join(app.getPath('userData'), `${key}.json`), JSON.stringify(value));
+        } catch (error) {
+          console.error('Failed to save setting:', error);
+        }
+      }
+    };
+  }
+
   createWindow();
   startBackendServer();
 

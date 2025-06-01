@@ -44,12 +44,17 @@ class SupabaseService {
     try {
       this.config = { url, key };
       this.client = createClient(url, key);
-      
-      // Test the connection
-      const { data, error } = await this.client.from('_test').select('*').limit(1);
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "table not found" which is OK
-        throw error;
+
+      // Test the connection with a simple health check
+      const response = await fetch(`${url}/rest/v1/`, {
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        }
+      });
+
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`Connection failed: ${response.status} ${response.statusText}`);
       }
 
       this.isConnected = true;
@@ -89,14 +94,16 @@ class SupabaseService {
   async testConnection() {
     try {
       if (!this.client) return false;
-      
-      const { data, error } = await this.client
-        .from('_test')
-        .select('*')
-        .limit(1);
-      
-      // If table doesn't exist, that's still a successful connection
-      return !error || error.code === 'PGRST116';
+
+      // Test with a simple health check
+      const response = await fetch(`${this.config.url}/rest/v1/`, {
+        headers: {
+          'apikey': this.config.key,
+          'Authorization': `Bearer ${this.config.key}`
+        }
+      });
+
+      return response.ok || response.status === 404;
     } catch (error) {
       console.error('Connection test failed:', error);
       return false;
