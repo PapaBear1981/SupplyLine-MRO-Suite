@@ -230,7 +230,7 @@ class OfflineStorage {
   }
 
   // Utility methods
-  async setItem(key, value) {
+  async setSetting(key, value) {
     const data = {
       id: key,
       value: value,
@@ -268,7 +268,7 @@ class OfflineStorage {
     });
   }
 
-  async getItem(key) {
+  async getSetting(key) {
     return new Promise((resolve, reject) => {
       try {
         // Check if settings store exists

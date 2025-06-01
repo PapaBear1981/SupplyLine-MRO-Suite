@@ -5,23 +5,37 @@ console.log('🔧 Testing Electron + Supabase Fixes...\n');
 
 async function testOfflineStorageFix() {
   console.log('📦 Testing Offline Storage Fix...');
-  
+
   try {
-    // Test if we can save and retrieve a setting
+    // Test if we can save and retrieve a setting using the proper API
     const testKey = 'test_setting';
     const testValue = { test: 'value', timestamp: Date.now() };
-    
-    // This should not throw an error anymore
-    localStorage.setItem(testKey, JSON.stringify(testValue));
-    const retrieved = JSON.parse(localStorage.getItem(testKey));
-    
-    if (retrieved && retrieved.test === testValue.test) {
-      console.log('✅ Offline storage fix working - no more IndexedDB errors');
-      localStorage.removeItem(testKey);
-      return true;
+
+    // Test with offlineStorage if available, otherwise fallback to localStorage
+    if (typeof window !== 'undefined' && window.offlineStorage) {
+      await window.offlineStorage.setSetting(testKey, testValue);
+      const retrieved = await window.offlineStorage.getSetting(testKey);
+
+      if (retrieved && retrieved.test === testValue.test) {
+        console.log('✅ Offline storage fix working - IndexedDB settings API functional');
+        return true;
+      } else {
+        console.log('❌ Offline storage IndexedDB test failed');
+        return false;
+      }
     } else {
-      console.log('❌ Offline storage test failed');
-      return false;
+      // Fallback test with localStorage
+      localStorage.setItem(testKey, JSON.stringify(testValue));
+      const retrieved = JSON.parse(localStorage.getItem(testKey));
+
+      if (retrieved && retrieved.test === testValue.test) {
+        console.log('✅ Offline storage fix working - localStorage fallback functional');
+        localStorage.removeItem(testKey);
+        return true;
+      } else {
+        console.log('❌ Offline storage localStorage test failed');
+        return false;
+      }
     }
   } catch (error) {
     console.log('❌ Offline storage error:', error.message);
