@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser } from './store/authSlice';
@@ -8,6 +8,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Import Help Provider
 import { HelpProvider } from './context/HelpContext';
+
+// Import Supabase services
+import supabaseService from './services/supabase.js';
+import syncService from './services/syncService.js';
+import offlineStorage from './utils/offlineStorage.js';
+import SupabaseConfig from './components/SupabaseConfig.jsx';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
@@ -56,8 +62,38 @@ import CalibrationDetailPage from './pages/CalibrationDetailPage';
 function App() {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.theme);
+  const [showSupabaseConfig, setShowSupabaseConfig] = useState(false);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
 
   useEffect(() => {
+    // Initialize offline storage and Supabase
+    const initializeServices = async () => {
+      try {
+        // Initialize offline storage
+        await offlineStorage.initialize();
+        console.log('✅ Offline storage initialized');
+
+        // Try to initialize Supabase
+        const supabaseReady = await supabaseService.initialize();
+        if (supabaseReady) {
+          console.log('✅ Supabase initialized');
+          await syncService.initialize();
+          console.log('✅ Sync service initialized');
+          setSupabaseInitialized(true);
+        } else {
+          console.log('⚠️  Supabase not configured, showing config dialog');
+          // Check if running in Electron to show config dialog
+          if (window.electronAPI) {
+            setShowSupabaseConfig(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize services:', error);
+      }
+    };
+
+    initializeServices();
+
     // Try to fetch current user on app load
     dispatch(fetchCurrentUser());
   }, [dispatch]);
@@ -67,9 +103,21 @@ function App() {
     document.documentElement.setAttribute('data-bs-theme', theme);
   }, [theme]);
 
+  const handleSupabaseConfigured = () => {
+    setSupabaseInitialized(true);
+    setShowSupabaseConfig(false);
+  };
+
   return (
     <HelpProvider>
       <Router>
+        {/* Supabase Configuration Modal */}
+        <SupabaseConfig
+          show={showSupabaseConfig}
+          onHide={() => setShowSupabaseConfig(false)}
+          onConfigured={handleSupabaseConfigured}
+        />
+
         <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
