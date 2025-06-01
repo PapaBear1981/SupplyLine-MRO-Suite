@@ -72,8 +72,8 @@ async function testOfflineStorage() {
     const offlineStorage = module.default;
     
     // Test basic storage operations
-    await offlineStorage.setItem('test_key', 'test_value');
-    const value = await offlineStorage.getItem('test_key');
+    await offlineStorage.setSetting('test_key', 'test_value');
+    const value = await offlineStorage.getSetting('test_key');
     
     if (value === 'test_value') {
       console.log('✅ Offline storage read/write working');

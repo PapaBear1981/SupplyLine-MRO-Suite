@@ -1,6 +1,6 @@
 # SupplyLine MRO Suite
 
-A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations. Now includes a Flutter mobile app for on-the-go tool management.
+A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
 **Current Version: 3.5.4** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
@@ -8,15 +8,7 @@ A comprehensive inventory management system for tools and chemicals built with R
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-### Mobile App
-The SupplyLine MRO Suite now includes a Flutter mobile application that provides:
-- **Mobile Tool Management**: Check out and return tools on-the-go
-- **QR Code Scanning**: Quick tool identification and management
-- **Offline Capability**: Work without internet connection (planned)
-- **Real-time Sync**: Seamless synchronization with the main system
-- **User-friendly Interface**: Optimized for mobile devices
 
-For mobile app setup and usage instructions, see the [Mobile App README](../SupplyLine-MRO-Suite-Mobile/README.md).
 
 ## What's New in 3.5.4
 

@@ -2,13 +2,33 @@
 -- This script creates the database schema matching the current SQLite structure
 
 -- Enable Row Level Security
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret-here';
+-- Note: Configure JWT_SECRET via environment variables for security
+-- Use: supabase secrets set JWT_SECRET="<YOUR_SECURE_SECRET>"
 
--- Create custom types
-CREATE TYPE user_role AS ENUM ('user', 'admin', 'materials');
-CREATE TYPE tool_condition AS ENUM ('excellent', 'good', 'fair', 'poor', 'needs_repair');
-CREATE TYPE chemical_status AS ENUM ('available', 'low_stock', 'out_of_stock', 'expired');
-CREATE TYPE checkout_status AS ENUM ('active', 'returned', 'overdue');
+-- Create custom types (with existence checks for idempotent migrations)
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('user', 'admin', 'materials');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE tool_condition AS ENUM ('excellent', 'good', 'fair', 'poor', 'needs_repair');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE chemical_status AS ENUM ('available', 'low_stock', 'out_of_stock', 'expired');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE checkout_status AS ENUM ('active', 'returned', 'overdue');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (

@@ -9,6 +9,9 @@ class SyncService {
     this.lastSyncTime = null;
     this.syncInterval = null;
     this.conflictResolutionStrategy = 'server_wins'; // 'server_wins', 'client_wins', 'manual'
+    this.retryAttempts = new Map(); // Track retry attempts per item
+    this.maxRetries = 5;
+    this.baseRetryDelay = 1000; // 1 second
     
     // Listen for online/offline events
     window.addEventListener('online', () => {
@@ -25,7 +28,7 @@ class SyncService {
   async initialize() {
     try {
       // Load last sync time from storage
-      this.lastSyncTime = await offlineStorage.getItem('lastSyncTime');
+      this.lastSyncTime = await offlineStorage.getSetting('lastSyncTime');
       
       // Start periodic sync if online
       if (this.isOnline && supabaseService.isReady()) {
@@ -94,7 +97,7 @@ class SyncService {
       // Update last sync time
       this.lastSyncTime = new Date().toISOString();
       try {
-        await offlineStorage.setItem('lastSyncTime', this.lastSyncTime);
+        await offlineStorage.setSetting('lastSyncTime', this.lastSyncTime);
       } catch (error) {
         console.warn('Failed to save last sync time:', error.message);
         // Continue anyway, this is not critical
@@ -246,8 +249,8 @@ class SyncService {
       
     } catch (error) {
       console.error(`Failed to push local change for ${tableName}:`, error);
-      // Keep in sync queue for retry
-      this.addToSyncQueue(tableName, localItem);
+      // Use exponential backoff for retries
+      this.pushLocalChangeWithRetry(tableName, localItem, 0);
     }
   }
 
@@ -260,6 +263,29 @@ class SyncService {
 
   addToSyncQueue(tableName, item) {
     this.syncQueue.push({ tableName, item });
+  }
+
+  async pushLocalChangeWithRetry(tableName, item, attempt = 0) {
+    const itemKey = `${tableName}-${item.id}`;
+
+    try {
+      await this.pushLocalChange(tableName, item);
+      this.retryAttempts.delete(itemKey);
+    } catch (error) {
+      if (attempt < this.maxRetries) {
+        const delay = this.baseRetryDelay * Math.pow(2, attempt);
+        console.log(`Retrying sync for ${itemKey} in ${delay}ms (attempt ${attempt + 1}/${this.maxRetries})`);
+
+        setTimeout(() => {
+          this.pushLocalChangeWithRetry(tableName, item, attempt + 1);
+        }, delay);
+      } else {
+        console.error(`Max retries reached for ${itemKey}, giving up`);
+        this.retryAttempts.delete(itemKey);
+        // Add to sync queue as last resort
+        this.addToSyncQueue(tableName, item);
+      }
+    }
   }
 
   // Public methods for manual operations
