@@ -36,7 +36,8 @@ function createWindow() {
   if (isDev) {
     // Development mode - load from dev server
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    // Don't open DevTools automatically - user can open with F12 or Ctrl+Shift+I
+    // mainWindow.webContents.openDevTools();
   } else {
     // Production mode - load from built files
     mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
@@ -50,6 +51,14 @@ function createWindow() {
   // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Add keyboard shortcut to toggle DevTools (F12 or Ctrl+Shift+I)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' ||
+        (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+      mainWindow.webContents.toggleDevTools();
+    }
   });
 }
 
