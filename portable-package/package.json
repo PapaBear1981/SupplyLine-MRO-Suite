@@ -1,0 +1,22 @@
+{
+  "name": "supplyline-mro-suite-portable",
+  "version": "3.6.0",
+  "description": "Portable SupplyLine MRO Suite Progressive Web Application",
+  "main": "server/portable-server.js",
+  "scripts": {
+    "start": "node server/portable-server.js",
+    "install-deps": "cd server && npm install"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "mro",
+    "tools",
+    "inventory",
+    "pwa",
+    "portable"
+  ],
+  "author": "SupplyLine MRO Suite",
+  "license": "MIT"
+}
