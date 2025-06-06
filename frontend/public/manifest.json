@@ -1,24 +1,27 @@
 {
   "name": "SupplyLine MRO Suite",
   "short_name": "SupplyLine",
-  "description": "Mobile-optimized tool and inventory management system",
+  "description": "Progressive Web Application for MRO tool and chemical management with offline support",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0d6efd",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/vite.svg",
@@ -27,8 +30,28 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "business"],
-  "lang": "en-US",
-  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to user dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Tools",
+      "short_name": "Tools",
+      "description": "Manage tools",
+      "url": "/tools",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Checkouts",
+      "short_name": "Checkouts",
+      "description": "View checkouts",
+      "url": "/checkouts",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    }
+  ],
   "prefer_related_applications": false
 }

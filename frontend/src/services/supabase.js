@@ -12,27 +12,19 @@ class SupabaseService {
 
   async initialize() {
     try {
-      // Check if running in Electron
-      if (window.electronAPI) {
-        const config = await window.electronAPI.getSupabaseConfig();
-        if (config.url && config.key) {
-          this.config = config;
-          this.client = createClient(config.url, config.key);
-          this.isConnected = true;
-          return true;
-        }
-      } else {
-        // Web version - check environment variables or localStorage
-        const url = import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('supabase_url');
-        const key = import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('supabase_key');
-        
-        if (url && key) {
-          this.config = { url, key };
-          this.client = createClient(url, key);
-          this.isConnected = true;
-          return true;
-        }
+      // PWA version - check environment variables or localStorage
+      const url = import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('supabase_url');
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('supabase_key');
+
+      if (url && key) {
+        this.config = { url, key };
+        this.client = createClient(url, key);
+        this.isConnected = true;
+        console.log('✅ Supabase initialized from stored config');
+        return true;
       }
+
+      console.log('⚠️  No Supabase configuration found');
       return false;
     } catch (error) {
       console.error('Failed to initialize Supabase:', error);
@@ -59,13 +51,10 @@ class SupabaseService {
 
       this.isConnected = true;
 
-      // Save configuration
-      if (window.electronAPI) {
-        await window.electronAPI.setSupabaseConfig({ url, key });
-      } else {
-        localStorage.setItem('supabase_url', url);
-        localStorage.setItem('supabase_key', key);
-      }
+      // Save configuration to localStorage for PWA
+      localStorage.setItem('supabase_url', url);
+      localStorage.setItem('supabase_key', key);
+      console.log('✅ Supabase configuration saved to localStorage');
 
       return true;
     } catch (error) {

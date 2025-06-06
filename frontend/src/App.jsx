@@ -82,10 +82,8 @@ function App() {
           setSupabaseInitialized(true);
         } else {
           console.log('⚠️  Supabase not configured, showing config dialog');
-          // Check if running in Electron to show config dialog
-          if (window.electronAPI) {
-            setShowSupabaseConfig(true);
-          }
+          // Show config dialog for PWA (no longer Electron-specific)
+          setShowSupabaseConfig(true);
         }
       } catch (error) {
         console.error('Failed to initialize services:', error);

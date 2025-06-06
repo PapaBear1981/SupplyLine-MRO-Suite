@@ -1,86 +1,32 @@
 {
-  "name": "supplyline-mro-suite-electron",
-  "version": "3.5.4",
-  "description": "SupplyLine MRO Suite - Electron Desktop Application with Supabase Sync",
-  "main": "electron/main.js",
+  "name": "supplyline-mro-suite-pwa",
+  "version": "3.6.0",
+  "description": "SupplyLine MRO Suite - Progressive Web Application with Supabase Backend",
+  "author": "SupplyLine MRO Suite",
   "homepage": "./",
   "private": true,
   "scripts": {
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\" \"wait-on http://localhost:5173 http://localhost:5000 && electron .\"",
-    "build": "npm run frontend:build && npm run backend:build",
+    "dev": "cd frontend && npm run dev",
+    "build": "npm run frontend:build && npm run server:build",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
-    "backend:dev": "cd backend && python app.py",
-    "backend:build": "echo 'Backend build placeholder'",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:linux": "npm run build && electron-builder --linux",
-    "postinstall": "electron-builder install-app-deps"
-  },
-  "build": {
-    "appId": "com.supplyline.mro-suite",
-    "productName": "SupplyLine MRO Suite",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "electron/**/*",
-      "frontend/dist/**/*",
-      "backend/**/*",
-      "!backend/venv/**/*",
-      "!backend/__pycache__/**/*",
-      "!backend/*.pyc",
-      "!backend/app.db",
-      "!backend/database.db",
-      "!backend/app.log",
-      "!backend/error.log"
-    ],
-    "extraResources": [
-      {
-        "from": "backend",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!venv/**/*",
-          "!__pycache__/**/*",
-          "!*.pyc",
-          "!app.db",
-          "!database.db",
-          "!app.log",
-          "!error.log"
-        ]
-      }
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+    "server:build": "node scripts/build-portable-server.js",
+    "serve": "node server/portable-server.js",
+    "serve:dev": "concurrently \"npm run frontend:dev\" \"npm run serve\"",
+    "build:portable": "npm run build && npm run package:portable",
+    "package:portable": "node scripts/package-portable.js",
+    "clean": "rimraf dist frontend/dist server/dist",
+    "test": "cd frontend && npm run test",
+    "lint": "cd frontend && npm run lint"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
-    "electron": "^32.2.6",
-    "electron-builder": "^25.1.8",
-    "wait-on": "^8.0.1"
+    "rimraf": "^6.0.1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
-    "bcrypt": "^5.1.0",
-    "electron-store": "^10.0.0",
-    "electron-updater": "^6.3.9",
-    "sqlite3": "^5.1.7"
+    "express": "^4.18.2",
+    "serve-static": "^1.15.0",
+    "open": "^8.4.0"
   }
 }

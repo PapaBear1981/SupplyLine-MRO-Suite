@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SupplyLine MRO Suite</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SupplyLine MRO Suite</h1>
+    <div class="header-buttons">
+      <button id="login_btn" class="button">Login</button>
+      <button id="logout_btn" class="button" style="display: none;">Logout</button>
+      <button id="settings_btn" class="icon-button" aria-label="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <div id="form">
+    <h2>Checkout Tool</h2>
+    <input id="tool_id" placeholder="Tool ID">
+    <input id="user_id" placeholder="User ID">
+    <button id="checkout_btn">Checkout</button>
+    <h2>Return Tool</h2>
+    <input id="checkout_id" placeholder="Checkout ID">
+    <button id="return_btn">Return</button>
+  </div>
+
+  <h2>Checkout Records</h2>
+  <table id="records">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tool ID</th>
+        <th>User ID</th>
+        <th>Checkout Date</th>
+        <th>Return Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Settings Modal -->
+  <div id="settings_modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Settings</h2>
+
+      <div class="settings-section">
+        <h3>Theme</h3>
+        <div class="theme-options">
+          <label>
+            <input type="radio" name="theme" value="light" checked> Light
+          </label>
+          <label>
+            <input type="radio" name="theme" value="dark"> Dark
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Color Scheme</h3>
+        <select id="color_scheme">
+          <option value="default">Default</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="purple">Purple</option>
+        </select>
+      </div>
+
+      <div class="settings-section">
+        <h3>User Preferences</h3>
+        <label>
+          <input type="checkbox" id="auto_refresh"> Auto-refresh records
+        </label>
+        <div class="preference-item">
+          <label for="refresh_interval">Refresh interval (seconds):</label>
+          <input type="number" id="refresh_interval" min="5" max="60" value="30">
+        </div>
+      </div>
+
+      <button id="save_settings">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login_modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-modal="login_modal">&times;</span>
+      <h2>Login</h2>
+
+      <div id="login_error" class="error-message"></div>
+
+      <div class="form-group">
+        <label for="employee_number">Employee Number:</label>
+        <input type="text" id="employee_number" placeholder="Enter your employee number">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter your password">
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="remember_me"> Remember me for 30 days
+        </label>
+      </div>
+
+      <button id="login_submit" class="primary-button">Login</button>
+
+      <div class="form-footer">
+        <p>Don't have an account? <a href="#" id="register_link">Register</a></p>
+        <p><a href="#" id="forgot_password_link">Forgot Password?</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registration Modal -->
+  <div id="register_modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-modal="register_modal">&times;</span>
+      <h2>Register New Account</h2>
+
+      <div id="register_error" class="error-message"></div>
+      <div id="register_success" class="success-message"></div>
+
+      <div class="form-group">
+        <label for="reg_name">Full Name:</label>
+        <input type="text" id="reg_name" placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group">
+        <label for="reg_employee_number">Employee Number:</label>
+        <input type="text" id="reg_employee_number" placeholder="Enter your employee number">
+      </div>
+
+      <div class="form-group">
+        <label for="reg_department">Department:</label>
+        <select id="reg_department">
+          <option value="">Select Department</option>
+          <option value="IT">IT</option>
+          <option value="Maintenance">Maintenance</option>
+          <option value="Operations">Operations</option>
+          <option value="Management">Management</option>
+          <option value="Materials">Materials</option>
+          <option value="HR">HR</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="reg_password">Password:</label>
+        <input type="password" id="reg_password" placeholder="Create a password">
+      </div>
+
+      <div class="form-group">
+        <label for="reg_confirm_password">Confirm Password:</label>
+        <input type="password" id="reg_confirm_password" placeholder="Confirm your password">
+      </div>
+
+      <button id="register_submit" class="primary-button">Register</button>
+      <div class="form-footer">
+        <p>Already have an account? <a href="#" id="login_link">Login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Reset Modal -->
+  <div id="reset_password_modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-modal="reset_password_modal">&times;</span>
+      <h2>Reset Password</h2>
+
+      <div id="reset_error" class="error-message"></div>
+      <div id="reset_success" class="success-message"></div>
+
+      <div class="form-group">
+        <label for="reset_employee_number">Employee Number:</label>
+        <input type="text" id="reset_employee_number" placeholder="Enter your employee number">
+      </div>
+
+      <div id="reset_step1">
+        <button id="request_reset" class="primary-button">Request Password Reset</button>
+      </div>
+
+      <div id="reset_step2" style="display: none;">
+        <div class="form-group">
+          <label for="reset_code">Reset Code:</label>
+          <input type="text" id="reset_code" placeholder="Enter the reset code sent to you">
+        </div>
+
+        <div class="form-group">
+          <label for="new_password">New Password:</label>
+          <input type="password" id="new_password" placeholder="Enter new password">
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_new_password">Confirm New Password:</label>
+          <input type="password" id="confirm_new_password" placeholder="Confirm new password">
+        </div>
+
+        <button id="complete_reset" class="primary-button">Reset Password</button>
+      </div>
+
+      <div class="form-footer">
+        <p><a href="#" id="back_to_login">Back to Login</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Info Panel -->
+  <div id="user_info" class="user-info" style="display: none;">
+    <p>Logged in as: <span id="user_name"></span></p>
+    <p id="user_role"></p>
+    <p><a href="#" id="view_profile">View Profile</a></p>
+    <p class="admin-only" style="display: none;"><a href="#" id="manage_tools_link">Manage Tools</a></p>
+  </div>
+
+  <!-- Tool Management Modal -->
+  <div id="tools_modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-modal="tools_modal">&times;</span>
+      <h2>Tool Management</h2>
+
+      <div id="tools_error" class="error-message"></div>
+      <div id="tools_success" class="success-message"></div>
+
+      <div class="tabs">
+        <button class="tab-button active" data-tab="add_tool">Add Tool</button>
+        <button class="tab-button" data-tab="view_tools">View Tools</button>
+      </div>
+
+      <div id="add_tool" class="tab-content active">
+        <div class="form-group">
+          <label for="tool_number_input">Tool Number:</label>
+          <input type="text" id="tool_number_input" placeholder="Enter tool number">
+        </div>
+
+        <div class="form-group">
+          <label for="serial_number_input">Serial Number:</label>
+          <input type="text" id="serial_number_input" placeholder="Enter serial number">
+        </div>
+
+        <div class="form-group">
+          <label for="description_input">Description:</label>
+          <input type="text" id="description_input" placeholder="Enter tool description">
+        </div>
+
+        <div class="form-group">
+          <label for="condition_input">Condition:</label>
+          <select id="condition_input">
+            <option value="New">New</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="location_input">Storage Location:</label>
+          <input type="text" id="location_input" placeholder="Enter storage location">
+        </div>
+
+        <button id="add_tool_btn" class="primary-button">Add Tool</button>
+      </div>
+
+      <div id="view_tools" class="tab-content">
+        <div class="tools-container">
+          <div class="tools-header">
+            <h3>Available Tools</h3>
+            <button id="refresh_tools_btn" class="small-button">Refresh</button>
+          </div>
+          <div class="search-box">
+            <input type="text" id="tool_search" placeholder="Search tools...">
+          </div>
+          <table id="tools_table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tool Number</th>
+                <th>Serial Number</th>
+                <th>Description</th>
+                <th>Condition</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Modal -->
+  <div id="profile_modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-modal="profile_modal">&times;</span>
+      <h2>User Profile</h2>
+
+      <div id="profile_error" class="error-message"></div>
+      <div id="profile_success" class="success-message"></div>
+
+      <div class="tabs">
+        <button class="tab-button active" data-tab="profile_info">Profile Info</button>
+        <button class="tab-button" data-tab="change_password">Change Password</button>
+        <button class="tab-button" data-tab="activity_log">Activity Log</button>
+      </div>
+
+      <div id="profile_info" class="tab-content active">
+        <div class="form-group">
+          <label for="profile_name">Full Name:</label>
+          <input type="text" id="profile_name">
+        </div>
+
+        <div class="form-group">
+          <label for="profile_employee_number">Employee Number:</label>
+          <input type="text" id="profile_employee_number" disabled>
+        </div>
+
+        <div class="form-group">
+          <label for="profile_department">Department:</label>
+          <select id="profile_department">
+            <option value="IT">IT</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Operations">Operations</option>
+            <option value="Management">Management</option>
+            <option value="Materials">Materials</option>
+            <option value="HR">HR</option>
+          </select>
+        </div>
+
+        <button id="update_profile" class="primary-button">Update Profile</button>
+      </div>
+
+      <div id="change_password" class="tab-content">
+        <div class="form-group">
+          <label for="current_password">Current Password:</label>
+          <input type="password" id="current_password" placeholder="Enter current password">
+        </div>
+
+        <div class="form-group">
+          <label for="profile_new_password">New Password:</label>
+          <input type="password" id="profile_new_password" placeholder="Enter new password">
+        </div>
+
+        <div class="form-group">
+          <label for="profile_confirm_password">Confirm New Password:</label>
+          <input type="password" id="profile_confirm_password" placeholder="Confirm new password">
+        </div>
+
+        <button id="update_password" class="primary-button">Update Password</button>
+      </div>
+
+      <div id="activity_log" class="tab-content">
+        <div class="activity-container">
+          <h3>Recent Activity</h3>
+          <div id="user_activity_list" class="activity-list">
+            <p class="loading-text">Loading activity...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
