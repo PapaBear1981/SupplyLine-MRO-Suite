@@ -8,6 +8,7 @@
  */
 
 const express = require('express');
+const serveStatic = require('serve-static');
 const path = require('path');
 const fs = require('fs');
 const open = require('open');
@@ -37,17 +38,37 @@ class PortableServer {
       next();
     });
 
-    // Serve static files from frontend/dist
-    this.app.use(express.static(this.frontendPath, {
+    // Serve static files from frontend/dist with proper MIME types
+    this.app.use(serveStatic(this.frontendPath, {
       maxAge: 0, // No caching for development
       etag: false,
-      lastModified: false
+      lastModified: false,
+      setHeaders: (res, path) => {
+        // Set proper MIME types for JavaScript modules
+        if (path.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        } else if (path.endsWith('.mjs')) {
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        } else if (path.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        } else if (path.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        } else if (path.endsWith('.html')) {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        }
+      }
     }));
 
-    // Handle client-side routing - serve index.html for all routes
+    // Handle client-side routing - serve index.html for navigation requests only
     this.app.get('*', (req, res) => {
+      // Don't serve index.html for asset requests
+      if (req.path.startsWith('/assets/') ||
+          req.path.includes('.') && !req.path.endsWith('.html')) {
+        return res.status(404).send('Asset not found');
+      }
+
       const indexPath = path.join(this.frontendPath, 'index.html');
-      
+
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
       } else {
