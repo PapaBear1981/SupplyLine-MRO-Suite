@@ -70,3 +70,28 @@ logs
 *.swp
 *.swo
 *~
+
+# Electron build artifacts
+/app-build/
+/build-output/
+/dist-new/
+/electron-dist/
+/final-build/
+/portable-build/
+/installer/
+*.asar
+
+# Portable distributions
+/SupplyLine-MRO-Suite-Portable*/
+/SupplyLine-MRO-Suite-Simple-Portable/
+/SupplyLine-MRO-Suite-Truly-Portable/
+
+# Large executable files
+*.exe
+!frontend/node_modules/@esbuild/*/esbuild.exe
+
+# Python virtual environments (more comprehensive)
+backend/venv/
+backend/.venv/
+**/venv/
+**/.venv/
