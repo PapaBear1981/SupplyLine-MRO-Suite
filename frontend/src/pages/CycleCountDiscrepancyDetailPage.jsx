@@ -41,7 +41,7 @@ const CycleCountDiscrepancyDetailPage = () => {
     const fetchDiscrepancy = async () => {
       try {
         setLoading(true);
-        const data = await CycleCountService.getResultById(id);
+        const data = await CycleCountService.getResultById(id, controller.signal);
         setDiscrepancy(data);
 
         // Pre-fill form with appropriate values

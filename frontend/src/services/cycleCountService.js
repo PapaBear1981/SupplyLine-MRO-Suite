@@ -12,9 +12,14 @@ const CycleCountService = {
     }
   },
 
-  getScheduleById: async (id) => {
+  getScheduleById: async (id, signal = null) => {
     try {
-      const response = await api.get(`/cycle-counts/schedules/${id}`);
+      if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+        throw new Error('Valid ID is required');
+      }
+      const response = await api.get(`/cycle-counts/schedules/${id}`, {
+        ...(signal && { signal })
+      });
       return response.data;
     } catch (error) {
       console.error(`API Error [GET] /cycle-counts/schedules/${id}:`, error);
@@ -63,9 +68,14 @@ const CycleCountService = {
     }
   },
 
-  getBatchById: async (id) => {
+  getBatchById: async (id, signal = null) => {
     try {
-      const response = await api.get(`/cycle-counts/batches/${id}`);
+      if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+        throw new Error('Valid ID is required');
+      }
+      const response = await api.get(`/cycle-counts/batches/${id}`, {
+        ...(signal && { signal })
+      });
       return response.data;
     } catch (error) {
       console.error(`API Error [GET] /cycle-counts/batches/${id}:`, error);
@@ -114,9 +124,14 @@ const CycleCountService = {
     }
   },
 
-  getItemById: async (id) => {
+  getItemById: async (id, signal = null) => {
     try {
-      const response = await api.get(`/cycle-counts/items/${id}`);
+      if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+        throw new Error('Valid ID is required');
+      }
+      const response = await api.get(`/cycle-counts/items/${id}`, {
+        ...(signal && { signal })
+      });
       return response.data;
     } catch (error) {
       console.error(`API Error [GET] /cycle-counts/items/${id}:`, error);
@@ -145,9 +160,14 @@ const CycleCountService = {
   },
 
   // Result operations
-  getResultById: async (id) => {
+  getResultById: async (id, signal = null) => {
     try {
-      const response = await api.get(`/cycle-counts/results/${id}`);
+      if (!id || (typeof id !== 'string' && typeof id !== 'number')) {
+        throw new Error('Valid ID is required');
+      }
+      const response = await api.get(`/cycle-counts/results/${id}`, {
+        ...(signal && { signal })
+      });
       return response.data;
     } catch (error) {
       console.error(`API Error [GET] /cycle-counts/results/${id}:`, error);
@@ -202,6 +222,12 @@ const CycleCountService = {
 
   importResults: async (batchId, file) => {
     try {
+      if (!file || !(file instanceof File)) {
+        throw new Error('Valid file is required');
+      }
+      if (!batchId) {
+        throw new Error('Batch ID is required');
+      }
       const formData = new FormData();
       formData.append('file', file);
 
@@ -219,6 +245,9 @@ const CycleCountService = {
 
   importBatches: async (file) => {
     try {
+      if (!file || !(file instanceof File)) {
+        throw new Error('Valid file is required');
+      }
       const formData = new FormData();
       formData.append('file', file);
 
@@ -230,6 +259,80 @@ const CycleCountService = {
       return response.data;
     } catch (error) {
       console.error('API Error [POST] /cycle-counts/batches/import:', error);
+      throw error;
+    }
+  },
+
+  // Additional methods needed for complete migration
+  getDiscrepancies: async (params = {}) => {
+    try {
+      const response = await api.get('/cycle-counts/discrepancies', { params });
+      return response.data;
+    } catch (error) {
+      console.error('API Error [GET] /cycle-counts/discrepancies:', error);
+      throw error;
+    }
+  },
+
+  adjustResult: async (resultId, adjustmentData) => {
+    try {
+      if (!resultId) {
+        throw new Error('Result ID is required');
+      }
+      const response = await api.post(`/cycle-counts/results/${resultId}/adjust`, adjustmentData);
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [POST] /cycle-counts/results/${resultId}/adjust:`, error);
+      throw error;
+    }
+  },
+
+  importSchedules: async (file) => {
+    try {
+      if (!file || !(file instanceof File)) {
+        throw new Error('Valid file is required');
+      }
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post('/cycle-counts/schedules/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('API Error [POST] /cycle-counts/schedules/import:', error);
+      throw error;
+    }
+  },
+
+  // Export methods for schedules and results
+  exportSchedule: async (scheduleId, format = 'csv') => {
+    try {
+      if (!scheduleId) {
+        throw new Error('Schedule ID is required');
+      }
+      const response = await api.get(`/cycle-counts/schedules/${scheduleId}/export`, {
+        params: { format },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [GET] /cycle-counts/schedules/${scheduleId}/export:`, error);
+      throw error;
+    }
+  },
+
+  exportResults: async (filters = {}, format = 'csv') => {
+    try {
+      const response = await api.get('/cycle-counts/results/export', {
+        params: { format, ...filters },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('API Error [GET] /cycle-counts/results/export:', error);
       throw error;
     }
   }

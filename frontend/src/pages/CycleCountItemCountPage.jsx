@@ -30,7 +30,7 @@ const CycleCountItemCountPage = () => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        const data = await CycleCountService.getItemById(id);
+        const data = await CycleCountService.getItemById(id, controller.signal);
         setItem(data);
       } catch (err) {
         if (err.name !== 'AbortError') {
