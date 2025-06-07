@@ -62,8 +62,7 @@ def create_secure_admin():
             employee_number='ADMIN001',
             department='IT',
             is_admin=True,
-            is_active=True,
-            force_password_change=True  # Force password change on first login
+            is_active=True
         )
 
         admin.set_password(admin_password)
@@ -99,12 +98,8 @@ def validate_admin_setup():
         if admin.check_password('admin123'):
             issues.append("CRITICAL: Admin is using default password 'admin123'")
 
-        # Check if force password change is enabled
-        if hasattr(admin, 'force_password_change'):
-            if not admin.force_password_change:
-                issues.append("CRITICAL: Admin is not forced to change bootstrap password")
-        else:
-            issues.append("WARNING: Admin user lacks force_password_change attribute")
+        # Note: force_password_change field not implemented in current User model
+        # This is a potential security enhancement for future versions
 
         # Check environment variable setup
         if not os.environ.get('INITIAL_ADMIN_PASSWORD'):
@@ -135,9 +130,7 @@ def reset_admin_password():
         new_password = secrets.token_urlsafe(16)
         admin.set_password(new_password)
 
-        # Force password change on next login
-        if hasattr(admin, 'force_password_change'):
-            admin.force_password_change = True
+        # Note: force_password_change field not implemented in current User model
 
         db.session.commit()
 

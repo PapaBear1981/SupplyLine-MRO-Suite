@@ -11,7 +11,7 @@ import {
   Badge,
   Form
 } from 'react-bootstrap';
-import axios from 'axios';
+import CycleCountService from '../services/cycleCountService';
 import { approveCountAdjustment } from '../store/cycleCountSlice';
 import { useHelp } from '../context/HelpContext';
 
@@ -41,24 +41,21 @@ const CycleCountDiscrepancyDetailPage = () => {
     const fetchDiscrepancy = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `/api/cycle-counts/results/${id}`,
-          { signal: controller.signal }
-        );
-        setDiscrepancy(response.data);
+        const data = await CycleCountService.getResultById(id);
+        setDiscrepancy(data);
 
         // Pre-fill form with appropriate values
-        if (response.data.discrepancy_type === 'quantity') {
+        if (data.discrepancy_type === 'quantity') {
           setFormData(prev => ({
             ...prev,
             adjustment_type: 'quantity',
-            new_value: response.data.actual_quantity.toString()
+            new_value: data.actual_quantity.toString()
           }));
-        } else if (response.data.discrepancy_type === 'location') {
+        } else if (data.discrepancy_type === 'location') {
           setFormData(prev => ({
             ...prev,
             adjustment_type: 'location',
-            new_value: response.data.actual_location
+            new_value: data.actual_location
           }));
         }
       } catch (err) {

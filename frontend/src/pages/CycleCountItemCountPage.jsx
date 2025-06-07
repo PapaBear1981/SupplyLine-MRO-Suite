@@ -9,7 +9,7 @@ import {
   Alert,
   Spinner
 } from 'react-bootstrap';
-import axios from 'axios';
+import CycleCountService from '../services/cycleCountService';
 
 import { useHelp } from '../context/HelpContext';
 import CycleCountItemForm from '../components/cycleCount/CycleCountItemForm';
@@ -30,10 +30,8 @@ const CycleCountItemCountPage = () => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/cycle-counts/items/${id}`, {
-          signal: controller.signal
-        });
-        setItem(response.data);
+        const data = await CycleCountService.getItemById(id);
+        setItem(data);
       } catch (err) {
         if (err.name !== 'AbortError') {
           console.error('Error fetching item details:', err);

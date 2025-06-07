@@ -1,13 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import CycleCountService from '../services/cycleCountService';
 
 // Async thunks for API calls
 export const fetchCycleCountSchedules = createAsyncThunk(
   'cycleCount/fetchSchedules',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/schedules', { params });
-      return response.data;
+      const data = await CycleCountService.getAllSchedules(params);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count schedules' });
     }
@@ -18,10 +18,8 @@ export const fetchCycleCountSchedule = createAsyncThunk(
   'cycleCount/fetchSchedule',
   async ({ id, includeBatches = false }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/schedules/${id}`, {
-        params: { include_batches: includeBatches }
-      });
-      return response.data;
+      const data = await CycleCountService.getScheduleById(id);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to fetch cycle count schedule ${id}` });
     }
@@ -32,8 +30,8 @@ export const createCycleCountSchedule = createAsyncThunk(
   'cycleCount/createSchedule',
   async (scheduleData, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/cycle-counts/schedules', scheduleData);
-      return response.data;
+      const data = await CycleCountService.createSchedule(scheduleData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to create cycle count schedule' });
     }
@@ -44,8 +42,8 @@ export const updateCycleCountSchedule = createAsyncThunk(
   'cycleCount/updateSchedule',
   async ({ id, scheduleData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/cycle-counts/schedules/${id}`, scheduleData);
-      return response.data;
+      const data = await CycleCountService.updateSchedule(id, scheduleData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to update cycle count schedule ${id}` });
     }
@@ -56,8 +54,8 @@ export const deleteCycleCountSchedule = createAsyncThunk(
   'cycleCount/deleteSchedule',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`/api/cycle-counts/schedules/${id}`);
-      return { id, ...(response.data || {}) };
+      const data = await CycleCountService.deleteSchedule(id);
+      return { id, ...data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to delete cycle count schedule ${id}` });
     }
