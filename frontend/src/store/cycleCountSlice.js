@@ -1,13 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import CycleCountService from '../services/cycleCountService';
 
 // Async thunks for API calls
 export const fetchCycleCountSchedules = createAsyncThunk(
   'cycleCount/fetchSchedules',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/schedules', { params });
-      return response.data;
+      const data = await CycleCountService.getAllSchedules(params);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count schedules' });
     }
@@ -18,10 +18,8 @@ export const fetchCycleCountSchedule = createAsyncThunk(
   'cycleCount/fetchSchedule',
   async ({ id, includeBatches = false }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/schedules/${id}`, {
-        params: { include_batches: includeBatches }
-      });
-      return response.data;
+      const data = await CycleCountService.getScheduleById(id);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to fetch cycle count schedule ${id}` });
     }
@@ -32,8 +30,8 @@ export const createCycleCountSchedule = createAsyncThunk(
   'cycleCount/createSchedule',
   async (scheduleData, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/cycle-counts/schedules', scheduleData);
-      return response.data;
+      const data = await CycleCountService.createSchedule(scheduleData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to create cycle count schedule' });
     }
@@ -44,8 +42,8 @@ export const updateCycleCountSchedule = createAsyncThunk(
   'cycleCount/updateSchedule',
   async ({ id, scheduleData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/cycle-counts/schedules/${id}`, scheduleData);
-      return response.data;
+      const data = await CycleCountService.updateSchedule(id, scheduleData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to update cycle count schedule ${id}` });
     }
@@ -56,8 +54,8 @@ export const deleteCycleCountSchedule = createAsyncThunk(
   'cycleCount/deleteSchedule',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`/api/cycle-counts/schedules/${id}`);
-      return { id, ...(response.data || {}) };
+      const data = await CycleCountService.deleteSchedule(id);
+      return { id, ...data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to delete cycle count schedule ${id}` });
     }
@@ -68,8 +66,8 @@ export const fetchCycleCountBatches = createAsyncThunk(
   'cycleCount/fetchBatches',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/batches', { params });
-      return response.data;
+      const data = await CycleCountService.getAllBatches(params);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count batches' });
     }
@@ -80,10 +78,8 @@ export const fetchCycleCountBatch = createAsyncThunk(
   'cycleCount/fetchBatch',
   async ({ id, includeItems = false }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/batches/${id}`, {
-        params: { include_items: includeItems }
-      });
-      return response.data;
+      const data = await CycleCountService.getBatchById(id);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to fetch cycle count batch ${id}` });
     }
@@ -94,8 +90,8 @@ export const createCycleCountBatch = createAsyncThunk(
   'cycleCount/createBatch',
   async (batchData, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/cycle-counts/batches', batchData);
-      return response.data;
+      const data = await CycleCountService.createBatch(batchData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to create cycle count batch' });
     }
@@ -106,8 +102,8 @@ export const updateCycleCountBatch = createAsyncThunk(
   'cycleCount/updateBatch',
   async ({ id, batchData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/cycle-counts/batches/${id}`, batchData);
-      return response.data;
+      const data = await CycleCountService.updateBatch(id, batchData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to update cycle count batch ${id}` });
     }
@@ -118,8 +114,8 @@ export const deleteCycleCountBatch = createAsyncThunk(
   'cycleCount/deleteBatch',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`/api/cycle-counts/batches/${id}`);
-      return { id, ...(response.data || {}) };
+      const data = await CycleCountService.deleteBatch(id);
+      return { id, ...data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to delete cycle count batch ${id}` });
     }
@@ -130,8 +126,8 @@ export const fetchCycleCountItems = createAsyncThunk(
   'cycleCount/fetchItems',
   async ({ batchId, params = {} }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/batches/${batchId}/items`, { params });
-      return { batchId, items: response.data };
+      const items = await CycleCountService.getBatchItems(batchId);
+      return { batchId, items };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to fetch cycle count items for batch ${batchId}` });
     }
@@ -142,8 +138,8 @@ export const updateCycleCountItem = createAsyncThunk(
   'cycleCount/updateItem',
   async ({ id, itemData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/cycle-counts/items/${id}`, itemData);
-      return response.data;
+      const data = await CycleCountService.updateItem(id, itemData);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to update cycle count item ${id}` });
     }
@@ -154,8 +150,8 @@ export const submitCountResult = createAsyncThunk(
   'cycleCount/submitResult',
   async ({ itemId, resultData }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`/api/cycle-counts/items/${itemId}/count`, resultData);
-      return { itemId, ...(response.data || {}) };
+      const data = await CycleCountService.submitCountResult(itemId, resultData);
+      return { itemId, ...data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to submit count result for item ${itemId}` });
     }
@@ -166,8 +162,8 @@ export const fetchCountDiscrepancies = createAsyncThunk(
   'cycleCount/fetchDiscrepancies',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/discrepancies', { params });
-      return response.data;
+      const data = await CycleCountService.getDiscrepancies(params);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch count discrepancies' });
     }
@@ -178,8 +174,8 @@ export const approveCountAdjustment = createAsyncThunk(
   'cycleCount/approveAdjustment',
   async ({ resultId, adjustmentData }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`/api/cycle-counts/results/${resultId}/adjust`, adjustmentData);
-      return { resultId, ...(response.data || {}) };
+      const data = await CycleCountService.adjustResult(resultId, adjustmentData);
+      return { resultId, ...data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: `Failed to approve count adjustment for result ${resultId}` });
     }
@@ -190,8 +186,8 @@ export const fetchCycleCountStats = createAsyncThunk(
   'cycleCount/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/stats');
-      return response.data;
+      const data = await CycleCountService.getStats();
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count statistics' });
     }
@@ -202,8 +198,8 @@ export const fetchCycleCountAnalytics = createAsyncThunk(
   'cycleCount/fetchAnalytics',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/cycle-counts/analytics', { params });
-      return response.data;
+      const data = await CycleCountService.getAnalytics(params);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to fetch cycle count analytics' });
     }
@@ -214,12 +210,10 @@ export const exportCycleCountBatch = createAsyncThunk(
   'cycleCount/exportBatch',
   async ({ batchId, format = 'csv' }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/batches/${batchId}/export?format=${format}`, {
-        responseType: 'blob'
-      });
+      const blob = await CycleCountService.exportBatch(batchId, format);
 
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       const extension = format === 'excel' ? 'xlsx' : 'csv';
@@ -241,12 +235,10 @@ export const exportCycleCountSchedule = createAsyncThunk(
   'cycleCount/exportSchedule',
   async ({ scheduleId, format = 'csv' }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/cycle-counts/schedules/${scheduleId}/export?format=${format}`, {
-        responseType: 'blob'
-      });
+      const blob = await CycleCountService.exportSchedule(scheduleId, format);
 
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       const extension = format === 'excel' ? 'xlsx' : 'csv';
@@ -268,13 +260,10 @@ export const exportCycleCountResults = createAsyncThunk(
   'cycleCount/exportResults',
   async ({ filters = {}, format = 'csv' }, { rejectWithValue }) => {
     try {
-      const params = new URLSearchParams({ format, ...filters });
-      const response = await axios.get(`/api/cycle-counts/results/export?${params}`, {
-        responseType: 'blob'
-      });
+      const blob = await CycleCountService.exportResults(filters, format);
 
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       const extension = format === 'excel' ? 'xlsx' : 'csv';
@@ -296,15 +285,8 @@ export const importCycleCountResults = createAsyncThunk(
   'cycleCount/importResults',
   async ({ batchId, file }, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post(`/api/cycle-counts/batches/${batchId}/import`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return response.data;
+      const data = await CycleCountService.importResults(batchId, file);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count results' });
     }
@@ -316,16 +298,8 @@ export const importCycleCountSchedules = createAsyncThunk(
   'cycleCount/importSchedules',
   async ({ file }, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post('/api/cycle-counts/schedules/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      return response.data;
+      const data = await CycleCountService.importSchedules(file);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count schedules' });
     }
@@ -337,16 +311,8 @@ export const importCycleCountBatches = createAsyncThunk(
   'cycleCount/importBatches',
   async ({ file }, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post('/api/cycle-counts/batches/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      return response.data;
+      const data = await CycleCountService.importBatches(file);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count batches' });
     }
