@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Badge, ListGroup, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import ChemicalService from '../../services/chemicalService';
 import { useSelector } from 'react-redux';
 import { formatDate, getDaysFromToday } from '../../utils/dateUtils';
 import Tooltip from '../common/Tooltip';
@@ -21,11 +21,11 @@ const OverdueChemicals = () => {
         console.log('OverdueChemicals: Fetching overdue chemicals...');
         setLoading(true);
         setError(null);
-        const response = await api.get('/chemicals/on-order');
-        console.log('OverdueChemicals: Received data:', response.data);
+        const chemicalsOnOrder = await ChemicalService.getChemicalsOnOrder();
+        console.log('OverdueChemicals: Received data:', chemicalsOnOrder);
 
         // Filter to only include chemicals with expected delivery dates in the past
-        const overdue = response.data.filter(chemical => {
+        const overdue = chemicalsOnOrder.filter(chemical => {
           if (!chemical.expected_delivery_date) return false;
           const today = new Date();
           today.setHours(0, 0, 0, 0);
