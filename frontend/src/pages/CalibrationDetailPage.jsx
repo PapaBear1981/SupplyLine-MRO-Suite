@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Card, Row, Col, Button, Badge, Spinner, Alert, Table } from 'react-bootstrap';
 import { fetchToolById } from '../store/toolsSlice';
 import { fetchCalibrationStandard } from '../store/calibrationSlice';
-import api from '../services/api';
+import CalibrationService from '../services/calibrationService';
 
 const CalibrationDetailPage = () => {
   const { id, calibrationId } = useParams();
@@ -40,12 +40,13 @@ const CalibrationDetailPage = () => {
           const calId = typeof calibrationId === 'string' ? parseInt(calibrationId, 10) : calibrationId;
 
           try {
-            const response = await api.get(`/tools/${toolId}/calibrations/${calId}`);
-            setCalibration(response.data);
+            // Use CalibrationService instead of direct API call
+            const calibrationData = await CalibrationService.getCalibrationById(calId);
+            setCalibration(calibrationData);
 
             // Fetch calibration standards if any
-            if (response.data.standards && response.data.standards.length > 0) {
-              response.data.standards.forEach(standard => {
+            if (calibrationData.standards && calibrationData.standards.length > 0) {
+              calibrationData.standards.forEach(standard => {
                 dispatch(fetchCalibrationStandard(standard.id));
               });
             }
