@@ -1,18 +1,13 @@
-import { supabase, formatSupabaseResponse } from './supabase';
+import api from './api';
 
 const ChemicalService = {
   // Get all chemicals
   getAllChemicals: async () => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', false)
-        .order('part_number', { ascending: true });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals');
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] chemicals:', error);
+      console.error('API Error [GET] chemicals:', error);
       throw error;
     }
   },
@@ -20,15 +15,10 @@ const ChemicalService = {
   // Get chemical by ID
   getChemicalById: async (id) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get(`/chemicals/${id}`);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [GET] chemical ${id}:`, error);
+      console.error(`API Error [GET] chemical ${id}:`, error);
       throw error;
     }
   },
@@ -36,19 +26,10 @@ const ChemicalService = {
   // Create new chemical
   createChemical: async (chemicalData) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .insert([{
-          ...chemicalData,
-          created_at: new Date().toISOString(),
-          is_archived: false
-        }])
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.post('/chemicals', chemicalData);
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [POST] chemicals:', error);
+      console.error('API Error [POST] chemicals:', error);
       throw error;
     }
   },
@@ -56,19 +37,10 @@ const ChemicalService = {
   // Update chemical
   updateChemical: async (id, chemicalData) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .update({
-          ...chemicalData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.put(`/chemicals/${id}`, chemicalData);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [PUT] chemical ${id}:`, error);
+      console.error(`API Error [PUT] chemical ${id}:`, error);
       throw error;
     }
   },
@@ -76,16 +48,10 @@ const ChemicalService = {
   // Delete chemical
   deleteChemical: async (id) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .delete()
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.delete(`/chemicals/${id}`);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [DELETE] chemical ${id}:`, error);
+      console.error(`API Error [DELETE] chemical ${id}:`, error);
       throw error;
     }
   },
@@ -93,19 +59,10 @@ const ChemicalService = {
   // Search chemicals
   searchChemicals: async (query) => {
     try {
-      // Escape special characters in search query
-      const escapedQuery = query.replace(/[%_]/g, '\\$&');
-
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', false)
-        .or(`part_number.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,manufacturer.ilike.%${escapedQuery}%,lot_number.ilike.%${escapedQuery}%`)
-        .order('part_number', { ascending: true });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get(`/chemicals/search?q=${encodeURIComponent(query)}`);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [GET] chemicals search ${query}:`, error);
+      console.error(`API Error [GET] chemicals search ${query}:`, error);
       throw error;
     }
   },
@@ -113,36 +70,10 @@ const ChemicalService = {
   // Issue chemical
   issueChemical: async (id, data) => {
     try {
-      // First, create the issuance record
-      const { data: issuanceData, error: issuanceError } = await supabase
-        .from('chemical_issuances')
-        .insert([{
-          chemical_id: id,
-          user_id: data.user_id,
-          quantity_issued: data.quantity_issued,
-          issued_date: new Date().toISOString(),
-          purpose: data.purpose || null,
-          notes: data.notes || null
-        }])
-        .select()
-        .single();
-
-      if (issuanceError) throw issuanceError;
-
-      // Then update the chemical quantity
-      const { data: chemicalData, error: chemicalError } = await supabase
-        .from('chemicals')
-        .update({
-          current_quantity: data.new_quantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(chemicalData, chemicalError);
+      const response = await api.post(`/chemicals/${id}/issue`, data);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [POST] chemical ${id} issue:`, error);
+      console.error(`API Error [POST] chemical ${id} issue:`, error);
       throw error;
     }
   },
@@ -150,23 +81,10 @@ const ChemicalService = {
   // Get chemical issuances
   getChemicalIssuances: async (id) => {
     try {
-      const { data, error } = await supabase
-        .from('chemical_issuances')
-        .select(`
-          *,
-          users:user_id (
-            employee_number,
-            first_name,
-            last_name,
-            department
-          )
-        `)
-        .eq('chemical_id', id)
-        .order('issued_date', { ascending: false });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get(`/chemicals/${id}/issuances`);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [GET] chemical ${id} issuances:`, error);
+      console.error(`API Error [GET] chemical ${id} issuances:`, error);
       throw error;
     }
   },
@@ -174,42 +92,10 @@ const ChemicalService = {
   // Get all issuances
   getAllIssuances: async (filters = {}) => {
     try {
-      let query = supabase
-        .from('chemical_issuances')
-        .select(`
-          *,
-          chemicals:chemical_id (
-            part_number,
-            description,
-            manufacturer
-          ),
-          users:user_id (
-            employee_number,
-            first_name,
-            last_name,
-            department
-          )
-        `)
-        .order('issued_date', { ascending: false });
-
-      // Apply filters if provided
-      if (filters.start_date) {
-        query = query.gte('issued_date', filters.start_date);
-      }
-      if (filters.end_date) {
-        query = query.lte('issued_date', filters.end_date);
-      }
-      if (filters.user_id) {
-        query = query.eq('user_id', filters.user_id);
-      }
-      if (filters.chemical_id) {
-        query = query.eq('chemical_id', filters.chemical_id);
-      }
-
-      const { data, error } = await query;
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/issuances', { params: filters });
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] all issuances:', error);
+      console.error('API Error [GET] all issuances:', error);
       throw error;
     }
   },
@@ -217,21 +103,10 @@ const ChemicalService = {
   // Archive a chemical
   archiveChemical: async (id, reason) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .update({
-          is_archived: true,
-          archive_reason: reason,
-          archived_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.post(`/chemicals/${id}/archive`, { reason });
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [POST] chemical ${id} archive:`, error);
+      console.error(`API Error [POST] chemical ${id} archive:`, error);
       throw error;
     }
   },
@@ -239,21 +114,10 @@ const ChemicalService = {
   // Unarchive a chemical
   unarchiveChemical: async (id) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .update({
-          is_archived: false,
-          archive_reason: null,
-          archived_at: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.post(`/chemicals/${id}/unarchive`);
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [POST] chemical ${id} unarchive:`, error);
+      console.error(`API Error [POST] chemical ${id} unarchive:`, error);
       throw error;
     }
   },
@@ -261,24 +125,10 @@ const ChemicalService = {
   // Get archived chemicals
   getArchivedChemicals: async (filters = {}) => {
     try {
-      let query = supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', true)
-        .order('archived_at', { ascending: false });
-
-      // Apply filters if provided
-      if (filters.part_number) {
-        query = query.ilike('part_number', `%${filters.part_number}%`);
-      }
-      if (filters.manufacturer) {
-        query = query.ilike('manufacturer', `%${filters.manufacturer}%`);
-      }
-
-      const { data, error } = await query;
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/archived', { params: filters });
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] archived chemicals:', error);
+      console.error('API Error [GET] archived chemicals:', error);
       throw error;
     }
   },
@@ -286,48 +136,13 @@ const ChemicalService = {
   // Get waste analytics
   getWasteAnalytics: async (timeframe = 'month', part_number = null) => {
     try {
-      // Calculate date range based on timeframe
-      const endDate = new Date();
-      const startDate = new Date();
+      const params = { timeframe };
+      if (part_number) params.part_number = part_number;
 
-      switch (timeframe) {
-        case 'week':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case 'quarter':
-          startDate.setMonth(endDate.getMonth() - 3);
-          break;
-        case 'year':
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        default:
-          startDate.setMonth(endDate.getMonth() - 1);
-      }
-
-      let query = supabase
-        .from('chemical_issuances')
-        .select(`
-          *,
-          chemicals!inner (
-            part_number,
-            description,
-            manufacturer
-          )
-        `)
-        .gte('issued_date', startDate.toISOString())
-        .lte('issued_date', endDate.toISOString());
-
-      if (part_number) {
-        query = query.eq('chemicals.part_number', part_number);
-      }
-
-      const { data, error } = await query;
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/analytics/waste', { params });
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] waste analytics:', error);
+      console.error('API Error [GET] waste analytics:', error);
       throw error;
     }
   },
@@ -339,45 +154,12 @@ const ChemicalService = {
         throw new Error('Part number is required');
       }
 
-      // Calculate date range based on timeframe
-      const endDate = new Date();
-      const startDate = new Date();
-
-      switch (timeframe) {
-        case 'week':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case 'quarter':
-          startDate.setMonth(endDate.getMonth() - 3);
-          break;
-        case 'year':
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        default:
-          startDate.setMonth(endDate.getMonth() - 1);
-      }
-
-      const { data, error } = await supabase
-        .from('chemical_issuances')
-        .select(`
-          *,
-          chemicals!inner (
-            part_number,
-            description,
-            manufacturer
-          )
-        `)
-        .eq('chemicals.part_number', part_number)
-        .gte('issued_date', startDate.toISOString())
-        .lte('issued_date', endDate.toISOString())
-        .order('issued_date', { ascending: false });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/analytics/usage', {
+        params: { part_number, timeframe }
+      });
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] usage analytics:', error);
+      console.error('API Error [GET] usage analytics:', error);
       throw error;
     }
   },
@@ -389,39 +171,10 @@ const ChemicalService = {
         throw new Error('Part number is required');
       }
 
-      // Get all chemicals with this part number
-      const { data: chemicals, error: chemicalsError } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('part_number', part_number);
-
-      if (chemicalsError) throw chemicalsError;
-
-      // Get all issuances for this part number
-      const { data: issuances, error: issuancesError } = await supabase
-        .from('chemical_issuances')
-        .select(`
-          *,
-          chemicals!inner (
-            part_number,
-            description,
-            manufacturer
-          )
-        `)
-        .eq('chemicals.part_number', part_number)
-        .order('issued_date', { ascending: false });
-
-      if (issuancesError) throw issuancesError;
-
-      return {
-        chemicals,
-        issuances,
-        total_chemicals: chemicals.length,
-        total_issuances: issuances.length,
-        total_quantity_issued: issuances.reduce((sum, issuance) => sum + (Number(issuance.quantity_issued) || 0), 0)
-      };
+      const response = await api.get(`/chemicals/analytics/part-number/${encodeURIComponent(part_number)}`);
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] part number analytics:', error);
+      console.error('API Error [GET] part number analytics:', error);
       throw error;
     }
   },
@@ -429,19 +182,10 @@ const ChemicalService = {
   // Get all unique part numbers
   getUniquePartNumbers: async () => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('part_number')
-        .eq('is_archived', false)
-        .order('part_number', { ascending: true });
-
-      if (error) throw error;
-
-      // Extract unique part numbers
-      const uniquePartNumbers = [...new Set(data.map(item => item.part_number))];
-      return uniquePartNumbers;
+      const response = await api.get('/chemicals/part-numbers');
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] unique part numbers:', error);
+      console.error('API Error [GET] unique part numbers:', error);
       throw error;
     }
   },
@@ -449,16 +193,10 @@ const ChemicalService = {
   // Get chemicals that need to be reordered
   getChemicalsNeedingReorder: async () => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', false)
-        .or('reorder_status.eq.needed,reorder_status.eq.urgent')
-        .order('part_number', { ascending: true });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/reorder/needed');
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] chemicals needing reorder:', error);
+      console.error('API Error [GET] chemicals needing reorder:', error);
       throw error;
     }
   },
@@ -466,16 +204,10 @@ const ChemicalService = {
   // Get chemicals that are on order
   getChemicalsOnOrder: async () => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', false)
-        .eq('reorder_status', 'ordered')
-        .order('expected_delivery_date', { ascending: true });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/reorder/on-order');
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] chemicals on order:', error);
+      console.error('API Error [GET] chemicals on order:', error);
       throw error;
     }
   },
@@ -483,20 +215,10 @@ const ChemicalService = {
   // Get chemicals that are expiring soon
   getChemicalsExpiringSoon: async (days = 30) => {
     try {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + days);
-
-      const { data, error } = await supabase
-        .from('chemicals')
-        .select('*')
-        .eq('is_archived', false)
-        .not('expiration_date', 'is', null)
-        .lte('expiration_date', futureDate.toISOString())
-        .order('expiration_date', { ascending: true });
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.get('/chemicals/expiring', { params: { days } });
+      return response.data;
     } catch (error) {
-      console.error('Supabase Error [GET] chemicals expiring soon:', error);
+      console.error('API Error [GET] chemicals expiring soon:', error);
       throw error;
     }
   },
@@ -504,21 +226,10 @@ const ChemicalService = {
   // Mark a chemical as ordered
   markChemicalAsOrdered: async (id, expectedDeliveryDate) => {
     try {
-      const { data, error } = await supabase
-        .from('chemicals')
-        .update({
-          reorder_status: 'ordered',
-          expected_delivery_date: expectedDeliveryDate,
-          order_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.post(`/chemicals/${id}/mark-ordered`, { expectedDeliveryDate });
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [POST] chemical ${id} mark ordered:`, error);
+      console.error(`API Error [POST] chemical ${id} mark ordered:`, error);
       throw error;
     }
   },
@@ -526,28 +237,10 @@ const ChemicalService = {
   // Mark a chemical as delivered
   markChemicalAsDelivered: async (id, receivedQuantity = null) => {
     try {
-      const updateData = {
-        reorder_status: 'in_stock',
-        delivery_date: new Date().toISOString(),
-        expected_delivery_date: null,
-        updated_at: new Date().toISOString()
-      };
-
-      // Add received quantity if provided
-      if (receivedQuantity !== null) {
-        updateData.current_quantity = receivedQuantity;
-      }
-
-      const { data, error } = await supabase
-        .from('chemicals')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      return formatSupabaseResponse(data, error);
+      const response = await api.post(`/chemicals/${id}/mark-delivered`, { receivedQuantity });
+      return response.data;
     } catch (error) {
-      console.error(`Supabase Error [POST] chemical ${id} mark delivered:`, error);
+      console.error(`API Error [POST] chemical ${id} mark delivered:`, error);
       throw error;
     }
   }
