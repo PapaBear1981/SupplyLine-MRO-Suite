@@ -13,7 +13,7 @@ services:
       - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
-      - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
+      - SECRET_KEY=${SECRET_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
       - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
