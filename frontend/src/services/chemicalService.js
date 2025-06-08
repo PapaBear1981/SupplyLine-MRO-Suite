@@ -93,11 +93,14 @@ const ChemicalService = {
   // Search chemicals
   searchChemicals: async (query) => {
     try {
+      // Escape special characters in search query
+      const escapedQuery = query.replace(/[%_]/g, '\\$&');
+
       const { data, error } = await supabase
         .from('chemicals')
         .select('*')
         .eq('is_archived', false)
-        .or(`part_number.ilike.%${query}%,description.ilike.%${query}%,manufacturer.ilike.%${query}%,lot_number.ilike.%${query}%`)
+        .or(`part_number.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,manufacturer.ilike.%${escapedQuery}%,lot_number.ilike.%${escapedQuery}%`)
         .order('part_number', { ascending: true });
 
       return formatSupabaseResponse(data, error);
@@ -308,7 +311,7 @@ const ChemicalService = {
         .from('chemical_issuances')
         .select(`
           *,
-          chemicals:chemical_id (
+          chemicals!inner (
             part_number,
             description,
             manufacturer
@@ -415,7 +418,7 @@ const ChemicalService = {
         issuances,
         total_chemicals: chemicals.length,
         total_issuances: issuances.length,
-        total_quantity_issued: issuances.reduce((sum, issuance) => sum + (issuance.quantity_issued || 0), 0)
+        total_quantity_issued: issuances.reduce((sum, issuance) => sum + (Number(issuance.quantity_issued) || 0), 0)
       };
     } catch (error) {
       console.error('Supabase Error [GET] part number analytics:', error);
@@ -426,11 +429,19 @@ const ChemicalService = {
   // Get all unique part numbers
   getUniquePartNumbers: async () => {
     try {
-      // Get all chemicals and extract unique part numbers
-      const chemicals = await ChemicalService.getAllChemicals();
-      const partNumbers = [...new Set(chemicals.map(c => c.part_number))];
-      return partNumbers.sort();
+      const { data, error } = await supabase
+        .from('chemicals')
+        .select('part_number')
+        .eq('is_archived', false)
+        .order('part_number', { ascending: true });
+
+      if (error) throw error;
+
+      // Extract unique part numbers
+      const uniquePartNumbers = [...new Set(data.map(item => item.part_number))];
+      return uniquePartNumbers;
     } catch (error) {
+      console.error('Supabase Error [GET] unique part numbers:', error);
       throw error;
     }
   },

@@ -23,7 +23,7 @@ export const fetchReportData = createAsyncThunk(
       }
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch report data' });
+      return rejectWithValue(error.message || 'Failed to fetch report data');
     }
   }
 );
@@ -36,7 +36,7 @@ export const fetchToolInventoryReport = createAsyncThunk(
       console.log('Tool Inventory Report Data:', data);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch tool inventory report' });
+      return rejectWithValue(error.message || 'Failed to fetch tool inventory report');
     }
   }
 );
@@ -49,7 +49,7 @@ export const fetchCheckoutHistoryReport = createAsyncThunk(
       console.log('Checkout History Report Data:', data);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch checkout history report' });
+      return rejectWithValue(error.message || 'Failed to fetch checkout history report');
     }
   }
 );
@@ -62,7 +62,7 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
       console.log('Department Usage Report Data:', data);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch department usage report' });
+      return rejectWithValue(error.message || 'Failed to fetch department usage report');
     }
   }
 );
