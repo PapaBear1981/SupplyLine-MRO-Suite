@@ -1,15 +1,27 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../services/api';
+import ReportService from '../services/reportService';
 
 // Async thunks
 export const fetchReportData = createAsyncThunk(
   'reports/fetchReportData',
   async ({ reportType, timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports', {
-        params: { reportType, timeframe, ...filters }
-      });
-      return response.data;
+      // Use appropriate ReportService method based on reportType
+      let data;
+      switch (reportType) {
+        case 'tool-inventory':
+          data = await ReportService.getToolInventoryReport(filters);
+          break;
+        case 'checkout-history':
+          data = await ReportService.getCheckoutHistoryReport(timeframe, filters);
+          break;
+        case 'department-usage':
+          data = await ReportService.getDepartmentUsageReport(timeframe);
+          break;
+        default:
+          throw new Error(`Unknown report type: ${reportType}`);
+      }
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch report data' });
     }
@@ -20,9 +32,9 @@ export const fetchToolInventoryReport = createAsyncThunk(
   'reports/fetchToolInventoryReport',
   async (filters, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/tools', { params: filters });
-      console.log('Tool Inventory Report Data:', response.data);
-      return response.data;
+      const data = await ReportService.getToolInventoryReport(filters);
+      console.log('Tool Inventory Report Data:', data);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch tool inventory report' });
     }
@@ -33,11 +45,9 @@ export const fetchCheckoutHistoryReport = createAsyncThunk(
   'reports/fetchCheckoutHistoryReport',
   async ({ timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/checkouts', {
-        params: { timeframe, ...filters }
-      });
-      console.log('Checkout History Report Data:', response.data);
-      return response.data;
+      const data = await ReportService.getCheckoutHistoryReport(timeframe, filters);
+      console.log('Checkout History Report Data:', data);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch checkout history report' });
     }
@@ -48,11 +58,9 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
   'reports/fetchDepartmentUsageReport',
   async ({ timeframe }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/departments', {
-        params: { timeframe }
-      });
-      console.log('Department Usage Report Data:', response.data);
-      return response.data;
+      const data = await ReportService.getDepartmentUsageReport(timeframe);
+      console.log('Department Usage Report Data:', data);
+      return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch department usage report' });
     }
@@ -60,14 +68,15 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
 );
 
 // Cycle Count Report Thunks
+// Note: These will need to be implemented in ReportService when cycle count reports are migrated to Supabase
 export const fetchCycleCountAccuracyReport = createAsyncThunk(
   'reports/fetchCycleCountAccuracyReport',
   async ({ timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/cycle-counts/accuracy', {
-        params: { timeframe, ...filters }
-      });
-      return response.data;
+      // TODO: Implement cycle count accuracy report in ReportService with Supabase
+      // For now, return empty data to prevent errors
+      console.warn('Cycle count accuracy report not yet migrated to Supabase');
+      return { data: [], message: 'Cycle count reports not yet available with Supabase backend' };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count accuracy report' });
     }
@@ -78,10 +87,9 @@ export const fetchCycleCountDiscrepancyReport = createAsyncThunk(
   'reports/fetchCycleCountDiscrepancyReport',
   async ({ timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/cycle-counts/discrepancies', {
-        params: { timeframe, ...filters }
-      });
-      return response.data;
+      // TODO: Implement cycle count discrepancy report in ReportService with Supabase
+      console.warn('Cycle count discrepancy report not yet migrated to Supabase');
+      return { data: [], message: 'Cycle count reports not yet available with Supabase backend' };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count discrepancy report' });
     }
@@ -92,10 +100,9 @@ export const fetchCycleCountPerformanceReport = createAsyncThunk(
   'reports/fetchCycleCountPerformanceReport',
   async ({ timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/cycle-counts/performance', {
-        params: { timeframe, ...filters }
-      });
-      return response.data;
+      // TODO: Implement cycle count performance report in ReportService with Supabase
+      console.warn('Cycle count performance report not yet migrated to Supabase');
+      return { data: [], message: 'Cycle count reports not yet available with Supabase backend' };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count performance report' });
     }
@@ -106,10 +113,9 @@ export const fetchCycleCountCoverageReport = createAsyncThunk(
   'reports/fetchCycleCountCoverageReport',
   async ({ timeframe, filters }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/reports/cycle-counts/coverage', {
-        params: { timeframe, ...filters }
-      });
-      return response.data;
+      // TODO: Implement cycle count coverage report in ReportService with Supabase
+      console.warn('Cycle count coverage report not yet migrated to Supabase');
+      return { data: [], message: 'Cycle count reports not yet available with Supabase backend' };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch cycle count coverage report' });
     }
