@@ -1,12 +1,21 @@
 import os
 import logging.handlers
+import secrets
 from datetime import timedelta
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
-    # Use environment variables with fallbacks for local development
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
+    # Use environment variables with secure fallback for local development
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        # Generate a secure random key if not provided
+        SECRET_KEY = secrets.token_hex(32)
+        # Log warning about missing SECRET_KEY (but don't log the generated key)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("SECRET_KEY environment variable not set. Using generated key. "
+                      "Set SECRET_KEY environment variable for production deployments.")
 
     # SQLite database path - using absolute path from project root
     # Check if we're in Docker environment (look for /database volume)

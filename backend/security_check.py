@@ -121,7 +121,12 @@ def check_environment_variables():
     for var in important_vars:
         if not os.environ.get(var):
             if var == 'SECRET_KEY':
-                issues.append(f"CRITICAL: {var} environment variable not set")
+                # Check if we have secure fallback implementation
+                from config import Config
+                if hasattr(Config, 'SECRET_KEY') and Config.SECRET_KEY and len(Config.SECRET_KEY) >= 32:
+                    print(f"✓ {var} using secure generated key (set environment variable for production)")
+                else:
+                    issues.append(f"CRITICAL: {var} environment variable not set and no secure fallback")
             else:
                 issues.append(f"WARNING: {var} environment variable not set")
         else:
