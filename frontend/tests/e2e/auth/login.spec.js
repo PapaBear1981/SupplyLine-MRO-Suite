@@ -19,8 +19,8 @@ test.describe('Authentication - Login', () => {
     await expect(page.locator('[data-testid="login-button"]')).toBeVisible();
     
     // Check form labels
-    await expect(page.locator('text=Employee Number')).toBeVisible();
-    await expect(page.locator('text=Password')).toBeVisible();
+    await expect(page.locator('label:has-text("Employee Number")')).toBeVisible();
+    await expect(page.locator('label:has-text("Password")')).toBeVisible();
   });
 
   test('should login successfully with admin credentials', async ({ page }) => {

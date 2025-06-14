@@ -103,7 +103,7 @@ const RecentActivity = () => {
   }
 
   return (
-    <Card className="shadow-sm mb-4">
+    <Card className="shadow-sm mb-4" data-testid="recent-activity">
       <Card.Header className="bg-light">
         <h4 className="mb-0">Recent Activity</h4>
       </Card.Header>

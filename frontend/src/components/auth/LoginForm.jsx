@@ -44,6 +44,7 @@ const LoginForm = () => {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
+          data-testid="employee-number-input"
         />
         <Form.Control.Feedback type="invalid">
           Please provide your employee number.
@@ -58,13 +59,14 @@ const LoginForm = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          data-testid="password-input"
         />
         <Form.Control.Feedback type="invalid">
           Please provide a password.
         </Form.Control.Feedback>
       </Form.Group>
 
-      <Button variant="primary" type="submit" disabled={loading}>
+      <Button variant="primary" type="submit" disabled={loading} data-testid="login-button">
         {loading ? (
           <>
             <Spinner
