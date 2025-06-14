@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from '../utils/auth-helpers.js';
-import { 
-  waitForLoadingToComplete, 
-  waitForToast, 
-  fillField, 
-  clickButton, 
+import {
+  waitForLoadingToComplete,
+  waitForToast,
+  fillField,
+  clickButton,
   selectOption,
-  waitForTableToLoad,
-  navigateToPage 
+  navigateToPage
 } from '../utils/test-helpers.js';
 
 test.describe('Admin Dashboard', () => {

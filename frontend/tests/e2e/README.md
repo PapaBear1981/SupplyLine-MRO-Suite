@@ -42,7 +42,7 @@ tests/e2e/
 1. **Node.js** (v18 or higher)
 2. **Python** (v3.10 or higher)
 3. **Backend server** running on `http://localhost:5000`
-4. **Frontend server** running on `http://localhost:5173`
+4. **Frontend server** running on `http://localhost:5173` (dev) or `http://localhost:4173` (preview)
 
 ## Installation
 
@@ -103,7 +103,7 @@ The tests are configured in `playwright.config.js` with:
 
 ## Environment Variables
 
-- `PLAYWRIGHT_BASE_URL`: Frontend URL (default: http://localhost:5173)
+- `PLAYWRIGHT_BASE_URL`: Frontend URL (default: http://localhost:5173 for dev, http://localhost:4173 for preview)
 - `CI`: Set to true in CI environments
 
 ## Test Data

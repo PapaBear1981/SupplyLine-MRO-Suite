@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin, loginAsUser, logout } from '../utils/auth-helpers.js';
+import { loginAsAdmin, loginAsUser } from '../utils/auth-helpers.js';
 import { waitForLoadingToComplete } from '../utils/test-helpers.js';
 
 test.describe('Protected Routes and Permissions', () => {
