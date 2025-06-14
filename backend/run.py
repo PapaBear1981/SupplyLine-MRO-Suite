@@ -2,9 +2,8 @@ from app import create_app
 
 app = create_app()
 
-# Print all registered routes for debugging
-@app.before_first_request
 def print_routes():
+    """Print all registered routes for debugging"""
     print("\n=== Registered Routes ===")
     for rule in app.url_map.iter_rules():
         print(f"{rule} - {rule.methods}")

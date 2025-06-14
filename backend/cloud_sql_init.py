@@ -22,7 +22,8 @@ def init_cloud_sql():
         try:
             # Test database connection
             with db.engine.connect() as conn:
-                conn.execute(db.text('SELECT 1'))
+                from sqlalchemy import text
+                conn.execute(text('SELECT 1'))
             print("✓ Database connection successful")
             
             # Create all tables

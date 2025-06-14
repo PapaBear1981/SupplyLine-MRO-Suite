@@ -148,19 +148,6 @@ def create_app():
     def index():
         return app.send_static_file('index.html')
 
-    @app.route('/api/health')
-    def health_check():
-        """Health check endpoint for Cloud Run"""
-        try:
-            # Test database connection
-            from models import db
-            with db.engine.connect() as conn:
-                conn.execute(db.text('SELECT 1'))
-            return jsonify({'status': 'healthy', 'database': 'connected'}), 200
-        except Exception as e:
-            logger.error("Health check failed", exc_info=True)
-            return jsonify({'status': 'unhealthy', 'error': str(e)}), 503
-
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={
         'route_count': len(list(app.url_map.iter_rules())),

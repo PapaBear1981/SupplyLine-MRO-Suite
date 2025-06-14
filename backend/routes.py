@@ -236,15 +236,29 @@ def register_routes(app):
             print(f"Error in archived chemicals route: {str(e)}")
             return jsonify({'error': 'An error occurred while fetching archived chemicals'}), 500
 
-    # Health check endpoint for Docker
+    # Health check endpoint for Docker and Cloud Run
     @app.route('/api/health', methods=['GET'])
     def health_check():
-        # Use standard datetime
-        return jsonify({
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'timezone': str(time.tzname)
-        })
+        try:
+            # Test database connection
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+
+            return jsonify({
+                'status': 'healthy',
+                'database': 'connected',
+                'timestamp': datetime.now().isoformat(),
+                'timezone': str(time.tzname)
+            }), 200
+        except Exception as e:
+            logger.error("Health check failed", exc_info=True)
+            return jsonify({
+                'status': 'unhealthy',
+                'database': 'disconnected',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }), 503
 
     # Time API endpoint
     @app.route('/api/time', methods=['GET'])
