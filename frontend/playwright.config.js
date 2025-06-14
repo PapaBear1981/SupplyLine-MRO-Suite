@@ -89,7 +89,7 @@ export default defineConfig({
     /* Test against branded browsers. */
     {
       name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      use: { ...devices['Desktop Chrome'], channel: 'msedge' },
       testMatch: /.*\/(auth|dashboard|tools)\/.*\.spec\.js$/,
     },
     {

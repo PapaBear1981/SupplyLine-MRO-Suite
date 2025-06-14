@@ -15,7 +15,7 @@ async function globalTeardown(config) {
     console.log('✅ Global teardown completed successfully');
   } catch (error) {
     console.error('❌ Global teardown failed:', error);
-    // Don't throw error to avoid failing the test run
+    process.exitCode = 1;   // signal failure while letting Playwright finish flushing reports
   }
 }
 

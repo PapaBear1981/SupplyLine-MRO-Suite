@@ -15,7 +15,10 @@ const LoginForm = () => {
   const { loading, error } = useSelector((state) => state.auth);
 
   // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Validate redirect path to prevent open redirect attacks
+  const rawFrom = location.state?.from?.pathname;
+  const allowed = /^\/(?!\/)/.test(rawFrom) ? rawFrom : null; // basic internal-path check
+  const from = allowed || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +47,11 @@ const LoginForm = () => {
 
   return (
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
-      {error && <Alert variant="danger" className="alert-danger error-message">{error.message || error.error || JSON.stringify(error)}</Alert>}
+      {error && (
+        <Alert variant="danger" data-testid="login-error">
+          {error.message || 'Login failed. Please check your credentials.'}
+        </Alert>
+      )}
 
       <Form.Group className="mb-3" controlId="formUsername">
         <Form.Label>Employee Number</Form.Label>

@@ -73,8 +73,8 @@ test.describe('Authentication - Login', () => {
     // Should stay on login page
     await expect(page).toHaveURL('/login');
     
-    // Should show error message (adjust selector based on your error display)
-    await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();
+    // Should show error message
+    await expect(page.locator('[data-testid="login-error"]')).toBeVisible();
   });
 
   test('should show validation errors for empty fields', async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe('Authentication - Login', () => {
     await page.click('[data-testid="login-button"]');
     
     // Should show network error message
-    await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();
+    await expect(page.locator('[data-testid="login-error"]')).toBeVisible();
   });
 
   test('should clear form when switching between login and register', async ({ page }) => {
