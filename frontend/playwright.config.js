@@ -23,21 +23,35 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
-    
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
+
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Record video on failure */
     video: 'retain-on-failure',
-    
+
     /* Global timeout for each action */
     actionTimeout: 10000,
-    
+
     /* Global timeout for navigation */
     navigationTimeout: 30000,
+
+    /* Ignore HTTPS errors */
+    ignoreHTTPSErrors: true,
+
+    /* Extra HTTP headers */
+    extraHTTPHeaders: {
+      'Accept-Language': 'en-US,en;q=0.9'
+    },
+
+    /* Emulate timezone */
+    timezoneId: 'America/New_York',
+
+    /* Emulate locale */
+    locale: 'en-US',
   },
 
   /* Configure projects for major browsers */
@@ -45,36 +59,69 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*\.spec\.js$/,
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testMatch: /.*\.spec\.js$/,
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testMatch: /.*\.spec\.js$/,
     },
 
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
+      testMatch: /.*\/(mobile|auth|dashboard)\/.*\.spec\.js$/,
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
+      testMatch: /.*\/(mobile|auth|dashboard)\/.*\.spec\.js$/,
     },
 
     /* Test against branded browsers. */
     {
       name: 'Microsoft Edge',
       use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      testMatch: /.*\/(auth|dashboard|tools)\/.*\.spec\.js$/,
     },
     {
       name: 'Google Chrome',
       use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+      testMatch: /.*\.spec\.js$/,
+    },
+
+    /* Performance testing project */
+    {
+      name: 'performance',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*\/performance\/.*\.spec\.js$/,
+      timeout: 60000, // Longer timeout for performance tests
+    },
+
+    /* Visual regression testing project */
+    {
+      name: 'visual',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Consistent viewport for visual tests
+        viewport: { width: 1280, height: 720 }
+      },
+      testMatch: /.*\/visual\/.*\.spec\.js$/,
+    },
+
+    /* Accessibility testing project */
+    {
+      name: 'accessibility',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*\/accessibility\/.*\.spec\.js$/,
     },
   ],
 

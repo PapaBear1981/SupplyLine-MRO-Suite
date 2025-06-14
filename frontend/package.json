@@ -13,7 +13,20 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:install": "playwright install"
+    "test:e2e:install": "playwright install",
+    "test:e2e:auth": "playwright test tests/e2e/auth/",
+    "test:e2e:tools": "playwright test tests/e2e/tools/",
+    "test:e2e:chemicals": "playwright test tests/e2e/chemicals/",
+    "test:e2e:dashboard": "playwright test tests/e2e/dashboard/",
+    "test:e2e:mobile": "playwright test --project='Mobile Chrome'",
+    "test:e2e:performance": "playwright test --project=performance",
+    "test:e2e:visual": "playwright test --project=visual",
+    "test:e2e:accessibility": "playwright test --project=accessibility",
+    "test:e2e:chrome": "playwright test --project=chromium",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:safari": "playwright test --project=webkit",
+    "test:e2e:smoke": "playwright test tests/e2e/auth/login.spec.js tests/e2e/dashboard/user-dashboard.spec.js",
+    "test:e2e:regression": "playwright test --project=chromium --project=firefox"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
