@@ -48,10 +48,22 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 // Specialized component for admin-only routes
 export const AdminRoute = ({ children }) => {
-  const { user, loading } = useSelector((state) => state.auth);
-  const isAdmin = useIsAdmin();
+  const { user, loading, isAuthenticated } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const [isChecking, setIsChecking] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated && !user) {
+        await dispatch(fetchCurrentUser());
+      }
+      setIsChecking(false);
+    };
+
+    checkAuth();
+  }, [dispatch, isAuthenticated, user]);
+
+  if (loading || isChecking) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
         <Spinner animation="border" role="status">
@@ -61,7 +73,7 @@ export const AdminRoute = ({ children }) => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user || !user.is_admin) {
     return <Navigate to="/" replace />;
   }
 

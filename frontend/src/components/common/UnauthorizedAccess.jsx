@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { ExclamationTriangleFill, HouseFill, PersonFill } from 'react-bootstrap-icons';
@@ -73,6 +74,13 @@ const UnauthorizedAccess = ({
       </Row>
     </Container>
   );
+};
+
+UnauthorizedAccess.propTypes = {
+  title: PropTypes.string,
+  message: PropTypes.string,
+  redirectPath: PropTypes.string,
+  redirectText: PropTypes.string,
 };
 
 export default UnauthorizedAccess;

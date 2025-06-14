@@ -1,14 +1,11 @@
-import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import UnauthorizedAccess from '../components/common/UnauthorizedAccess';
 import AdminDashboard from '../components/admin/AdminDashboard';
-import { useIsAdmin, useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 const AdminDashboardPage = () => {
-  const { loading } = useSelector((state) => state.auth);
-  const { user, hasUser } = useAuth();
-  const isAdmin = useIsAdmin();
+  const { user, loading, hasUser, isAdmin } = useAuth();
 
   // Show loading spinner while fetching user data
   if (loading) {
@@ -28,7 +25,7 @@ const AdminDashboardPage = () => {
     );
   }
 
-  // Check if user is admin - use the reusable hook for consistency
+  // Check if user is admin - using the optimized useAuth hook for consistency
   if (!isAdmin) {
     return (
       <UnauthorizedAccess
