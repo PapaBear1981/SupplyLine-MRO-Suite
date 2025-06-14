@@ -95,8 +95,11 @@ This application provides a complete solution for managing tool and chemical inv
 #### Comprehensive Testing Infrastructure
 - **Backend Test Suite** with pytest integration
 - **Frontend Test Suite** with React Testing Library
+- **End-to-End Test Suite** with Playwright
 - **Integration Tests** for API endpoints
 - **Component Tests** for UI functionality
+- **Cross-browser Testing** (Chrome, Firefox, Safari)
+- **Mobile Responsiveness Testing**
 
 #### Complete Documentation Suite
 - **User Guide** (356 lines) with step-by-step instructions
@@ -691,6 +694,87 @@ Version 2.1.0 introduces significant enhancements to the chemical reporting syst
 - Generate detailed usage reports by part number
 
 These advanced reporting features help aerospace maintenance operations optimize their chemical inventory, reduce waste, and ensure compliance with regulatory requirements.
+
+## End-to-End Testing with Playwright
+
+The SupplyLine MRO Suite includes comprehensive end-to-end (E2E) testing using Playwright to ensure application reliability and user experience quality.
+
+### Test Coverage
+
+The E2E test suite covers:
+- **Authentication flows** (login, logout, session management)
+- **Tool management** (CRUD operations, checkout/return workflows)
+- **Chemical management** (inventory tracking, issue/return processes)
+- **Dashboard functionality** (user and admin dashboards)
+- **Cycle count workflows** (schedule creation, batch processing)
+- **Calibration management** (tool calibration tracking)
+- **Cross-browser compatibility** (Chrome, Firefox, Safari)
+- **Mobile responsiveness** (tablet and phone viewports)
+
+### Running E2E Tests
+
+#### Prerequisites
+1. Backend server running on `http://localhost:5000`
+2. Frontend server running on `http://localhost:5173` (dev) or `http://localhost:4173` (preview)
+
+#### Quick Start
+```bash
+cd frontend
+npm install
+npx playwright install
+npm run test:e2e
+```
+
+#### Using the Test Runner Script
+```bash
+cd frontend
+./run-e2e-tests.sh                    # Run all tests
+./run-e2e-tests.sh --browser chrome   # Run on specific browser
+./run-e2e-tests.sh --ui               # Run in UI mode
+./run-e2e-tests.sh --debug            # Run in debug mode
+./run-e2e-tests.sh --test auth/       # Run specific test directory
+```
+
+#### Available Commands
+- `npm run test:e2e` - Run all tests
+- `npm run test:e2e:ui` - Interactive UI mode
+- `npm run test:e2e:headed` - Run with visible browser
+- `npm run test:e2e:debug` - Debug mode with step-by-step execution
+- `npm run test:e2e:report` - View test reports
+
+### Test Structure
+
+```
+frontend/tests/e2e/
+├── auth/                    # Authentication tests
+├── dashboard/               # Dashboard functionality tests
+├── tools/                   # Tool management tests
+├── chemicals/               # Chemical management tests
+├── cycle-count/             # Cycle count workflow tests
+├── calibration/             # Calibration management tests
+├── fixtures/                # Test data and fixtures
+├── utils/                   # Helper functions and utilities
+└── README.md               # Detailed testing documentation
+```
+
+### CI/CD Integration
+
+E2E tests run automatically in GitHub Actions on:
+- Push to main/master/develop branches
+- Pull requests to main branches
+- Manual workflow dispatch
+
+The CI pipeline tests across multiple browsers and generates comprehensive reports with screenshots and videos for failed tests.
+
+### Test Data Management
+
+Tests use predefined test data and fixtures to ensure consistency:
+- Test users (admin, regular user, materials user)
+- Test tools with various configurations
+- Test chemicals and inventory items
+- Test cycle count schedules and batches
+
+For detailed testing documentation, see `frontend/tests/e2e/README.md`.
 
 ## System Requirements
 

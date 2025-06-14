@@ -70,14 +70,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes - Dashboard as default landing page */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <UserDashboardPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+        {/* Protected routes - Redirect root to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         <Route path="/dashboard" element={
           <ProtectedRoute>
@@ -388,7 +382,7 @@ function App() {
         } />
 
         {/* Redirect any unknown routes to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       </Router>
     </HelpProvider>

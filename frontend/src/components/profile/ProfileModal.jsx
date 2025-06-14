@@ -79,7 +79,7 @@ const ProfileModal = ({ show, onHide }) => {
         <Button variant="outline-secondary" onClick={onHide}>
           Close
         </Button>
-        <Button variant="danger" onClick={handleLogout}>
+        <Button variant="danger" onClick={handleLogout} data-testid="logout-button">
           Logout
         </Button>
       </Modal.Footer>

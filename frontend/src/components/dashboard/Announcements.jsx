@@ -46,7 +46,7 @@ const Announcements = () => {
 
   if (loading) {
     return (
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-sm mb-4" data-testid="announcements">
         <Card.Header className="bg-light">
           <h4 className="mb-0">Announcements</h4>
         </Card.Header>
@@ -61,7 +61,7 @@ const Announcements = () => {
 
   if (error) {
     return (
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-sm mb-4" data-testid="announcements">
         <Card.Header className="bg-light">
           <h4 className="mb-0">Announcements</h4>
         </Card.Header>
@@ -91,7 +91,7 @@ const Announcements = () => {
   });
 
   return (
-    <Card className="shadow-sm mb-4">
+    <Card className="shadow-sm mb-4" data-testid="announcements">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Announcements</h4>
         <Badge bg="primary" pill>

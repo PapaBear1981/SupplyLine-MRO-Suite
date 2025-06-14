@@ -15,11 +15,11 @@ const MainLayout = ({ children }) => {
 
   return (
     <div className="d-flex flex-column min-vh-100">
-      <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
+      <Navbar bg="dark" variant="dark" expand="lg" className="mb-4" data-testid="main-navigation">
         <Container fluid>
           <Navbar.Brand as={Link} to="/">SupplyLine MRO Suite</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav">
+          <Navbar.Toggle aria-controls="basic-navbar-nav" data-testid="hamburger-menu" />
+          <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-navigation">
             <Nav className="me-auto">
               <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
@@ -39,7 +39,7 @@ const MainLayout = ({ children }) => {
 
                   {/* Only show Admin Dashboard to admin users */}
                   {user.is_admin === true && (
-                    <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
+                    <Nav.Link as={Link} to="/admin/dashboard" data-testid="admin-dashboard-link">Admin Dashboard</Nav.Link>
                   )}
                 </>
               )}
@@ -90,6 +90,7 @@ const MainLayout = ({ children }) => {
                   variant="outline-light"
                   className="d-flex align-items-center"
                   onClick={() => setShowProfileModal(true)}
+                  data-testid="user-menu"
                 >
                   <span className="me-2">{user?.name || 'User'}</span>
                   {user?.avatar ? (

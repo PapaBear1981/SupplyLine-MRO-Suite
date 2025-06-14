@@ -10,7 +10,7 @@ const LoginPage = () => {
   const location = useLocation();
 
   // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || '/dashboard';
 
   useEffect(() => {
     // If user is already authenticated, redirect to the intended page

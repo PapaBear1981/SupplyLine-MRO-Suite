@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { login } from '../../store/authSlice';
 
@@ -9,7 +10,15 @@ const LoginForm = () => {
   const [validated, setValidated] = useState(false);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
+
+  // Get the redirect path from location state or default to dashboard
+  // Validate redirect path to prevent open redirect attacks
+  const rawFrom = location.state?.from?.pathname;
+  const allowed = /^\/(?!\/)/.test(rawFrom) ? rawFrom : null; // basic internal-path check
+  const from = allowed || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,14 +36,22 @@ const LoginForm = () => {
     try {
       await dispatch(login({ username, password })).unwrap();
       console.log('Login successful!');
+      // Navigate to the intended page after successful login
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Login failed:', err);
+      // Don't clear the form on error - let the user see the error and try again
+      // The error will be displayed via the Redux state
     }
   };
 
   return (
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
-      {error && <Alert variant="danger">{error.message || error.error || JSON.stringify(error)}</Alert>}
+      {error && (
+        <Alert variant="danger" data-testid="login-error">
+          {error.message || 'Login failed. Please check your credentials.'}
+        </Alert>
+      )}
 
       <Form.Group className="mb-3" controlId="formUsername">
         <Form.Label>Employee Number</Form.Label>
@@ -44,6 +61,7 @@ const LoginForm = () => {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
+          data-testid="employee-number-input"
         />
         <Form.Control.Feedback type="invalid">
           Please provide your employee number.
@@ -58,13 +76,14 @@ const LoginForm = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          data-testid="password-input"
         />
         <Form.Control.Feedback type="invalid">
           Please provide a password.
         </Form.Control.Feedback>
       </Form.Group>
 
-      <Button variant="primary" type="submit" disabled={loading}>
+      <Button variant="primary" type="submit" disabled={loading} data-testid="login-button">
         {loading ? (
           <>
             <Spinner

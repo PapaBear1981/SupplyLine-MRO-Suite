@@ -14,7 +14,7 @@ const UserDashboardPage = () => {
   const isAdmin = user?.is_admin || user?.department === 'Materials';
 
   return (
-    <div className="w-100">
+    <div className="w-100" data-testid="dashboard-content">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <h1 className="mb-0">Dashboard</h1>
       </div>
