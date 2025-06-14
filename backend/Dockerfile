@@ -8,7 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Create a non-root user and install system dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl tzdata && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        tzdata \
+        gcc \
+        libpq-dev \
+        python3-dev && \
     # Set timezone to UTC
     ln -fs /usr/share/zoneinfo/UTC /etc/localtime && \
     dpkg-reconfigure -f noninteractive tzdata && \

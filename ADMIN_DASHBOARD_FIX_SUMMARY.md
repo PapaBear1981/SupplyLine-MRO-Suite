@@ -6,10 +6,10 @@ Admin users were unable to access the admin dashboard - they were being redirect
 ## Root Cause
 There was a mismatch in authentication logic between two components:
 
-1. **AdminRoute component** (in `frontend/src/components/auth/ProtectedRoute.jsx`):
+1. **AdminRoute component** (in `frontend/src/components/auth/ProtectedRoute.jsx`)
    - Checked `user?.is_admin` ✅ (passed)
 
-2. **AdminDashboardPage component** (in `frontend/src/pages/AdminDashboardPage.jsx`):
+2. **AdminDashboardPage component** (in `frontend/src/pages/AdminDashboardPage.jsx`)
    - Checked for specific permissions array with prefixes `['user.', 'role.', 'system.']` ❌ (failed)
 
 The user data returned from the backend included `is_admin: true` but did not include the `permissions` field, causing the AdminDashboardPage to redirect users even though they passed the route protection.

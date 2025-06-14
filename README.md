@@ -300,6 +300,27 @@ docker-compose up -d
 
 For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCKER_README.md).
 
+#### Option 3: Google Cloud Platform Deployment
+
+Deploy to Google Cloud Platform using Cloud Run and Cloud SQL:
+
+```bash
+# Clone the repository
+git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
+cd SupplyLine-MRO-Suite
+git checkout feature/google-cloud-deployment
+
+# Configure environment
+cp .env.gcp.example .env.gcp
+# Edit .env.gcp with your GCP project details
+
+# Deploy using the automated script
+chmod +x deploy-gcp.sh
+./deploy-gcp.sh
+```
+
+For detailed Google Cloud deployment instructions, see [DEPLOYMENT_GCP.md](DEPLOYMENT_GCP.md).
+
 ## Usage Guide
 
 ### Accessing the Application
