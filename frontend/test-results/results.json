@@ -1,0 +1,3047 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\playwright.config.js",
+    "rootDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\global-setup.js",
+    "globalTeardown": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\global-teardown.js",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 8
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/(mobile|auth|dashboard)\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/(mobile|auth|dashboard)\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/(auth|dashboard|tools)\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "Google Chrome",
+        "name": "Google Chrome",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "performance",
+        "name": "performance",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/performance\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "visual",
+        "name": "visual",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/visual\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "accessibility",
+        "name": "accessibility",
+        "testDir": "C:/Users/Chris/Desktop/Projects/test/qwen3_tests/supplyline/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\/accessibility\\/.*\\.spec\\.js$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.53.0",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "auth\\login.spec.js",
+      "file": "auth/login.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication - Login",
+          "file": "auth/login.spec.js",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1367,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.434Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-95abbb9de1b0cc7f4b7b",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 8188,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 61,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// Verify user menu shows admin user\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"user-menu\"]'\u001b[39m))\u001b[33m.\u001b[39mtoContainText(\u001b[32m'ADMIN001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m   test(\u001b[32m'should login successfully with regular user credentials'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 61,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n\n  34 |     \n  35 |     // Verify user menu shows admin user\n> 36 |     await expect(page.locator('[data-testid=\"user-menu\"]')).toContainText('ADMIN001');\n     |                                                             ^\n  37 |   });\n  38 |\n  39 |   test('should login successfully with regular user credentials', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.451Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 61,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-9ae250bc84084a4eb0a6",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 4108,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.469Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-31d76fa9548a5dea30b0",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 7641,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.435Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-c9c7cb54d6d183127adb",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1501,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.434Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-897492b083452c8809b8",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 1929,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.450Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-75a26dedabb145d6613d",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 2892,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.434Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-973f800b1d63db8fbad6",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 2075,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:58.452Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-5022f79814c3b25e0a94",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1388,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:26:59.912Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-d272f1de4821a32a3637",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 4817,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:01.652Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-c784db794744ae155a74",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 10076,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    8 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    8 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 61,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// Verify user menu shows admin user\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"user-menu\"]'\u001b[39m))\u001b[33m.\u001b[39mtoContainText(\u001b[32m'ADMIN001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m   test(\u001b[32m'should login successfully with regular user credentials'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 61,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    8 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n\n  34 |     \n  35 |     // Verify user menu shows admin user\n> 36 |     await expect(page.locator('[data-testid=\"user-menu\"]')).toContainText('ADMIN001');\n     |                                                             ^\n  37 |   });\n  38 |\n  39 |   test('should login successfully with regular user credentials', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:01.653Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-firefox\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-firefox\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-firefox\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 61,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-6bf4cec78eb8c0f39b45",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 8016,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:01.683Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-fb3d56ccde6ccaf44b60",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8569,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:02.016Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-firefox\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-firefox\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-firefox\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-cff6ea7ef59fed40df8f",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 4296,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:02.146Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-a7de66604459ba335f99",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 5647,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:04.369Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-2859ecda8a44166f73dd",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 6261,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:08.021Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-c0683bdf80c24fde7a49",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 5223,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:10.464Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-442ce6bb6e7f70807d39",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 7124,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:10.523Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-07673bf0ab9d4ec41722",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1799,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:11.761Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-0101ed27117cfd3b57e3",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 7,
+                      "status": "failed",
+                      "duration": 9733,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 61,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// Verify user menu shows admin user\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"user-menu\"]'\u001b[39m))\u001b[33m.\u001b[39mtoContainText(\u001b[32m'ADMIN001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m   test(\u001b[32m'should login successfully with regular user credentials'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 61,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n\n  34 |     \n  35 |     // Verify user menu shows admin user\n> 36 |     await expect(page.locator('[data-testid=\"user-menu\"]')).toContainText('ADMIN001');\n     |                                                             ^\n  37 |   });\n  38 |\n  39 |   test('should login successfully with regular user credentials', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:13.462Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-webkit\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-webkit\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-webkit\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 61,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-5823046273cfe08e7d16",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 5982,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:13.430Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-db95147ae603d3ba08cf",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8347,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:13.428Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-webkit\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-webkit\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-webkit\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-418dd8c6cafd5f049fa8",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 20,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 2578,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:14.554Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-452df71badf7dcdd8072",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 3432,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:13.710Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-78c8a6018cafefd8f8e8",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 21,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 3770,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:17.479Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-84dbdd0ac35d8d03ee44",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 22,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1944,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:18.263Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-ca7e6320f1bcb3d03b33",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 2707,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:17.150Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-3b7a1cf45bb6047f695c",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 824,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:18.418Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-9e9d64bfa8a2f34ea02b",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 24,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 6354,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:27:5",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                          "column": 14,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth-helpers.js:23\n\n\u001b[0m \u001b[90m 21 |\u001b[39m   \n \u001b[90m 22 |\u001b[39m   \u001b[90m// Verify admin is logged in\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"admin-dashboard-link\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m5000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m \u001b[90m/**\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                            "column": 14,
+                            "line": 23
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n\n   at utils\\auth-helpers.js:23\n\n  21 |   \n  22 |   // Verify admin is logged in\n> 23 |   await page.waitForSelector('[data-testid=\"admin-dashboard-link\"]', { timeout: 5000 });\n     |              ^\n  24 | }\n  25 |\n  26 | /**\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:27:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:20.464Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                        "column": 14,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-1f8902d257e2d3e758a0",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 2970,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:19.344Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-18dcb34b78e0b8f78cee",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 25,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 6056,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:20.620Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-2104bddb559514ed9b4f",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 26,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 818,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:20.746Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-305e8fbbb4e818439f14",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 27,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 930,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:21.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-6fca6bb7827db32fc212",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 28,
+                      "parallelIndex": 6,
+                      "status": "failed",
+                      "duration": 6187,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:97:5",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                          "column": 14,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth-helpers.js:23\n\n\u001b[0m \u001b[90m 21 |\u001b[39m   \n \u001b[90m 22 |\u001b[39m   \u001b[90m// Verify admin is logged in\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"admin-dashboard-link\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m5000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m \u001b[90m/**\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                            "column": 14,
+                            "line": 23
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    14 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n\n   at utils\\auth-helpers.js:23\n\n  21 |   \n  22 |   // Verify admin is logged in\n> 23 |   await page.waitForSelector('[data-testid=\"admin-dashboard-link\"]', { timeout: 5000 });\n     |              ^\n  24 | }\n  25 |\n  26 | /**\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:97:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:22.266Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                        "column": 14,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-dfcd78739b6e1c9cd71a",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 26,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 601,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:21.700Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-1c125dc1a33ea9b6717b",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome",
+                  "projectName": "Mobile Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 29,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1010,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:23.080Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-4ef6b1acf3edbd92c58f",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 30,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1351,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:23.077Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-8a68553ea0aaf51693bf",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 31,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 7666,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:27:5",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                          "column": 14,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth-helpers.js:23\n\n\u001b[0m \u001b[90m 21 |\u001b[39m   \n \u001b[90m 22 |\u001b[39m   \u001b[90m// Verify admin is logged in\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"admin-dashboard-link\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m5000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m \u001b[90m/**\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                            "column": 14,
+                            "line": 23
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n\n   at utils\\auth-helpers.js:23\n\n  21 |   \n  22 |   // Verify admin is logged in\n> 23 |   await page.waitForSelector('[data-testid=\"admin-dashboard-link\"]', { timeout: 5000 });\n     |              ^\n  24 | }\n  25 |\n  26 | /**\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:27:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:23.078Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Safari\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Safari\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Mobile-Safari\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                        "column": 14,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-6f41c677771c51ea8b7f",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 32,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 4243,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:23.134Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-e2e711093d71795f5596",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 33,
+                      "parallelIndex": 7,
+                      "status": "failed",
+                      "duration": 8733,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:24.464Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Safari\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Safari\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Mobile-Safari\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-221fa1c02893213aa031",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 34,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1324,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:25.051Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-e12684f79e396b2e12f1",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 30,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1609,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:24.482Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-e66b94c7aa77ff0bf6f2",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 30,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 7203,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:97:5",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                          "column": 14,
+                          "line": 23
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth-helpers.js:23\n\n\u001b[0m \u001b[90m 21 |\u001b[39m   \n \u001b[90m 22 |\u001b[39m   \u001b[90m// Verify admin is logged in\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"admin-dashboard-link\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m5000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m }\n \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m \u001b[90m/**\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                            "column": 14,
+                            "line": 23
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"admin-dashboard-link\"]') to be visible\u001b[22m\n\u001b[2m    12 × locator resolved to hidden <a class=\"nav-link\" data-discover=\"true\" href=\"/admin/dashboard\" data-testid=\"admin-dashboard-link\">Admin Dashboard</a>\u001b[22m\n\n\n   at utils\\auth-helpers.js:23\n\n  21 |   \n  22 |   // Verify admin is logged in\n> 23 |   await page.waitForSelector('[data-testid=\"admin-dashboard-link\"]', { timeout: 5000 });\n     |              ^\n  24 | }\n  25 |\n  26 | /**\n    at loginAsAdmin (C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js:23:14)\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:97:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:26.096Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Safari\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Safari\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1db5c-in-state-after-page-refresh-Mobile-Safari\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\utils\\auth-helpers.js",
+                        "column": 14,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-41501e9e14b70e11a5af",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 34,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1561,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:26.459Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-e0f48871d06796c7d3e4",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Safari",
+                  "projectName": "Mobile Safari",
+                  "results": [
+                    {
+                      "workerIndex": 35,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 2877,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:27.540Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-afa1b6f159a6de7c73be",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 36,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 936,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:27.632Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-9706f8db8bfe222f5c8e",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 37,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 6943,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 61,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// Verify user menu shows admin user\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"user-menu\"]'\u001b[39m))\u001b[33m.\u001b[39mtoContainText(\u001b[32m'ADMIN001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m   test(\u001b[32m'should login successfully with regular user credentials'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 61,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n\n  34 |     \n  35 |     // Verify user menu shows admin user\n> 36 |     await expect(page.locator('[data-testid=\"user-menu\"]')).toContainText('ADMIN001');\n     |                                                             ^\n  37 |   });\n  38 |\n  39 |   test('should login successfully with regular user credentials', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:28.590Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Microsoft-Edge\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Microsoft-Edge\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Microsoft-Edge\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 61,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-023fef924b6b3a32196f",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 38,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5422,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:29.231Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-3ed870b32075424602e9",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 39,
+                      "parallelIndex": 6,
+                      "status": "failed",
+                      "duration": 6479,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:29.930Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Microsoft-Edge\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Microsoft-Edge\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Microsoft-Edge\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-c0423c2c5e0e78e999fd",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 36,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 892,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:28.861Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-87e84c5d8643d4d5679b",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 36,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 3062,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:29.759Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-28f22928606d6af35221",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 40,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 2053,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:31.490Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-ef07cc6b8f2795d73c03",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 41,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 1153,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:31.662Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-17cfa2993db743f40650",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Microsoft Edge",
+                  "projectName": "Microsoft Edge",
+                  "results": [
+                    {
+                      "workerIndex": 36,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1169,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:32.827Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-4fb956db4763fb22a623",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            },
+            {
+              "title": "should display login form correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 44,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 980,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:34.311Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-9ca986ba069f6ca77a51",
+              "file": "auth/login.spec.js",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with admin credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 42,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 6826,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 61,
+                          "line": 36
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 34 |\u001b[39m     \n \u001b[90m 35 |\u001b[39m     \u001b[90m// Verify user menu shows admin user\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 36 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'[data-testid=\"user-menu\"]'\u001b[39m))\u001b[33m.\u001b[39mtoContainText(\u001b[32m'ADMIN001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 37 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m   test(\u001b[32m'should login successfully with regular user credentials'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 61,
+                            "line": 36
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('[data-testid=\"user-menu\"]')\nExpected string: \u001b[32m\"ADMIN001\"\u001b[39m\nReceived string: \u001b[31m\"System AdministratorS\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"user-menu\"]')\u001b[22m\n\u001b[2m    9 × locator resolved to <button type=\"button\" data-testid=\"user-menu\" class=\"d-flex align-items-center btn btn-outline-light\">…</button>\u001b[22m\n\u001b[2m      - unexpected value \"System AdministratorS\"\u001b[22m\n\n\n  34 |     \n  35 |     // Verify user menu shows admin user\n> 36 |     await expect(page.locator('[data-testid=\"user-menu\"]')).toContainText('ADMIN001');\n     |                                                             ^\n  37 |   });\n  38 |\n  39 |   test('should login successfully with regular user credentials', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:36:61"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:34.154Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Google-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Google-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--86710-ully-with-admin-credentials-Google-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 61,
+                        "line": 36
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-f2ae900d20671a18a7a8",
+              "file": "auth/login.spec.js",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should login successfully with regular user credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 43,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 3258,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Regular user test skipped - user may not exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:34.189Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-aa4f53b0f1dc6e28e602",
+              "file": "auth/login.spec.js",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "should show error for invalid credentials",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 45,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 6405,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                          "column": 79,
+                          "line": 77
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 75 |\u001b[39m     \n \u001b[90m 76 |\u001b[39m     \u001b[90m// Should show error message (adjust selector based on your error display)\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 77 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'.alert-danger, .toast-error, .error-message'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 78 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 79 |\u001b[39m\n \u001b[90m 80 |\u001b[39m   test(\u001b[32m'should show validation errors for empty fields'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                            "column": 79,
+                            "line": 77
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.alert-danger, .toast-error, .error-message')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.alert-danger, .toast-error, .error-message')\u001b[22m\n\n\n  75 |     \n  76 |     // Should show error message (adjust selector based on your error display)\n> 77 |     await expect(page.locator('.alert-danger, .toast-error, .error-message')).toBeVisible();\n     |                                                                               ^\n  78 |   });\n  79 |\n  80 |   test('should show validation errors for empty fields', async ({ page }) => {\n    at C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js:77:79"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:35.244Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Google-Chrome\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Google-Chrome\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\test-results\\auth-login-Authentication--1024f-ror-for-invalid-credentials-Google-Chrome\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Desktop\\Projects\\test\\qwen3_tests\\supplyline\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\auth\\login.spec.js",
+                        "column": 79,
+                        "line": 77
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-302ea8a18902faf7712c",
+              "file": "auth/login.spec.js",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should show validation errors for empty fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 49,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 614,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:28:03.010Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-aecb8d337e7a248f1851",
+              "file": "auth/login.spec.js",
+              "line": 80,
+              "column": 3
+            },
+            {
+              "title": "should redirect to login when accessing protected route without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 46,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1270,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:36.730Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-d363b3382dc3b34d97a1",
+              "file": "auth/login.spec.js",
+              "line": 88,
+              "column": 3
+            },
+            {
+              "title": "should remember login state after page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 44,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 2238,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:35.504Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-875b970824a76b6e7991",
+              "file": "auth/login.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "should handle network errors gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 47,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1042,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:37.334Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-dab260dd2277ab0348b1",
+              "file": "auth/login.spec.js",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "should clear form when switching between login and register",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Google Chrome",
+                  "projectName": "Google Chrome",
+                  "results": [
+                    {
+                      "workerIndex": 48,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 963,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-14T19:27:38.412Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "626483fc77c4bb72c38c-077e745973c60caa03cf",
+              "file": "auth/login.spec.js",
+              "line": 121,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-06-14T19:26:56.409Z",
+    "duration": 67509.605,
+    "expected": 47,
+    "skipped": 0,
+    "unexpected": 16,
+    "flaky": 0
+  }
+}

@@ -33,7 +33,7 @@ test.describe('Authentication - Login', () => {
     await expect(page.locator('[data-testid="admin-dashboard-link"]')).toBeVisible();
     
     // Verify user menu shows admin user
-    await expect(page.locator('[data-testid="user-menu"]')).toContainText('ADMIN001');
+    await expect(page.locator('[data-testid="user-menu"]')).toContainText('System Administrator');
   });
 
   test('should login successfully with regular user credentials', async ({ page }) => {

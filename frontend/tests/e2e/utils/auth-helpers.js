@@ -20,7 +20,20 @@ export async function loginAsAdmin(page) {
   await page.waitForURL('/dashboard', { timeout: 10000 });
   
   // Verify admin is logged in
-  await page.waitForSelector('[data-testid="admin-dashboard-link"]', { timeout: 5000 });
+  // On mobile devices, the admin dashboard link might be in a collapsed menu
+  try {
+    // First try to find the admin dashboard link directly
+    await page.waitForSelector('[data-testid="admin-dashboard-link"]', { timeout: 2000 });
+  } catch {
+    // If not visible, try expanding the mobile menu first
+    const hamburgerMenu = page.locator('[data-testid="hamburger-menu"], .navbar-toggler');
+    if (await hamburgerMenu.isVisible()) {
+      await hamburgerMenu.click();
+      await page.waitForTimeout(500); // Wait for menu animation
+    }
+    // Now try to find the admin dashboard link
+    await page.waitForSelector('[data-testid="admin-dashboard-link"]', { timeout: 5000 });
+  }
 }
 
 /**

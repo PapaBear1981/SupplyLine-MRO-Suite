@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { login } from '../../store/authSlice';
 
@@ -9,7 +10,12 @@ const LoginForm = () => {
   const [validated, setValidated] = useState(false);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
+
+  // Get the redirect path from location state or default to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,14 +33,18 @@ const LoginForm = () => {
     try {
       await dispatch(login({ username, password })).unwrap();
       console.log('Login successful!');
+      // Navigate to the intended page after successful login
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Login failed:', err);
+      // Don't clear the form on error - let the user see the error and try again
+      // The error will be displayed via the Redux state
     }
   };
 
   return (
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
-      {error && <Alert variant="danger">{error.message || error.error || JSON.stringify(error)}</Alert>}
+      {error && <Alert variant="danger" className="alert-danger error-message">{error.message || error.error || JSON.stringify(error)}</Alert>}
 
       <Form.Group className="mb-3" controlId="formUsername">
         <Form.Label>Employee Number</Form.Label>
