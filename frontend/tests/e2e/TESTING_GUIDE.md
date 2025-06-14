@@ -15,6 +15,39 @@ npm install
 npx playwright install
 ```
 
+### Environment Configuration
+
+Create a `.env.local` file in the frontend directory (copy from `.env.example`):
+
+```bash
+# Application URLs
+PLAYWRIGHT_BASE_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:5000
+
+# Test Credentials (use environment-specific values)
+E2E_ADMIN_EMPLOYEE_NUMBER=ADMIN001
+E2E_ADMIN_PASSWORD=admin123
+E2E_USER_EMPLOYEE_NUMBER=USER001
+E2E_USER_PASSWORD=user123
+
+# Test Configuration
+E2E_TIMEOUT=30000
+E2E_RETRY_COUNT=2
+E2E_PARALLEL_WORKERS=1
+```
+
+### Security Considerations
+
+⚠️ **IMPORTANT SECURITY PRACTICES:**
+
+- **Never commit real credentials** to version control
+- Use environment variables for all sensitive data
+- Use test-specific user accounts, not production accounts
+- Regularly rotate test credentials
+- Ensure test databases are isolated from production
+- Review `.env.local` files are in `.gitignore`
+
 ### Running Tests
 
 #### Basic Commands

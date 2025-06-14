@@ -5,9 +5,13 @@
 
 import { chromium } from '@playwright/test';
 
-async function globalSetup() {
+async function globalSetup(config) {
   console.log('🚀 Starting global setup for E2E tests...');
-  
+
+  // Get URLs from environment or config
+  const frontendUrl = process.env.FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+
   // Create a browser instance for setup
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -16,10 +20,10 @@ async function globalSetup() {
   try {
     // Wait for the application to be ready
     console.log('⏳ Waiting for application to be ready...');
-    await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
-    
+    await page.goto(frontendUrl, { waitUntil: 'networkidle' });
+
     // Check if backend is responding
-    const backendResponse = await page.request.get('http://localhost:5000/api/health');
+    const backendResponse = await page.request.get(`${backendUrl}/api/health`);
     if (!backendResponse.ok()) {
       throw new Error('Backend is not responding');
     }
@@ -39,13 +43,17 @@ async function globalSetup() {
 
 async function setupTestData(page) {
   console.log('📊 Setting up test data...');
-  
+
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const adminEmployeeNumber = process.env.E2E_ADMIN_EMPLOYEE_NUMBER || 'ADMIN001';
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
+
   try {
     // Create admin user for testing if it doesn't exist
-    const adminLoginResponse = await page.request.post('http://localhost:5000/api/auth/login', {
+    const adminLoginResponse = await page.request.post(`${backendUrl}/api/auth/login`, {
       data: {
-        employee_number: 'ADMIN001',
-        password: 'admin123'
+        employee_number: adminEmployeeNumber,
+        password: adminPassword
       }
     });
     

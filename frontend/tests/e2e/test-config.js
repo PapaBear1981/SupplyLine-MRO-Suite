@@ -21,15 +21,15 @@ export const TEST_CONFIG = {
   // Test users
   users: {
     admin: {
-      employee_number: 'ADMIN001',
-      password: 'admin123',
+      employee_number: process.env.E2E_ADMIN_EMPLOYEE_NUMBER || 'ADMIN001',
+      password: process.env.E2E_ADMIN_PASSWORD || 'admin123',
       name: 'Admin User',
       department: 'IT',
       is_admin: true
     },
     regularUser: {
-      employee_number: 'USER001',
-      password: 'user123',
+      employee_number: process.env.E2E_USER_EMPLOYEE_NUMBER || 'USER001',
+      password: process.env.E2E_USER_PASSWORD || 'user123',
       name: 'Regular User',
       department: 'Production',
       is_admin: false

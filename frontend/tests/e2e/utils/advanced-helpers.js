@@ -240,16 +240,29 @@ export async function createTestData(page, endpoint, data) {
 
 /**
  * Clean up test data
- * @param {import('@playwright/test').Page} page 
- * @param {string} endpoint 
- * @param {string} id 
+ * @param {import('@playwright/test').Page} page
+ * @param {string} endpoint
+ * @param {string} id
  */
 export async function cleanupTestData(page, endpoint, id) {
   const response = await page.request.delete(`${endpoint}/${id}`);
-  
+
   if (!response.ok() && response.status() !== 404) {
     console.warn(`Failed to cleanup test data: ${response.status()}`);
   }
+}
+
+/**
+ * Global cleanup function for test teardown
+ * @param {object} config - Playwright configuration object
+ */
+export async function globalCleanupTestData(config) {
+  console.log('🗑️ Performing global test data cleanup...');
+
+  // This function can be expanded to clean up test data
+  // using the configuration if needed
+
+  console.log('✅ Global test data cleanup completed');
 }
 
 /**

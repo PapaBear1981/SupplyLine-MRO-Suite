@@ -4,14 +4,17 @@
 
 /**
  * Login as admin user
- * @param {import('@playwright/test').Page} page 
+ * @param {import('@playwright/test').Page} page
  */
 export async function loginAsAdmin(page) {
   await page.goto('/login');
-  
-  // Fill login form
-  await page.fill('[data-testid="employee-number-input"]', 'ADMIN001');
-  await page.fill('[data-testid="password-input"]', 'admin123');
+
+  // Fill login form with credentials from environment or defaults
+  const adminEmployeeNumber = process.env.E2E_ADMIN_EMPLOYEE_NUMBER || 'ADMIN001';
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
+
+  await page.fill('[data-testid="employee-number-input"]', adminEmployeeNumber);
+  await page.fill('[data-testid="password-input"]', adminPassword);
   
   // Submit form
   await page.click('[data-testid="login-button"]');
@@ -44,8 +47,8 @@ export async function loginAsAdmin(page) {
  */
 export async function loginAsUser(page, employeeNumber = 'USER001', password = 'user123') {
   await page.goto('/login');
-  
-  // Fill login form
+
+  // Fill login form with provided credentials
   await page.fill('[data-testid="employee-number-input"]', employeeNumber);
   await page.fill('[data-testid="password-input"]', password);
   
