@@ -483,7 +483,11 @@ class ToolCalibration(db.Model):
     next_calibration_date = db.Column(db.DateTime, nullable=True)
     performed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     calibration_notes = db.Column(db.String, nullable=True)
-    calibration_status = db.Column(db.String, nullable=False, default='pass')  # pass, fail, limited
+    calibration_status = db.Column(
+        db.Enum('pass', 'fail', 'limited', name='calibration_status_enum'),
+        nullable=False,
+        server_default='pass'
+    )
     calibration_certificate_file = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=get_current_time)
 
