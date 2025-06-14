@@ -2,15 +2,120 @@
 
 A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
 
-**Current Version: 3.5.3** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 3.5.4** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+> **⚠️ ROLLBACK NOTICE**: This repository has been rolled back to Version 3.5.4 from a later version due to stability issues. Version 3.5.4 represents the last stable release with all critical bug fixes and performance improvements.
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-## What's New in 3.5.3
+## What's New in 3.5.4
 
-The latest version includes significant improvements to user experience and fixes several important issues:
+**SupplyLine MRO Suite v3.5.4** represents a significant stability and performance release with:
+
+### 🛠️ Critical Bug Fixes
+
+#### Backend Infrastructure
+- **Fixed Resource Monitor Windows Compatibility** (#215)
+  - Resolved `SystemError: argument 1 (impossible<bad format char>)` in disk usage monitoring
+  - Added proper Windows disk path resolution using `os.path.splitdrive()`
+  - Enhanced error handling with graceful fallback for system monitoring
+
+- **Fixed Password Validation Import Issue** (#215)
+  - Resolved "Falling back to dummy password validation" security warning
+  - Replaced problematic sys.path manipulation with `importlib.util`
+  - Restored strong password validation functionality
+
+#### Navigation and User Interface
+- **Fixed Admin Dashboard Tab Switching** (#216)
+  - Resolved critical issue preventing access to User Management, Role Management, Audit Logs
+  - Restored full admin dashboard functionality
+  - All admin tabs now switch correctly
+
+- **Fixed Main Navigation Menu Links** (#218)
+  - Resolved critical navigation issue affecting all main menu links
+  - Users can now properly navigate between Tools, Chemicals, Reports, Admin Dashboard
+  - Restored primary navigation functionality
+
+### ⚡ Performance Improvements
+
+#### Database Optimization
+- **Added 26 New Database Indexes** for cycle count functionality
+- **Implemented Composite Indexes** for complex queries
+- **Enhanced Query Performance** significantly improved (up to 10x faster)
+- **Database Constraints** enhanced for data integrity
+
+#### System Resource Monitoring
+- **Fixed System Resources Display** (#139, #143)
+  - Real-time CPU, memory, and disk usage monitoring
+  - Proper progress bar formatting and percentage display
+  - Enhanced refresh functionality
+
+### 🕒 Time Handling Improvements
+
+- **Comprehensive Time Handling Fix** (#154, #155)
+  - Updated all database models to use local time instead of UTC
+  - Replaced all `datetime.utcnow()` calls with local time equivalents
+  - Added `get_current_time()` utility function for consistency
+  - All timestamps throughout application now use local time
+
+### 🛠️ Tool Management Enhancements
+
+#### Phase 2 Tool Management Features
+- **Admin Tool Deletion Capability** (#12)
+  - Multi-step confirmation modal with history checking
+  - Smart deletion workflow with retire option
+  - Force delete option for tools with history
+  - Comprehensive audit logging
+
+- **Enhanced Tool History** (#19)
+  - Detailed transaction modal with comprehensive checkout information
+  - Improved status indicators with color-coded badges
+  - Better data display with formatting and tooltips
+
+- **Improved Calibration Workflow** (#34)
+  - Visual calibration status indicators (Current, Due Soon, Overdue)
+  - Calibration column in tool list with tooltips
+  - Dashboard integration with calibration notifications
+  - Enhanced calibration display in tool detail pages
+
+### 📊 Reporting and Analytics
+
+#### New Cycle Count Reports
+- **Inventory Accuracy Report** with trend analysis
+- **Discrepancy Report** with detailed variance tracking
+- **Performance Report** with efficiency metrics
+- **Coverage Report** with completion tracking
+- **Interactive Filters** for all reports (location, category, type)
+- **Real-time Data Visualization** with charts and graphs
+
+### 🧪 Testing and Documentation
+
+#### Comprehensive Testing Infrastructure
+- **Backend Test Suite** with pytest integration
+- **Frontend Test Suite** with React Testing Library
+- **Integration Tests** for API endpoints
+- **Component Tests** for UI functionality
+
+#### Complete Documentation Suite
+- **User Guide** (356 lines) with step-by-step instructions
+- **Technical Guide** with architecture and API documentation
+- **Mobile Interface Guide** with barcode scanning
+- **Troubleshooting Section** with common issues and solutions
+
+### 🔒 Security Improvements
+
+- **Enhanced Session Management** security
+- **Improved Error Handling** with structured logging
+- **CORS Configuration** security enhancements
+- **Input Validation** and sanitization improvements
+
+**Ready for production deployment with enterprise-grade reliability!**
+
+### Previous Release (3.5.3)
+
+Version 3.5.3 included significant improvements to user experience and fixes several important issues:
 
 - **Improved Admin Dashboard**: Fixed tab switching in Admin Dashboard for User Management, Role Management, System Settings, and Help Settings
 - **Enhanced Chemical Management**: Added alerts for overdue chemical deliveries and fixed chemical reorder delivery functionality
@@ -398,7 +503,7 @@ For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCK
    - Update personal details
 4. Click "Save Changes"
 
-### Updating to the Latest Version (v3.5.3)
+### Updating to the Latest Version (v3.5.4)
 If you're updating from a previous version, follow these steps:
 
 1. Pull the latest changes from the repository:

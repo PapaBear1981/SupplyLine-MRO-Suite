@@ -70,3 +70,9 @@ logs
 *.swp
 *.swo
 *~
+
+# Electron build directories
+app-build/
+build-output/
+dist-new/
+electron-dist/
