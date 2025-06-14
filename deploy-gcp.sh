@@ -3,7 +3,7 @@
 # SupplyLine MRO Suite - Google Cloud Platform Deployment Script
 # This script deploys the application to Google Cloud Run
 
-set -e  # Exit on any error
+set -euo pipefail  # Fail fast, catch pipe errors & unset vars
 
 # Configuration
 PROJECT_ID=${PROJECT_ID:-"your-gcp-project-id"}
@@ -81,12 +81,19 @@ setup_project() {
 create_secrets() {
     log_info "Creating secrets..."
     
-    # Create secret key
-    echo -n "$SECRET_KEY" | gcloud secrets create supplyline-secret-key --data-file=- --replication-policy="automatic" || true
-    
-    # Create database credentials (you'll need to update these)
-    echo -n "supplyline_user" | gcloud secrets create supplyline-db-username --data-file=- --replication-policy="automatic" || true
-    echo -n "your-secure-password" | gcloud secrets create supplyline-db-password --data-file=- --replication-policy="automatic" || true
+    # Create secret key if it doesn't exist
+    if ! gcloud secrets describe supplyline-secret-key >/dev/null 2>&1; then
+        echo -n "$SECRET_KEY" | gcloud secrets create supplyline-secret-key --replication-policy="automatic" --data-file=-
+    fi
+
+    # Create database credentials if they don't exist (you'll need to update these)
+    if ! gcloud secrets describe supplyline-db-username >/dev/null 2>&1; then
+        echo -n "supplyline_user" | gcloud secrets create supplyline-db-username --replication-policy="automatic" --data-file=-
+    fi
+
+    if ! gcloud secrets describe supplyline-db-password >/dev/null 2>&1; then
+        echo -n "your-secure-password" | gcloud secrets create supplyline-db-password --replication-policy="automatic" --data-file=-
+    fi
     
     log_success "Secrets created"
 }
@@ -101,7 +108,7 @@ create_database() {
         --tier=db-f1-micro \
         --region=$REGION \
         --storage-type=SSD \
-        --storage-size=10GB \
+        --storage-size=10 \
         --backup-start-time=03:00 \
         --enable-bin-log \
         --deletion-protection || log_warning "Database instance may already exist"
@@ -122,7 +129,7 @@ deploy_application() {
     # Submit build
     gcloud builds submit \
         --config=cloudbuild.yaml \
-        --substitutions=_ENVIRONMENT=$ENVIRONMENT,_REGION=$REGION,_SECRET_KEY=$SECRET_KEY,_CLOUDSQL_INSTANCE=$PROJECT_ID:$REGION:supplyline-db \
+        --substitutions=_ENVIRONMENT=$ENVIRONMENT,_REGION=$REGION,_CLOUDSQL_INSTANCE=$PROJECT_ID:$REGION:supplyline-db \
         .
     
     log_success "Application deployed successfully"

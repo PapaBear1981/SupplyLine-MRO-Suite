@@ -1,11 +1,11 @@
 # Build stage
-FROM node:20-slim as build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
 # Accept build arguments for API URL configuration
 ARG VITE_API_URL=http://localhost:5000
-ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 # Copy package files for dependency installation
 COPY package*.json ./

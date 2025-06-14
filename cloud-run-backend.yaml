@@ -26,24 +26,24 @@ spec:
         - name: FLASK_ENV
           value: "production"
         - name: SECRET_KEY
-          valueFrom:
+          valueSource:
             secretKeyRef:
-              name: supplyline-secret-key
-              key: secret-key
+              secret: supplyline-secret-key
+              version: 1
         - name: CORS_ORIGINS
           value: "https://supplyline-frontend-REGION.a.run.app"
         - name: DB_HOST
           value: "/cloudsql/PROJECT_ID:REGION:supplyline-db"
         - name: DB_USER
-          valueFrom:
+          valueSource:
             secretKeyRef:
-              name: supplyline-db-credentials
-              key: username
+              secret: supplyline-db-username
+              version: 1
         - name: DB_PASSWORD
-          valueFrom:
+          valueSource:
             secretKeyRef:
-              name: supplyline-db-credentials
-              key: password
+              secret: supplyline-db-password
+              version: 1
         - name: DB_NAME
           value: "supplyline"
         - name: PYTHONDONTWRITEBYTECODE

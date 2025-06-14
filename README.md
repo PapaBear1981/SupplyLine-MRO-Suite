@@ -308,7 +308,6 @@ Deploy to Google Cloud Platform using Cloud Run and Cloud SQL:
 # Clone the repository
 git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
 cd SupplyLine-MRO-Suite
-git checkout feature/google-cloud-deployment
 
 # Configure environment
 cp .env.gcp.example .env.gcp

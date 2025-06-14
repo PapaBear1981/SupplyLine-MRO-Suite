@@ -23,21 +23,7 @@ steps:
       - './frontend'
     id: 'build-frontend'
 
-  # Push backend image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
-    id: 'push-backend'
-    waitFor: ['build-backend']
-
-  # Push frontend image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
-    id: 'push-frontend'
-    waitFor: ['build-frontend']
+  # Push handled by global `images:` – explicit steps not required
 
   # Deploy backend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -62,11 +48,13 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,SECRET_KEY=${_SECRET_KEY},CORS_ORIGINS=https://supplyline-frontend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - 'FLASK_ENV=production,CORS_ORIGINS=https://supplyline-frontend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - '--set-secrets'
+      - 'SECRET_KEY=supplyline-secret-key:latest'
       - '--set-cloudsql-instances'
       - '${_CLOUDSQL_INSTANCE}'
     id: 'deploy-backend'
-    waitFor: ['push-backend']
+    waitFor: ['build-backend']
 
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -91,13 +79,12 @@ steps:
       - '--max-instances'
       - '5'
     id: 'deploy-frontend'
-    waitFor: ['push-frontend', 'deploy-backend']
+    waitFor: ['build-frontend', 'deploy-backend']
 
 # Substitution variables
 substitutions:
   _ENVIRONMENT: 'staging'
   _REGION: 'us-central1'
-  _SECRET_KEY: 'your-production-secret-key'
   _CLOUDSQL_INSTANCE: 'your-project:us-central1:supplyline-db'
 
 # Build options

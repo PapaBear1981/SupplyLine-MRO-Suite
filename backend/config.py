@@ -71,6 +71,7 @@ class Config:
     def get_session_config():
         if os.environ.get('FLASK_ENV') == 'production' and os.environ.get('DB_HOST'):
             # Use database sessions for cloud deployment
+            # Note: SESSION_SQLALCHEMY will be set in app.py after db is initialized
             return {
                 'SESSION_TYPE': 'sqlalchemy',
                 'SESSION_SQLALCHEMY_TABLE': 'sessions',
@@ -78,19 +79,18 @@ class Config:
                 'SESSION_USE_SIGNER': True,
                 'SESSION_KEY_PREFIX': 'supplyline:',
             }
+        # Use filesystem sessions for local development
+        if os.path.exists('/flask_session'):
+            session_dir = '/flask_session'
         else:
-            # Use filesystem sessions for local development
-            if os.path.exists('/flask_session'):
-                session_dir = '/flask_session'
-            else:
-                session_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
-            print(f"Using session directory: {session_dir}")
-            return {
-                'SESSION_TYPE': 'filesystem',
-                'SESSION_FILE_DIR': session_dir,
-                'SESSION_PERMANENT': False,
-                'SESSION_USE_SIGNER': True,
-            }
+            session_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
+        print(f"Using session directory: {session_dir}")
+        return {
+            'SESSION_TYPE': 'filesystem',
+            'SESSION_FILE_DIR': session_dir,
+            'SESSION_PERMANENT': False,
+            'SESSION_USE_SIGNER': True,
+        }
 
     # Apply session configuration
     _session_config = get_session_config()

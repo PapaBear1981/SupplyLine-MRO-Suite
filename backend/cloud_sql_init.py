@@ -9,8 +9,7 @@ with the required tables and initial data.
 import os
 import sys
 from app import create_app
-from models import db, User, Tool, Checkout, AuditLog
-from datetime import datetime, timedelta
+from models import db, User, Tool, AuditLog
 
 def init_cloud_sql():
     """Initialize Cloud SQL database with tables and initial data."""
@@ -22,7 +21,8 @@ def init_cloud_sql():
     with app.app_context():
         try:
             # Test database connection
-            db.engine.execute('SELECT 1')
+            with db.engine.connect() as conn:
+                conn.execute(db.text('SELECT 1'))
             print("✓ Database connection successful")
             
             # Create all tables

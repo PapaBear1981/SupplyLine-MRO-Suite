@@ -52,6 +52,11 @@ def create_app():
         }
     })
 
+    # Configure SESSION_SQLALCHEMY for database sessions if needed
+    if app.config.get('SESSION_TYPE') == 'sqlalchemy':
+        from models import db
+        app.config['SESSION_SQLALCHEMY'] = db
+
     # Initialize Flask-Session
     Session(app)
 
@@ -142,6 +147,19 @@ def create_app():
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
+
+    @app.route('/api/health')
+    def health_check():
+        """Health check endpoint for Cloud Run"""
+        try:
+            # Test database connection
+            from models import db
+            with db.engine.connect() as conn:
+                conn.execute(db.text('SELECT 1'))
+            return jsonify({'status': 'healthy', 'database': 'connected'}), 200
+        except Exception as e:
+            logger.error("Health check failed", exc_info=True)
+            return jsonify({'status': 'unhealthy', 'error': str(e)}), 503
 
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={
