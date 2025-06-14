@@ -1,30 +1,43 @@
-import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import UnauthorizedAccess from '../components/common/UnauthorizedAccess';
 import AdminDashboard from '../components/admin/AdminDashboard';
+import { useAuth } from '../hooks/useAuth';
 
 const AdminDashboardPage = () => {
-  const { user, isLoading } = useSelector((state) => state.auth);
-
-  // Define admin permission prefixes as a constant
-  const ADMIN_PERMISSION_PREFIXES = ['user.', 'role.', 'system.'];
-
-  // Check if user has any admin permissions
-  const hasAdminPermissions = user?.permissions?.some(permission =>
-    ADMIN_PERMISSION_PREFIXES.some(prefix => permission.startsWith(prefix))
-  );
-
-  // Redirect if user doesn't have admin permissions
-  if (!hasAdminPermissions) {
-    return <Navigate to="/" replace />;
-  }
+  const { user, loading, hasUser, isAdmin } = useAuth();
 
   // Show loading spinner while fetching user data
-  if (isLoading) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 
-  // At this point, we know the user has admin permissions
+  // Handle the edge case where loading is false but user is null
+  // This could happen due to auth errors or failed user fetch
+  if (!hasUser) {
+    return (
+      <UnauthorizedAccess
+        title="Authentication Required"
+        message="Unable to verify your authentication status. Please log in again."
+        redirectPath="/login"
+        redirectText="Go to Login"
+      />
+    );
+  }
+
+  // Check if user is admin - using the optimized useAuth hook for consistency
+  if (!isAdmin) {
+    return (
+      <UnauthorizedAccess
+        title="Admin Access Required"
+        message="You need administrator privileges to access this page."
+        redirectPath="/dashboard"
+        redirectText="Go to Dashboard"
+      />
+    );
+  }
+
+  // At this point, we know the user is an admin
   return <AdminDashboard />;
 };
 
