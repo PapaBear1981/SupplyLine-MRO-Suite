@@ -98,7 +98,7 @@ def materials_manager_required(f):
     return decorated_function
 
 def register_routes(app):
-    db.init_app(app)
+    # Database already initialized in app.py
     with app.app_context():
         db.create_all()
 
@@ -242,8 +242,7 @@ def register_routes(app):
         try:
             # Test database connection
             from sqlalchemy import text
-            with db.engine.connect() as conn:
-                conn.execute(text('SELECT 1'))
+            db.session.execute(text('SELECT 1'))
 
             return jsonify({
                 'status': 'healthy',

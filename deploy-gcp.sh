@@ -10,6 +10,8 @@ PROJECT_ID=${PROJECT_ID:-"your-gcp-project-id"}
 REGION=${REGION:-"us-central1"}
 ENVIRONMENT=${ENVIRONMENT:-"staging"}
 SECRET_KEY=${SECRET_KEY:-"$(openssl rand -base64 32)"}
+DB_PASSWORD=${DB_PASSWORD:-"$(openssl rand -base64 24)"}
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-"$(openssl rand -base64 16)"}
 
 # Colors for output
 RED='\033[0;31m'
@@ -92,7 +94,7 @@ create_secrets() {
     fi
 
     if ! gcloud secrets describe supplyline-db-password >/dev/null 2>&1; then
-        echo -n "your-secure-password" | gcloud secrets create supplyline-db-password --replication-policy="automatic" --data-file=-
+        echo -n "$DB_PASSWORD" | gcloud secrets create supplyline-db-password --replication-policy="automatic" --data-file=-
     fi
     
     log_success "Secrets created"
@@ -117,7 +119,7 @@ create_database() {
     gcloud sql databases create supplyline --instance=supplyline-db || log_warning "Database may already exist"
     
     # Create user
-    gcloud sql users create supplyline_user --instance=supplyline-db --password=your-secure-password || log_warning "User may already exist"
+    gcloud sql users create supplyline_user --instance=supplyline-db --password="$DB_PASSWORD" || log_warning "User may already exist"
     
     log_success "Database setup completed"
 }
@@ -150,7 +152,10 @@ get_service_urls() {
     echo ""
     echo "Admin credentials:"
     echo "Username: ADMIN001"
-    echo "Password: admin123"
+    echo "Password: $ADMIN_PASSWORD"
+    echo ""
+    echo "⚠️  IMPORTANT: Save these credentials securely!"
+    echo "⚠️  Change the admin password after first login!"
 }
 
 # Main deployment flow

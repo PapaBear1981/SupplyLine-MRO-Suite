@@ -1,4 +1,5 @@
 import os
+import logging
 import logging.handlers
 from datetime import timedelta
 
@@ -22,17 +23,17 @@ class Config:
             if db_host.startswith('/cloudsql/'):
                 # Unix socket connection for Cloud SQL
                 return f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
-            else:
-                # TCP connection
-                db_port = os.environ.get('DB_PORT', '5432')
-                return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+
+            # TCP connection
+            db_port = os.environ.get('DB_PORT', '5432')
+            return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
         else:
             # SQLite for local development
             if os.path.exists('/database'):
                 db_path = os.path.join('/database', 'tools.db')
             else:
                 db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
-            print(f"Using SQLite database path: {db_path}")
+            logging.getLogger(__name__).debug(f"Using SQLite database path: {db_path}")
             return f'sqlite:///{db_path}'
 
     SQLALCHEMY_DATABASE_URI = get_database_uri()
@@ -54,12 +55,12 @@ class Config:
                     'application_name': 'supplyline-mro-suite'
                 }
             }
-        else:
-            # SQLite configuration
-            return {
-                'echo': False,
-                'pool_pre_ping': True,
-            }
+
+        # SQLite configuration
+        return {
+            'echo': False,
+            'pool_pre_ping': True,
+        }
 
     SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
 
@@ -84,7 +85,7 @@ class Config:
             session_dir = '/flask_session'
         else:
             session_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
-        print(f"Using session directory: {session_dir}")
+        logging.getLogger(__name__).debug(f"Using session directory: {session_dir}")
         return {
             'SESSION_TYPE': 'filesystem',
             'SESSION_FILE_DIR': session_dir,

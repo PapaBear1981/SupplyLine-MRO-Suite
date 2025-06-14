@@ -21,9 +21,8 @@ def init_cloud_sql():
     with app.app_context():
         try:
             # Test database connection
-            with db.engine.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text('SELECT 1'))
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
             print("✓ Database connection successful")
             
             # Create all tables
@@ -47,27 +46,35 @@ def init_cloud_sql():
             else:
                 print("✓ Admin user already exists")
             
-            # Create sample users if they don't exist
-            sample_users = [
-                ('John Doe', 'EMP001', 'Maintenance'),
-                ('Jane Smith', 'EMP002', 'Maintenance'),
-                ('Bob Johnson', 'EMP003', 'Materials'),
-                ('Alice Brown', 'EMP004', 'Engineering')
-            ]
-            
-            users_created = 0
-            for name, emp_num, dept in sample_users:
-                if not User.query.filter_by(employee_number=emp_num).first():
-                    user = User(name=name, employee_number=emp_num, department=dept)
-                    user.set_password('password123')
-                    db.session.add(user)
-                    users_created += 1
-            
-            if users_created > 0:
-                db.session.commit()
-                print(f"✓ Created {users_created} sample users")
+            # Create sample users if they don't exist (only in non-production)
+            if os.environ.get('FLASK_ENV') != 'production':
+                sample_users = [
+                    ('John Doe', 'EMP001', 'Maintenance'),
+                    ('Jane Smith', 'EMP002', 'Maintenance'),
+                    ('Bob Johnson', 'EMP003', 'Materials'),
+                    ('Alice Brown', 'EMP004', 'Engineering')
+                ]
+
+                users_created = 0
+                for name, emp_num, dept in sample_users:
+                    if not User.query.filter_by(employee_number=emp_num).first():
+                        import secrets
+                        user = User(name=name, employee_number=emp_num, department=dept)
+                        # Generate secure random password for sample users
+                        secure_password = secrets.token_urlsafe(12)
+                        user.set_password(secure_password)
+                        db.session.add(user)
+                        users_created += 1
+                        print(f"Created user {emp_num} with password: {secure_password}")
+
+                if users_created > 0:
+                    db.session.commit()
+                    print(f"✓ Created {users_created} sample users")
+                else:
+                    print("✓ Sample users already exist")
             else:
-                print("✓ Sample users already exist")
+                print("✓ Skipping sample user creation in production")
+
             
             # Create sample tools if they don't exist
             sample_tools = [
@@ -123,6 +130,8 @@ def init_cloud_sql():
             return True
             
         except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("Database initialization failed")
             print(f"✗ Database initialization failed: {str(e)}")
             return False
 
