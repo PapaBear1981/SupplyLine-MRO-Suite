@@ -157,11 +157,11 @@ const ToolCalibrationHistory = ({ toolId }) => {
                   <td>{calibration.performed_by_name}</td>
                   <td>
                     <Badge bg={
-                      calibration.calibration_status === 'completed' ? 'success' :
-                      calibration.calibration_status === 'failed' ? 'danger' : 'warning'
+                      calibration.calibration_status === 'pass' ? 'success' :
+                      calibration.calibration_status === 'fail' ? 'danger' : 'warning'
                     }>
-                      {calibration.calibration_status === 'completed' ? 'Completed' :
-                       calibration.calibration_status === 'failed' ? 'Failed' : 'In Progress'}
+                      {calibration.calibration_status === 'pass' ? 'Pass' :
+                       calibration.calibration_status === 'fail' ? 'Fail' : 'Limited'}
                     </Badge>
                   </td>
                   <td>

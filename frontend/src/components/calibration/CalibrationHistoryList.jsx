@@ -172,9 +172,9 @@ const CalibrationHistoryList = () => {
                 className="w-auto"
               >
                 <option value="">All Statuses</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-                <option value="in_progress">In Progress</option>
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="limited">Limited</option>
               </Form.Select>
             </div>
           </div>
@@ -212,11 +212,11 @@ const CalibrationHistoryList = () => {
                   <td>{calibration.performed_by_name}</td>
                   <td>
                     <span className={`badge bg-${
-                      calibration.calibration_status === 'completed' ? 'success' :
-                      calibration.calibration_status === 'failed' ? 'danger' : 'warning'
+                      calibration.calibration_status === 'pass' ? 'success' :
+                      calibration.calibration_status === 'fail' ? 'danger' : 'warning'
                     }`}>
-                      {calibration.calibration_status === 'completed' ? 'Completed' :
-                       calibration.calibration_status === 'failed' ? 'Failed' : 'In Progress'}
+                      {calibration.calibration_status === 'pass' ? 'Pass' :
+                       calibration.calibration_status === 'fail' ? 'Fail' : 'Limited'}
                     </span>
                   </td>
                   <td>
