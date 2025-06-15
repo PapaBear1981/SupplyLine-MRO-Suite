@@ -117,6 +117,24 @@ gcloud sql connect supplyline-db --user=supplyline_user --database=supplyline
 python backend/cloud_sql_init.py
 ```
 
+### 6. Deploy Using Cloud Run Templates
+
+The `cloud-run-backend.yaml` and `cloud-run-frontend.yaml` files contain
+deployment configurations with placeholders for your project and region.
+Use `envsubst` to substitute environment variables and pipe the result to
+`gcloud run services replace`:
+
+```bash
+export PROJECT_ID=<your-gcp-project>
+export REGION=<your-region>
+
+envsubst < cloud-run-backend.yaml | \
+  gcloud run services replace - --region "$REGION" --project "$PROJECT_ID"
+
+envsubst < cloud-run-frontend.yaml | \
+  gcloud run services replace - --region "$REGION" --project "$PROJECT_ID"
+```
+
 ## Configuration
 
 ### Environment Variables

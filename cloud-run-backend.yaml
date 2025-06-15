@@ -11,14 +11,14 @@ spec:
       annotations:
         run.googleapis.com/cpu-throttling: "false"
         run.googleapis.com/execution-environment: gen2
-        run.googleapis.com/vpc-access-connector: projects/PROJECT_ID/locations/REGION/connectors/supplyline-connector
-        run.googleapis.com/cloudsql-instances: PROJECT_ID:REGION:supplyline-db
+        run.googleapis.com/vpc-access-connector: projects/${PROJECT_ID}/locations/${REGION}/connectors/supplyline-connector
+        run.googleapis.com/cloudsql-instances: ${PROJECT_ID}:${REGION}:supplyline-db
     spec:
       containerConcurrency: 100
       timeoutSeconds: 300
-      serviceAccountName: supplyline-backend-sa@PROJECT_ID.iam.gserviceaccount.com
+      serviceAccountName: supplyline-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com
       containers:
-      - image: gcr.io/PROJECT_ID/supplyline-backend:latest
+      - image: gcr.io/${PROJECT_ID}/supplyline-backend:latest
         ports:
         - name: http1
           containerPort: 5000
@@ -31,9 +31,9 @@ spec:
               secret: supplyline-secret-key
               version: 1
         - name: CORS_ORIGINS
-          value: "https://supplyline-frontend-REGION.a.run.app"
+          value: "https://supplyline-frontend-${REGION}.a.run.app"
         - name: DB_HOST
-          value: "/cloudsql/PROJECT_ID:REGION:supplyline-db"
+          value: "/cloudsql/${PROJECT_ID}:${REGION}:supplyline-db"
         - name: DB_USER
           valueSource:
             secretKeyRef:
