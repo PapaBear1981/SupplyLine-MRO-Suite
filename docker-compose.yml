@@ -14,7 +14,7 @@ services:
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost,http://localhost:80}
       - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
     ports:

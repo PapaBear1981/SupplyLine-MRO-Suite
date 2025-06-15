@@ -31,7 +31,7 @@ Edit the `.env` file to set your environment variables:
 # Backend Environment Variables
 FLASK_ENV=production
 SECRET_KEY=your-secure-secret-key
-CORS_ORIGINS=http://localhost,http://localhost:80
+CORS_ORIGINS=http://localhost:5173,http://localhost,http://localhost:80
 PYTHONDONTWRITEBYTECODE=1
 PYTHONUNBUFFERED=1
 
