@@ -31,6 +31,9 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # Set session cookie name explicitly for Flask-Session compatibility
+    app.session_cookie_name = app.config['SESSION_COOKIE_NAME']
+
     # Configure structured logging
     if hasattr(Config, 'LOGGING_CONFIG'):
         try:
