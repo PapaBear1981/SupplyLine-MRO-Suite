@@ -12,6 +12,9 @@ ENVIRONMENT=${ENVIRONMENT:-"supplyline-beta"}
 SECRET_KEY=${SECRET_KEY:-"$(openssl rand -base64 32)"}
 DB_PASSWORD=${DB_PASSWORD:-"$(openssl rand -base64 24)"}
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-"$(openssl rand -base64 16)"}
+CONNECTOR_NAME=${CONNECTOR_NAME:-"supplyline-connector"}
+VPC_NETWORK=${VPC_NETWORK:-"default"}
+VPC_RANGE=${VPC_RANGE:-"10.8.0.0/28"}
 
 # Colors for output
 RED='\033[0;31m'
@@ -75,6 +78,7 @@ setup_project() {
     gcloud services enable run.googleapis.com
     gcloud services enable sqladmin.googleapis.com
     gcloud services enable secretmanager.googleapis.com
+    gcloud services enable vpcaccess.googleapis.com
     
     log_success "Project setup completed"
 }
@@ -98,6 +102,53 @@ create_secrets() {
     fi
     
     log_success "Secrets created"
+}
+
+# Create service accounts for Cloud Run
+create_service_accounts() {
+    log_info "Creating service accounts..."
+
+    if ! gcloud iam service-accounts describe supplyline-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com >/dev/null 2>&1; then
+        gcloud iam service-accounts create supplyline-backend-sa --display-name "SupplyLine Backend Service Account"
+    fi
+
+    if ! gcloud iam service-accounts describe supplyline-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com >/dev/null 2>&1; then
+        gcloud iam service-accounts create supplyline-frontend-sa --display-name "SupplyLine Frontend Service Account"
+    fi
+
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+        --member="serviceAccount:supplyline-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+        --role="roles/run.serviceAgent" || true
+
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+        --member="serviceAccount:supplyline-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+        --role="roles/cloudsql.client" || true
+
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+        --member="serviceAccount:supplyline-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+        --role="roles/run.serviceAgent" || true
+
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+        --member="serviceAccount:supplyline-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+        --role="roles/cloudsql.client" || true
+
+    log_success "Service accounts configured"
+}
+
+# Create VPC Access connector for Cloud Run
+create_vpc_connector() {
+    log_info "Configuring VPC Access connector..."
+
+    if ! gcloud compute networks vpc-access connectors describe $CONNECTOR_NAME --region=$REGION >/dev/null 2>&1; then
+        gcloud compute networks vpc-access connectors create $CONNECTOR_NAME \
+            --region=$REGION \
+            --network=$VPC_NETWORK \
+            --range=$VPC_RANGE
+    else
+        log_warning "VPC connector already exists"
+    fi
+
+    log_success "VPC Access connector ready"
 }
 
 # Create Cloud SQL instance
@@ -200,6 +251,8 @@ main() {
     
     check_prerequisites
     setup_project
+    create_service_accounts
+    create_vpc_connector
     create_secrets
     create_database
     initialize_database
