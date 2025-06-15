@@ -5,10 +5,26 @@
 
 set -euo pipefail  # Fail fast, catch pipe errors & unset vars
 
+# Load environment configuration if available
+if [ -f ".env.gcp" ]; then
+    # Export variables defined in the file
+    set -o allexport
+    source .env.gcp
+    set +o allexport
+fi
+
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"gen-lang-client-0819985982"}
-REGION=${REGION:-"us-west1"}
+PROJECT_ID=${PROJECT_ID:?PROJECT_ID is required}
+REGION=${REGION:?REGION is required}
 ENVIRONMENT=${ENVIRONMENT:-"supplyline-beta"}
+## Cloud SQL instance configuration
+CLOUDSQL_INSTANCE_NAME=${CLOUDSQL_INSTANCE_NAME:-"supplyline-db"}
+if [ -n "${_CLOUDSQL_INSTANCE:-}" ]; then
+    CLOUDSQL_INSTANCE=${_CLOUDSQL_INSTANCE}
+    CLOUDSQL_INSTANCE_NAME=${CLOUDSQL_INSTANCE##*:}
+else
+    CLOUDSQL_INSTANCE="${PROJECT_ID}:${REGION}:${CLOUDSQL_INSTANCE_NAME}"
+fi
 SECRET_KEY=${SECRET_KEY:-"$(openssl rand -base64 32)"}
 DB_PASSWORD=${DB_PASSWORD:-"$(openssl rand -base64 24)"}
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-"$(openssl rand -base64 16)"}
@@ -156,7 +172,7 @@ create_database() {
     log_info "Creating Cloud SQL instance..."
     
     # Create PostgreSQL instance
-    gcloud sql instances create supplyline-db \
+    gcloud sql instances create "$CLOUDSQL_INSTANCE_NAME" \
         --database-version=POSTGRES_14 \
         --tier=db-f1-micro \
         --region=$REGION \
@@ -167,10 +183,10 @@ create_database() {
         --deletion-protection || log_warning "Database instance may already exist"
     
     # Create database
-    gcloud sql databases create supplyline --instance=supplyline-db || log_warning "Database may already exist"
+    gcloud sql databases create supplyline --instance="$CLOUDSQL_INSTANCE_NAME" || log_warning "Database may already exist"
     
     # Create user
-    gcloud sql users create supplyline_user --instance=supplyline-db --password="$DB_PASSWORD" || log_warning "User may already exist"
+    gcloud sql users create supplyline_user --instance="$CLOUDSQL_INSTANCE_NAME" --password="$DB_PASSWORD" || log_warning "User may already exist"
     
     log_success "Database setup completed"
 }
@@ -214,7 +230,7 @@ deploy_application() {
     # Submit build
     gcloud builds submit \
         --config=cloudbuild.yaml \
-        --substitutions=_ENVIRONMENT=$ENVIRONMENT,_REGION=$REGION,_CLOUDSQL_INSTANCE=$PROJECT_ID:$REGION:supplyline-db \
+        --substitutions=_ENVIRONMENT=$ENVIRONMENT,_REGION=$REGION,_CLOUDSQL_INSTANCE=$CLOUDSQL_INSTANCE \
         .
     
     log_success "Application deployed successfully"
@@ -247,6 +263,7 @@ main() {
     echo "Project ID: $PROJECT_ID"
     echo "Region: $REGION"
     echo "Environment: $ENVIRONMENT"
+    echo "Cloud SQL Instance: $CLOUDSQL_INSTANCE_NAME"
     echo ""
     
     check_prerequisites

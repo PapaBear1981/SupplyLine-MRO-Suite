@@ -145,11 +145,11 @@ steps:
     id: 'update-backend-cors'
     waitFor: ['deploy-frontend']
 
-# Substitution variables
+# Substitution variables (values supplied via gcloud or environment)
 substitutions:
-  _ENVIRONMENT: 'supplyline-beta'
-  _REGION: 'us-west1'
-  _CLOUDSQL_INSTANCE: 'gen-lang-client-0819985982:us-west1:supplyline-db'
+  _ENVIRONMENT: ''
+  _REGION: ''
+  _CLOUDSQL_INSTANCE: ''
 
 # Build options
 options:
