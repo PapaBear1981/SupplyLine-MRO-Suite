@@ -1,6 +1,6 @@
 from flask import request, jsonify, session, make_response, current_app
-from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
-from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
+from backend.models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
+from backend.models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import secrets
@@ -11,14 +11,14 @@ import time
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
-from routes_reports import register_report_routes
-from routes_chemicals import register_chemical_routes
-from routes_chemical_analytics import register_chemical_analytics_routes
-from routes_calibration import register_calibration_routes
-from routes_rbac import register_rbac_routes, permission_required
-from routes_announcements import register_announcement_routes
-from routes_scanner import register_scanner_routes
-from routes_cycle_count import register_cycle_count_routes
+from backend.routes_reports import register_report_routes
+from backend.routes_chemicals import register_chemical_routes
+from backend.routes_chemical_analytics import register_chemical_analytics_routes
+from backend.routes_calibration import register_calibration_routes
+from backend.routes_rbac import register_rbac_routes, permission_required
+from backend.routes_announcements import register_announcement_routes
+from backend.routes_scanner import register_scanner_routes
+from backend.routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
 from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
@@ -324,7 +324,7 @@ def register_routes(app):
     @app.route('/api/admin/registration-requests', methods=['GET'])
     @admin_required
     def get_registration_requests():
-        from models import RegistrationRequest
+        from backend.models import RegistrationRequest
 
         # Get status filter (default to 'pending')
         status = request.args.get('status', 'pending')
@@ -339,7 +339,7 @@ def register_routes(app):
     @app.route('/api/admin/registration-requests/<int:id>/approve', methods=['POST'])
     @admin_required
     def approve_registration_request(id):
-        from models import RegistrationRequest
+        from backend.models import RegistrationRequest
 
         # Get the registration request
         reg_request = RegistrationRequest.query.get_or_404(id)
@@ -385,7 +385,7 @@ def register_routes(app):
     @app.route('/api/admin/registration-requests/<int:id>/deny', methods=['POST'])
     @admin_required
     def deny_registration_request(id):
-        from models import RegistrationRequest
+        from backend.models import RegistrationRequest
 
         # Get the registration request
         reg_request = RegistrationRequest.query.get_or_404(id)
@@ -439,7 +439,7 @@ def register_routes(app):
         print(f"Active checkout count: {active_checkout_count}")
 
         # Get pending registration requests count
-        from models import RegistrationRequest
+        from backend.models import RegistrationRequest
         pending_requests_count = RegistrationRequest.query.filter_by(status='pending').count()
 
         # Get recent activity
@@ -2003,7 +2003,7 @@ def register_routes(app):
         if User.query.filter_by(employee_number=data['employee_number']).first():
             return jsonify({'error': 'Employee number already registered'}), 400
 
-        from models import RegistrationRequest
+        from backend.models import RegistrationRequest
         if RegistrationRequest.query.filter_by(employee_number=data['employee_number'], status='pending').first():
             return jsonify({'error': 'A registration request with this employee number is already pending approval'}), 400
 

@@ -1,4 +1,4 @@
-from models import db, User, Tool, Checkout, AuditLog
+from backend.models import db, User, Tool, Checkout, AuditLog
 from flask import Flask
 import os
 import sqlite3

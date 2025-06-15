@@ -1,4 +1,4 @@
-from models import db, User
+from backend.models import db, User
 from flask import Flask
 import os
 

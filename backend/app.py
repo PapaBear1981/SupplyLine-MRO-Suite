@@ -1,5 +1,5 @@
 from flask import Flask, session, jsonify
-from routes import register_routes
+from backend.routes import register_routes
 from config import Config
 from flask_session import Session
 from flask_cors import CORS
@@ -59,7 +59,7 @@ def create_app():
     })
 
     # Initialize database first
-    from models import db
+    from backend.models import db
     db.init_app(app)
 
     # Configure SESSION_SQLALCHEMY for database sessions if needed
@@ -72,7 +72,7 @@ def create_app():
         try:
             # Test database connection
             from sqlalchemy import text
-            from models import db
+            from backend.models import db
             with db.engine.connect() as conn:
                 conn.execute(text('SELECT 1'))
 

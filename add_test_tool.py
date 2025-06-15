@@ -1,5 +1,5 @@
-from app import app, db
-from models import Tool
+from backend.app import app, db
+from backend.models import Tool
 
 with app.app_context():
     tool = Tool(

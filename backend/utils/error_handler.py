@@ -167,7 +167,7 @@ def setup_global_error_handlers(app):
     @app.errorhandler(500)
     def internal_error(error):
         logger.error(f"500 error: {str(error)}", exc_info=True)
-        from models import db
+        from backend.models import db
         db.session.rollback()
         return jsonify({'error': 'Internal server error'}), 500
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from models import db, Tool, Chemical
+from backend.models import db, Tool, Chemical
 
 class CycleCountSchedule(db.Model):
     __tablename__ = 'cycle_count_schedules'

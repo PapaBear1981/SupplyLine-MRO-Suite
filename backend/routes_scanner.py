@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from models import db, Tool, Chemical
+from backend.models import db, Tool, Chemical
 from datetime import datetime
 
 def register_scanner_routes(app):

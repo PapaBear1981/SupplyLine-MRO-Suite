@@ -1,5 +1,5 @@
 from flask import request, jsonify, session
-from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
+from backend.models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input

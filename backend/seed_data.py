@@ -1,4 +1,4 @@
-from models import db, Tool, User, Checkout
+from backend.models import db, Tool, User, Checkout
 from flask import Flask
 from datetime import datetime, timedelta
 import os

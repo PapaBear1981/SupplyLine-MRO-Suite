@@ -1,4 +1,4 @@
-from models import db, Tool
+from backend.models import db, Tool
 from flask import Flask
 import os
 
