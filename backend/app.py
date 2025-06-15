@@ -43,12 +43,18 @@ def create_app():
 
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+    # Apply CORS to all routes so that error responses (e.g. 404) also include
+    # the necessary headers.  Previously CORS was limited to the ``/api``
+    # prefix which meant requests to undefined routes would omit the
+    # ``Access-Control-Allow-Origin`` header, causing the frontend to report a
+    # CORS error.  Expanding the resource pattern ensures the middleware runs
+    # for every request path.
     CORS(app, resources={
-        r"/api/*": {
+        r"/*": {
             "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
-            "supports_credentials": True
+            "supports_credentials": True,
         }
     })
 
