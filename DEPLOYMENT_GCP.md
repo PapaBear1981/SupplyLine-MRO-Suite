@@ -55,6 +55,10 @@ chmod +x deploy-gcp.sh
 ./deploy-gcp.sh
 ```
 
+The script automatically creates the service accounts `supplyline-backend-sa` and
+`supplyline-frontend-sa` with the required IAM roles and sets up a VPC Access
+connector if they do not already exist.
+
 ## Manual Deployment Steps
 
 If you prefer to deploy manually or need more control:
@@ -79,7 +83,36 @@ echo -n "supplyline_user" | gcloud secrets create supplyline-db-username --data-
 echo -n "your-db-password" | gcloud secrets create supplyline-db-password --data-file=-
 ```
 
-### 3. Create Cloud SQL Instance
+### 3. Create Service Accounts
+
+```bash
+gcloud iam service-accounts create supplyline-backend-sa --display-name="SupplyLine Backend"
+gcloud iam service-accounts create supplyline-frontend-sa --display-name="SupplyLine Frontend"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:supplyline-backend-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/run.serviceAgent"
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:supplyline-backend-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/cloudsql.client"
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:supplyline-frontend-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/run.serviceAgent"
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:supplyline-frontend-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/cloudsql.client"
+```
+
+### 4. Configure VPC Access Connector
+
+```bash
+gcloud compute networks vpc-access connectors create supplyline-connector \
+    --region=REGION \
+    --network=default \
+    --range=10.8.0.0/28
+```
+
+### 5. Create Cloud SQL Instance
 
 ```bash
 # Create PostgreSQL instance
@@ -99,14 +132,14 @@ gcloud sql users create supplyline_user \
     --password=your-secure-password
 ```
 
-### 4. Build and Deploy
+### 6. Build and Deploy
 
 ```bash
 # Submit build to Cloud Build
 gcloud builds submit --config=cloudbuild.yaml
 ```
 
-### 5. Initialize Database
+### 7. Initialize Database
 
 ```bash
 # Connect to Cloud SQL and run initialization
