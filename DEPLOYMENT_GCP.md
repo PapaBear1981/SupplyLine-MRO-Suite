@@ -21,13 +21,16 @@ git checkout feature/google-cloud-deployment
 
 ### 2. Configure Environment
 
+Create your environment file by copying the provided template:
+
 ```bash
-# Copy the environment template
 cp .env.gcp.example .env.gcp
 
-# Edit the configuration file
+# Edit the configuration file with your deployment values
 nano .env.gcp
 ```
+
+The `.env.gcp` file is listed in `.gitignore`, so it will not be committed to the repository.
 
 Update the following variables in `.env.gcp`:
 - `PROJECT_ID`: Your GCP project ID
