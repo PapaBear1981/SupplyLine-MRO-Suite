@@ -1,28 +1,33 @@
-from models import db, Tool, User, Checkout, AuditLog
-from flask import Flask
-import os
+from app import create_app
+from models import db
+from sqlalchemy import text
 
-# Create a minimal Flask app
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), '..', 'database', 'tools.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+def check_db():
+    app = create_app()
+    with app.app_context():
+        try:
+            # Check what tables exist
+            with db.engine.connect() as conn:
+                result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
+                tables = [row[0] for row in result]
+                print(f"Tables in database: {tables}")
 
-# Initialize the database
-db.init_app(app)
+                # Check if specific tables exist
+                for table in ['users', 'tools', 'checkouts', 'audit_logs', 'sessions']:
+                    if table in tables:
+                        print(f"✓ Table '{table}' exists")
+                        # Count records
+                        try:
+                            count_result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                            count = count_result.scalar()
+                            print(f"  - {count} records in {table}")
+                        except Exception as e:
+                            print(f"  - Error counting records in {table}: {e}")
+                    else:
+                        print(f"✗ Table '{table}' does not exist")
 
-with app.app_context():
-    # Check database tables
-    users = User.query.all()
-    tools = Tool.query.all()
-    checkouts = Checkout.query.all()
-    audit_logs = AuditLog.query.all()
-    
-    print(f"Users: {len(users)}")
-    print(f"Tools: {len(tools)}")
-    print(f"Checkouts: {len(checkouts)}")
-    print(f"Audit Logs: {len(audit_logs)}")
-    
-    # Check if tools have category
-    if tools:
-        for tool in tools[:3]:  # Just check first 3 tools
-            print(f"Tool {tool.id}: Category = {tool.category}")
+        except Exception as e:
+            print(f"Database check failed: {e}")
+
+if __name__ == "__main__":
+    check_db()

@@ -17,6 +17,35 @@ def init_db():
         db.create_all()
         print("Database tables created")
 
+        # Create sessions table for Flask-Session if using SQLAlchemy sessions
+        if app.config.get('SESSION_TYPE') == 'sqlalchemy':
+            try:
+                # Import Flask-Session and create the sessions table
+                from flask_session import Session
+                session_instance = Session()
+                session_instance.init_app(app)
+
+                # Create the sessions table using Flask-Session's method
+                from sqlalchemy import text, MetaData, Table, Column, Integer, String, LargeBinary, DateTime
+                metadata = MetaData()
+
+                # Define the sessions table schema that Flask-Session expects
+                sessions_table = Table(
+                    app.config.get('SESSION_SQLALCHEMY_TABLE', 'sessions'),
+                    metadata,
+                    Column('id', Integer, primary_key=True),
+                    Column('session_id', String(255), unique=True, nullable=False),
+                    Column('data', LargeBinary),
+                    Column('expiry', DateTime)
+                )
+
+                # Create the table
+                metadata.create_all(db.engine)
+                print("Sessions table created successfully")
+            except Exception as e:
+                print(f"Sessions table creation failed: {e}")
+                # Continue anyway - the app might still work
+
         # Create admin user securely
         from utils.admin_init import create_secure_admin
         success, message, password = create_secure_admin()
