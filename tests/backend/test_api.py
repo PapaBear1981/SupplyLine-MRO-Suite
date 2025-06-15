@@ -1,13 +1,14 @@
 import pytest
 from backend.app import create_app
 from backend.models import db, Tool, User, Checkout, AuditLog
+from backend.config import TestingConfig
 import json
 from datetime import datetime
 
 @pytest.fixture(scope='module')
 def test_app():
     app = create_app()
-    app.config.from_object('backend.config.TestingConfig')
+    app.config.from_object(TestingConfig)
     with app.app_context():
         db.create_all()
         yield app
