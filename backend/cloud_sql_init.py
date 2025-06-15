@@ -14,8 +14,8 @@ from models import db, User, Tool, AuditLog
 def init_cloud_sql():
     """Initialize Cloud SQL database with tables and initial data."""
     
-    # Ensure we're using the production configuration
-    os.environ['FLASK_ENV'] = 'production'
+    # Default to production if FLASK_ENV not set, but allow override
+    os.environ.setdefault('FLASK_ENV', 'production')
     
     app = create_app()
     with app.app_context():

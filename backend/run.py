@@ -10,7 +10,15 @@ def print_routes():
     print("========================\n")
 
 if __name__ == "__main__":
+    import os
+
     # Print routes immediately
     with app.app_context():
         print_routes()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    # Use PORT environment variable for Cloud Run compatibility
+    port = int(os.environ.get("PORT", 5000))
+    # Only enable debug mode in development
+    debug = os.environ.get("FLASK_ENV") == "development"
+
+    app.run(host="0.0.0.0", port=port, debug=debug)

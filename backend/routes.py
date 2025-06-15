@@ -255,7 +255,7 @@ def register_routes(app):
             return jsonify({
                 'status': 'unhealthy',
                 'database': 'disconnected',
-                'error': str(e),
+                'error': 'database_unavailable',
                 'timestamp': datetime.now().isoformat()
             }), 503
 

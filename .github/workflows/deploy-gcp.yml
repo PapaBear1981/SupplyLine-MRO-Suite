@@ -72,9 +72,9 @@ jobs:
     - name: Get service URLs
       id: get-urls
       run: |
-        BACKEND_URL=$(gcloud run services describe supplyline-backend-${{ env.ENVIRONMENT }} --region=${{ env.REGION }} --format="value(status.url)")
-        FRONTEND_URL=$(gcloud run services describe supplyline-frontend-${{ env.ENVIRONMENT }} --region=${{ env.REGION }} --format="value(status.url)")
-        
+        BACKEND_URL=$(gcloud run services describe "supplyline-backend-${{ env.ENVIRONMENT }}" --region="${{ env.REGION }}" --format="value(status.url)")
+        FRONTEND_URL=$(gcloud run services describe "supplyline-frontend-${{ env.ENVIRONMENT }}" --region="${{ env.REGION }}" --format="value(status.url)")
+
         echo "backend-url=$BACKEND_URL" >> $GITHUB_OUTPUT
         echo "frontend-url=$FRONTEND_URL" >> $GITHUB_OUTPUT
 
@@ -82,28 +82,30 @@ jobs:
       run: |
         # Wait for services to be ready
         sleep 30
-        
+
         # Test backend health endpoint
-        curl -f ${{ steps.get-urls.outputs.backend-url }}/api/health || exit 1
-        
+        curl -f "${{ steps.get-urls.outputs.backend-url }}/api/health" || exit 1
+
         # Test frontend
-        curl -f ${{ steps.get-urls.outputs.frontend-url }} || exit 1
+        curl -f "${{ steps.get-urls.outputs.frontend-url }}" || exit 1
 
     - name: Create deployment summary
       run: |
-        echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Region:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Service URLs" >> $GITHUB_STEP_SUMMARY
-        echo "- **Frontend:** ${{ steps.get-urls.outputs.frontend-url }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Backend:** ${{ steps.get-urls.outputs.backend-url }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Admin Credentials" >> $GITHUB_STEP_SUMMARY
-        echo "- **Username:** ADMIN001" >> $GITHUB_STEP_SUMMARY
-        echo "- **Password:** Generated during deployment (check deployment logs)" >> $GITHUB_STEP_SUMMARY
-        echo "- **⚠️ Important:** Change password after first login" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## Deployment Summary"
+          echo ""
+          echo "**Environment:** ${{ env.ENVIRONMENT }}"
+          echo "**Region:** ${{ env.REGION }}"
+          echo ""
+          echo "### Service URLs"
+          echo "- **Frontend:** ${{ steps.get-urls.outputs.frontend-url }}"
+          echo "- **Backend:** ${{ steps.get-urls.outputs.backend-url }}"
+          echo ""
+          echo "### Admin Credentials"
+          echo "- **Username:** ADMIN001"
+          echo "- **Password:** Generated during deployment (check deployment logs)"
+          echo "- **⚠️ Important:** Change password after first login"
+        } >> $GITHUB_STEP_SUMMARY
 
     - name: Notify on failure
       if: failure()
