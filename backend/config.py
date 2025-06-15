@@ -210,15 +210,19 @@ class Config:
             # Development defaults
             dev_origins = [
                 'http://localhost:5173',
+                'http://localhost:5174',  # Alternative port for development
                 'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',  # Alternative port for development
                 'http://192.168.1.122:5173',
-                'http://100.108.111.69:5173'
+                'http://192.168.1.122:5174',  # Alternative port for development
+                'http://100.108.111.69:5173',
+                'http://100.108.111.69:5174'  # Alternative port for development
             ]
             logging.getLogger(__name__).info(f"Using development CORS origins: {dev_origins}")
             return dev_origins
 
     CORS_ORIGINS = get_cors_origins()
-    CORS_SUPPORTS_CREDENTIALS = True
+    # CORS_SUPPORTS_CREDENTIALS = True  # Disabled to allow wildcard origins
 
     # Additional security headers
     SECURITY_HEADERS = {

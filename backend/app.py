@@ -1,4 +1,4 @@
-from flask import Flask, session, jsonify
+from flask import Flask, session, jsonify, request, make_response
 from routes import register_routes
 from config import Config
 from flask_session import Session
@@ -61,14 +61,14 @@ def create_app():
 
     app.logger.info(f"Expanded CORS origins: {expanded_origins}")
 
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": expanded_origins,
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
-            "supports_credentials": True
-        }
-    })
+    # Configure Flask-CORS with proper settings
+    cors = CORS(app,
+                origins=expanded_origins,
+                supports_credentials=True,
+                allow_headers=['Content-Type', 'Authorization'],
+                methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+
+    app.logger.info(f"CORS configured successfully with origins: {expanded_origins}")
 
     # Initialize database first
     from models import db
@@ -223,17 +223,32 @@ def create_app():
     # Register main routes
     register_routes(app)
 
-    # Add security headers middleware
+    # Add security headers middleware (Flask-CORS handles CORS headers)
     @app.after_request
     def add_security_headers(response):
+        # Log for debugging
+        app.logger.info(f"Response headers for {request.method} {request.path}: {dict(response.headers)}")
+
         security_headers = app.config.get('SECURITY_HEADERS', {})
         for header, value in security_headers.items():
-            response.headers[header] = value
+            # Only add security headers if they don't already exist
+            if header not in response.headers:
+                response.headers[header] = value
         return response
 
     @app.route('/')
     def index():
         return app.send_static_file('index.html')
+
+    # Add a simple test endpoint to verify CORS is working
+    @app.route('/test-cors', methods=['GET', 'POST', 'OPTIONS'])
+    def test_cors():
+        return {'message': 'CORS test endpoint', 'method': request.method}
+
+    # Debug: Print all registered routes
+    logger.info("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        logger.info(f"  {rule.rule} -> {rule.endpoint} ({list(rule.methods)})")
 
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={

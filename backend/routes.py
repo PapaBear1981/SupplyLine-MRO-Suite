@@ -1731,6 +1731,7 @@ def register_routes(app):
 
     @app.route('/api/auth/login', methods=['POST'])
     def login():
+
         data = request.get_json() or {}
 
         if not data.get('employee_number') or not data.get('password'):
