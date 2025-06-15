@@ -6,9 +6,9 @@
 set -euo pipefail  # Fail fast, catch pipe errors & unset vars
 
 # Configuration
-PROJECT_ID=${PROJECT_ID:-"your-gcp-project-id"}
-REGION=${REGION:-"us-central1"}
-ENVIRONMENT=${ENVIRONMENT:-"staging"}
+PROJECT_ID=${PROJECT_ID:-"gen-lang-client-0819985982"}
+REGION=${REGION:-"us-west1"}
+ENVIRONMENT=${ENVIRONMENT:-"supplyline-beta"}
 SECRET_KEY=${SECRET_KEY:-"$(openssl rand -base64 32)"}
 DB_PASSWORD=${DB_PASSWORD:-"$(openssl rand -base64 24)"}
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-"$(openssl rand -base64 16)"}

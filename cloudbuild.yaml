@@ -19,11 +19,25 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
       - '--build-arg'
-      - 'VITE_API_URL=https://supplyline-backend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - 'VITE_API_URL=https://supplyline-backend-${_ENVIRONMENT}-$PROJECT_ID.${_REGION}.run.app'
       - './frontend'
     id: 'build-frontend'
 
-  # Push handled by global `images:` – explicit steps not required
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
+    id: 'push-backend'
+    waitFor: ['build-backend']
+
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
+    id: 'push-frontend'
+    waitFor: ['build-frontend']
 
   # Deploy backend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -40,7 +54,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--port'
-      - '5000'
+      - '8080'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -48,13 +62,13 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,CORS_ORIGINS=https://supplyline-frontend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - 'FLASK_ENV=production,CORS_ORIGINS=https://supplyline-frontend-${_ENVIRONMENT}-$PROJECT_ID.${_REGION}.run.app,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1'
       - '--set-secrets'
-      - 'SECRET_KEY=supplyline-secret-key:latest'
+      - 'SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest'
       - '--set-cloudsql-instances'
       - '${_CLOUDSQL_INSTANCE}'
     id: 'deploy-backend'
-    waitFor: ['build-backend']
+    waitFor: ['push-backend']
 
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -79,13 +93,13 @@ steps:
       - '--max-instances'
       - '5'
     id: 'deploy-frontend'
-    waitFor: ['build-frontend', 'deploy-backend']
+    waitFor: ['push-frontend', 'deploy-backend']
 
 # Substitution variables
 substitutions:
-  _ENVIRONMENT: 'staging'
-  _REGION: 'us-central1'
-  _CLOUDSQL_INSTANCE: 'your-project:us-central1:supplyline-db'
+  _ENVIRONMENT: 'supplyline-beta'
+  _REGION: 'us-west1'
+  _CLOUDSQL_INSTANCE: 'gen-lang-client-0819985982:us-west1:supplyline-db'
 
 # Build options
 options:

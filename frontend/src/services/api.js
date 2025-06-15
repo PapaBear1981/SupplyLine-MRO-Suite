@@ -1,8 +1,29 @@
 import axios from 'axios';
 
+// Get API URL from environment variable or use default for development
+const getApiBaseUrl = () => {
+  // In production builds, VITE_API_URL is injected at build time
+  const apiUrl = import.meta.env.VITE_API_URL || process.env.VITE_API_URL;
+
+  if (apiUrl) {
+    // Use the configured API URL (for production/Cloud Run deployment)
+    return `${apiUrl}/api`;
+  } else {
+    // Use relative URL for development (works with Vite proxy)
+    return '/api';
+  }
+};
+
+// Log the API base URL for debugging (only in development or when debug mode is enabled)
+const apiBaseUrl = getApiBaseUrl();
+if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_MODE === 'true') {
+  console.log('API Base URL:', apiBaseUrl);
+  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+}
+
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: '/api', // Use relative URL to work with Vite proxy
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
