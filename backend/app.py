@@ -52,6 +52,14 @@ def create_app():
         }
     })
 
+    # Initialize database first
+    from models import db
+    db.init_app(app)
+
+    # Configure SESSION_SQLALCHEMY for database sessions if needed
+    if app.config.get('SESSION_TYPE') == 'sqlalchemy':
+        app.config['SESSION_SQLALCHEMY'] = db
+
     # Initialize Flask-Session
     Session(app)
 

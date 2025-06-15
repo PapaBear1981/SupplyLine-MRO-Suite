@@ -1,0 +1,103 @@
+steps:
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:latest'
+      - './backend'
+    id: 'build-backend'
+
+  # Build frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_URL=https://supplyline-backend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - './frontend'
+    id: 'build-frontend'
+
+  # Push handled by global `images:` – explicit steps not required
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'supplyline-backend-${_ENVIRONMENT}'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '5000'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'FLASK_ENV=production,CORS_ORIGINS=https://supplyline-frontend-${_ENVIRONMENT}-${_REGION}.a.run.app'
+      - '--set-secrets'
+      - 'SECRET_KEY=supplyline-secret-key:latest'
+      - '--set-cloudsql-instances'
+      - '${_CLOUDSQL_INSTANCE}'
+    id: 'deploy-backend'
+    waitFor: ['build-backend']
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'supplyline-frontend-${_ENVIRONMENT}'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '80'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '0.5'
+      - '--max-instances'
+      - '5'
+    id: 'deploy-frontend'
+    waitFor: ['build-frontend', 'deploy-backend']
+
+# Substitution variables
+substitutions:
+  _ENVIRONMENT: 'staging'
+  _REGION: 'us-central1'
+  _CLOUDSQL_INSTANCE: 'your-project:us-central1:supplyline-db'
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout
+timeout: '1200s'
+
+# Images to be pushed to Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/supplyline-backend:latest'
+  - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
