@@ -124,6 +124,38 @@ create_database() {
     log_success "Database setup completed"
 }
 
+# Initialize Cloud SQL database with tables and default admin
+initialize_database() {
+    log_info "Initializing Cloud SQL database..."
+
+    # Download Cloud SQL Auth proxy if not present
+    if ! command -v cloud_sql_proxy &> /dev/null; then
+        log_info "Downloading Cloud SQL Auth proxy..."
+        curl -sSL -o cloud_sql_proxy \
+            https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.7.0/cloud-sql-proxy.linux.amd64
+        chmod +x cloud_sql_proxy
+    fi
+
+    # Start the proxy in the background
+    ./cloud_sql_proxy -instances=$PROJECT_ID:$REGION:supplyline-db=tcp:5432 &
+    PROXY_PID=$!
+    sleep 5
+
+    # Set environment variables for initialization script
+    export DB_HOST=127.0.0.1
+    export DB_PORT=5432
+    export DB_USER=supplyline_user
+    export DB_PASSWORD=$DB_PASSWORD
+    export DB_NAME=supplyline
+
+    python backend/cloud_sql_init.py
+
+    kill $PROXY_PID
+    wait $PROXY_PID 2>/dev/null
+
+    log_success "Cloud SQL database initialized"
+}
+
 # Deploy using Cloud Build
 deploy_application() {
     log_info "Deploying application using Cloud Build..."
@@ -170,6 +202,7 @@ main() {
     setup_project
     create_secrets
     create_database
+    initialize_database
     deploy_application
     get_service_urls
     

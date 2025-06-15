@@ -108,11 +108,14 @@ gcloud builds submit --config=cloudbuild.yaml
 
 ### 5. Initialize Database
 
-```bash
-# Connect to Cloud SQL and run initialization
-gcloud sql connect supplyline-db --user=supplyline_user --database=supplyline
+Database initialization is now handled automatically by `deploy-gcp.sh`. After the
+Cloud SQL instance is created, the script invokes `backend/cloud_sql_init.py`
+through the Cloud SQL Auth proxy to create all tables and the default admin user.
 
-# Or use the Cloud SQL Proxy
+If you ever need to run the initialization manually, start the Cloud SQL Proxy and
+execute the script:
+
+```bash
 ./cloud_sql_proxy -instances=PROJECT_ID:REGION:supplyline-db=tcp:5432 &
 python backend/cloud_sql_init.py
 ```
