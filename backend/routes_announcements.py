@@ -1,5 +1,5 @@
 from flask import request, jsonify, session
-from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
+from backend.models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
 from datetime import datetime, timezone
 from functools import wraps
 from utils.error_handler import log_security_event

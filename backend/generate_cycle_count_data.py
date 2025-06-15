@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the models
-from models import db, Tool, Chemical, User
-from models_cycle_count import (
+from backend.models import db, Tool, Chemical, User
+from backend.models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
     CycleCountResult, CycleCountAdjustment
 )
@@ -268,7 +268,7 @@ def generate_sample_data():
 
 if __name__ == "__main__":
     # Import app context
-    from app import create_app
+    from backend.app import create_app
     app = create_app()
 
     with app.app_context():

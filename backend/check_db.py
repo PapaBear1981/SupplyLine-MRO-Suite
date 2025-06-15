@@ -1,5 +1,5 @@
-from app import create_app
-from models import db
+from backend.app import create_app
+from backend.models import db
 from sqlalchemy import text
 
 def check_db():

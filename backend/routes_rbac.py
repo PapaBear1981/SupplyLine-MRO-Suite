@@ -1,5 +1,5 @@
 from flask import request, jsonify, session
-from models import db, User, Role, Permission, RolePermission, UserRole, AuditLog, UserActivity
+from backend.models import db, User, Role, Permission, RolePermission, UserRole, AuditLog, UserActivity
 from datetime import datetime
 from functools import wraps
 

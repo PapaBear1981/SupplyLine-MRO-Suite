@@ -13,7 +13,7 @@ from datetime import datetime
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import create_app
+from backend.app import create_app
 from utils.admin_init import validate_admin_setup
 from rate_limiter import rate_limiter
 

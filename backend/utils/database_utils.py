@@ -12,7 +12,7 @@ from functools import wraps
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
-from models import db
+from backend.models import db
 from .logging_utils import log_database_operation
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,5 @@
-from app import create_app
-from models import db, User, Tool, Checkout, AuditLog
+from backend.app import create_app
+from backend.models import db, User, Tool, Checkout, AuditLog
 from datetime import datetime, timedelta
 import os
 

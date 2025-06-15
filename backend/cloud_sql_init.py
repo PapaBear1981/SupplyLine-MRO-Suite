@@ -8,8 +8,8 @@ with the required tables and initial data.
 
 import os
 import sys
-from app import create_app
-from models import db, User, Tool, AuditLog
+from backend.app import create_app
+from backend.models import db, User, Tool, AuditLog
 
 def init_cloud_sql():
     """Initialize Cloud SQL database with tables and initial data."""

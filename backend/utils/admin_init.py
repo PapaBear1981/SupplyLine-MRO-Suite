@@ -7,7 +7,7 @@ This module provides secure admin account creation without hardcoded credentials
 import os
 import secrets
 import logging
-from models import db, User
+from backend.models import db, User
 
 logger = logging.getLogger(__name__)
 
