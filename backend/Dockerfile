@@ -38,9 +38,10 @@ RUN mkdir -p /database /flask_session && \
 # Switch to non-root user
 USER appuser
 
-EXPOSE 5000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health
+  CMD curl -f http://localhost:${PORT:-8080}/api/health
 
-CMD ["python", "run.py"]
+# Use Gunicorn for production deployment
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 --access-logfile - --error-logfile - 'app:create_app()'"]

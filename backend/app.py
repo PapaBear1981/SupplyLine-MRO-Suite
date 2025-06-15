@@ -9,7 +9,7 @@ import time
 import datetime
 import logging.config
 from utils.session_cleanup import init_session_cleanup
-from utils.resource_monitor import init_resource_monitoring
+# Resource monitoring import moved to conditional block
 from utils.logging_utils import setup_request_logging
 
 def create_app():
@@ -60,14 +60,35 @@ def create_app():
     if app.config.get('SESSION_TYPE') == 'sqlalchemy':
         app.config['SESSION_SQLALCHEMY'] = db
 
+    # Add health endpoint before session initialization to avoid session issues
+    @app.route('/api/health', methods=['GET'])
+    def health_check_early():
+        try:
+            # Test database connection
+            from sqlalchemy import text
+            from models import db
+            with db.engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+
+            return jsonify({
+                'status': 'healthy',
+                'database': 'connected',
+                'timestamp': datetime.datetime.now().isoformat(),
+                'timezone': str(time.tzname)
+            }), 200
+        except Exception as e:
+            return jsonify({
+                'status': 'unhealthy',
+                'database': 'disconnected',
+                'error': 'database_unavailable',
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 503
+
     # Initialize Flask-Session
     Session(app)
 
     # Initialize session cleanup
     init_session_cleanup(app)
-
-    # Initialize resource monitoring
-    init_resource_monitoring(app)
 
     # Setup request logging middleware
     setup_request_logging(app)
@@ -75,62 +96,78 @@ def create_app():
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)
 
+    # Initialize resource monitoring (only for local development)
+    # Skip resource monitoring for Cloud Run/containerized deployments
+    if not os.environ.get('DB_HOST'):  # Only run for local development
+        try:
+            from utils.resource_monitor import init_resource_monitoring
+            init_resource_monitoring(app)
+            logger.info("Resource monitoring initialized successfully")
+        except Exception as e:
+            logger.error("Failed to initialize resource monitoring", exc_info=True)
+    else:
+        logger.info("Skipping resource monitoring for Cloud Run deployment")
+
     # Log current time information for debugging
     logger.info("Application starting", extra={
         'utc_time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'local_time': datetime.datetime.now().isoformat()
     })
 
-    # Run database migrations
-    try:
-        # Import and run the reorder fields migration
-        from migrate_reorder_fields import migrate_database
-        logger.info("Running chemical reorder fields migration...")
-        migrate_database()
-        logger.info("Chemical reorder fields migration completed successfully")
-    except Exception as e:
-        logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
-            'migration': 'reorder_fields',
-            'error_message': str(e)
-        })
+    # Run database migrations (only for SQLite/local development)
+    # Skip migrations for PostgreSQL/Cloud SQL deployments
+    if not os.environ.get('DB_HOST'):  # Only run for local SQLite
+        try:
+            # Import and run the reorder fields migration
+            from migrate_reorder_fields import migrate_database
+            logger.info("Running chemical reorder fields migration...")
+            migrate_database()
+            logger.info("Chemical reorder fields migration completed successfully")
+        except Exception as e:
+            logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
+                'migration': 'reorder_fields',
+                'error_message': str(e)
+            })
 
-    try:
-        # Import and run the tool calibration migration
-        from migrate_tool_calibration import migrate_database as migrate_tool_calibration
-        logger.info("Running tool calibration migration...")
-        migrate_tool_calibration()
-        logger.info("Tool calibration migration completed successfully")
-    except Exception as e:
-        logger.error("Error running tool calibration migration", exc_info=True, extra={
-            'migration': 'tool_calibration',
-            'error_message': str(e)
-        })
+        try:
+            # Import and run the tool calibration migration
+            from migrate_tool_calibration import migrate_database as migrate_tool_calibration
+            logger.info("Running tool calibration migration...")
+            migrate_tool_calibration()
+            logger.info("Tool calibration migration completed successfully")
+        except Exception as e:
+            logger.error("Error running tool calibration migration", exc_info=True, extra={
+                'migration': 'tool_calibration',
+                'error_message': str(e)
+            })
 
-    try:
-        # Import and run the performance indexes migration
-        from migrate_performance_indexes import migrate_database as migrate_performance_indexes
-        logger.info("Running performance indexes migration...")
-        migrate_performance_indexes()
-        logger.info("Performance indexes migration completed successfully")
-    except Exception as e:
-        logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
-            'migration': 'performance_indexes',
-            'error_message': str(e)
-        })
-        raise
+        try:
+            # Import and run the performance indexes migration
+            from migrate_performance_indexes import migrate_database as migrate_performance_indexes
+            logger.info("Running performance indexes migration...")
+            migrate_performance_indexes()
+            logger.info("Performance indexes migration completed successfully")
+        except Exception as e:
+            logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
+                'migration': 'performance_indexes',
+                'error_message': str(e)
+            })
+            raise
 
-    try:
-        # Import and run the database constraints migration
-        from migrate_database_constraints import migrate_database as migrate_database_constraints
-        logger.info("Running database constraints migration...")
-        migrate_database_constraints()
-        logger.info("Database constraints migration completed successfully")
-    except Exception as e:
-        logger.error("Database constraints migration failed", exc_info=True, extra={
-            'migration': 'database_constraints',
-            'error_message': str(e)
-        })
-        # Don't abort startup for constraints migration as it's not critical
+        try:
+            # Import and run the database constraints migration
+            from migrate_database_constraints import migrate_database as migrate_database_constraints
+            logger.info("Running database constraints migration...")
+            migrate_database_constraints()
+            logger.info("Database constraints migration completed successfully")
+        except Exception as e:
+            logger.error("Database constraints migration failed", exc_info=True, extra={
+                'migration': 'database_constraints',
+                'error_message': str(e)
+            })
+            # Don't abort startup for constraints migration as it's not critical
+    else:
+        logger.info("Skipping SQLite migrations for PostgreSQL/Cloud SQL deployment")
 
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers
