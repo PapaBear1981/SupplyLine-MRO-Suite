@@ -20,13 +20,21 @@ class Config:
             db_name = os.environ.get('DB_NAME', 'supplyline')
             db_host = os.environ.get('DB_HOST')  # Unix socket path for Cloud SQL
 
+            if not db_password:
+                logging.getLogger(__name__).error("DB_PASSWORD environment variable is not set")
+                raise ValueError("Database password is required for Cloud SQL connection")
+
             if db_host.startswith('/cloudsql/'):
                 # Unix socket connection for Cloud SQL
-                return f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
+                uri = f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
+                logging.getLogger(__name__).info(f"Using Cloud SQL Unix socket connection to {db_host}")
+                return uri
 
             # TCP connection
             db_port = os.environ.get('DB_PORT', '5432')
-            return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+            uri = f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+            logging.getLogger(__name__).info(f"Using PostgreSQL TCP connection to {db_host}:{db_port}")
+            return uri
         else:
             # SQLite for local development
             if os.path.exists('/database'):
@@ -44,16 +52,25 @@ class Config:
     def get_engine_options():
         if os.environ.get('DB_HOST'):
             # PostgreSQL/Cloud SQL configuration
+            connect_args = {
+                'connect_timeout': 30,  # Increased timeout for Cloud SQL
+                'application_name': 'supplyline-mro-suite'
+            }
+
+            # Add additional Cloud SQL specific settings
+            if os.environ.get('DB_HOST', '').startswith('/cloudsql/'):
+                connect_args.update({
+                    'sslmode': 'disable',  # Unix socket doesn't need SSL
+                })
+
             return {
                 'echo': False,
-                'pool_size': 5,
-                'max_overflow': 10,
+                'pool_size': 3,  # Reduced for Cloud Run memory limits
+                'max_overflow': 5,  # Reduced for Cloud Run
                 'pool_pre_ping': True,
-                'pool_recycle': 300,
-                'connect_args': {
-                    'connect_timeout': 10,
-                    'application_name': 'supplyline-mro-suite'
-                }
+                'pool_recycle': 1800,  # 30 minutes
+                'pool_timeout': 30,
+                'connect_args': connect_args
             }
 
         # SQLite configuration
@@ -176,18 +193,29 @@ class Config:
     def get_cors_origins():
         cors_origins = os.environ.get('CORS_ORIGINS')
         if cors_origins:
-            return cors_origins.split(',')
+            # Split and clean up origins
+            origins = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
+            logging.getLogger(__name__).info(f"Using CORS origins from environment: {origins}")
+            return origins
         elif os.environ.get('FLASK_ENV') == 'production':
             # Production default - should be overridden by environment variable
-            return ['https://supplyline-frontend-*.a.run.app']
+            # Allow all Cloud Run frontend URLs as fallback
+            fallback_origins = [
+                'https://supplyline-frontend-*.a.run.app',
+                'https://supplyline-frontend-supplyline-beta-*.run.app'
+            ]
+            logging.getLogger(__name__).warning(f"No CORS_ORIGINS set, using fallback: {fallback_origins}")
+            return fallback_origins
         else:
             # Development defaults
-            return [
+            dev_origins = [
                 'http://localhost:5173',
                 'http://127.0.0.1:5173',
                 'http://192.168.1.122:5173',
                 'http://100.108.111.69:5173'
             ]
+            logging.getLogger(__name__).info(f"Using development CORS origins: {dev_origins}")
+            return dev_origins
 
     CORS_ORIGINS = get_cors_origins()
     CORS_SUPPORTS_CREDENTIALS = True

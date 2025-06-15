@@ -43,9 +43,27 @@ def create_app():
 
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+
+    # Log CORS configuration for debugging
+    app.logger.info(f"Configuring CORS with origins: {allowed_origins}")
+
+    # Expand wildcard patterns for Cloud Run URLs
+    expanded_origins = []
+    for origin in allowed_origins:
+        if '*' in origin:
+            # For Cloud Run, we'll allow the pattern but also add common variations
+            expanded_origins.append(origin.replace('*', 'sukn4msdrq-uw'))  # Current known pattern
+            expanded_origins.append(origin.replace('*', '454313121816'))   # Previous pattern
+            # Also keep the original for future patterns
+            expanded_origins.append(origin)
+        else:
+            expanded_origins.append(origin)
+
+    app.logger.info(f"Expanded CORS origins: {expanded_origins}")
+
     CORS(app, resources={
         r"/api/*": {
-            "origins": allowed_origins,
+            "origins": expanded_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
             "supports_credentials": True
@@ -67,24 +85,53 @@ def create_app():
             # Test database connection
             from sqlalchemy import text
             from models import db
+
+            # Check if database is initialized
+            if not hasattr(db, 'engine') or db.engine is None:
+                return jsonify({
+                    'status': 'unhealthy',
+                    'database': 'not_initialized',
+                    'error': 'database_engine_not_available',
+                    'timestamp': datetime.datetime.now().isoformat()
+                }), 503
+
+            # Test database connection with timeout
             with db.engine.connect() as conn:
-                conn.execute(text('SELECT 1'))
+                result = conn.execute(text('SELECT 1'))
+                result.fetchone()  # Ensure the query actually executes
+
+            # Get environment info for debugging
+            env_info = {
+                'flask_env': os.environ.get('FLASK_ENV', 'unknown'),
+                'db_host': os.environ.get('DB_HOST', 'not_set')[:20] + '...' if os.environ.get('DB_HOST') else 'not_set',
+                'cors_origins': str(app.config.get('CORS_ORIGINS', []))[:100] + '...' if len(str(app.config.get('CORS_ORIGINS', []))) > 100 else str(app.config.get('CORS_ORIGINS', []))
+            }
 
             return jsonify({
                 'status': 'healthy',
                 'database': 'connected',
                 'timestamp': datetime.datetime.now().isoformat(),
-                'timezone': str(time.tzname)
+                'timezone': str(time.tzname),
+                'environment': env_info
             }), 200
         except Exception as e:
+            # Log the error for debugging
+            app.logger.error(f"Health check failed: {str(e)}", exc_info=True)
+
             return jsonify({
                 'status': 'unhealthy',
                 'database': 'disconnected',
                 'error': 'database_unavailable',
+                'error_details': str(e),
+                'error_type': type(e).__name__,
                 'timestamp': datetime.datetime.now().isoformat()
             }), 503
 
     # Initialize Flask-Session
+    # Set session cookie name as both config and app attribute for compatibility
+    session_cookie_name = app.config.get('SESSION_COOKIE_NAME', 'supplyline_session')
+    app.config['SESSION_COOKIE_NAME'] = session_cookie_name
+    app.session_cookie_name = session_cookie_name  # For Flask-Session compatibility
     Session(app)
 
     # Initialize session cleanup

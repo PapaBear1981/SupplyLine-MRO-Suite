@@ -138,12 +138,67 @@ steps:
         echo "Frontend URL: $$FRONTEND_URL"
         echo "Backend URL: $$BACKEND_URL"
 
+        # Verify URLs are not empty
+        if [ -z "$$FRONTEND_URL" ]; then
+          echo "ERROR: Frontend URL is empty"
+          exit 1
+        fi
+
+        if [ -z "$$BACKEND_URL" ]; then
+          echo "ERROR: Backend URL is empty"
+          exit 1
+        fi
+
         # Update backend with correct CORS configuration
+        echo "Updating backend CORS configuration..."
         gcloud run services update supplyline-backend-${_ENVIRONMENT} \
           --region=${_REGION} \
-          --update-env-vars="FLASK_ENV=production,CORS_ORIGINS=$$FRONTEND_URL,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1"
+          --update-env-vars="FLASK_ENV=production,CORS_ORIGINS=$$FRONTEND_URL,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1" \
+          --set-secrets="SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest"
+
+        echo "CORS configuration updated successfully"
+
+        # Test backend health after CORS update
+        echo "Testing backend health..."
+        sleep 10  # Wait for service to update
+        curl -f "$$BACKEND_URL/api/health" || echo "WARNING: Backend health check failed"
     id: 'update-backend-cors'
     waitFor: ['deploy-frontend']
+
+  # Final verification step
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get service URLs
+        FRONTEND_URL=$$(gcloud run services describe supplyline-frontend-${_ENVIRONMENT} --region=${_REGION} --format="value(status.url)")
+        BACKEND_URL=$$(gcloud run services describe supplyline-backend-${_ENVIRONMENT} --region=${_REGION} --format="value(status.url)")
+
+        echo "=== DEPLOYMENT VERIFICATION ==="
+        echo "Frontend URL: $$FRONTEND_URL"
+        echo "Backend URL: $$BACKEND_URL"
+        echo ""
+
+        # Test backend health
+        echo "Testing backend health..."
+        if curl -f "$$BACKEND_URL/api/health"; then
+          echo "✅ Backend health check passed"
+        else
+          echo "❌ Backend health check failed"
+          exit 1
+        fi
+
+        echo ""
+        echo "=== DEPLOYMENT SUCCESSFUL ==="
+        echo "Frontend: $$FRONTEND_URL"
+        echo "Backend: $$BACKEND_URL"
+        echo "Next steps:"
+        echo "1. Test login with ADMIN001/admin123"
+        echo "2. Verify CORS is working"
+        echo "3. Check browser console for errors"
+    id: 'verify-deployment'
+    waitFor: ['update-backend-cors']
 
 # Substitution variables
 substitutions:
