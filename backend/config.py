@@ -207,3 +207,14 @@ class Config:
         'LOCKOUT_MULTIPLIER': int(os.environ.get('LOCKOUT_MULTIPLIER', 2)),  # Multiplier for subsequent lockouts
         'MAX_LOCKOUT_MINUTES': int(os.environ.get('MAX_LOCKOUT_MINUTES', 60))  # Maximum lockout duration in minutes
     }
+
+class TestingConfig(Config):
+    """Configuration for running unit tests."""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    # Simplified session configuration for tests
+    SESSION_TYPE = 'filesystem'
+    SESSION_FILE_DIR = '/tmp/flask_session_test'
+    SESSION_PERMANENT = False
+    SESSION_USE_SIGNER = False
+
