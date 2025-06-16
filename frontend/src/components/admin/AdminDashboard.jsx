@@ -38,7 +38,7 @@ const AdminDashboard = () => {
     canViewUsers: currentUser?.permissions?.includes('user.view'),
     canManageRoles: currentUser?.permissions?.includes('role.manage'),
     canViewAudit: currentUser?.permissions?.includes('system.audit'),
-    canManageSettings: currentUser?.permissions?.includes('system.settings'),
+    canManageSettings: currentUser?.permissions?.includes('admin.settings'),
     canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
     canViewRegistrations: currentUser?.is_admin,
     canManageAnnouncements: currentUser?.is_admin

@@ -647,6 +647,101 @@ class Announcement(db.Model):
     # Relationships
     author = db.relationship('User', foreign_keys=[created_by])
 
+class SystemSettings(db.Model):
+    """Model for storing system-wide configuration settings"""
+    __tablename__ = 'system_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), nullable=False, unique=True)
+    value = db.Column(db.Text, nullable=False)
+    value_type = db.Column(db.String(20), nullable=False, default='string')  # string, integer, boolean, float, json
+    description = db.Column(db.String(255), nullable=True)
+    category = db.Column(db.String(50), nullable=False, default='general')
+    is_system = db.Column(db.Boolean, default=False)  # System settings cannot be deleted
+    created_at = db.Column(db.DateTime, default=get_current_time)
+    updated_at = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time)
+    updated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Relationships
+    updater = db.relationship('User', foreign_keys=[updated_by])
+
+    def to_dict(self):
+        """Convert setting to dictionary"""
+        return {
+            'id': self.id,
+            'key': self.key,
+            'value': self.get_typed_value(),
+            'value_type': self.value_type,
+            'description': self.description,
+            'category': self.category,
+            'is_system': self.is_system,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'updated_by': self.updated_by
+        }
+
+    def get_typed_value(self):
+        """Get the value converted to its proper type"""
+        if self.value_type == 'boolean':
+            return self.value.lower() in ('true', '1', 'yes', 'on')
+        elif self.value_type == 'integer':
+            try:
+                return int(self.value)
+            except ValueError:
+                return 0
+        elif self.value_type == 'float':
+            try:
+                return float(self.value)
+            except ValueError:
+                return 0.0
+        elif self.value_type == 'json':
+            try:
+                import json
+                return json.loads(self.value)
+            except (ValueError, TypeError):
+                return {}
+        else:
+            return self.value
+
+    def set_typed_value(self, value):
+        """Set the value with proper type conversion"""
+        if self.value_type == 'boolean':
+            self.value = str(bool(value)).lower()
+        elif self.value_type == 'json':
+            import json
+            self.value = json.dumps(value)
+        else:
+            self.value = str(value)
+
+    @classmethod
+    def get_setting(cls, key, default=None):
+        """Get a setting value by key"""
+        setting = cls.query.filter_by(key=key).first()
+        if setting:
+            return setting.get_typed_value()
+        return default
+
+    @classmethod
+    def set_setting(cls, key, value, value_type='string', description=None, category='general', user_id=None):
+        """Set a setting value"""
+        setting = cls.query.filter_by(key=key).first()
+        if setting:
+            setting.set_typed_value(value)
+            setting.updated_by = user_id
+            setting.updated_at = get_current_time()
+        else:
+            setting = cls(
+                key=key,
+                value_type=value_type,
+                description=description,
+                category=category,
+                updated_by=user_id
+            )
+            setting.set_typed_value(value)
+            db.session.add(setting)
+
+        db.session.commit()
+        return setting
+
     def to_dict(self, include_reads=False):
         data = {
             'id': self.id,
