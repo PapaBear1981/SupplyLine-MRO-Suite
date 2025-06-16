@@ -8,6 +8,12 @@ const AuthService = {
         employee_number: username,
         password
       });
+
+      // Store JWT token in localStorage
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+      }
+
       return response.data;
     } catch (error) {
       throw error;
@@ -28,8 +34,12 @@ const AuthService = {
   logout: async () => {
     try {
       const response = await api.post('/auth/logout');
+      // Clear JWT token from localStorage
+      localStorage.removeItem('authToken');
       return response.data;
     } catch (error) {
+      // Clear token even if logout request fails
+      localStorage.removeItem('authToken');
       throw error;
     }
   },
