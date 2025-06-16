@@ -347,7 +347,6 @@ def create_app():
     # Use default Flask sessions instead
     logger.info("Using default Flask sessions for simplicity")
 
->>>>>>> 54bdfe2 (� Implement JWT Authentication System for Production Deployment)
     # Setup request logging middleware
     setup_request_logging(app)
 
