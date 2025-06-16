@@ -15,6 +15,7 @@ from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
+from utils.auth_decorators import require_auth, require_admin, require_tool_manager, require_materials_manager
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
@@ -755,79 +756,79 @@ def register_routes(app):
     def serve_static(filename):
         return current_app.send_static_file(filename)
 
-    @app.route('/api/tools', methods=['GET', 'POST'])
-    def tools_route():
+    @app.route('/api/tools', methods=['GET'])
+    def tools_list_route():
         # GET - List all tools
-        if request.method == 'GET':
-            print("Received request for all tools")
+        print("Received request for all tools")
 
-            # Check if there's a search query
-            print(f"Request method: {request.method}")
-            print(f"Request URL: {request.url}")
-            print(f"Request args: {request.args}")
-            print(f"Request args type: {type(request.args)}")
-            print(f"Request args keys: {list(request.args.keys())}")
+        # Check if there's a search query
+        print(f"Request method: {request.method}")
+        print(f"Request URL: {request.url}")
+        print(f"Request args: {request.args}")
+        print(f"Request args type: {type(request.args)}")
+        print(f"Request args keys: {list(request.args.keys())}")
 
-            search_query = request.args.get('q')
-            print(f"Search query: {search_query}")
-            print(f"Search query type: {type(search_query)}")
+        search_query = request.args.get('q')
+        print(f"Search query: {search_query}")
+        print(f"Search query type: {type(search_query)}")
 
-            if search_query:
-                print(f"Searching for tools with query: {search_query}")
-                search_term = f'%{search_query.lower()}%'
-                print(f"Search term: {search_term}")
+        if search_query:
+            print(f"Searching for tools with query: {search_query}")
+            search_term = f'%{search_query.lower()}%'
+            print(f"Search term: {search_term}")
 
-                try:
-                    tools = Tool.query.filter(
-                        db.or_(
-                            db.func.lower(Tool.tool_number).like(search_term),
-                            db.func.lower(Tool.serial_number).like(search_term),
-                            db.func.lower(Tool.description).like(search_term),
-                            db.func.lower(Tool.location).like(search_term)
-                        )
-                    ).all()
-                    print(f"Found {len(tools)} tools matching search query")
-                except Exception as e:
-                    print(f"Error during search: {str(e)}")
-                    tools = Tool.query.all()
-                    print(f"Falling back to all tools: {len(tools)}")
-            else:
+            try:
+                tools = Tool.query.filter(
+                    db.or_(
+                        db.func.lower(Tool.tool_number).like(search_term),
+                        db.func.lower(Tool.serial_number).like(search_term),
+                        db.func.lower(Tool.description).like(search_term),
+                        db.func.lower(Tool.location).like(search_term)
+                    )
+                ).all()
+                print(f"Found {len(tools)} tools matching search query")
+            except Exception as e:
+                print(f"Error during search: {str(e)}")
                 tools = Tool.query.all()
-                print(f"Found {len(tools)} tools")
+                print(f"Falling back to all tools: {len(tools)}")
+        else:
+            tools = Tool.query.all()
+            print(f"Found {len(tools)} tools")
 
-            # Get checkout status for each tool
-            tool_status = {}
-            active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
-            print(f"Found {len(active_checkouts)} active checkouts")
+        # Get checkout status for each tool
+        tool_status = {}
+        active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
+        print(f"Found {len(active_checkouts)} active checkouts")
 
-            for checkout in active_checkouts:
-                tool_status[checkout.tool_id] = 'checked_out'
-                print(f"Tool {checkout.tool_id} is checked out")
+        for checkout in active_checkouts:
+            tool_status[checkout.tool_id] = 'checked_out'
+            print(f"Tool {checkout.tool_id} is checked out")
 
-            result = [{
-                'id': t.id,
-                'tool_number': t.tool_number,
-                'serial_number': t.serial_number,
-                'description': t.description,
-                'condition': t.condition,
-                'location': t.location,
-                'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
-                'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
-                'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
-                'created_at': t.created_at.isoformat(),
-                'requires_calibration': getattr(t, 'requires_calibration', False),
-                'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
-                'last_calibration_date': t.last_calibration_date.isoformat() if hasattr(t, 'last_calibration_date') and t.last_calibration_date else None,
-                'next_calibration_date': t.next_calibration_date.isoformat() if hasattr(t, 'next_calibration_date') and t.next_calibration_date else None,
-                'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
-            } for t in tools]
+        result = [{
+            'id': t.id,
+            'tool_number': t.tool_number,
+            'serial_number': t.serial_number,
+            'description': t.description,
+            'condition': t.condition,
+            'location': t.location,
+            'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
+            'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
+            'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
+            'created_at': t.created_at.isoformat(),
+            'requires_calibration': getattr(t, 'requires_calibration', False),
+            'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
+            'last_calibration_date': t.last_calibration_date.isoformat() if hasattr(t, 'last_calibration_date') and t.last_calibration_date else None,
+            'next_calibration_date': t.next_calibration_date.isoformat() if hasattr(t, 'next_calibration_date') and t.next_calibration_date else None,
+            'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
+        } for t in tools]
 
-            print(f"Returning {len(result)} tools")
-            return jsonify(result)
+        print(f"Returning {len(result)} tools")
+        return jsonify(result)
 
+    @app.route('/api/tools', methods=['POST'])
+    @require_tool_manager
+    def create_tool_route():
         # POST - Create new tool (requires tool manager privileges)
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
 
@@ -862,9 +863,10 @@ def register_routes(app):
         db.session.commit()
 
         # Log the action
+        from flask import g
         log = AuditLog(
             action_type='create_tool',
-            action_details=f'Created tool {t.id} ({t.tool_number})'
+            action_details=f'Created tool {t.id} ({t.tool_number}) by user {g.current_user_id}'
         )
         db.session.add(log)
         db.session.commit()
@@ -1387,6 +1389,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/checkouts', methods=['GET', 'POST'])
+    @require_auth
     def checkouts_route():
         try:
             if request.method == 'GET':
@@ -1444,13 +1447,14 @@ def register_routes(app):
                     user_id = None
 
             if not user_id:
-                print("No valid user_id in request, checking session")
-                # If user_id not provided in request, use the logged-in user's ID
-                if 'user_id' not in session:
-                    print("No user_id in session either")
+                print("No valid user_id in request, checking current user from JWT")
+                # If user_id not provided in request, use the logged-in user's ID from JWT
+                from flask import g
+                if not hasattr(g, 'current_user') or not g.current_user:
+                    print("No current user from JWT authentication")
                     return jsonify({'error': 'Authentication required'}), 401
-                user_id = session['user_id']
-                print(f"Using user_id from session: {user_id}")
+                user_id = g.current_user.id
+                print(f"Using user_id from JWT: {user_id}")
 
             # Validate user exists
             user = User.query.get(user_id)
@@ -1515,9 +1519,10 @@ def register_routes(app):
                 db.session.add(log)
 
                 # Add user activity
-                if 'user_id' in session:
+                from flask import g
+                if hasattr(g, 'current_user') and g.current_user:
                     activity = UserActivity(
-                        user_id=session['user_id'],
+                        user_id=g.current_user.id,
                         activity_type='tool_checkout',
                         description=f'Checked out tool {tool.tool_number}',
                         ip_address=request.remote_addr
@@ -1540,14 +1545,10 @@ def register_routes(app):
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
     @app.route('/api/checkouts/<int:id>/return', methods=['POST', 'PUT'])
+    @require_materials_manager
     def return_route(id):
         try:
             print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
-
-            # Check if user is admin or Materials department
-            if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-                print(f"Permission denied: User is not admin or Materials department")
-                return jsonify({'error': 'Only Materials and Admin personnel can return tools'}), 403
 
             # Validate checkout exists
             c = Checkout.query.get(id)
@@ -1631,9 +1632,10 @@ def register_routes(app):
                 db.session.add(log)
 
                 # Add user activity
-                if 'user_id' in session:
+                from flask import g
+                if hasattr(g, 'current_user') and g.current_user:
                     activity = UserActivity(
-                        user_id=session['user_id'],
+                        user_id=g.current_user.id,
                         activity_type='tool_return',
                         description=f'Returned tool {tool.tool_number if tool else "Unknown"}',
                         ip_address=request.remote_addr
@@ -1663,20 +1665,22 @@ def register_routes(app):
                 }), 200
             except Exception as e:
                 db.session.rollback()
+                from flask import g
                 logger.error("Database error during tool return", exc_info=True, extra={
                     'operation': 'tool_return',
                     'tool_id': c.tool_id,
-                    'user_id': session.get('user_id'),
+                    'user_id': g.current_user.id if hasattr(g, 'current_user') and g.current_user else None,
                     'error_type': type(e).__name__,
                     'error_message': str(e)
                 })
                 return jsonify({'error': 'Database error during tool return'}), 500
 
         except Exception as e:
+            from flask import g
             logger.error("Unexpected error in return route", exc_info=True, extra={
                 'operation': 'tool_return',
-                'tool_id': c.tool_id,
-                'user_id': session.get('user_id'),
+                'tool_id': c.tool_id if 'c' in locals() else None,
+                'user_id': g.current_user.id if hasattr(g, 'current_user') and g.current_user else None,
                 'error_type': type(e).__name__,
                 'error_message': str(e)
             })
@@ -2708,6 +2712,7 @@ def register_routes(app):
         return categories.get(code, 'Other')
 
     @app.route('/api/tools/<int:id>/checkouts', methods=['GET'])
+    @require_auth
     def get_tool_checkouts(id):
         # Get checkout history for a specific tool
         tool = Tool.query.get_or_404(id)
@@ -2731,6 +2736,7 @@ def register_routes(app):
         } for c in checkouts]), 200
 
     @app.route('/api/checkouts/<int:id>/details', methods=['GET'])
+    @require_auth
     def get_checkout_details(id):
         """Get detailed information about a specific checkout transaction."""
         checkout = Checkout.query.get_or_404(id)

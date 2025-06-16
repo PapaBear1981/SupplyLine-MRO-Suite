@@ -1,32 +1,15 @@
-from flask import request, jsonify, session
+from flask import request, jsonify, session, g
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
 from utils.session_manager import SessionManager, secure_login_required
+from utils.auth_decorators import require_auth, require_materials_manager
 from sqlalchemy.orm import joinedload
 import logging
 
 logger = logging.getLogger(__name__)
-
-# Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
 
 def register_chemical_routes(app):
     # Get all chemicals
@@ -144,7 +127,7 @@ def register_chemical_routes(app):
 
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
-    @materials_manager_required
+    @require_materials_manager
     @handle_errors
     def create_chemical_route():
         data = request.get_json() or {}
@@ -184,18 +167,17 @@ def register_chemical_routes(app):
         # Log the action
         log = AuditLog(
             action_type='chemical_added',
-            action_details=f"Chemical {validated_data['part_number']} - {validated_data['lot_number']} added"
+            action_details=f"Chemical {validated_data['part_number']} - {validated_data['lot_number']} added by user {g.current_user_id}"
         )
         db.session.add(log)
 
         # Log user activity
-        if 'user_id' in session:
-            activity = UserActivity(
-                user_id=session['user_id'],
-                activity_type='chemical_added',
-                description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
-            )
-            db.session.add(activity)
+        activity = UserActivity(
+            user_id=g.current_user_id,
+            activity_type='chemical_added',
+            description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
+        )
+        db.session.add(activity)
 
         db.session.commit()
 
@@ -328,7 +310,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as ordered
     @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
-    @materials_manager_required
+    @require_materials_manager
     def mark_chemical_as_ordered_route(id):
         try:
             # Get the chemical
@@ -448,7 +430,7 @@ def register_chemical_routes(app):
 
     # Archive a chemical
     @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
-    @materials_manager_required
+    @require_materials_manager
     def archive_chemical_route(id):
         try:
             # Get the chemical
@@ -508,7 +490,7 @@ def register_chemical_routes(app):
 
     # Unarchive a chemical
     @app.route('/api/chemicals/<int:id>/unarchive', methods=['POST'])
-    @materials_manager_required
+    @require_materials_manager
     def unarchive_chemical_route(id):
         try:
             # Get the chemical
@@ -561,7 +543,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as delivered
     @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
-    @materials_manager_required
+    @require_materials_manager
     def mark_chemical_as_delivered_route(id):
         try:
             # Get the chemical
