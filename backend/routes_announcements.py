@@ -1,30 +1,16 @@
-from flask import request, jsonify, session
+from flask import request, jsonify, session, g
 from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
 from datetime import datetime, timezone
 from functools import wraps
 from utils.error_handler import log_security_event
 from utils.session_manager import SessionManager
+from utils.auth_decorators import require_auth, require_admin
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator to check if user is admin (using secure session validation)
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Admin access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin
-        if not session.get('is_admin', False):
-            log_security_event('insufficient_permissions', f'Admin access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Admin privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+# Use the modern auth decorators from utils.auth_decorators
+# The require_admin decorator is imported above and handles JWT/session auth properly
 
 def register_announcement_routes(app):
     # Get all announcements
@@ -136,7 +122,7 @@ def register_announcement_routes(app):
 
     # Create a new announcement (admin only)
     @app.route('/api/announcements', methods=['POST'])
-    @admin_required
+    @require_admin
     def create_announcement():
         try:
             # Get data from request
@@ -161,7 +147,7 @@ def register_announcement_routes(app):
                 title=data.get('title'),
                 content=data.get('content'),
                 priority=data.get('priority'),
-                created_by=session['user_id'],
+                created_by=g.current_user_id,
                 expiration_date=expiration_date,
                 is_active=data.get('is_active', True)
             )
@@ -173,13 +159,13 @@ def register_announcement_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='create_announcement',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) created announcement "{announcement.title}" (ID: {announcement.id})'
+                action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) created announcement "{announcement.title}" (ID: {announcement.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=g.current_user_id,
                 activity_type='create_announcement',
                 description=f'Created announcement "{announcement.title}"',
                 ip_address=request.remote_addr
@@ -196,7 +182,7 @@ def register_announcement_routes(app):
 
     # Update an announcement (admin only)
     @app.route('/api/announcements/<int:id>', methods=['PUT'])
-    @admin_required
+    @require_admin
     def update_announcement(id):
         try:
             # Get the announcement
@@ -231,13 +217,13 @@ def register_announcement_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='update_announcement',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) updated announcement "{announcement.title}" (ID: {announcement.id})'
+                action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) updated announcement "{announcement.title}" (ID: {announcement.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=g.current_user_id,
                 activity_type='update_announcement',
                 description=f'Updated announcement "{announcement.title}"',
                 ip_address=request.remote_addr
@@ -254,7 +240,7 @@ def register_announcement_routes(app):
 
     # Delete an announcement (admin only)
     @app.route('/api/announcements/<int:id>', methods=['DELETE'])
-    @admin_required
+    @require_admin
     def delete_announcement(id):
         try:
             # Get the announcement
@@ -273,13 +259,13 @@ def register_announcement_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='delete_announcement',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) deleted announcement "{announcement_title}" (ID: {announcement_id})'
+                action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) deleted announcement "{announcement_title}" (ID: {announcement_id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=g.current_user_id,
                 activity_type='delete_announcement',
                 description=f'Deleted announcement "{announcement_title}"',
                 ip_address=request.remote_addr

@@ -1,4 +1,4 @@
-from flask import request, jsonify, session
+from flask import request, jsonify, session, g
 from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
@@ -8,58 +8,18 @@ from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
 from utils.session_manager import SessionManager
+from utils.auth_decorators import require_auth, require_tool_manager
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator for requiring tool manager privileges
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            from models import User
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Check if user has admin or Materials department privileges
-            if not (user.is_admin or user.department == 'Materials'):
-                log_security_event('insufficient_permissions', f'Tool management access denied for user {user.id}')
-                return jsonify({'error': 'Tool management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
+# Use the modern auth decorators from utils.auth_decorators
+# The require_tool_manager decorator is imported above and handles JWT/session auth properly
 
 def register_calibration_routes(app):
     # Get all calibration records
     @app.route('/api/calibrations', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibrations():
         try:
             # Get pagination parameters
@@ -104,7 +64,7 @@ def register_calibration_routes(app):
 
     # Get tools due for calibration
     @app.route('/api/calibrations/due', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibrations_due():
         try:
             # Get days parameter (default to 30 days)
@@ -152,7 +112,7 @@ def register_calibration_routes(app):
 
     # Get tools overdue for calibration
     @app.route('/api/calibrations/overdue', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibrations_overdue():
         try:
             # Calculate the current date
@@ -173,7 +133,7 @@ def register_calibration_routes(app):
 
     # Get calibration history for a specific tool
     @app.route('/api/tools/<int:id>/calibrations', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_tool_calibrations(id):
         try:
             # Get pagination parameters
@@ -210,7 +170,7 @@ def register_calibration_routes(app):
 
     # Add a new calibration record for a tool
     @app.route('/api/tools/<int:id>/calibrations', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     @handle_errors
     def add_tool_calibration(id):
         # Get the tool
@@ -241,7 +201,7 @@ def register_calibration_routes(app):
             tool_id=id,
             calibration_date=calibration_date,
             next_calibration_date=next_calibration_date,
-            performed_by_user_id=session['user_id'],
+            performed_by_user_id=g.current_user_id,
             calibration_notes=validated_data.get('notes', ''),
             calibration_status=validated_data['calibration_status']
         )
@@ -273,13 +233,13 @@ def register_calibration_routes(app):
         # Create audit log
         log = AuditLog(
             action_type='tool_calibration',
-            action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
+            action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) calibrated tool {tool.tool_number} (ID: {id})'
         )
         db.session.add(log)
 
         # Create user activity
         activity = UserActivity(
-            user_id=session['user_id'],
+            user_id=g.current_user_id,
             activity_type='tool_calibration',
             description=f'Calibrated tool {tool.tool_number}',
             ip_address=request.remote_addr
@@ -298,7 +258,7 @@ def register_calibration_routes(app):
 
     # Get all calibration standards
     @app.route('/api/calibration-standards', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibration_standards():
         try:
             # Get pagination parameters
@@ -353,7 +313,7 @@ def register_calibration_routes(app):
 
     # Add a new calibration standard
     @app.route('/api/calibration-standards', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def add_calibration_standard():
         try:
             # Get data from request
@@ -402,13 +362,13 @@ def register_calibration_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='add_calibration_standard',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) added calibration standard {standard.name} (ID: {standard.id})'
+                action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) added calibration standard {standard.name} (ID: {standard.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=g.current_user_id,
                 activity_type='add_calibration_standard',
                 description=f'Added calibration standard {standard.name}',
                 ip_address=request.remote_addr
@@ -427,7 +387,7 @@ def register_calibration_routes(app):
 
     # Get a specific calibration record
     @app.route('/api/tools/<int:tool_id>/calibrations/<int:calibration_id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibration_detail(tool_id, calibration_id):
         try:
             # Get the calibration record
@@ -455,7 +415,7 @@ def register_calibration_routes(app):
 
     # Get a specific calibration standard
     @app.route('/api/calibration-standards/<int:id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_calibration_standard(id):
         try:
             standard = CalibrationStandard.query.get_or_404(id)
@@ -467,7 +427,7 @@ def register_calibration_routes(app):
 
     # Update a calibration standard
     @app.route('/api/calibration-standards/<int:id>', methods=['PUT'])
-    @tool_manager_required
+    @require_tool_manager
     def update_calibration_standard(id):
         try:
             standard = CalibrationStandard.query.get_or_404(id)
@@ -516,7 +476,7 @@ def register_calibration_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='update_calibration_standard',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) updated calibration standard {standard.name} (ID: {id})'
+                action_details=f'User {g.current_user.name} (ID: {g.current_user_id}) updated calibration standard {standard.name} (ID: {id})'
             )
             db.session.add(log)
             db.session.commit()

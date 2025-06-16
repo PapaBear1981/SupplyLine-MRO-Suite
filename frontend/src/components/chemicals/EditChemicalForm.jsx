@@ -197,11 +197,10 @@ const EditChemicalForm = () => {
                   <option value="each">Each</option>
                   <option value="oz">Ounce (oz)</option>
                   <option value="ml">Milliliter (ml)</option>
-                  <option value="l">Liter (l)</option>
-                  <option value="g">Gram (g)</option>
+                  <option value="liter">Liter</option>
                   <option value="kg">Kilogram (kg)</option>
                   <option value="lb">Pound (lb)</option>
-                  <option value="gal">Gallon (gal)</option>
+                  <option value="gal">Gallon</option>
                 </Form.Select>
               </Form.Group>
             </Col>
