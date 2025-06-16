@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, make_response, current_app
+from flask import request, jsonify, session, make_response, current_app, g
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard, SystemSettings
 from datetime import datetime, timedelta, timezone
@@ -203,14 +203,7 @@ def materials_manager_required(f):
 def register_routes(app):
     # Skip database initialization during route registration for lazy loading
     # Database will be initialized when first accessed via lazy loading
-
-        # Initialize default system settings
-        from utils.init_system_settings import initialize_default_settings
-        settings_success, settings_message = initialize_default_settings()
-        if settings_success:
-            logger.info(f"System settings initialization: {settings_message}")
-        else:
-            logger.error(f"System settings initialization failed: {settings_message}")
+    # System settings will be initialized after app startup
 
     # Register report routes
     register_report_routes(app)
@@ -456,7 +449,7 @@ def register_routes(app):
 
         # Update the registration request status
         reg_request.status = 'approved'
-        reg_request.processed_at = datetime.utcnow()
+        reg_request.processed_at = datetime.now(timezone.utc)
         from flask import g
         reg_request.processed_by = g.current_user_id
         reg_request.admin_notes = request.json.get('notes', '')
@@ -493,7 +486,7 @@ def register_routes(app):
 
         # Update the registration request status
         reg_request.status = 'denied'
-        reg_request.processed_at = datetime.utcnow()
+        reg_request.processed_at = datetime.now(timezone.utc)
         from flask import g
         reg_request.processed_by = g.current_user_id
         reg_request.admin_notes = request.json.get('notes', '')
@@ -765,6 +758,7 @@ def register_routes(app):
         return current_app.send_static_file(filename)
 
     @app.route('/api/tools', methods=['GET'])
+    @login_required
     def tools_list_route():
         # GET - List all tools
         print("Received request for all tools")
@@ -900,6 +894,7 @@ def register_routes(app):
         }), 201
 
     @app.route('/api/tools/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @login_required
     def get_tool(id):
         tool = Tool.query.get_or_404(id)
 
@@ -949,7 +944,7 @@ def register_routes(app):
 
         elif request.method == 'DELETE':
             # DELETE - Delete tool (requires admin privileges)
-            if not session.get('is_admin', False):
+            if not g.is_admin:
                 return jsonify({'error': 'Admin privileges required to delete tools'}), 403
 
             # Accept force_delete from query parameters or JSON body
@@ -1015,13 +1010,9 @@ def register_routes(app):
                 return jsonify({'error': f'Failed to delete tool: {str(e)}'}), 500
 
         # PUT - Update tool (requires tool manager privileges)
-        print(f"Session: {session}")
-        print(f"Session is_admin: {session.get('is_admin', False)}")
-        print(f"Session department: {session.get('department', 'None')}")
-
-        # Temporarily disable permission check for debugging
-        # if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-        #     return jsonify({'error': 'Tool management privileges required'}), 403
+        # Check if user has tool management privileges
+        if not (g.is_admin or g.current_user.department == 'Materials'):
+            return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
         print(f"Received tool update request for tool ID {id} with data: {data}")
@@ -1178,6 +1169,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/calibrations/notifications', methods=['GET'])
+    @login_required
     def get_calibration_notifications():
         """Get calibration notifications for tools due for calibration."""
         try:
@@ -1965,7 +1957,7 @@ def register_routes(app):
 
         # Create JWT token for cross-domain authentication
         import jwt
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         # Create JWT payload
         payload = {
@@ -1973,8 +1965,8 @@ def register_routes(app):
             'employee_number': user.employee_number,
             'is_admin': user.is_admin,
             'department': user.department,
-            'exp': datetime.utcnow() + timedelta(hours=8),  # 8 hour expiration
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=8),  # 8 hour expiration
+            'iat': datetime.now(timezone.utc)
         }
 
         # Generate JWT token

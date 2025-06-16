@@ -103,22 +103,29 @@ const useAutoLogout = () => {
       }
     } catch (error) {
       console.error('Session check failed:', error);
-      // Don't logout on network errors, just log
+      // Don't logout on network errors - could be temporary connectivity issues
+      // Only logout if we get a specific 401 unauthorized response
+      if (error.response?.status === 401) {
+        console.log('Session check returned 401 - logging out');
+        dispatch(logout());
+      }
     }
   }, [isAuthenticated, getSessionInfo, dispatch, resetTimeout]);
 
   // Handle window/browser close
   const handleBeforeUnload = useCallback((event) => {
-    if (isAuthenticated) {
-      // Attempt to logout (may not complete due to browser limitations)
-      navigator.sendBeacon('/api/auth/logout', JSON.stringify({}));
-      
-      // Some browsers show a confirmation dialog
-      event.preventDefault();
-      event.returnValue = '';
-      return '';
-    }
-  }, [isAuthenticated]);
+    // Don't automatically logout on page refresh/reload
+    // Only use inactivity timeout for logout
+    // This prevents logout on page refresh which was the main issue
+
+    // Optional: Show confirmation dialog for accidental navigation
+    // Uncomment the lines below if you want to warn users about leaving
+    // if (isAuthenticated) {
+    //   event.preventDefault();
+    //   event.returnValue = 'Are you sure you want to leave? You will be logged out.';
+    //   return event.returnValue;
+    // }
+  }, []);
 
   // Handle page visibility change (tab switching, minimizing)
   const handleVisibilityChange = useCallback(() => {
@@ -162,8 +169,8 @@ const useAutoLogout = () => {
     // Add beforeunload listener
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Set up periodic session check (every 5 minutes)
-    sessionCheckRef.current = setInterval(checkSessionStatus, 5 * 60 * 1000);
+    // Set up periodic session check (every 10 minutes - less aggressive)
+    sessionCheckRef.current = setInterval(checkSessionStatus, 10 * 60 * 1000);
 
     // Initialize timeout
     getSessionInfo().then(() => {

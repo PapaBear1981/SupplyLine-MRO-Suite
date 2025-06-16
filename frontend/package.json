@@ -8,6 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
@@ -26,7 +30,8 @@
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:safari": "playwright test --project=webkit",
     "test:e2e:smoke": "playwright test tests/e2e/auth/login.spec.js tests/e2e/dashboard/user-dashboard.spec.js",
-    "test:e2e:regression": "playwright test --project=chromium --project=firefox"
+    "test:e2e:regression": "playwright test --project=chromium --project=firefox",
+    "test:servers": "node scripts/start-test-servers.js"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
@@ -59,6 +64,9 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@playwright/test": "^1.48.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
@@ -66,6 +74,9 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "vite": "^6.3.1"
+    "jsdom": "^26.1.0",
+    "redux-mock-store": "^1.5.5",
+    "vite": "^6.3.1",
+    "vitest": "^3.2.3"
   }
 }

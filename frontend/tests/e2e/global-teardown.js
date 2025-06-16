@@ -4,6 +4,8 @@
  */
 
 import { globalCleanupTestData } from './utils/advanced-helpers.js';
+import { cleanupTestData, login } from './utils/data-seeding.js';
+import { testUsers } from './fixtures/test-data.js';
 
 async function globalTeardown(config) {
   console.log('🧹 Starting global teardown for E2E tests...');
@@ -11,6 +13,15 @@ async function globalTeardown(config) {
   try {
     // Clean up test data if needed
     await globalCleanupTestData(config);
+
+    // Also clean up our seeded test data
+    try {
+      const adminToken = await login(testUsers.admin);
+      await cleanupTestData(adminToken);
+      console.log('✅ Seeded test data cleanup completed');
+    } catch (cleanupError) {
+      console.warn('⚠️ Test data cleanup had issues:', cleanupError.message);
+    }
 
     console.log('✅ Global teardown completed successfully');
   } catch (error) {

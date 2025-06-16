@@ -31,8 +31,7 @@ def create_app():
     )
     app.config.from_object(Config)
 
-    # Set session cookie name explicitly for Flask-Session compatibility
-    app.session_cookie_name = app.config['SESSION_COOKIE_NAME']
+    # Session cookie name is already set in config.py - no need to set it again
 
     # Configure structured logging
     if hasattr(Config, 'LOGGING_CONFIG'):
@@ -46,6 +45,7 @@ def create_app():
 
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+    print(f"DEBUG: CORS allowed origins: {allowed_origins}")  # Debug output
     # Apply CORS to all routes so that error responses (e.g. 404) also include
     # the necessary headers.  Previously CORS was limited to the ``/api``
     # prefix which meant requests to undefined routes would omit the
@@ -431,4 +431,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)  # Disable debug to avoid reloader

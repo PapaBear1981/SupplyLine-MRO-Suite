@@ -69,9 +69,17 @@ api.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       if (error.response.status === 401) {
-        // Unauthorized - clear token and redirect to login
+        // Unauthorized - clear token but don't automatically redirect
+        // Let the component/Redux handle the logout flow
         localStorage.removeItem('authToken');
-        window.location.href = '/login';
+
+        // Only redirect if we're not already on the login page
+        if (window.location.pathname !== '/login') {
+          // Use a small delay to allow Redux state to update first
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 100);
+        }
       }
     }
     return Promise.reject(error);

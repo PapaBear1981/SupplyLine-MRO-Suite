@@ -71,7 +71,7 @@ def register_calibration_routes(app):
             days = request.args.get('days', 30, type=int)
 
             # Calculate the date threshold
-            now = datetime.utcnow()
+            now = datetime.now()
             threshold_date = now + timedelta(days=days)
 
             # Find tools that require calibration and are due within the specified days

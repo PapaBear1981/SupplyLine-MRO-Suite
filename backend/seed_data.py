@@ -1,6 +1,6 @@
 from models import db, Tool, User, Checkout
 from flask import Flask
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 # Create a minimal Flask app
@@ -72,17 +72,17 @@ def seed_database():
             checkout1 = Checkout(
                 tool_id=tools[0].id,
                 user_id=admin.id,
-                checkout_date=datetime.utcnow() - timedelta(days=2),
-                expected_return_date=datetime.utcnow() + timedelta(days=5)
+                checkout_date=datetime.now(timezone.utc) - timedelta(days=2),
+                expected_return_date=datetime.now(timezone.utc) + timedelta(days=5)
             )
 
             # Returned checkout
             checkout2 = Checkout(
                 tool_id=tools[1].id,
                 user_id=admin.id,
-                checkout_date=datetime.utcnow() - timedelta(days=5),
-                return_date=datetime.utcnow() - timedelta(days=3),
-                expected_return_date=datetime.utcnow() - timedelta(days=1)
+                checkout_date=datetime.now(timezone.utc) - timedelta(days=5),
+                return_date=datetime.now(timezone.utc) - timedelta(days=3),
+                expected_return_date=datetime.now(timezone.utc) - timedelta(days=1)
             )
 
             db.session.add_all([checkout1, checkout2])

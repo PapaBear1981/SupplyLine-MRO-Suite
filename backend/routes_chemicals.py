@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 def register_chemical_routes(app):
     # Get all chemicals
     @app.route('/api/chemicals', methods=['GET'])
+    @require_auth
     @handle_errors
     def chemicals_route():
         # Get query parameters for filtering
@@ -186,6 +187,7 @@ def register_chemical_routes(app):
 
     # Get barcode data for a chemical
     @app.route('/api/chemicals/<int:id>/barcode', methods=['GET'])
+    @require_auth
     def chemical_barcode_route(id):
         try:
             # Get the chemical
@@ -291,6 +293,7 @@ def register_chemical_routes(app):
 
     # Get issuance history for a chemical
     @app.route('/api/chemicals/<int:id>/issuances', methods=['GET'])
+    @require_auth
     @handle_errors
     def chemical_issuances_route(id):
         # Get the chemical
@@ -377,6 +380,7 @@ def register_chemical_routes(app):
 
     # Get, update, or delete a specific chemical
     @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @require_auth
     def chemical_detail_route(id):
         # Get the chemical
         chemical = Chemical.query.get_or_404(id)

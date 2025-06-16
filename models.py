@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -26,7 +26,7 @@ class User(db.Model):
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     reset_token = db.Column(db.String, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     remember_token = db.Column(db.String, nullable=True)
@@ -49,7 +49,7 @@ class User(db.Model):
         # Generate a 6-digit code
         code = ''.join(secrets.choice(string.digits) for _ in range(6))
         self.reset_token = generate_password_hash(code)  # Store hash of code
-        self.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)  # Valid for 1 hour
+        self.reset_token_expiry = datetime.now() + timedelta(hours=1)  # Valid for 1 hour
         return code
 
     def check_reset_token(self, token):
@@ -253,7 +253,7 @@ class UserActivity(db.Model):
     activity_type = db.Column(db.String, nullable=False)
     description = db.Column(db.String)
     ip_address = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship('User')
 
     def to_dict(self):
