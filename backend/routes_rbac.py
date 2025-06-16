@@ -15,7 +15,11 @@ def permission_required(permission_name):
             if not user:
                 return jsonify({'error': 'User not found'}), 404
 
-            # Check if user has the required permission
+            # Legacy admin users have all permissions
+            if user.is_admin:
+                return f(*args, **kwargs)
+
+            # Check if user has the required permission through roles
             if not user.has_permission(permission_name):
                 return jsonify({'error': f'Permission {permission_name} required'}), 403
 
