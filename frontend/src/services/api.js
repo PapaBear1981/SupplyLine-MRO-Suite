@@ -33,7 +33,12 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    // You could add auth token here if using JWT
+    // Add JWT token to Authorization header
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     // Only log non-GET requests in development environment or when debugging is enabled
     if (config.method.toUpperCase() !== 'GET' &&
         (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true')) {
@@ -64,7 +69,8 @@ api.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       if (error.response.status === 401) {
-        // Unauthorized - redirect to login
+        // Unauthorized - clear token and redirect to login
+        localStorage.removeItem('authToken');
         window.location.href = '/login';
       }
     }

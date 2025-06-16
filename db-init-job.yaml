@@ -1,0 +1,30 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: supplyline-db-init
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: gcr.io/gen-lang-client-0819985982/supplyline-backend:latest
+            command: ["python", "/app/init_db_simple.py"]
+            env:
+            - name: DB_HOST
+              value: "/cloudsql/gen-lang-client-0819985982:us-west1:supplyline-db"
+            - name: DB_USER
+              value: "supplyline_user"
+            - name: DB_NAME
+              value: "supplyline"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supplyline-db-password
+                  key: latest
+          restartPolicy: Never
+          serviceAccountName: supplyline-backend-sa@gen-lang-client-0819985982.iam.gserviceaccount.com
+      parallelism: 1
+      completions: 1
