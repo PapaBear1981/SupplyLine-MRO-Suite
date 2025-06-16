@@ -742,25 +742,7 @@ class SystemSettings(db.Model):
         db.session.commit()
         return setting
 
-    def to_dict(self, include_reads=False):
-        data = {
-            'id': self.id,
-            'title': self.title,
-            'content': self.content,
-            'priority': self.priority,
-            'created_by': self.created_by,
-            'author_name': self.author.name if self.author else 'Unknown',
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat(),
-            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
-            'is_active': self.is_active
-        }
 
-        if include_reads and hasattr(self, 'reads'):
-            data['reads'] = [r.to_dict() for r in self.reads.all()]
-            data['read_count'] = self.reads.count()
-
-        return data
 
 class AnnouncementRead(db.Model):
     __tablename__ = 'announcement_reads'
