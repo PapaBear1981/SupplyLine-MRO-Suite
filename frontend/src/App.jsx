@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser } from './store/authSlice';
+import useAutoLogout from './hooks/useAutoLogout';
+import AutoLogoutWarning from './components/common/AutoLogoutWarning';
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -51,6 +53,11 @@ import CalibrationDetailPage from './pages/CalibrationDetailPage';
 function App() {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.theme);
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  // Auto logout functionality
+  const [showLogoutWarning, setShowLogoutWarning] = useState(false);
+  const { setWarningCallback, extendSession, timeoutMinutes } = useAutoLogout();
 
   useEffect(() => {
     // Try to fetch current user on app load
@@ -62,9 +69,35 @@ function App() {
     document.documentElement.setAttribute('data-bs-theme', theme);
   }, [theme]);
 
+  // Set up auto logout warning callback
+  useEffect(() => {
+    setWarningCallback((warningMinutes) => {
+      setShowLogoutWarning(true);
+    });
+  }, [setWarningCallback]);
+
+  const handleCloseWarning = () => {
+    setShowLogoutWarning(false);
+  };
+
+  const handleExtendSession = () => {
+    extendSession();
+    setShowLogoutWarning(false);
+  };
+
   return (
     <HelpProvider>
       <Router>
+        {/* Auto Logout Warning Modal */}
+        {isAuthenticated && (
+          <AutoLogoutWarning
+            show={showLogoutWarning}
+            onHide={handleCloseWarning}
+            onExtend={handleExtendSession}
+            warningMinutes={5}
+          />
+        )}
+
         <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />

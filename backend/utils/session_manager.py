@@ -67,9 +67,12 @@ class SessionManager:
             return False, 'Invalid session data'
 
         try:
-            # Check activity timeout (30 minutes)
+            # Check activity timeout - get from system settings or use default (30 minutes)
+            from models import SystemSettings
+            timeout_minutes = SystemSettings.get_setting('auto_logout_timeout', 30)
+
             last_activity = datetime.fromisoformat(session.get('last_activity', ''))
-            if datetime.utcnow() - last_activity > timedelta(minutes=30):
+            if datetime.utcnow() - last_activity > timedelta(minutes=timeout_minutes):
                 session.clear()
                 return False, 'Session timeout due to inactivity'
         except (ValueError, TypeError):
@@ -106,6 +109,52 @@ class SessionManager:
         """Validate CSRF token from request"""
         token = request.headers.get('X-CSRF-Token') or request.form.get('csrf_token')
         return token and token == session.get('csrf_token')
+
+    @staticmethod
+    def get_auto_logout_timeout():
+        """
+        Get the current auto logout timeout in minutes
+
+        Returns:
+            int: Timeout in minutes
+        """
+        try:
+            from models import SystemSettings
+            return SystemSettings.get_setting('auto_logout_timeout', 30)
+        except Exception:
+            return 30  # Default fallback
+
+    @staticmethod
+    def get_session_info():
+        """
+        Get current session information including timeout settings
+
+        Returns:
+            dict: Session information
+        """
+        if 'user_id' not in session:
+            return None
+
+        try:
+            login_time = datetime.fromisoformat(session.get('login_time', ''))
+            last_activity = datetime.fromisoformat(session.get('last_activity', ''))
+            timeout_minutes = SessionManager.get_auto_logout_timeout()
+
+            # Calculate remaining time
+            time_since_activity = datetime.utcnow() - last_activity
+            remaining_seconds = max(0, (timeout_minutes * 60) - time_since_activity.total_seconds())
+
+            return {
+                'user_id': session.get('user_id'),
+                'user_name': session.get('user_name'),
+                'login_time': login_time.isoformat(),
+                'last_activity': last_activity.isoformat(),
+                'timeout_minutes': timeout_minutes,
+                'remaining_seconds': int(remaining_seconds),
+                'is_active': remaining_seconds > 0
+            }
+        except (ValueError, TypeError):
+            return None
 
 
 def secure_login_required(f):

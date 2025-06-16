@@ -54,6 +54,37 @@ const AuthService = {
     }
   },
 
+  // Get session information including timeout settings
+  getSessionInfo: async () => {
+    try {
+      const response = await api.get('/auth/session-info');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get system settings
+  getSystemSettings: async (category = null) => {
+    try {
+      const url = category ? `/admin/settings?category=${category}` : '/admin/settings';
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update system settings
+  updateSystemSettings: async (settings) => {
+    try {
+      const response = await api.post('/admin/settings', settings);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Check if user is authenticated
   isAuthenticated: async () => {
     try {

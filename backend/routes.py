@@ -1,6 +1,6 @@
 from flask import request, jsonify, session, make_response, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
-from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
+from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard, SystemSettings
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import secrets
@@ -203,6 +203,14 @@ def materials_manager_required(f):
 def register_routes(app):
     # Skip database initialization during route registration for lazy loading
     # Database will be initialized when first accessed via lazy loading
+
+        # Initialize default system settings
+        from utils.init_system_settings import initialize_default_settings
+        settings_success, settings_message = initialize_default_settings()
+        if settings_success:
+            logger.info(f"System settings initialization: {settings_message}")
+        else:
+            logger.error(f"System settings initialization failed: {settings_message}")
 
     # Register report routes
     register_report_routes(app)
@@ -2023,6 +2031,146 @@ def register_routes(app):
         response.delete_cookie('user_id')
 
         return response
+
+    # System Settings Routes
+    @app.route('/api/admin/settings', methods=['GET'])
+    @admin_required
+    @handle_errors
+    def get_system_settings():
+        """Get all system settings or settings by category"""
+        category = request.args.get('category')
+
+        query = SystemSettings.query
+        if category:
+            query = query.filter_by(category=category)
+
+        settings = query.all()
+
+        # Group settings by category
+        settings_by_category = {}
+        for setting in settings:
+            cat = setting.category
+            if cat not in settings_by_category:
+                settings_by_category[cat] = []
+            settings_by_category[cat].append(setting.to_dict())
+
+        return jsonify(settings_by_category), 200
+
+    @app.route('/api/admin/settings', methods=['POST'])
+    @admin_required
+    @handle_errors
+    def update_system_settings():
+        """Update multiple system settings"""
+        data = request.get_json() or {}
+
+        if not data:
+            return jsonify({'error': 'No settings data provided'}), 400
+
+        updated_settings = []
+        current_user_id = session.get('user_id')
+
+        try:
+            for key, value_data in data.items():
+                if isinstance(value_data, dict):
+                    value = value_data.get('value')
+                    value_type = value_data.get('value_type', 'string')
+                    description = value_data.get('description')
+                    category = value_data.get('category', 'general')
+                else:
+                    value = value_data
+                    value_type = 'string'
+                    description = None
+                    category = 'general'
+
+                setting = SystemSettings.set_setting(
+                    key=key,
+                    value=value,
+                    value_type=value_type,
+                    description=description,
+                    category=category,
+                    user_id=current_user_id
+                )
+                updated_settings.append(setting.to_dict())
+
+            # Log the action
+            log = AuditLog(
+                action_type='update_system_settings',
+                action_details=f'Updated {len(updated_settings)} system settings'
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify({
+                'message': 'Settings updated successfully',
+                'settings': updated_settings
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating system settings: {str(e)}")
+            return jsonify({'error': 'Failed to update settings'}), 500
+
+    @app.route('/api/admin/settings/<setting_key>', methods=['GET'])
+    @admin_required
+    @handle_errors
+    def get_system_setting(setting_key):
+        """Get a specific system setting"""
+        setting = SystemSettings.query.filter_by(key=setting_key).first()
+
+        if not setting:
+            return jsonify({'error': 'Setting not found'}), 404
+
+        return jsonify(setting.to_dict()), 200
+
+    @app.route('/api/admin/settings/<setting_key>', methods=['PUT'])
+    @admin_required
+    @handle_errors
+    def update_system_setting(setting_key):
+        """Update a specific system setting"""
+        data = request.get_json() or {}
+
+        if 'value' not in data:
+            return jsonify({'error': 'Value is required'}), 400
+
+        current_user_id = session.get('user_id')
+
+        try:
+            setting = SystemSettings.set_setting(
+                key=setting_key,
+                value=data['value'],
+                value_type=data.get('value_type', 'string'),
+                description=data.get('description'),
+                category=data.get('category', 'general'),
+                user_id=current_user_id
+            )
+
+            # Log the action
+            log = AuditLog(
+                action_type='update_system_setting',
+                action_details=f'Updated setting {setting_key} to {data["value"]}'
+            )
+            db.session.add(log)
+            db.session.commit()
+
+            return jsonify(setting.to_dict()), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating setting {setting_key}: {str(e)}")
+            return jsonify({'error': 'Failed to update setting'}), 500
+
+    @app.route('/api/auth/session-info', methods=['GET'])
+    def get_session_info():
+        """Get current session information including timeout settings"""
+        session_info = SessionManager.get_session_info()
+
+        if not session_info:
+            return jsonify({'authenticated': False}), 200
+
+        return jsonify({
+            'authenticated': True,
+            'session': session_info
+        }), 200
 
     @app.route('/api/auth/status', methods=['GET'])
     @app.require_database
