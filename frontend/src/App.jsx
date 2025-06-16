@@ -14,6 +14,14 @@ import { HelpProvider } from './context/HelpContext';
 // Import components
 import MainLayout from './components/common/MainLayout';
 import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
+import RoleProtectedRoute, {
+  ToolManagerRoute,
+  ChemicalManagerRoute,
+  CalibrationManagerRoute,
+  ReportRoute,
+  AllCheckoutsRoute,
+  UserRoute
+} from './components/auth/RoleProtectedRoute';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
@@ -123,11 +131,11 @@ function App() {
         } />
 
         <Route path="/tools/new" element={
-          <ProtectedRoute>
+          <ToolManagerRoute>
             <MainLayout>
               <NewToolPage />
             </MainLayout>
-          </ProtectedRoute>
+          </ToolManagerRoute>
         } />
 
         <Route path="/tools/:id" element={
@@ -139,11 +147,11 @@ function App() {
         } />
 
         <Route path="/tools/:id/edit" element={
-          <ProtectedRoute>
+          <ToolManagerRoute>
             <MainLayout>
               <EditToolPage />
             </MainLayout>
-          </ProtectedRoute>
+          </ToolManagerRoute>
         } />
 
         <Route path="/checkout/:id" element={
@@ -171,20 +179,20 @@ function App() {
         } />
 
         <Route path="/checkouts/all" element={
-          <ProtectedRoute>
+          <AllCheckoutsRoute>
             <MainLayout>
               <AllCheckoutsPage />
             </MainLayout>
-          </ProtectedRoute>
+          </AllCheckoutsRoute>
         } />
 
 
         <Route path="/reports" element={
-          <ProtectedRoute>
+          <ReportRoute>
             <MainLayout>
               <ReportingPage />
             </MainLayout>
-          </ProtectedRoute>
+          </ReportRoute>
         } />
 
         <Route path="/admin/dashboard" element={

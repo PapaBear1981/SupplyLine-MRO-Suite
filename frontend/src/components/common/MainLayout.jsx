@@ -6,12 +6,16 @@ import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
 import TourGuide from './TourGuide';
+import PermissionService from '../../services/permissionService';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { showHelp, showTooltips, setShowHelp, setShowTooltips } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+
+  // Get navigation permissions using the permission service
+  const permissions = PermissionService.getNavigationPermissions(user);
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -21,25 +25,51 @@ const MainLayout = ({ children }) => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" data-testid="hamburger-menu" />
           <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-navigation">
             <Nav className="me-auto">
-              <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-              <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
-              <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+              {/* Dashboard - available to all users with dashboard permission */}
+              {permissions.canViewDashboard && (
+                <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
+              )}
+
+              {/* Tools - available to users with tool view permission */}
+              {permissions.canViewTools && (
+                <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
+              )}
+
+              {/* Checkouts - available to users who can view their own checkouts */}
+              {permissions.canViewOwnCheckouts && (
+                <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+              )}
+
               {user && (
                 <>
-                  {/* Show these links to admins and Materials department users */}
-                  {(user.is_admin || user.department === 'Materials') && (
-                    <>
-                      <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
-                      <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
-                      <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
-                      <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link>
-                      <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
-                    </>
+                  {/* All Checkouts - available to users who can view all checkouts */}
+                  {permissions.canViewAllCheckouts && (
+                    <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                   )}
 
-                  {/* Only show Admin Dashboard to admin users */}
-                  {user.is_admin === true && (
-                    <Nav.Link as={Link} to="/admin/dashboard" data-testid="admin-dashboard-link">Admin Dashboard</Nav.Link>
+                  {/* Chemicals - available to users with chemical view permission */}
+                  {permissions.canViewChemicals && (
+                    <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
+                  )}
+
+                  {/* Calibrations - available to users with calibration view permission */}
+                  {permissions.canViewCalibrations && (
+                    <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                  )}
+
+                  {/* Cycle Counts - available to users with cycle count view permission */}
+                  {permissions.canViewCycleCounts && (
+                    <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link>
+                  )}
+
+                  {/* Reports - available to users with report view permission */}
+                  {permissions.canViewReports && (
+                    <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
+                  )}
+
+                  {/* Admin Dashboard - available to users with admin permissions */}
+                  {permissions.canViewAdminDashboard && (
+                    <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
                   )}
                 </>
               )}

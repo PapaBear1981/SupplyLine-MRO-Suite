@@ -12,6 +12,7 @@ import SystemResources from './SystemResources';
 import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
 import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } from '../../store/adminSlice';
+import PermissionService from '../../services/permissionService';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -23,7 +24,13 @@ const AdminDashboard = () => {
     loading: adminLoading
   } = useSelector((state) => state.admin);
 
-  // Memoize permission checks to prevent unnecessary recalculations
+  // Get navigation permissions using the permission service
+  const permissions = useMemo(() =>
+    PermissionService.getNavigationPermissions(currentUser),
+    [currentUser]
+  );
+
+  // Extract specific permissions for easier use
   const {
     canViewDashboard,
     canViewUsers,
@@ -34,15 +41,15 @@ const AdminDashboard = () => {
     canViewRegistrations,
     canManageAnnouncements
   } = useMemo(() => ({
-    canViewDashboard: currentUser?.is_admin,
-    canViewUsers: currentUser?.permissions?.includes('user.view'),
-    canManageRoles: currentUser?.permissions?.includes('role.manage'),
-    canViewAudit: currentUser?.permissions?.includes('system.audit'),
-    canManageSettings: currentUser?.permissions?.includes('admin.settings'),
-    canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
+    canViewDashboard: currentUser?.is_admin || PermissionService.hasPermission(currentUser, 'dashboard.view'),
+    canViewUsers: permissions.canManageUsers,
+    canManageRoles: permissions.canManageRoles,
+    canViewAudit: permissions.canViewAuditLogs,
+    canManageSettings: permissions.canManageSettings,
+    canManageHelp: permissions.canManageSettings || currentUser?.is_admin,
     canViewRegistrations: currentUser?.is_admin,
-    canManageAnnouncements: currentUser?.is_admin
-  }), [currentUser?.permissions, currentUser?.is_admin]);
+    canManageAnnouncements: permissions.canManageAnnouncements
+  }), [permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
   useEffect(() => {

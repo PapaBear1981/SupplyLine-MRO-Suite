@@ -1241,21 +1241,43 @@ def register_routes(app):
             return jsonify({'error': 'User management privileges required'}), 403
 
         if request.method == 'GET':
-            # Check if there's a search query for employee number
-            search_query = request.args.get('q')
+            try:
+                # Check if there's a search query for employee number
+                search_query = request.args.get('q')
 
-            # Check if we should include lockout info (admin only)
-            include_lockout_info = session.get('is_admin', False)
+                # Check if we should include lockout info (admin only)
+                include_lockout_info = session.get('is_admin', False)
 
-            if search_query:
-                # Search for users by employee number
-                search_term = f'%{search_query}%'
-                users = User.query.filter(User.employee_number.like(search_term)).all()
-                return jsonify([u.to_dict(include_roles=True, include_lockout_info=include_lockout_info) for u in users])
-            else:
-                # Get all users, including inactive ones
-                users = User.query.all()
-                return jsonify([u.to_dict(include_roles=True, include_lockout_info=include_lockout_info) for u in users])
+                if search_query:
+                    # Search for users by employee number
+                    search_term = f'%{search_query}%'
+                    users = User.query.filter(User.employee_number.like(search_term)).all()
+                    user_dicts = []
+                    for u in users:
+                        try:
+                            user_dict = u.to_dict(include_roles=False, include_lockout_info=include_lockout_info)
+                            user_dicts.append(user_dict)
+                        except Exception as user_error:
+                            print(f"Error serializing user {u.employee_number}: {str(user_error)}")
+                            # Return user without roles if there's an error
+                            user_dicts.append(u.to_dict(include_lockout_info=include_lockout_info))
+                    return jsonify(user_dicts)
+                else:
+                    # Get all users, including inactive ones
+                    users = User.query.all()
+                    user_dicts = []
+                    for u in users:
+                        try:
+                            user_dict = u.to_dict(include_roles=False, include_lockout_info=include_lockout_info)
+                            user_dicts.append(user_dict)
+                        except Exception as user_error:
+                            print(f"Error serializing user {u.employee_number}: {str(user_error)}")
+                            # Return user without roles if there's an error
+                            user_dicts.append(u.to_dict(include_lockout_info=include_lockout_info))
+                    return jsonify(user_dicts)
+            except Exception as e:
+                print(f"Error in users GET route: {str(e)}")
+                return jsonify({'error': f'Error retrieving users: {str(e)}'}), 500
 
         # POST - Create a new user
         data = request.get_json() or {}

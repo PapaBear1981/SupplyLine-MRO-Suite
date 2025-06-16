@@ -189,6 +189,24 @@ const UserManagement = () => {
     setPasswordValid(isValid);
   };
 
+  // Get role permission summary for display
+  const getRolePermissionSummary = (roleName) => {
+    switch (roleName) {
+      case 'Administrator':
+        return 'All system permissions';
+      case 'Lead':
+        return 'Dashboard, Tools, Checkouts, Chemicals, Calibrations, Reports, Cycle Counts';
+      case 'User':
+        return 'Dashboard, Tools, Checkouts, Chemicals, Cycle Counts';
+      case 'Mechanic':
+        return 'Tools (view only), Own Checkouts';
+      case 'Materials Manager':
+        return 'Tools, Chemicals, Calibrations, Reports';
+      default:
+        return null;
+    }
+  };
+
   // Open edit modal with user data
   const openEditModal = (user) => {
     setSelectedUser(user);
@@ -335,6 +353,9 @@ const UserManagement = () => {
                                 className="status-badge"
                                 style={{
                                   backgroundColor: role.name === 'Administrator' ? 'var(--bs-primary)' :
+                                                  role.name === 'Lead' ? 'var(--bs-success)' :
+                                                  role.name === 'User' ? 'var(--bs-info)' :
+                                                  role.name === 'Mechanic' ? 'var(--bs-warning)' :
                                                   role.name === 'Materials Manager' ? 'var(--bs-success)' :
                                                   'var(--bs-secondary)',
                                   color: 'white'
@@ -661,18 +682,39 @@ const UserManagement = () => {
           ) : (
             <>
               <p>Select the roles to assign to this user:</p>
+              <Alert variant="info" className="mb-3">
+                <small>
+                  <strong>Role Descriptions:</strong><br/>
+                  <strong>Administrator:</strong> Full system access with all permissions<br/>
+                  <strong>Lead:</strong> Supervisory access including calibrations and reports<br/>
+                  <strong>User:</strong> Standard employee access for tools, checkouts, and chemicals<br/>
+                  <strong>Mechanic:</strong> Limited access to tools and own checkouts only
+                </small>
+              </Alert>
               <ListGroup>
-                {roles.map((role) => (
-                  <ListGroup.Item key={role.id}>
-                    <Form.Check
-                      type="checkbox"
-                      id={`role-${role.id}`}
-                      label={`${role.name} - ${role.description || 'No description'}`}
-                      checked={selectedRoles.includes(role.id)}
-                      onChange={() => handleRoleChange(role.id)}
-                    />
-                  </ListGroup.Item>
-                ))}
+                {roles.map((role) => {
+                  const rolePermissions = getRolePermissionSummary(role.name);
+                  return (
+                    <ListGroup.Item key={role.id}>
+                      <Form.Check
+                        type="checkbox"
+                        id={`role-${role.id}`}
+                        label={
+                          <div>
+                            <strong>{role.name}</strong>
+                            <br/>
+                            <small className="text-muted">{role.description || 'No description'}</small>
+                            {rolePermissions && (
+                              <><br/><small className="text-info">{rolePermissions}</small></>
+                            )}
+                          </div>
+                        }
+                        checked={selectedRoles.includes(role.id)}
+                        onChange={() => handleRoleChange(role.id)}
+                      />
+                    </ListGroup.Item>
+                  );
+                })}
               </ListGroup>
             </>
           )}
