@@ -90,13 +90,38 @@ class ResourceMonitor:
             try:
                 import os
                 if os.name == 'nt':
-                    # On Windows, use the current working directory's drive
-                    disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
+                    # On Windows, try multiple approaches to get disk usage
+                    disk = None
+                    # Try different disk paths in order of preference
+                    disk_paths_to_try = []
+
+                    # First try the current working directory's drive
+                    try:
+                        cwd_drive = os.path.splitdrive(os.getcwd())[0]
+                        if cwd_drive:
+                            disk_paths_to_try.append(cwd_drive + '\\')
+                    except Exception:
+                        pass
+
+                    # Add common drives
+                    disk_paths_to_try.extend(['C:\\', 'D:\\', 'E:\\'])
+
+                    # Try each path until one works
+                    for disk_path in disk_paths_to_try:
+                        try:
+                            if os.path.exists(disk_path):
+                                disk = psutil.disk_usage(disk_path)
+                                break
+                        except Exception:
+                            continue
+
+                    if disk is None:
+                        raise Exception("No accessible disk found on Windows")
                 else:
                     disk_path = '/'
-                disk = psutil.disk_usage(disk_path)
+                    disk = psutil.disk_usage(disk_path)
             except Exception as disk_error:
-                logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
+                logger.debug(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
                 # Skip disk usage check if it fails
                 disk = None
             if disk and disk.percent > self.thresholds['disk_percent']:
@@ -119,25 +144,32 @@ class ResourceMonitor:
                         'threshold_count': self.thresholds['open_files'],
                         'process_pid': process.pid
                     })
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+            except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+                # On Windows, process.open_files() might fail due to permissions or other OS-specific issues
                 pass
 
             # Database connection pool usage
             try:
-                from .database_utils import get_connection_stats
-                conn_stats = get_connection_stats()
-                if (
-                    isinstance(conn_stats, dict)
-                    and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
-                ):
-                    logger.warning(
-                        "High database connection usage detected",
-                        extra={
-                            "metric_type": "db_connections",
-                            "checked_out": conn_stats.get("checked_out"),
-                            "threshold": self.thresholds["db_connections"],
-                        },
-                    )
+                from flask import has_app_context
+                if has_app_context():
+                    from .database_utils import get_connection_stats
+                    conn_stats = get_connection_stats()
+                    if (
+                        isinstance(conn_stats, dict)
+                        and 'error' not in conn_stats
+                        and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
+                    ):
+                        logger.warning(
+                            "High database connection usage detected",
+                            extra={
+                                "metric_type": "db_connections",
+                                "checked_out": conn_stats.get("checked_out"),
+                                "threshold": self.thresholds["db_connections"],
+                            },
+                        )
+                else:
+                    # Skip database connection check when outside application context
+                    pass
             except ImportError:
                 # database_utils not available
                 pass
@@ -171,13 +203,38 @@ class ResourceMonitor:
             try:
                 import os
                 if os.name == 'nt':
-                    # On Windows, use the current working directory's drive
-                    disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
+                    # On Windows, try multiple approaches to get disk usage
+                    disk = None
+                    # Try different disk paths in order of preference
+                    disk_paths_to_try = []
+
+                    # First try the current working directory's drive
+                    try:
+                        cwd_drive = os.path.splitdrive(os.getcwd())[0]
+                        if cwd_drive:
+                            disk_paths_to_try.append(cwd_drive + '\\')
+                    except Exception:
+                        pass
+
+                    # Add common drives
+                    disk_paths_to_try.extend(['C:\\', 'D:\\', 'E:\\'])
+
+                    # Try each path until one works
+                    for disk_path in disk_paths_to_try:
+                        try:
+                            if os.path.exists(disk_path):
+                                disk = psutil.disk_usage(disk_path)
+                                break
+                        except Exception:
+                            continue
+
+                    if disk is None:
+                        raise Exception("No accessible disk found on Windows")
                 else:
                     disk_path = '/'
-                disk = psutil.disk_usage(disk_path)
+                    disk = psutil.disk_usage(disk_path)
             except Exception as disk_error:
-                logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
+                logger.debug(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
                 # Use mock data if disk usage fails
                 disk = type('MockDisk', (), {
                     'percent': 0,
@@ -191,8 +248,12 @@ class ResourceMonitor:
             cpu_count = psutil.cpu_count()
 
             # Process info
-            process = psutil.Process()
-            open_files_count = len(process.open_files())
+            try:
+                process = psutil.Process()
+                open_files_count = len(process.open_files())
+            except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+                # On Windows, process.open_files() might fail due to permissions
+                open_files_count = 0
 
             # Network connections
             try:
@@ -264,14 +325,16 @@ class ResourceMonitor:
 
         # Check database connections if available
         try:
-            from .database_utils import get_connection_stats
-            conn_stats = get_connection_stats()
-            if (
-                isinstance(conn_stats, dict)
-                and 'error' not in conn_stats
-                and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
-            ):
-                issues.append(f"High database connection usage: {conn_stats.get('checked_out')}")
+            from flask import has_app_context
+            if has_app_context():
+                from .database_utils import get_connection_stats
+                conn_stats = get_connection_stats()
+                if (
+                    isinstance(conn_stats, dict)
+                    and 'error' not in conn_stats
+                    and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
+                ):
+                    issues.append(f"High database connection usage: {conn_stats.get('checked_out')}")
         except (ImportError, Exception):
             pass
 

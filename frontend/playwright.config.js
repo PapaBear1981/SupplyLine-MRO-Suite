@@ -131,13 +131,24 @@ export default defineConfig({
       command: 'npm run dev',
       url: process.env.FRONTEND_URL || 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 180 * 1000, // Increased timeout to 3 minutes
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
     {
-      command: 'cd ../backend && python app.py',
+      command: process.platform === 'win32'
+        ? 'cd ..\\backend && python app.py'
+        : 'cd ../backend && python app.py',
       url: process.env.BACKEND_URL || 'http://localhost:5000',
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 180 * 1000, // Increased timeout to 3 minutes
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        ...process.env,
+        FLASK_ENV: 'development',
+        PYTHONUNBUFFERED: '1'
+      }
     }
   ],
 

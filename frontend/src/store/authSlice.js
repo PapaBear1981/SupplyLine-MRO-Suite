@@ -31,16 +31,20 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      // First check if we're authenticated
-      const authStatus = await AuthService.isAuthenticated();
-      if (!authStatus) {
-        return rejectWithValue({ message: 'Not authenticated' });
+      // Check if we have a token in localStorage
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        return rejectWithValue({ message: 'No authentication token found' });
       }
 
-      // If authenticated, get the user data
+      // Try to get the user data directly - if token is invalid, API will return 401
       const data = await AuthService.getCurrentUser();
       return data;
     } catch (error) {
+      // If we get a 401, the token is invalid - remove it
+      if (error.response?.status === 401) {
+        localStorage.removeItem('authToken');
+      }
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch user' });
     }
   }
@@ -106,15 +110,21 @@ export const fetchUserActivity = createAsyncThunk(
   }
 );
 
-// Initial state
-const initialState = {
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-  error: null,
-  registrationSuccess: null,
-  activityLogs: [],
+// Get initial authentication state from localStorage
+const getInitialAuthState = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    user: null,
+    isAuthenticated: !!token, // Set to true if token exists, will be validated by fetchCurrentUser
+    loading: false,
+    error: null,
+    registrationSuccess: null,
+    activityLogs: [],
+  };
 };
+
+// Initial state
+const initialState = getInitialAuthState();
 
 // Slice
 const authSlice = createSlice({
@@ -123,6 +133,13 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearAuth: (state) => {
+      // Manual logout - clear all auth state and localStorage
+      state.user = null;
+      state.isAuthenticated = false;
+      state.error = null;
+      localStorage.removeItem('authToken');
     },
   },
   extraReducers: (builder) => {
@@ -149,10 +166,16 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        // Ensure localStorage is cleared
+        localStorage.removeItem('authToken');
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        // Even if logout fails, clear local state
+        state.user = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem('authToken');
       })
       // Fetch current user
       .addCase(fetchCurrentUser.pending, (state) => {
@@ -167,6 +190,10 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        // Clear token if it was invalid
+        if (action.payload?.message?.includes('401') || action.payload?.status === 401) {
+          localStorage.removeItem('authToken');
+        }
       })
       // Register
       .addCase(register.pending, (state) => {
@@ -242,5 +269,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

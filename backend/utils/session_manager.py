@@ -10,7 +10,7 @@ This module provides secure session management functionality including:
 
 import secrets
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import session, request, current_app
 from functools import wraps
 
@@ -35,8 +35,8 @@ class SessionManager:
         session['user_name'] = user.name
         session['is_admin'] = user.is_admin
         session['department'] = user.department
-        session['login_time'] = datetime.utcnow().isoformat()
-        session['last_activity'] = datetime.utcnow().isoformat()
+        session['login_time'] = datetime.now(timezone.utc).isoformat()
+        session['last_activity'] = datetime.now(timezone.utc).isoformat()
         session['ip_address'] = request.remote_addr
         session['csrf_token'] = secrets.token_hex(16)
 
@@ -72,7 +72,7 @@ class SessionManager:
             timeout_minutes = SystemSettings.get_setting('auto_logout_timeout', 30)
 
             last_activity = datetime.fromisoformat(session.get('last_activity', ''))
-            if datetime.utcnow() - last_activity > timedelta(minutes=timeout_minutes):
+            if datetime.now() - last_activity > timedelta(minutes=timeout_minutes):
                 session.clear()
                 return False, 'Session timeout due to inactivity'
         except (ValueError, TypeError):
@@ -141,7 +141,7 @@ class SessionManager:
             timeout_minutes = SessionManager.get_auto_logout_timeout()
 
             # Calculate remaining time
-            time_since_activity = datetime.utcnow() - last_activity
+            time_since_activity = datetime.now() - last_activity
             remaining_seconds = max(0, (timeout_minutes * 60) - time_since_activity.total_seconds())
 
             return {

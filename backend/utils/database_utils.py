@@ -258,30 +258,47 @@ def get_connection_stats():
         dict: Connection pool statistics
     """
     try:
-        engine = db.engine
-        pool = engine.pool
+        # Check if we're in an application context
+        from flask import has_app_context, current_app
 
-        # Check if pool has the required methods (not available for NullPool/SingletonThreadPool)
-        stats = {}
-        if hasattr(pool, 'size'):
-            stats['pool_size'] = pool.size()
-        if hasattr(pool, 'checkedin'):
-            stats['checked_in'] = pool.checkedin()
-        if hasattr(pool, 'checkedout'):
-            stats['checked_out'] = pool.checkedout()
-        if hasattr(pool, 'overflow'):
-            stats['overflow'] = pool.overflow()
-        if hasattr(pool, 'invalid'):
-            stats['invalid'] = pool.invalid()
+        if not has_app_context():
+            # Try to get the app from the db object if available
+            if hasattr(db, 'app') and db.app:
+                with db.app.app_context():
+                    return _get_connection_stats_internal()
+            else:
+                logger.debug("No application context available for connection stats")
+                return {'error': 'No application context available'}
 
-        # Calculate total if we have the required values
-        if 'pool_size' in stats and 'overflow' in stats:
-            stats['total_connections'] = stats['pool_size'] + stats['overflow']
-
-        return stats
+        return _get_connection_stats_internal()
     except Exception as e:
         logger.error("Error getting connection stats: %s", e)
         return {'error': str(e)}
+
+
+def _get_connection_stats_internal():
+    """Internal function to get connection stats within app context."""
+    engine = db.engine
+    pool = engine.pool
+
+    # Check if pool has the required methods (not available for NullPool/SingletonThreadPool)
+    stats = {}
+    if hasattr(pool, 'size'):
+        stats['pool_size'] = pool.size()
+    if hasattr(pool, 'checkedin'):
+        stats['checked_in'] = pool.checkedin()
+    if hasattr(pool, 'checkedout'):
+        stats['checked_out'] = pool.checkedout()
+    if hasattr(pool, 'overflow'):
+        stats['overflow'] = pool.overflow()
+    if hasattr(pool, 'invalid'):
+        stats['invalid'] = pool.invalid()
+
+    # Calculate total if we have the required values
+    if 'pool_size' in stats and 'overflow' in stats:
+        stats['total_connections'] = stats['pool_size'] + stats['overflow']
+
+    return stats
 
 
 def check_database_health():
@@ -292,18 +309,23 @@ def check_database_health():
         dict: Database health status
     """
     try:
-        # Simple query to test connection
-        start_time = time.time()
-        db.session.execute(text("SELECT 1"))
-        duration = (time.time() - start_time) * 1000
+        # Check if we're in an application context
+        from flask import has_app_context
 
-        connection_stats = get_connection_stats()
+        if not has_app_context():
+            # Try to get the app from the db object if available
+            if hasattr(db, 'app') and db.app:
+                with db.app.app_context():
+                    return _check_database_health_internal()
+            else:
+                logger.debug("No application context available for database health check")
+                return {
+                    'healthy': False,
+                    'error': 'No application context available',
+                    'error_type': 'ApplicationContextError'
+                }
 
-        return {
-            'healthy': True,
-            'response_time_ms': round(duration, 2),
-            'connection_stats': connection_stats
-        }
+        return _check_database_health_internal()
 
     except Exception as e:
         logger.error("Database health check failed: %s", e)
@@ -312,6 +334,22 @@ def check_database_health():
             'error': str(e),
             'error_type': type(e).__name__
         }
+
+
+def _check_database_health_internal():
+    """Internal function to check database health within app context."""
+    # Simple query to test connection
+    start_time = time.time()
+    db.session.execute(text("SELECT 1"))
+    duration = (time.time() - start_time) * 1000
+
+    connection_stats = get_connection_stats()
+
+    return {
+        'healthy': True,
+        'response_time_ms': round(duration, 2),
+        'connection_stats': connection_stats
+    }
 
 
 @contextmanager

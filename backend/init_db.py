@@ -1,6 +1,6 @@
 from app import create_app
 from models import db, User, Tool, Checkout, AuditLog
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 def init_db():
@@ -93,7 +93,7 @@ def init_db():
         print("Tools created")
 
         # Create some checkouts
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         checkouts = [
             # Active checkouts
             Checkout(tool_id=1, user_id=2, checkout_date=now - timedelta(days=2), expected_return_date=now + timedelta(days=5)),

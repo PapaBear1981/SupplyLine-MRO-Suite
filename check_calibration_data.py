@@ -23,7 +23,7 @@ with app.app_context():
         print(f"Tool ID: {tool.id}, Tool Number: {tool.tool_number}, Next Calibration Date: {tool.next_calibration_date}")
 
     # Check if there are any tools due for calibration in the next 30 days
-    now = datetime.utcnow()
+    now = datetime.now()
     threshold_date = now + timedelta(days=30)
 
     tools_due = Tool.query.filter(

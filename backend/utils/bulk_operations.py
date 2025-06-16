@@ -6,7 +6,7 @@ to improve performance and avoid N+1 query problems.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db, UserActivity, AuditLog, Tool, Chemical
 from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import joinedload
@@ -31,7 +31,7 @@ def bulk_log_activities(activities):
     # Ensure all activities have timestamps
     for activity in activities:
         if 'timestamp' not in activity:
-            activity['timestamp'] = datetime.utcnow()
+            activity['timestamp'] = datetime.now(timezone.utc)
 
     try:
         db.session.bulk_insert_mappings(UserActivity, activities)
@@ -59,7 +59,7 @@ def bulk_log_audit_events(audit_logs):
     # Ensure all logs have timestamps
     for log in audit_logs:
         if 'timestamp' not in log:
-            log['timestamp'] = datetime.utcnow()
+            log['timestamp'] = datetime.now(timezone.utc)
 
     try:
         db.session.bulk_insert_mappings(AuditLog, audit_logs)
@@ -77,7 +77,7 @@ def bulk_update_tool_calibration_status():
     instead of individual updates
     """
     try:
-        now = datetime.utcnow()
+        now = datetime.now()
 
         # Update overdue calibrations
         overdue_count = db.session.query(Tool).filter(
@@ -131,7 +131,7 @@ def bulk_update_chemical_status():
     Update chemical status for all chemicals in a single operation
     """
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Update expired chemicals
         expired_count = db.session.query(Chemical).filter(

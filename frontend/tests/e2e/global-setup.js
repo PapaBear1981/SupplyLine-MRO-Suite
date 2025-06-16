@@ -4,6 +4,7 @@
  */
 
 import { chromium } from '@playwright/test';
+import { setupTestData } from './utils/data-seeding.js';
 
 async function globalSetup(config) {
   console.log('🚀 Starting global setup for E2E tests...');
@@ -31,7 +32,12 @@ async function globalSetup(config) {
     console.log('✅ Application is ready for testing');
     
     // Create test data if needed
-    await setupTestData(page);
+    console.log('📊 Setting up test data...');
+    const setupResult = await setupTestData();
+    if (!setupResult.success) {
+      throw new Error(`Test data setup failed: ${setupResult.error}`);
+    }
+    console.log('✅ Test data setup completed');
     
   } catch (error) {
     console.error('❌ Global setup failed:', error);
@@ -41,34 +47,6 @@ async function globalSetup(config) {
   }
 }
 
-async function setupTestData(page) {
-  console.log('📊 Setting up test data...');
 
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-  const adminEmployeeNumber = process.env.E2E_ADMIN_EMPLOYEE_NUMBER || 'ADMIN001';
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin123';
-
-  try {
-    // Create admin user for testing if it doesn't exist
-    const adminLoginResponse = await page.request.post(`${backendUrl}/api/auth/login`, {
-      data: {
-        employee_number: adminEmployeeNumber,
-        password: adminPassword
-      }
-    });
-    
-    if (adminLoginResponse.ok()) {
-      console.log('✅ Admin user exists and is accessible');
-    } else {
-      console.log('⚠️ Admin user may need to be created manually');
-    }
-    
-    // Add any other test data setup here
-    
-  } catch (error) {
-    console.warn('⚠️ Test data setup encountered issues:', error.message);
-    // Don't fail the entire setup for test data issues
-  }
-}
 
 export default globalSetup;

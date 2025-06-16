@@ -184,7 +184,9 @@ class Config:
             # Development defaults
             return [
                 'http://localhost:5173',
+                'http://localhost:5174',  # Added for current frontend dev server
                 'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',  # Added for current frontend dev server
                 'http://192.168.1.122:5173',
                 'http://100.108.111.69:5173'
             ]
