@@ -149,6 +149,10 @@ class User(db.Model):
 
     def has_permission(self, permission_name):
         """Check if user has a specific permission through any of their roles"""
+        # Admin users have all permissions (legacy support)
+        if self.is_admin:
+            return True
+
         for role in self.roles:
             for permission in role.permissions:
                 if permission.name == permission_name:
@@ -158,9 +162,22 @@ class User(db.Model):
     def get_permissions(self):
         """Get all permissions for this user from all roles"""
         permissions = set()
+
+        # Add permissions from roles
         for role in self.roles:
             for permission in role.permissions:
                 permissions.add(permission.name)
+
+        # Admin users get additional legacy permissions
+        if self.is_admin:
+            admin_permissions = [
+                'view_reports', 'manage_reports', 'report.view', 'report.create', 'report.export',
+                'manage_tools', 'manage_users', 'manage_chemicals', 'manage_calibrations',
+                'view_admin_dashboard', 'admin.dashboard', 'admin.users', 'admin.settings',
+                'approve_registrations', 'unlock_users', 'manage_announcements'
+            ]
+            permissions.update(admin_permissions)
+
         return list(permissions)
 
     def add_role(self, role):

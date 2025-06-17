@@ -1,20 +1,23 @@
+import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Button, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import ToolSelectionModal from './ToolSelectionModal';
 
 const QuickActions = () => {
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin;
   const isMaterials = user?.department === 'Materials';
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   
   // Define quick actions based on user role
   const getQuickActions = () => {
     const commonActions = [
-      { 
-        title: 'Checkout Tool', 
-        icon: 'box-arrow-right', 
-        link: '/tools', 
-        variant: 'primary' 
+      {
+        title: 'Checkout Tool',
+        icon: 'box-arrow-right',
+        action: () => setShowCheckoutModal(true),
+        variant: 'primary'
       },
       { 
         title: 'My Checkouts', 
@@ -116,20 +119,37 @@ const QuickActions = () => {
         <Row className="g-2">
           {actions.map((action, index) => (
             <Col xs={6} key={index}>
-              <Button
-                as={Link}
-                to={action.link}
-                state={action.state}
-                variant={action.variant}
-                className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100"
-              >
-                <i className={`bi bi-${action.icon} fs-4 mb-2`}></i>
-                <span>{action.title}</span>
-              </Button>
+              {action.action ? (
+                <Button
+                  onClick={action.action}
+                  variant={action.variant}
+                  className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100"
+                >
+                  <i className={`bi bi-${action.icon} fs-4 mb-2`}></i>
+                  <span>{action.title}</span>
+                </Button>
+              ) : (
+                <Button
+                  as={Link}
+                  to={action.link}
+                  state={action.state}
+                  variant={action.variant}
+                  className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100"
+                >
+                  <i className={`bi bi-${action.icon} fs-4 mb-2`}></i>
+                  <span>{action.title}</span>
+                </Button>
+              )}
             </Col>
           ))}
         </Row>
       </Card.Body>
+
+      {/* Tool Selection Modal */}
+      <ToolSelectionModal
+        show={showCheckoutModal}
+        onHide={() => setShowCheckoutModal(false)}
+      />
     </Card>
   );
 };

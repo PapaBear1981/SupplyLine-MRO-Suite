@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { Alert } from 'react-bootstrap';
 import PermissionService from '../../services/permissionService';
 
@@ -88,17 +88,42 @@ const RoleProtectedRoute = ({
  * Specialized components for common permission checks
  */
 
-// Admin-only routes
-export const AdminRoute = ({ children, ...props }) => (
-  <RoleProtectedRoute 
-    requiredRoles={['Administrator']} 
-    fallbackPath="/dashboard"
-    errorMessage="This page requires administrator privileges."
-    {...props}
-  >
-    {children}
-  </RoleProtectedRoute>
-);
+// Admin-only routes - Check for is_admin flag instead of role
+export const AdminRoute = ({ children, ...props }) => {
+  const { user, isAuthenticated, isLoading } = useSelector((state) => state.auth);
+  const location = useLocation();
+
+  // Show loading while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user is admin using is_admin flag (legacy support)
+  if (!user?.is_admin) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          <h4>Access Denied</h4>
+          <p>This page requires administrator privileges.</p>
+          <Link to="/dashboard" className="btn btn-primary">Go to Dashboard</Link>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+};
 
 // Lead or Admin routes
 export const LeadRoute = ({ children, ...props }) => (
