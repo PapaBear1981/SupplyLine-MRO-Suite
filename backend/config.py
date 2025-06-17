@@ -189,10 +189,16 @@ class Config:
     def get_cors_origins():
         cors_origins = os.environ.get('CORS_ORIGINS')
         if cors_origins:
-            return cors_origins.split(',')
+            # Split by comma and strip whitespace
+            origins = [origin.strip() for origin in cors_origins.split(',')]
+            return origins
         elif os.environ.get('FLASK_ENV') == 'production':
             # Production default - should be overridden by environment variable
-            return ['https://supplyline-frontend-*.a.run.app']
+            # Support multiple common Cloud Run URL patterns
+            return [
+                'https://supplyline-frontend-production-454313121816.us-west1.run.app',
+                'https://supplyline-frontend-*.a.run.app'
+            ]
         else:
             # Development defaults
             return [

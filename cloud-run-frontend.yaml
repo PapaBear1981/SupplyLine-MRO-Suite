@@ -22,7 +22,7 @@ spec:
           containerPort: 80
         env:
         - name: VITE_API_URL
-          value: "https://supplyline-backend-${REGION}.a.run.app"
+          value: "https://supplyline-backend-production-sukn4msdrq-uw.a.run.app"
         resources:
           limits:
             cpu: "0.5"

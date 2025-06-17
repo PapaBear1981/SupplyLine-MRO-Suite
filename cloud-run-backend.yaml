@@ -31,7 +31,7 @@ spec:
               secret: supplyline-secret-key
               version: 1
         - name: CORS_ORIGINS
-          value: "https://supplyline-frontend-${REGION}.a.run.app"
+          value: "https://supplyline-frontend-production-454313121816.us-west1.run.app"
         - name: DB_HOST
           value: "/cloudsql/${PROJECT_ID}:${REGION}:supplyline-db"
         - name: DB_USER

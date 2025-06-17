@@ -2298,6 +2298,36 @@ def register_routes(app):
             logger.error(f"Token refresh error: {e}")
             return jsonify({'error': 'Token refresh failed'}), 500
 
+    @app.route('/api/init-admin', methods=['POST'])
+    @app.require_database
+    def init_admin():
+        """Initialize admin user - for deployment setup only"""
+        try:
+            # Check if admin user already exists
+            admin_user = User.query.filter_by(employee_number='ADMIN001').first()
+            if admin_user:
+                return jsonify({'message': 'Admin user already exists'}), 200
+
+            # Create admin user
+            admin = User(
+                name='System Administrator',
+                employee_number='ADMIN001',
+                department='IT',
+                is_admin=True,
+                is_active=True
+            )
+            admin.set_password('admin123')
+
+            db.session.add(admin)
+            db.session.commit()
+
+            return jsonify({'message': 'Admin user created successfully'}), 201
+
+        except Exception as e:
+            logger.error(f"Admin initialization failed: {e}")
+            db.session.rollback()
+            return jsonify({'error': 'Admin initialization failed', 'details': str(e)}), 500
+
     @app.route('/api/auth/status', methods=['GET'])
     @app.require_database
     def auth_status():
