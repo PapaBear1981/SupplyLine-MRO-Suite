@@ -6,9 +6,9 @@ Tests response times, load handling, and database performance
 
 import requests
 import time
-import threading
 import statistics
 import sys
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration
@@ -36,8 +36,10 @@ class PerformanceTester:
     def authenticate(self):
         """Authenticate to get session token"""
         try:
-            response = self.session.post(f"{API_BASE}/auth/login", 
-                json={"employee_number": "ADMIN001", "password": "admin123"})
+            admin_emp_num = os.environ.get('SL_ADMIN_EMP_NUM', 'ADMIN001')
+            admin_password = os.environ.get('SL_ADMIN_PWD', 'admin123')
+            response = self.session.post(f"{API_BASE}/auth/login",
+                json={"employee_number": admin_emp_num, "password": admin_password})
             if response.status_code == 200:
                 self.auth_token = response.json().get('token')
                 return True
@@ -45,18 +47,22 @@ class PerformanceTester:
             print(f"Authentication failed: {e}")
         return False
     
-    def measure_response_time(self, url, method='GET', data=None, headers=None):
+    def measure_response_time(self, url, method='GET', data=None, headers=None, session=None):
         """Measure response time for a single request"""
+        if session is None:
+            session = self.session
+
         start_time = time.time()
+        response = None
         try:
             if method == 'GET':
-                response = self.session.get(url, headers=headers)
+                response = session.get(url, headers=headers)
             elif method == 'POST':
-                response = self.session.post(url, json=data, headers=headers)
-            
+                response = session.post(url, json=data, headers=headers)
+
             end_time = time.time()
             response_time = (end_time - start_time) * 1000  # Convert to milliseconds
-            
+
             return {
                 'response_time': response_time,
                 'status_code': response.status_code,
@@ -66,7 +72,7 @@ class PerformanceTester:
             end_time = time.time()
             return {
                 'response_time': (end_time - start_time) * 1000,
-                'status_code': 0,
+                'status_code': response.status_code if response else 0,
                 'success': False,
                 'error': str(e)
             }
@@ -108,15 +114,18 @@ class PerformanceTester:
             """Simulate a single user session"""
             session = requests.Session()
             results = []
-            
+
             # Login
+            admin_emp_num = os.environ.get('SL_ADMIN_EMP_NUM', 'ADMIN001')
+            admin_password = os.environ.get('SL_ADMIN_PWD', 'admin123')
             login_result = self.measure_response_time(
-                f"{API_BASE}/auth/login", 
-                'POST', 
-                {"employee_number": "ADMIN001", "password": "admin123"}
+                f"{API_BASE}/auth/login",
+                'POST',
+                {"employee_number": admin_emp_num, "password": admin_password},
+                session=session
             )
             results.append(login_result)
-            
+
             if login_result['success']:
                 # Simulate user activities
                 activities = [
@@ -124,33 +133,27 @@ class PerformanceTester:
                     f"{API_BASE}/tools",
                     f"{API_BASE}/chemicals",
                 ]
-                
+
                 for url in activities:
-                    result = self.measure_response_time(url)
+                    result = self.measure_response_time(url, session=session)
                     results.append(result)
-            
+
             return results
         
         # Run concurrent user simulations
-        start_time = time.time()
-        
         with ThreadPoolExecutor(max_workers=num_users) as executor:
             futures = [executor.submit(simulate_user) for _ in range(num_users)]
             all_results = []
-            
+
             for future in as_completed(futures):
                 try:
                     user_results = future.result()
                     all_results.extend(user_results)
                 except Exception as e:
                     print(f"User simulation failed: {e}")
-        
-        end_time = time.time()
-        total_time = end_time - start_time
-        
+
         # Analyze results
         successful_requests = [r for r in all_results if r['success']]
-        failed_requests = [r for r in all_results if not r['success']]
         
         if successful_requests:
             response_times = [r['response_time'] for r in successful_requests]
@@ -198,7 +201,7 @@ class PerformanceTester:
             
             if times:
                 avg_time = statistics.mean(times)
-                self.log_test(f"{description} performance", 
+                self.log_test(f"{description} performance",
                              avg_time <= 1000,
                              f"Average: {avg_time:.1f}ms over 5 requests")
             else:
@@ -218,8 +221,8 @@ class PerformanceTester:
         # Make many requests to check for memory leaks
         num_requests = 50
         response_times = []
-        
-        for i in range(num_requests):
+
+        for _ in range(num_requests):
             result = self.measure_response_time(f"{API_BASE}/tools", headers=headers)
             if result['success']:
                 response_times.append(result['response_time'])
@@ -263,12 +266,12 @@ class PerformanceTester:
         if passed == total:
             print("🎉 ALL PERFORMANCE TESTS PASSED!")
             return True
-        else:
-            print("⚠️  SOME PERFORMANCE TESTS FAILED")
-            failed_tests = [r for r in self.test_results if not r['passed']]
-            for test in failed_tests:
-                print(f"   ❌ {test['test']}: {test['details']}")
-            return False
+
+        print("⚠️  SOME PERFORMANCE TESTS FAILED")
+        failed_tests = [r for r in self.test_results if not r['passed']]
+        for test in failed_tests:
+            print(f"   ❌ {test['test']}: {test['details']}")
+        return False
 
 if __name__ == "__main__":
     tester = PerformanceTester()

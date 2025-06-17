@@ -1,6 +1,20 @@
+#!/usr/bin/env python3
+"""
+Admin Password Reset Utility for SupplyLine MRO Suite
+This script creates or resets the admin user password for testing purposes.
+
+SECURITY NOTE: This script requires the ADMIN_INIT_PASSWORD environment variable
+to be set for security reasons. Do not hard-code passwords in scripts.
+
+Usage:
+    export ADMIN_INIT_PASSWORD="your-secure-password"
+    python reset_admin_password.py
+"""
+
 from models import db, User
 from flask import Flask
 import os
+import secrets
 
 # Create a minimal Flask app
 app = Flask(__name__)
@@ -9,7 +23,8 @@ app = Flask(__name__)
 db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'development-key'
+# Use secure SECRET_KEY from environment or generate one for this script
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
 print(f"Using database: {db_path}")
 
@@ -26,6 +41,11 @@ with app.app_context():
     if not admin:
         print("Admin user not found! Creating new admin user...")
 
+        # Get password from environment variable for security
+        admin_password = os.environ.get('ADMIN_INIT_PASSWORD')
+        if not admin_password:
+            raise RuntimeError("ADMIN_INIT_PASSWORD environment variable must be set for this script.")
+
         # Create admin user
         admin = User(
             name='System Administrator',
@@ -34,22 +54,27 @@ with app.app_context():
             is_admin=True,
             is_active=True
         )
-        admin.set_password('admin123')
+        admin.set_password(admin_password)
         db.session.add(admin)
         db.session.commit()
 
-        print("✓ Admin user created with password 'admin123'")
+        print("✓ Admin user created; password set from environment variable")
     else:
         print(f"Found admin user: {admin.name} ({admin.employee_number})")
 
-        # Reset password to admin123
-        admin.set_password('admin123')
+        # Get password from environment variable for security
+        admin_password = os.environ.get('ADMIN_INIT_PASSWORD')
+        if not admin_password:
+            raise RuntimeError("ADMIN_INIT_PASSWORD environment variable must be set for this script.")
+
+        # Reset password
+        admin.set_password(admin_password)
         db.session.commit()
 
-        print("Admin password reset to 'admin123'")
+        print("✓ Admin password reset; password set from environment variable")
 
     # Verify the password works
-    if admin.check_password('admin123'):
+    if admin.check_password(admin_password):
         print("✓ Password verification successful")
     else:
         print("✗ Password verification failed")

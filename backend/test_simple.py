@@ -1,6 +1,4 @@
 import unittest
-import tempfile
-import os
 from models import db, User, Tool
 
 class SimpleTestCase(unittest.TestCase):

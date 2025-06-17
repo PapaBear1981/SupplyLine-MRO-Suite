@@ -5,10 +5,9 @@ Tests authentication, authorization, input validation, and security headers
 """
 
 import requests
-import json
 import time
 import sys
-from urllib.parse import urljoin
+import os
 
 # Configuration
 BASE_URL = "http://localhost:5000"
@@ -58,8 +57,10 @@ class SecurityTester:
         
         # Test 3: Valid login
         try:
-            response = self.session.post(f"{API_BASE}/auth/login", 
-                json={"employee_number": "ADMIN001", "password": "admin123"})
+            admin_emp_num = os.environ.get('SL_ADMIN_EMP_NUM', 'ADMIN001')
+            admin_password = os.environ.get('SL_ADMIN_PWD', 'admin123')
+            response = self.session.post(f"{API_BASE}/auth/login",
+                json={"employee_number": admin_emp_num, "password": admin_password})
             if response.status_code == 200:
                 self.auth_token = response.json().get('token')
                 self.log_test("Valid login successful", True, "Admin login working")
@@ -147,16 +148,17 @@ class SecurityTester:
             rapid_requests = 0
             blocked_requests = 0
             
-            for i in range(10):
-                response = requests.post(f"{API_BASE}/auth/login", 
+            for _ in range(10):
+                response = requests.post(f"{API_BASE}/auth/login",
                     json={"employee_number": "test", "password": "test"})
                 rapid_requests += 1
                 if response.status_code == 429:  # Too Many Requests
                     blocked_requests += 1
                 time.sleep(0.1)
-            
-            self.log_test("Rate limiting active", 
-                         blocked_requests > 0 or rapid_requests <= 10,
+
+            # Rate limiting should block some requests
+            self.log_test("Rate limiting active",
+                         blocked_requests > 0,
                          f"Blocked: {blocked_requests}/{rapid_requests}")
                          
         except Exception as e:
@@ -206,12 +208,12 @@ class SecurityTester:
         if passed == total:
             print("🎉 ALL SECURITY TESTS PASSED!")
             return True
-        else:
-            print("⚠️  SOME SECURITY TESTS FAILED")
-            failed_tests = [r for r in self.test_results if not r['passed']]
-            for test in failed_tests:
-                print(f"   ❌ {test['test']}: {test['details']}")
-            return False
+
+        print("⚠️  SOME SECURITY TESTS FAILED")
+        failed_tests = [r for r in self.test_results if not r['passed']]
+        for test in failed_tests:
+            print(f"   ❌ {test['test']}: {test['details']}")
+        return False
 
 if __name__ == "__main__":
     tester = SecurityTester()

@@ -5,10 +5,9 @@ Tests SQL injection prevention, data access control, and transaction integrity
 """
 
 import requests
-import json
 import sys
-import sqlite3
 import os
+import uuid
 
 # Configuration
 BASE_URL = "http://localhost:5000"
@@ -36,8 +35,10 @@ class DatabaseSecurityTester:
     def authenticate(self):
         """Authenticate as admin user"""
         try:
-            response = self.session.post(f"{API_BASE}/auth/login", 
-                json={"employee_number": "ADMIN001", "password": "admin123"})
+            admin_emp_num = os.environ.get('SL_ADMIN_EMP_NUM', 'ADMIN001')
+            admin_password = os.environ.get('SL_ADMIN_PWD', 'admin123')
+            response = self.session.post(f"{API_BASE}/auth/login",
+                json={"employee_number": admin_emp_num, "password": admin_password})
             if response.status_code == 200:
                 self.auth_token = response.json().get('token')
                 return True
@@ -148,9 +149,10 @@ class DatabaseSecurityTester:
             return
         
         # Test 1: Create and verify tool
+        unique_id = uuid.uuid4().hex[:8]
         tool_data = {
-            "tool_number": "INTEGRITY_TEST_001",
-            "serial_number": "INT123",
+            "tool_number": f"INTEGRITY_TEST_{unique_id}",
+            "serial_number": f"INT{unique_id}",
             "description": "Integrity Test Tool",
             "category": "Testing",
             "location": "Test Lab",
@@ -209,7 +211,7 @@ class DatabaseSecurityTester:
             try:
                 # Make multiple concurrent-like requests
                 responses = []
-                for i in range(5):
+                for _ in range(5):
                     response = self.session.get(f"{API_BASE}/tools", headers=self.get_headers())
                     responses.append(response.status_code)
                 
@@ -327,12 +329,12 @@ class DatabaseSecurityTester:
         if passed == total:
             print("🎉 ALL DATABASE SECURITY TESTS PASSED!")
             return True
-        else:
-            print("⚠️  SOME DATABASE SECURITY TESTS FAILED")
-            failed_tests = [r for r in self.test_results if not r['passed']]
-            for test in failed_tests:
-                print(f"   ❌ {test['test']}: {test['details']}")
-            return False
+
+        print("⚠️  SOME DATABASE SECURITY TESTS FAILED")
+        failed_tests = [r for r in self.test_results if not r['passed']]
+        for test in failed_tests:
+            print(f"   ❌ {test['test']}: {test['details']}")
+        return False
 
 if __name__ == "__main__":
     tester = DatabaseSecurityTester()

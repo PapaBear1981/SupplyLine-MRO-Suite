@@ -5,9 +5,9 @@ Tests all core business workflows and user interactions
 """
 
 import requests
-import json
 import sys
-import time
+import os
+import uuid
 
 # Configuration
 BASE_URL = "http://localhost:5000"
@@ -35,8 +35,10 @@ class FunctionalityTester:
     def authenticate(self):
         """Authenticate as admin user"""
         try:
-            response = self.session.post(f"{API_BASE}/auth/login", 
-                json={"employee_number": "ADMIN001", "password": "admin123"})
+            admin_emp_num = os.environ.get('SL_ADMIN_EMP_NUM', 'ADMIN001')
+            admin_password = os.environ.get('SL_ADMIN_PWD', 'admin123')
+            response = self.session.post(f"{API_BASE}/auth/login",
+                json={"employee_number": admin_emp_num, "password": admin_password})
             if response.status_code == 200:
                 self.auth_token = response.json().get('token')
                 return True
@@ -53,17 +55,10 @@ class FunctionalityTester:
         print("\n🔐 USER AUTHENTICATION WORKFLOWS")
         
         # Test 1: Admin login
-        try:
-            response = self.session.post(f"{API_BASE}/auth/login", 
-                json={"employee_number": "ADMIN001", "password": "admin123"})
-            self.log_test("Admin user login", 
-                         response.status_code == 200,
-                         f"Status: {response.status_code}")
-            
-            if response.status_code == 200:
-                self.auth_token = response.json().get('token')
-        except Exception as e:
-            self.log_test("Admin login test", False, f"Error: {e}")
+        if self.authenticate():
+            self.log_test("Admin user login", True, "Authentication successful")
+        else:
+            self.log_test("Admin user login", False, "Authentication failed")
         
         # Test 2: Session info
         if self.auth_token:
@@ -105,9 +100,10 @@ class FunctionalityTester:
             self.log_test("List tools test", False, f"Error: {e}")
         
         # Test 2: Create tool
+        unique_id = uuid.uuid4().hex[:8]
         tool_data = {
-            "tool_number": "TEST001",
-            "serial_number": "SN123456",
+            "tool_number": f"TEST-{unique_id}",
+            "serial_number": f"SN{unique_id}",
             "description": "Test Tool for Functionality Testing",
             "category": "Testing",
             "location": "Test Lab",
@@ -157,9 +153,10 @@ class FunctionalityTester:
             self.log_test("List chemicals test", False, f"Error: {e}")
         
         # Test 2: Create chemical
+        unique_id = uuid.uuid4().hex[:8]
         chemical_data = {
-            "part_number": "CHEM001",
-            "lot_number": "LOT123",
+            "part_number": f"CHEM-{unique_id}",
+            "lot_number": f"LOT{unique_id}",
             "description": "Test Chemical for Functionality Testing",
             "manufacturer": "Test Manufacturer",
             "category": "Testing",
@@ -264,9 +261,9 @@ class FunctionalityTester:
                 if response.status_code == 200:
                     tools = response.json().get('tools', [])
                     created_tool_found = any(tool['id'] in self.created_items['tools'] for tool in tools)
-                    self.log_test("Created tool data integrity", 
+                    self.log_test("Created tool data integrity",
                                  created_tool_found,
-                                 f"Found created tool in list")
+                                 "Found created tool in list")
                 else:
                     self.log_test("Tool data integrity", False, f"Status: {response.status_code}")
             except Exception as e:
@@ -279,9 +276,9 @@ class FunctionalityTester:
                 if response.status_code == 200:
                     chemicals = response.json().get('chemicals', [])
                     created_chemical_found = any(chem['id'] in self.created_items['chemicals'] for chem in chemicals)
-                    self.log_test("Created chemical data integrity", 
+                    self.log_test("Created chemical data integrity",
                                  created_chemical_found,
-                                 f"Found created chemical in list")
+                                 "Found created chemical in list")
                 else:
                     self.log_test("Chemical data integrity", False, f"Status: {response.status_code}")
             except Exception as e:
@@ -319,7 +316,12 @@ class FunctionalityTester:
         """Run all functionality tests"""
         print("📋 SUPPLYLINE MRO SUITE - FUNCTIONALITY TESTING")
         print("=" * 50)
-        
+
+        # Authenticate once at the beginning
+        if not self.authenticate():
+            print("❌ Admin authentication failed – aborting test run")
+            sys.exit(1)
+
         self.test_user_authentication_workflows()
         self.test_tool_management_workflows()
         self.test_chemical_management_workflows()
@@ -342,12 +344,12 @@ class FunctionalityTester:
         if passed == total:
             print("🎉 ALL FUNCTIONALITY TESTS PASSED!")
             return True
-        else:
-            print("⚠️  SOME FUNCTIONALITY TESTS FAILED")
-            failed_tests = [r for r in self.test_results if not r['passed']]
-            for test in failed_tests:
-                print(f"   ❌ {test['test']}: {test['details']}")
-            return False
+
+        print("⚠️  SOME FUNCTIONALITY TESTS FAILED")
+        failed_tests = [r for r in self.test_results if not r['passed']]
+        for test in failed_tests:
+            print(f"   ❌ {test['test']}: {test['details']}")
+        return False
 
 if __name__ == "__main__":
     tester = FunctionalityTester()
