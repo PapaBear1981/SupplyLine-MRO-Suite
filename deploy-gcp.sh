@@ -251,7 +251,7 @@ get_service_urls() {
     echo ""
     echo "Admin credentials:"
     echo "Username: ADMIN001"
-    echo "Password: $ADMIN_PASSWORD"
+    echo "Password: ${ADMIN_PASSWORD:-admin123}"
     echo ""
     echo "⚠️  IMPORTANT: Save these credentials securely!"
     echo "⚠️  Change the admin password after first login!"

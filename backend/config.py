@@ -126,50 +126,69 @@ class Config:
     SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'  # HTTPS only in production
     SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
 
-    # Structured logging configuration
-    LOGGING_CONFIG = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'json': {
-                'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-                'format': '%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d'
+    # Structured logging configuration - Cloud-optimized
+    @staticmethod
+    def get_logging_config():
+        """Get logging configuration optimized for deployment environment"""
+        is_cloud_run = os.environ.get('DB_HOST') is not None
+        is_production = os.environ.get('FLASK_ENV') == 'production'
+
+        config = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'json': {
+                    'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+                    'format': '%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d'
+                },
+                'standard': {
+                    'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+                },
+                'cloud': {
+                    'format': '%(message)s'  # Cloud Logging adds metadata automatically
+                }
             },
-            'standard': {
-                'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-            }
-        },
-        'handlers': {
-            'default': {
-                'level': 'INFO',
-                'formatter': 'standard',
-                'class': 'logging.StreamHandler',
+            'handlers': {
+                'console': {
+                    'level': 'INFO',
+                    'formatter': 'json' if is_cloud_run else 'standard',
+                    'class': 'logging.StreamHandler',
+                }
             },
-            'file': {
-                'level': 'DEBUG',
-                'formatter': 'json',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': 'app.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 5
-            },
-            'error_file': {
-                'level': 'ERROR',
-                'formatter': 'json',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': 'error.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 10
-            }
-        },
-        'loggers': {
-            '': {
-                'handlers': ['default', 'file', 'error_file'],
-                'level': 'DEBUG',
-                'propagate': False
+            'loggers': {
+                '': {
+                    'handlers': ['console'],
+                    'level': 'INFO' if is_production else 'DEBUG',
+                    'propagate': False
+                }
             }
         }
-    }
+
+        # Add file handlers for local development only
+        if not is_cloud_run:
+            config['handlers'].update({
+                'file': {
+                    'level': 'DEBUG',
+                    'formatter': 'json',
+                    'class': 'logging.handlers.RotatingFileHandler',
+                    'filename': 'app.log',
+                    'maxBytes': 10485760,  # 10MB
+                    'backupCount': 5
+                },
+                'error_file': {
+                    'level': 'ERROR',
+                    'formatter': 'json',
+                    'class': 'logging.handlers.RotatingFileHandler',
+                    'filename': 'error.log',
+                    'maxBytes': 10485760,  # 10MB
+                    'backupCount': 10
+                }
+            })
+            config['loggers']['']['handlers'].extend(['file', 'error_file'])
+
+        return config
+
+    LOGGING_CONFIG = get_logging_config()
 
     # Resource monitoring thresholds
     RESOURCE_THRESHOLDS = {

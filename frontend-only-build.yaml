@@ -1,0 +1,51 @@
+steps:
+  # Build frontend with correct backend URL
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:fixed'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_URL=https://supplyline-backend-production-454313121816.us-west1.run.app'
+      - './frontend'
+    id: 'build-frontend'
+
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:fixed'
+    id: 'push-frontend'
+    waitFor: ['build-frontend']
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'supplyline-frontend-production'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:fixed'
+      - '--region'
+      - 'us-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '80'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '0.5'
+      - '--max-instances'
+      - '5'
+    id: 'deploy-frontend'
+    waitFor: ['push-frontend']
+
+# Images to be pushed to Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/supplyline-frontend:fixed'
+  - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'

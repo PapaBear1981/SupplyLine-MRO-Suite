@@ -1,0 +1,55 @@
+steps:
+  # Build backend with fixes
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:fixed'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:latest'
+      - './backend'
+    id: 'build-backend'
+
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:fixed'
+    id: 'push-backend'
+    waitFor: ['build-backend']
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'supplyline-backend-production'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/supplyline-backend:fixed'
+      - '--region'
+      - 'us-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'FLASK_ENV=production,DB_HOST=/cloudsql/gen-lang-client-0819985982:us-west1:supplyline-db,DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=https://supplyline-frontend-production-454313121816.us-west1.run.app'
+      - '--set-secrets'
+      - 'SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest'
+      - '--set-cloudsql-instances'
+      - 'gen-lang-client-0819985982:us-west1:supplyline-db'
+    id: 'deploy-backend'
+    waitFor: ['push-backend']
+
+# Images to be pushed to Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/supplyline-backend:fixed'
+  - 'gcr.io/$PROJECT_ID/supplyline-backend:latest'

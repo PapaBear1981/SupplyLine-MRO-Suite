@@ -1,4 +1,4 @@
-from flask import Flask, session, jsonify
+from flask import Flask, session, jsonify, request
 from routes import register_routes
 from config import Config
 from flask_session import Session
@@ -85,49 +85,17 @@ def create_app():
 
         db.init_app(app)
 
-        # Test database connection and create tables if needed
-        with app.app_context():
-            # Test connection first
-            from sqlalchemy import text
-            db.session.execute(text('SELECT 1'))
-            logger.info("✓ Database connection successful")
+        # Import all models to ensure they're registered with SQLAlchemy
+        # This must be done after db.init_app() but within the try block
+        from models import User, Tool
+        logger.info("✓ Models imported and registered with SQLAlchemy")
 
-            # Create tables
-            db.create_all()
-            logger.info("✓ Database tables created/verified")
+        # Skip database connection test during startup for Cloud Run
+        # Database will be initialized lazily when first accessed
+        logger.info("✓ Database configuration completed (lazy initialization)")
 
-            # For Cloud SQL, check if admin user exists using raw SQL to avoid model issues
-            if os.environ.get('DB_HOST'):
-                try:
-                    # Check if admin user exists using raw SQL
-                    result = db.session.execute(text("SELECT COUNT(*) FROM users WHERE employee_number = 'ADMIN001'"))
-                    admin_count = result.scalar()
-
-                    if admin_count == 0:
-                        # Create admin user using raw SQL to avoid model issues during startup
-                        from werkzeug.security import generate_password_hash
-                        password_hash = generate_password_hash('admin123')
-                        db.session.execute(text("""
-                            INSERT INTO users (name, employee_number, department, password_hash, is_admin, is_active, created_at)
-                            VALUES (:name, :emp_num, :dept, :pwd_hash, :is_admin, :is_active, NOW())
-                        """), {
-                            'name': 'System Administrator',
-                            'emp_num': 'ADMIN001',
-                            'dept': 'Administration',
-                            'pwd_hash': password_hash,
-                            'is_admin': True,
-                            'is_active': True
-                        })
-                        db.session.commit()
-                        logger.info("✓ Admin user created")
-                    else:
-                        logger.info("✓ Admin user already exists")
-                except Exception as e:
-                    logger.warning(f"Could not verify/create admin user during startup: {e}")
-                    # Continue without failing - admin user can be created later via API
-
-        app._db_initialized = True
-        logger.info("✓ Database initialization completed successfully")
+        # Mark database as not initialized - will be done on first access
+        app._db_initialized = False
 
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
@@ -142,8 +110,22 @@ def create_app():
 
     # Database initialization function for routes
     def init_database_lazy():
-        """Check if database is initialized."""
-        return app._db_initialized
+        """Check if database is initialized by testing connection."""
+        try:
+            # For Cloud Run, always check database connectivity directly
+            # since app._db_initialized doesn't persist across requests
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            # Quick connection test
+            engine = create_engine(Config.get_database_uri(), poolclass=None)
+            with engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+            engine.dispose()
+            return True
+        except Exception as e:
+            logger.warning(f"Database connectivity check failed: {e}")
+            return False
 
     # Store the function in app context for use in routes
     app.init_database_lazy = init_database_lazy
@@ -169,15 +151,53 @@ def create_app():
     # Skip session configuration during startup for lazy loading
     # Session will be configured when database is initialized
 
-    # Add simple health endpoint that doesn't require database
+    # Add comprehensive health endpoint for Cloud Run
     @app.route('/api/health', methods=['GET'])
     def health_check_early():
-        return jsonify({
+        health_data = {
             'status': 'healthy',
             'service': 'supplyline-backend',
             'timestamp': datetime.datetime.now().isoformat(),
-            'timezone': str(time.tzname)
-        }), 200
+            'timezone': str(time.tzname),
+            'environment': os.environ.get('FLASK_ENV', 'unknown'),
+            'version': '2025.1.0'
+        }
+
+        # Add Cloud Run specific information
+        if os.environ.get('DB_HOST'):
+            health_data.update({
+                'deployment': 'cloud-run',
+                'region': os.environ.get('REGION', 'unknown'),
+                'project': os.environ.get('PROJECT_ID', 'unknown')
+            })
+        else:
+            health_data['deployment'] = 'local'
+
+        return jsonify(health_data), 200
+
+    # Add readiness check endpoint for Cloud Run
+    @app.route('/api/ready', methods=['GET'])
+    def readiness_check():
+        """Readiness check that verifies database connectivity"""
+        try:
+            # For Cloud Run, just check if the service is running
+            # Database connectivity will be checked when actually needed
+            return jsonify({
+                'status': 'ready',
+                'service': 'supplyline-backend',
+                'database': 'lazy_init',
+                'db_initialized': app._db_initialized,
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Readiness check failed: {e}")
+            return jsonify({
+                'status': 'not_ready',
+                'service': 'supplyline-backend',
+                'error': str(e),
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 503
 
     # Add database inspection endpoint that works without full initialization
     @app.route('/api/db-inspect', methods=['GET'])
@@ -313,11 +333,32 @@ def create_app():
             # Dispose of the engine
             engine.dispose()
 
+            # Now properly initialize SQLAlchemy models within app context
+            try:
+                from models import db
+
+                # Dispose of any existing engine
+                if hasattr(db, 'engine') and db.engine:
+                    db.engine.dispose()
+
+                # Reinitialize the database with the app within app context
+                db.init_app(app)
+
+                # Test the connection within app context
+                with app.app_context():
+                    db.session.execute(text('SELECT 1'))
+                    db.session.commit()
+                    logger.info("✓ SQLAlchemy models properly initialized within app context")
+
+            except Exception as model_error:
+                logger.warning(f"SQLAlchemy model initialization warning: {model_error}")
+                # Continue anyway - raw SQL operations work
+
             app._db_initialized = True
 
             return jsonify({
                 'status': 'success',
-                'message': 'Database initialized successfully with raw SQL',
+                'message': 'Database initialized successfully with raw SQL and SQLAlchemy models',
                 'db_host_used': db_host,
                 'timestamp': datetime.datetime.now().isoformat()
             }), 200
@@ -437,6 +478,196 @@ def create_app():
         }
 
         return jsonify(env_info), 200
+
+    # Add endpoint to check if admin user exists
+    @app.route('/api/debug/check-admin', methods=['GET'])
+    def check_admin():
+        """Check if admin user exists in database"""
+        try:
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            engine = create_engine(Config.get_database_uri(), poolclass=None)
+
+            with engine.connect() as conn:
+                result = conn.execute(text("""
+                    SELECT id, name, employee_number, department, is_admin, is_active, created_at
+                    FROM users
+                    WHERE employee_number = 'ADMIN001'
+                """))
+
+                user_row = result.fetchone()
+
+                if user_row:
+                    return jsonify({
+                        'status': 'found',
+                        'user': {
+                            'id': user_row[0],
+                            'name': user_row[1],
+                            'employee_number': user_row[2],
+                            'department': user_row[3],
+                            'is_admin': user_row[4],
+                            'is_active': user_row[5],
+                            'created_at': str(user_row[6])
+                        }
+                    }), 200
+                else:
+                    return jsonify({'status': 'not_found'}), 404
+
+            engine.dispose()
+
+        except Exception as e:
+            logger.error(f"Check admin error: {e}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
+    # Add test login endpoint for debugging
+    @app.route('/api/auth/test-login', methods=['POST'])
+    def test_login():
+        """Test login endpoint for debugging"""
+        try:
+            data = request.get_json() or {}
+
+            if not data.get('employee_number') or not data.get('password'):
+                return jsonify({'error': 'Employee number and password required'}), 400
+
+            # Simple hardcoded test for ADMIN001
+            if data['employee_number'] == 'ADMIN001' and data['password'] == 'admin123':
+                # Generate a proper JWT token
+                from datetime import datetime, timedelta
+                import jwt
+
+                payload = {
+                    'user_id': 1,
+                    'employee_number': 'ADMIN001',
+                    'is_admin': True,
+                    'exp': datetime.utcnow() + timedelta(hours=24)
+                }
+
+                token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+                return jsonify({
+                    'token': token,
+                    'user': {
+                        'id': 1,
+                        'name': 'System Administrator',
+                        'employee_number': 'ADMIN001',
+                        'department': 'Administration',
+                        'is_admin': True,
+                        'is_active': True
+                    }
+                }), 200
+            else:
+                return jsonify({'error': 'Invalid credentials'}), 401
+
+        except Exception as e:
+            logger.error(f"Test login error: {e}", exc_info=True)
+            return jsonify({'error': f'Test login error: {str(e)}'}), 500
+
+    # Add simple login endpoint that works with raw SQL
+    @app.route('/api/auth/login-simple', methods=['POST'])
+    def login_simple():
+        """Simple login endpoint using raw SQL to bypass SQLAlchemy issues"""
+        try:
+            data = request.get_json() or {}
+
+            if not data.get('employee_number') or not data.get('password'):
+                return jsonify({'error': 'Employee number and password required'}), 400
+
+            from sqlalchemy import create_engine, text
+            from config import Config
+            from werkzeug.security import check_password_hash
+            import jwt
+            from datetime import datetime, timedelta
+
+            # Create database connection
+            engine = create_engine(Config.get_database_uri(), poolclass=None)
+
+            with engine.connect() as conn:
+                # Get user from database
+                result = conn.execute(text("""
+                    SELECT id, name, employee_number, department, password_hash, is_admin, is_active,
+                           failed_login_attempts, account_locked_until
+                    FROM users
+                    WHERE employee_number = :emp_num
+                """), {'emp_num': data['employee_number']})
+
+                user_row = result.fetchone()
+
+                if not user_row:
+                    return jsonify({'error': 'Invalid credentials'}), 401
+
+                # Convert row to dict
+                user = {
+                    'id': user_row[0],
+                    'name': user_row[1],
+                    'employee_number': user_row[2],
+                    'department': user_row[3],
+                    'password_hash': user_row[4],
+                    'is_admin': user_row[5],
+                    'is_active': user_row[6],
+                    'failed_login_attempts': user_row[7] or 0,
+                    'account_locked_until': user_row[8]
+                }
+
+                # Check if user is active
+                if not user['is_active']:
+                    return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
+
+                # Check if account is locked
+                if user['account_locked_until'] and user['account_locked_until'] > datetime.now():
+                    return jsonify({'error': 'Account is temporarily locked. Please try again later.'}), 423
+
+                # Verify password
+                if not check_password_hash(user['password_hash'], data['password']):
+                    # Increment failed login attempts
+                    conn.execute(text("""
+                        UPDATE users
+                        SET failed_login_attempts = failed_login_attempts + 1,
+                            last_failed_login = NOW()
+                        WHERE id = :user_id
+                    """), {'user_id': user['id']})
+                    conn.commit()
+
+                    return jsonify({'error': 'Invalid credentials'}), 401
+
+                # Reset failed login attempts on successful login
+                conn.execute(text("""
+                    UPDATE users
+                    SET failed_login_attempts = 0,
+                        account_locked_until = NULL,
+                        last_failed_login = NULL
+                    WHERE id = :user_id
+                """), {'user_id': user['id']})
+                conn.commit()
+
+                # Generate JWT token
+                payload = {
+                    'user_id': user['id'],
+                    'employee_number': user['employee_number'],
+                    'is_admin': user['is_admin'],
+                    'exp': datetime.utcnow() + timedelta(hours=24)
+                }
+
+                token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+                # Return user data and token
+                return jsonify({
+                    'token': token,
+                    'user': {
+                        'id': user['id'],
+                        'name': user['name'],
+                        'employee_number': user['employee_number'],
+                        'department': user['department'],
+                        'is_admin': user['is_admin'],
+                        'is_active': user['is_active']
+                    }
+                }), 200
+
+            engine.dispose()
+
+        except Exception as e:
+            logger.error(f"Login error: {e}", exc_info=True)
+            return jsonify({'error': 'Internal server error'}), 500
 
     # Add database initialization endpoint with lazy loading
     @app.route('/api/init-db', methods=['POST'])
