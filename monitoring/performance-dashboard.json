@@ -1,0 +1,199 @@
+{
+  "displayName": "SupplyLine MRO Suite - Performance Dashboard",
+  "mosaicLayout": {
+    "tiles": [
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Backend Response Time",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"supplyline-backend-production\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": ["resource.label.service_name"]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Response Time (ms)",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "widget": {
+          "title": "Request Rate",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"supplyline-backend-production\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.label.service_name"]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Requests/sec",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 4,
+        "widget": {
+          "title": "Error Rate",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"supplyline-backend-production\" AND metric.type=\"run.googleapis.com/request_count\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.label.response_code_class"]
+                    }
+                  }
+                },
+                "plotType": "STACKED_BAR",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Errors/sec",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 4,
+        "widget": {
+          "title": "Memory Usage",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"supplyline-backend-production\" AND metric.type=\"run.googleapis.com/container/memory/utilizations\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": ["resource.label.service_name"]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Memory %",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "yPos": 8,
+        "widget": {
+          "title": "CPU Usage",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"supplyline-backend-production\" AND metric.type=\"run.googleapis.com/container/cpu/utilizations\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": ["resource.label.service_name"]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "CPU %",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "xPos": 6,
+        "yPos": 8,
+        "widget": {
+          "title": "Database Connections",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type=\"cloudsql_database\" AND resource.labels.database_id=\"gen-lang-client-0819985982:supplyline-db\" AND metric.type=\"cloudsql.googleapis.com/database/postgresql/num_backends\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_MEAN"
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "targetAxis": "Y1"
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Active Connections",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
