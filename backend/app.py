@@ -251,7 +251,7 @@ def create_app():
             logger.info(f"Created fresh engine with URI: {database_uri.replace(os.environ.get('DB_PASSWORD', ''), '***')}")
 
             with engine.connect() as conn:
-                # Create users table
+                # Create users table with all required columns
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS users (
                         id SERIAL PRIMARY KEY,
@@ -265,7 +265,10 @@ def create_app():
                         reset_token VARCHAR(255),
                         reset_token_expiry TIMESTAMP,
                         remember_token VARCHAR(255),
-                        remember_token_expiry TIMESTAMP
+                        remember_token_expiry TIMESTAMP,
+                        failed_login_attempts INTEGER DEFAULT 0,
+                        account_locked_until TIMESTAMP,
+                        last_failed_login TIMESTAMP
                     )
                 """))
 
