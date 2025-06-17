@@ -226,16 +226,30 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
-    # Add database reset endpoint
+    # Add database reset endpoint with fresh engine creation
     @app.route('/api/db-reset', methods=['POST'])
     def reset_database():
         try:
+            import os
             from sqlalchemy import create_engine, text
             from config import Config
             from models import db, User
 
-            # Create a direct connection to reset the database
-            engine = create_engine(Config.get_database_uri())
+            # Get current environment variables and log them
+            db_host = os.environ.get('DB_HOST', 'NOT_SET')
+            db_user = os.environ.get('DB_USER', 'NOT_SET')
+            db_name = os.environ.get('DB_NAME', 'NOT_SET')
+
+            logger.info(f"DB_HOST environment variable: {db_host}")
+            logger.info(f"DB_USER environment variable: {db_user}")
+            logger.info(f"DB_NAME environment variable: {db_name}")
+
+            # Create a fresh database URI
+            database_uri = Config.get_database_uri()
+
+            # Create a completely fresh engine with no connection pooling
+            engine = create_engine(database_uri, poolclass=None, echo=True)
+            logger.info(f"Created fresh engine with URI: {database_uri.replace(os.environ.get('DB_PASSWORD', ''), '***')}")
 
             with engine.connect() as conn:
                 # Drop all tables
@@ -245,8 +259,15 @@ def create_app():
                 conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
                 conn.commit()
 
+            # Dispose of the engine
+            engine.dispose()
+
             # Now recreate tables with correct schema
             with app.app_context():
+                # Dispose of the existing db engine to force recreation
+                if hasattr(db, 'engine') and db.engine:
+                    db.engine.dispose()
+
                 db.create_all()
 
                 # Create admin user
@@ -266,6 +287,7 @@ def create_app():
             return jsonify({
                 'status': 'success',
                 'message': 'Database reset and recreated successfully',
+                'db_host_used': db_host,
                 'timestamp': datetime.datetime.now().isoformat()
             }), 200
 
@@ -274,6 +296,7 @@ def create_app():
             return jsonify({
                 'status': 'error',
                 'message': str(e),
+                'db_host_env': os.environ.get('DB_HOST', 'NOT_SET'),
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
