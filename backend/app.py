@@ -263,6 +263,23 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
+    # Add debug endpoint to check environment variables
+    @app.route('/api/debug/env', methods=['GET'])
+    def debug_env():
+        import os
+        from config import Config
+
+        env_info = {
+            'DB_HOST': os.environ.get('DB_HOST', 'NOT_SET'),
+            'DB_USER': os.environ.get('DB_USER', 'NOT_SET'),
+            'DB_NAME': os.environ.get('DB_NAME', 'NOT_SET'),
+            'FLASK_ENV': os.environ.get('FLASK_ENV', 'NOT_SET'),
+            'DATABASE_URI': Config.SQLALCHEMY_DATABASE_URI,
+            'timestamp': datetime.datetime.now().isoformat()
+        }
+
+        return jsonify(env_info), 200
+
     # Add database initialization endpoint with lazy loading
     @app.route('/api/init-db', methods=['POST'])
     def init_database():
