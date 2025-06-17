@@ -17,30 +17,42 @@ def init_database():
     print("Initializing database via backend API...")
     
     try:
-        # First try the init-db endpoint
-        print("Trying /api/init-db endpoint...")
-        response = requests.post(f"{backend_url}/api/init-db", timeout=60)
-        
+        # First try the simple init endpoint
+        print("Trying /api/db-init-simple endpoint...")
+        response = requests.post(f"{backend_url}/api/db-init-simple", timeout=60)
+
         if response.status_code == 200:
             result = response.json()
             print("SUCCESS: Database initialization completed")
             print(f"Response: {json.dumps(result, indent=2)}")
             return True
         else:
-            print(f"Init-db failed with status {response.status_code}: {response.text}")
-            
-            # Try the db-reset endpoint as fallback
-            print("Trying /api/db-reset endpoint...")
-            response = requests.post(f"{backend_url}/api/db-reset", timeout=60)
-            
+            print(f"Simple init failed with status {response.status_code}: {response.text}")
+
+            # Try the init-db endpoint as fallback
+            print("Trying /api/init-db endpoint...")
+            response = requests.post(f"{backend_url}/api/init-db", timeout=60)
+
             if response.status_code == 200:
                 result = response.json()
-                print("SUCCESS: Database reset and initialization completed")
+                print("SUCCESS: Database initialization completed")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 return True
             else:
-                print(f"DB-reset failed with status {response.status_code}: {response.text}")
-                return False
+                print(f"Init-db failed with status {response.status_code}: {response.text}")
+
+                # Try the db-reset endpoint as last resort
+                print("Trying /api/db-reset endpoint...")
+                response = requests.post(f"{backend_url}/api/db-reset", timeout=60)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    print("SUCCESS: Database reset and initialization completed")
+                    print(f"Response: {json.dumps(result, indent=2)}")
+                    return True
+                else:
+                    print(f"DB-reset failed with status {response.status_code}: {response.text}")
+                    return False
                 
     except requests.exceptions.RequestException as e:
         print(f"ERROR: Request failed - {e}")

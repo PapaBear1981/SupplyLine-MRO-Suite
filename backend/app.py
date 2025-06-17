@@ -226,6 +226,108 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
+    # Add simple database initialization endpoint using raw SQL
+    @app.route('/api/db-init-simple', methods=['POST'])
+    def init_database_simple():
+        try:
+            import os
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            # Get current environment variables and log them
+            db_host = os.environ.get('DB_HOST', 'NOT_SET')
+            db_user = os.environ.get('DB_USER', 'NOT_SET')
+            db_name = os.environ.get('DB_NAME', 'NOT_SET')
+
+            logger.info(f"DB_HOST environment variable: {db_host}")
+            logger.info(f"DB_USER environment variable: {db_user}")
+            logger.info(f"DB_NAME environment variable: {db_name}")
+
+            # Create a fresh database URI
+            database_uri = Config.get_database_uri()
+
+            # Create a completely fresh engine with no connection pooling
+            engine = create_engine(database_uri, poolclass=None)
+            logger.info(f"Created fresh engine with URI: {database_uri.replace(os.environ.get('DB_PASSWORD', ''), '***')}")
+
+            with engine.connect() as conn:
+                # Create users table
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        employee_number VARCHAR(50) UNIQUE NOT NULL,
+                        department VARCHAR(100),
+                        password_hash VARCHAR(255) NOT NULL,
+                        is_admin BOOLEAN DEFAULT FALSE,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        reset_token VARCHAR(255),
+                        reset_token_expiry TIMESTAMP,
+                        remember_token VARCHAR(255),
+                        remember_token_expiry TIMESTAMP
+                    )
+                """))
+
+                # Create other essential tables
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tools (
+                        id SERIAL PRIMARY KEY,
+                        tool_id VARCHAR(50) UNIQUE NOT NULL,
+                        name VARCHAR(100) NOT NULL,
+                        description TEXT,
+                        category VARCHAR(50),
+                        location VARCHAR(100),
+                        status VARCHAR(20) DEFAULT 'available',
+                        condition_status VARCHAR(20) DEFAULT 'good',
+                        last_calibration DATE,
+                        next_calibration DATE,
+                        calibration_interval INTEGER,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+
+                # Create admin user
+                from werkzeug.security import generate_password_hash
+                password_hash = generate_password_hash('admin123')
+
+                conn.execute(text("""
+                    INSERT INTO users (name, employee_number, department, password_hash, is_admin, is_active, created_at)
+                    VALUES (:name, :emp_num, :dept, :pwd_hash, :is_admin, :is_active, NOW())
+                    ON CONFLICT (employee_number) DO NOTHING
+                """), {
+                    'name': 'System Administrator',
+                    'emp_num': 'ADMIN001',
+                    'dept': 'Administration',
+                    'pwd_hash': password_hash,
+                    'is_admin': True,
+                    'is_active': True
+                })
+
+                conn.commit()
+
+            # Dispose of the engine
+            engine.dispose()
+
+            app._db_initialized = True
+
+            return jsonify({
+                'status': 'success',
+                'message': 'Database initialized successfully with raw SQL',
+                'db_host_used': db_host,
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Database initialization error: {e}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': str(e),
+                'db_host_env': os.environ.get('DB_HOST', 'NOT_SET'),
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 500
+
     # Add database reset endpoint with fresh engine creation
     @app.route('/api/db-reset', methods=['POST'])
     def reset_database():
