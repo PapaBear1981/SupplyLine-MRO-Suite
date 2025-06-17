@@ -122,7 +122,7 @@ gcloud compute networks vpc-access connectors create supplyline-connector \
 gcloud sql instances create supplyline-db \
     --database-version=POSTGRES_14 \
     --tier=db-f1-micro \
-    --region=us-central1 \
+    --region=us-west1 \
     --storage-type=SSD \
     --storage-size=10GB
 
@@ -281,7 +281,7 @@ Update service configuration:
 ```bash
 gcloud run services update supplyline-backend-staging \
     --max-instances=20 \
-    --region=us-central1
+    --region=us-west1
 ```
 
 ## Backup and Recovery

@@ -130,8 +130,8 @@ gcloud builds submit --config=cloudbuild.yaml
 - `CORS_ORIGINS` - Allowed frontend origins
 
 ### Optional Configuration
-- `REGION` - GCP region (default: us-central1)
-- `ENVIRONMENT` - Deployment environment (default: staging)
+- `REGION` - GCP region (default: us-west1)
+- `ENVIRONMENT` - Deployment environment (default: production)
 - Resource limits and scaling parameters
 
 ## Security Considerations
