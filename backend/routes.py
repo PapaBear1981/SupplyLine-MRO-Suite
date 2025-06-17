@@ -1228,9 +1228,39 @@ def register_routes(app):
 
     @app.route('/api/users', methods=['GET', 'POST'])
     def users_route():
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'User management privileges required'}), 403
+        # Check for JWT token in Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Authentication required'}), 401
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            import jwt
+            from flask import current_app, g
+            # Decode JWT token
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+
+            # Get user from database to ensure they still exist and are active
+            user = User.query.get(payload['user_id'])
+            if not user or not user.is_active:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            # Check if user is admin or Materials department
+            if not (user.is_admin or user.department == 'Materials'):
+                return jsonify({'error': 'User management privileges required'}), 403
+
+            # Store user info in g for use in the route
+            g.current_user = user
+            g.current_user_id = user.id
+            g.is_admin = user.is_admin
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
+        except Exception as e:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
 
         if request.method == 'GET':
             try:
@@ -1238,7 +1268,7 @@ def register_routes(app):
                 search_query = request.args.get('q')
 
                 # Check if we should include lockout info (admin only)
-                include_lockout_info = session.get('is_admin', False)
+                include_lockout_info = g.is_admin
 
                 if search_query:
                     # Search for users by employee number
@@ -1314,16 +1344,46 @@ def register_routes(app):
 
     @app.route('/api/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def user_detail_route(id):
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'User management privileges required'}), 403
+        # Check for JWT token in Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Authentication required'}), 401
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            import jwt
+            from flask import current_app, g
+            # Decode JWT token
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+
+            # Get user from database to ensure they still exist and are active
+            current_user = User.query.get(payload['user_id'])
+            if not current_user or not current_user.is_active:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            # Check if user is admin or Materials department
+            if not (current_user.is_admin or current_user.department == 'Materials'):
+                return jsonify({'error': 'User management privileges required'}), 403
+
+            # Store user info in g for use in the route
+            g.current_user = current_user
+            g.current_user_id = current_user.id
+            g.is_admin = current_user.is_admin
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
+        except Exception as e:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
 
         # Get the user
         user = User.query.get_or_404(id)
 
         if request.method == 'GET':
             # Return user details with roles and lockout info for admins
-            include_lockout_info = session.get('is_admin', False)
+            include_lockout_info = g.is_admin
             return jsonify(user.to_dict(include_roles=True, include_lockout_info=include_lockout_info))
 
         elif request.method == 'PUT':
