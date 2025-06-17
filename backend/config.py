@@ -12,6 +12,8 @@ class Config:
     # Database configuration - supports both SQLite (local) and PostgreSQL (Cloud SQL)
     @staticmethod
     def get_database_uri():
+        logger = logging.getLogger(__name__)
+
         # Check if we're in Cloud Run environment (Cloud SQL)
         if os.environ.get('DB_HOST') and os.environ.get('DB_USER'):
             # Cloud SQL PostgreSQL configuration
@@ -20,20 +22,30 @@ class Config:
             db_name = os.environ.get('DB_NAME', 'supplyline')
             db_host = os.environ.get('DB_HOST')  # Unix socket path for Cloud SQL
 
+            logger.info(f"Building database URI with DB_HOST: {db_host}")
+
             if db_host.startswith('/cloudsql/'):
                 # Unix socket connection for Cloud SQL
-                return f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
+                uri = f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
+                # Log URI with masked password
+                masked_uri = uri.replace(db_password, '***') if db_password else uri
+                logger.info(f"Generated Cloud SQL URI: {masked_uri}")
+                return uri
 
             # TCP connection
             db_port = os.environ.get('DB_PORT', '5432')
-            return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+            uri = f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+            # Log URI with masked password
+            masked_uri = uri.replace(db_password, '***') if db_password else uri
+            logger.info(f"Generated TCP URI: {masked_uri}")
+            return uri
         else:
             # SQLite for local development
             if os.path.exists('/database'):
                 db_path = os.path.join('/database', 'tools.db')
             else:
                 db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
-            logging.getLogger(__name__).debug(f"Using SQLite database path: {db_path}")
+            logger.debug(f"Using SQLite database path: {db_path}")
             return f'sqlite:///{db_path}'
 
     # Database URI will be set dynamically in app.py to pick up environment changes
