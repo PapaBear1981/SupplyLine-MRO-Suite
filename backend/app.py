@@ -262,24 +262,41 @@ def create_app():
             # Dispose of the engine
             engine.dispose()
 
-            # Now recreate tables with correct schema
-            # Dispose of the existing db engine to force recreation
-            if hasattr(db, 'engine') and db.engine:
-                db.engine.dispose()
+            # Now recreate tables with correct schema using fresh engine
+            fresh_engine = create_engine(database_uri, poolclass=None)
 
-            db.create_all()
+            # Create tables using SQLAlchemy metadata
+            from models import db
+            with app.app_context():
+                # Dispose of the existing db engine to force recreation
+                if hasattr(db, 'engine') and db.engine:
+                    db.engine.dispose()
 
-            # Create admin user
-            admin_user = User(
-                name='System Administrator',
-                employee_number='ADMIN001',
-                department='Administration',
-                is_admin=True,
-                is_active=True
-            )
-            admin_user.set_password('admin123')
-            db.session.add(admin_user)
-            db.session.commit()
+                # Set the new engine
+                db.engine = fresh_engine
+                db.create_all()
+
+                # Create admin user using raw SQL to avoid model issues
+                from werkzeug.security import generate_password_hash
+                password_hash = generate_password_hash('admin123')
+
+                with fresh_engine.connect() as conn:
+                    conn.execute(text("""
+                        INSERT INTO users (name, employee_number, department, password_hash, is_admin, is_active, created_at)
+                        VALUES (:name, :emp_num, :dept, :pwd_hash, :is_admin, :is_active, NOW())
+                        ON CONFLICT (employee_number) DO NOTHING
+                    """), {
+                        'name': 'System Administrator',
+                        'emp_num': 'ADMIN001',
+                        'dept': 'Administration',
+                        'pwd_hash': password_hash,
+                        'is_admin': True,
+                        'is_active': True
+                    })
+                    conn.commit()
+
+            # Dispose of the fresh engine
+            fresh_engine.dispose()
 
             app._db_initialized = True
 
