@@ -1908,166 +1908,178 @@ def register_routes(app):
     @app.route('/api/auth/login', methods=['POST'])
     @app.require_database
     def login():
-        data = request.get_json() or {}
+        try:
+            data = request.get_json() or {}
 
-        if not data.get('employee_number') or not data.get('password'):
-            return jsonify({'error': 'Employee number and password required'}), 400
+            if not data.get('employee_number') or not data.get('password'):
+                return jsonify({'error': 'Employee number and password required'}), 400
 
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
+            # Ensure we're in application context for SQLAlchemy operations
+            with app.app_context():
+                user = User.query.filter_by(employee_number=data['employee_number']).first()
 
-        # If user doesn't exist, return generic error message
-        if not user:
-            return jsonify({'error': 'Invalid credentials'}), 401
+                # If user doesn't exist, return generic error message
+                if not user:
+                    return jsonify({'error': 'Invalid credentials'}), 401
 
-        # Check if account is locked
-        if user.is_locked():
-            # Calculate remaining lockout time in minutes
-            remaining_seconds = user.get_lockout_remaining_time()
-            remaining_minutes = int(remaining_seconds / 60) + 1  # Round up to the next minute
+                # Check if account is locked
+                if user.is_locked():
+                    # Calculate remaining lockout time in minutes
+                    remaining_seconds = user.get_lockout_remaining_time()
+                    remaining_minutes = int(remaining_seconds / 60) + 1  # Round up to the next minute
 
-            # Log the failed login attempt due to account lockout
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Login attempt while account locked. Remaining lockout time: {remaining_minutes} minutes',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            log = AuditLog(
-                action_type='login_failed',
-                action_details=f'User {user.id} ({user.name}) attempted login while account locked. Remaining lockout time: {remaining_minutes} minutes'
-            )
-            db.session.add(log)
-            db.session.commit()
-
-            return jsonify({
-                'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes or contact an administrator.'
-            }), 403
-
-        # Check password
-        if not user.check_password(data['password']):
-            # Increment failed login attempts
-            user.increment_failed_login()
-
-            # Get account lockout settings from config
-            lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
-            max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
-            initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
-            lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
-            max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
-
-            # Log the failed login attempt
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Failed login attempt ({user.failed_login_attempts}/{max_attempts})',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            # Check if account should be locked
-            if user.failed_login_attempts >= max_attempts:
-                # Calculate lockout duration with exponential backoff
-                # For first lockout: initial_lockout
-                # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
-                # Number of complete lockout cycles
-                lockout_count = user.failed_login_attempts // max_attempts
-                if lockout_count == 1:
-                    lockout_minutes = initial_lockout
-                else:
-                    lockout_minutes = min(
-                        initial_lockout * (lockout_multiplier ** (lockout_count - 1)),
-                        max_lockout
+                    # Log the failed login attempt due to account lockout
+                    activity = UserActivity(
+                        user_id=user.id,
+                        activity_type='login_failed',
+                        description=f'Login attempt while account locked. Remaining lockout time: {remaining_minutes} minutes',
+                        ip_address=request.remote_addr
                     )
+                    db.session.add(activity)
 
-                # Lock the account
-                user.lock_account(minutes=int(lockout_minutes))
+                    log = AuditLog(
+                        action_type='login_failed',
+                        action_details=f'User {user.id} ({user.name}) attempted login while account locked. Remaining lockout time: {remaining_minutes} minutes'
+                    )
+                    db.session.add(log)
+                    db.session.commit()
 
-                # Log the account lockout
+                    return jsonify({
+                        'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes or contact an administrator.'
+                    }), 403
+
+                # Check password
+                if not user.check_password(data['password']):
+                    # Increment failed login attempts
+                    user.increment_failed_login()
+
+                    # Get account lockout settings from config
+                    lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
+                    max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
+                    initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
+                    lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
+                    max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
+
+                    # Log the failed login attempt
+                    activity = UserActivity(
+                        user_id=user.id,
+                        activity_type='login_failed',
+                        description=f'Failed login attempt ({user.failed_login_attempts}/{max_attempts})',
+                        ip_address=request.remote_addr
+                    )
+                    db.session.add(activity)
+
+                    # Check if account should be locked
+                    if user.failed_login_attempts >= max_attempts:
+                        # Calculate lockout duration with exponential backoff
+                        # For first lockout: initial_lockout
+                        # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
+                        # Number of complete lockout cycles
+                        lockout_count = user.failed_login_attempts // max_attempts
+                        if lockout_count == 1:
+                            lockout_minutes = initial_lockout
+                        else:
+                            lockout_minutes = min(
+                                initial_lockout * (lockout_multiplier ** (lockout_count - 1)),
+                                max_lockout
+                            )
+
+                        # Lock the account
+                        user.lock_account(minutes=int(lockout_minutes))
+
+                        # Log the account lockout
+                        log = AuditLog(
+                            action_type='account_locked',
+                            action_details=f'User {user.id} ({user.name}) account locked for {lockout_minutes} minutes due to {user.failed_login_attempts} failed login attempts'
+                        )
+                        db.session.add(log)
+                        db.session.commit()
+
+                        return jsonify({
+                            'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
+                        }), 403
+
+                    # Calculate remaining attempts before lockout
+                    remaining_attempts = max_attempts - user.failed_login_attempts
+
+                    db.session.commit()
+
+                    if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
+                        return jsonify({
+                            'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
+                        }), 401
+                    else:
+                        return jsonify({'error': 'Invalid credentials'}), 401
+
+                # Check if user is active
+                if not user.is_active:
+                    return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
+
+                # Reset failed login attempts on successful login
+                user.reset_failed_login_attempts()
+
+                # Create JWT token for cross-domain authentication
+                import jwt
+                from datetime import datetime, timedelta, timezone
+
+                # Create JWT payload with longer expiration for better UX
+                payload = {
+                    'user_id': user.id,
+                    'employee_number': user.employee_number,
+                    'is_admin': user.is_admin,
+                    'department': user.department,
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24),  # 24 hour expiration
+                    'iat': datetime.now(timezone.utc)
+                }
+
+                # Generate JWT token
+                token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+                # Get user permissions
+                permissions = user.get_permissions()
+
+                # Create response with user data and token
+                user_data = user.to_dict(include_roles=True, include_permissions=True)
+                user_data['token'] = token
+
+                response = make_response(jsonify(user_data))
+
+                # Handle remember me
+                if data.get('remember_me'):
+                    # Generate remember token
+                    remember_token = user.generate_remember_token()
+                    db.session.commit()
+
+                    # Set cookies
+                    response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
+                    response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
+
+                # Log the login
+                activity = UserActivity(
+                    user_id=user.id,
+                    activity_type='login',
+                    description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
+
                 log = AuditLog(
-                    action_type='account_locked',
-                    action_details=f'User {user.id} ({user.name}) account locked for {lockout_minutes} minutes due to {user.failed_login_attempts} failed login attempts'
+                    action_type='user_login',
+                    action_details=f'User {user.id} ({user.name}) logged in'
                 )
                 db.session.add(log)
                 db.session.commit()
 
-                return jsonify({
-                    'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
-                }), 403
+                return response
 
-            # Calculate remaining attempts before lockout
-            remaining_attempts = max_attempts - user.failed_login_attempts
-
-            db.session.commit()
-
-            if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
-                return jsonify({
-                    'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
-                }), 401
-            else:
-                return jsonify({'error': 'Invalid credentials'}), 401
-
-        # Check if user is active
-        if not user.is_active:
-            return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
-
-        # Reset failed login attempts on successful login
-        user.reset_failed_login_attempts()
-
-        # Create JWT token for cross-domain authentication
-        import jwt
-        from datetime import datetime, timedelta, timezone
-
-        # Create JWT payload with longer expiration for better UX
-        payload = {
-            'user_id': user.id,
-            'employee_number': user.employee_number,
-            'is_admin': user.is_admin,
-            'department': user.department,
-            'exp': datetime.now(timezone.utc) + timedelta(hours=24),  # 24 hour expiration
-            'iat': datetime.now(timezone.utc)
-        }
-
-        # Generate JWT token
-        token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
-
-        # Get user permissions
-        permissions = user.get_permissions()
-
-        # Create response with user data and token
-        user_data = user.to_dict(include_roles=True, include_permissions=True)
-        user_data['token'] = token
-
-        response = make_response(jsonify(user_data))
-
-        # Handle remember me
-        if data.get('remember_me'):
-            # Generate remember token
-            remember_token = user.generate_remember_token()
-            db.session.commit()
-
-            # Set cookies
-            response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
-            response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
-
-        # Log the login
-        activity = UserActivity(
-            user_id=user.id,
-            activity_type='login',
-            description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
-            ip_address=request.remote_addr
-        )
-        db.session.add(activity)
-
-        log = AuditLog(
-            action_type='user_login',
-            action_details=f'User {user.id} ({user.name}) logged in'
-        )
-        db.session.add(log)
-        db.session.commit()
-
-        return response
+        except Exception as e:
+            logger.error(f"Login error: {e}", exc_info=True)
+            # Rollback any database changes
+            try:
+                db.session.rollback()
+            except:
+                pass
+            return jsonify({'error': 'Internal server error during login'}), 500
 
     @app.route('/api/auth/logout', methods=['POST'])
     def logout():

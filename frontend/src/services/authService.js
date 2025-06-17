@@ -4,7 +4,7 @@ const AuthService = {
   // Login user
   login: async (username, password) => {
     try {
-      const response = await api.post('/auth/test-login', {
+      const response = await api.post('/auth/login', {
         employee_number: username,
         password
       });

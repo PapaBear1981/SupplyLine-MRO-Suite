@@ -110,19 +110,22 @@ def create_app():
 
     # Database initialization function for routes
     def init_database_lazy():
-        """Check if database is initialized by testing connection."""
+        """Check if database is initialized by testing connection and ensuring models are available."""
         try:
-            # For Cloud Run, always check database connectivity directly
-            # since app._db_initialized doesn't persist across requests
-            from sqlalchemy import create_engine, text
-            from config import Config
+            # For Cloud Run, we need to ensure both database connectivity and SQLAlchemy models work
+            with app.app_context():
+                # Test database connectivity using the existing db instance
+                from sqlalchemy import text
+                result = db.session.execute(text('SELECT 1'))
 
-            # Quick connection test
-            engine = create_engine(Config.get_database_uri(), poolclass=None)
-            with engine.connect() as conn:
-                conn.execute(text('SELECT 1'))
-            engine.dispose()
-            return True
+                # Test that models are properly loaded by trying to access User model
+                from models import User
+                # Quick test query to ensure User model works
+                user_count = User.query.count()
+
+                logger.debug(f"Database connectivity check passed. User count: {user_count}")
+                return True
+
         except Exception as e:
             logger.warning(f"Database connectivity check failed: {e}")
             return False
@@ -137,12 +140,20 @@ def create_app():
 
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not app.init_database_lazy():
+            try:
+                if not app.init_database_lazy():
+                    logger.error("Database connectivity check failed in require_database decorator")
+                    return jsonify({
+                        'error': 'Database not available',
+                        'message': 'Database connection could not be established'
+                    }), 503
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Error in require_database decorator: {e}", exc_info=True)
                 return jsonify({
-                    'error': 'Database not available',
-                    'message': 'Database connection could not be established'
+                    'error': 'Database error',
+                    'message': 'An error occurred while accessing the database'
                 }), 503
-            return f(*args, **kwargs)
         return decorated_function
 
     # Store decorator in app context
