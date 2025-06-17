@@ -515,6 +515,49 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
+    # Add migration endpoint to fix users table
+    @app.route('/api/migrate-users-table', methods=['POST'])
+    def migrate_users_table():
+        try:
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            # Create a direct connection to migrate the users table
+            engine = create_engine(Config.get_database_uri())
+
+            with engine.connect() as conn:
+                # Add missing columns to users table for account lockout functionality
+                conn.execute(text("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0
+                """))
+                conn.execute(text("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS account_locked_until TIMESTAMP
+                """))
+                conn.execute(text("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_failed_login TIMESTAMP
+                """))
+
+                # Update existing users to have default values
+                conn.execute(text("""
+                    UPDATE users SET failed_login_attempts = 0 WHERE failed_login_attempts IS NULL
+                """))
+
+                conn.commit()
+
+            return jsonify({
+                'status': 'success',
+                'message': 'Users table migrated successfully with account lockout columns',
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Users table migration error: {e}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 500
+
     # Skip Flask-Session initialization for now to avoid startup issues
     # Use default Flask sessions instead
     logger.info("Using default Flask sessions for simplicity")
