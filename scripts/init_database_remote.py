@@ -12,7 +12,7 @@ import sys
 def init_database():
     """Initialize the database by calling the backend API."""
     
-    backend_url = "https://supplyline-backend-production-sukn4msdrq-uc.a.run.app"
+    backend_url = "https://supplyline-backend-test-454313121816.us-west1.run.app"
     
     print("Initializing database via backend API...")
     
