@@ -50,6 +50,18 @@ export const fetchCurrentUser = createAsyncThunk(
   }
 );
 
+export const refreshToken = createAsyncThunk(
+  'auth/refreshToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await AuthService.refreshToken();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Token refresh failed' });
+    }
+  }
+);
+
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
@@ -194,6 +206,23 @@ const authSlice = createSlice({
         if (action.payload?.message?.includes('401') || action.payload?.status === 401) {
           localStorage.removeItem('authToken');
         }
+      })
+      // Refresh token
+      .addCase(refreshToken.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(refreshToken.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        // Token is already updated in the service
+      })
+      .addCase(refreshToken.rejected, (state, action) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload;
+        // Token is already cleared in the service
       })
       // Register
       .addCase(register.pending, (state) => {

@@ -52,7 +52,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling errors
+// Response interceptor for handling errors and token refresh
 api.interceptors.response.use(
   (response) => {
     // Only log responses in development environment or when debugging is enabled
@@ -62,23 +62,55 @@ api.interceptors.response.use(
 
     return response;
   },
-  (error) => {
+  async (error) => {
     // Handle common errors
     console.error(`API Error [${error.config?.method?.toUpperCase()}] ${error.config?.url}:`, error.response?.data || error.message);
 
+    const originalRequest = error.config;
+
     if (error.response) {
       // Server responded with error status
-      if (error.response.status === 401) {
-        // Unauthorized - clear token but don't automatically redirect
-        // Let the component/Redux handle the logout flow
-        localStorage.removeItem('authToken');
+      if (error.response.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
 
-        // Only redirect if we're not already on the login page
-        if (window.location.pathname !== '/login') {
-          // Use a small delay to allow Redux state to update first
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 100);
+        // Check if this is a token expiration error
+        const errorMessage = error.response.data?.reason || error.response.data?.error || '';
+        if (errorMessage.includes('Token expired') || errorMessage.includes('expired')) {
+          try {
+            // Try to refresh the token
+            const response = await api.post('/auth/refresh');
+
+            if (response.data.token) {
+              // Update the token in localStorage
+              localStorage.setItem('authToken', response.data.token);
+
+              // Update the Authorization header for the original request
+              originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
+
+              // Retry the original request
+              return api(originalRequest);
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            // Refresh failed, clear token and redirect to login
+            localStorage.removeItem('authToken');
+
+            if (window.location.pathname !== '/login') {
+              setTimeout(() => {
+                window.location.href = '/login';
+              }, 100);
+            }
+            return Promise.reject(refreshError);
+          }
+        } else {
+          // Not a token expiration error, clear token and redirect
+          localStorage.removeItem('authToken');
+
+          if (window.location.pathname !== '/login') {
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
+          }
         }
       }
     }

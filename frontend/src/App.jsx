@@ -13,8 +13,9 @@ import { HelpProvider } from './context/HelpContext';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
-import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import RoleProtectedRoute, {
+  AdminRoute,
   ToolManagerRoute,
   ChemicalManagerRoute,
   CalibrationManagerRoute,

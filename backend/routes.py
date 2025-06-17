@@ -1959,13 +1959,13 @@ def register_routes(app):
         import jwt
         from datetime import datetime, timedelta, timezone
 
-        # Create JWT payload
+        # Create JWT payload with longer expiration for better UX
         payload = {
             'user_id': user.id,
             'employee_number': user.employee_number,
             'is_admin': user.is_admin,
             'department': user.department,
-            'exp': datetime.now(timezone.utc) + timedelta(hours=8),  # 8 hour expiration
+            'exp': datetime.now(timezone.utc) + timedelta(hours=24),  # 24 hour expiration
             'iat': datetime.now(timezone.utc)
         }
 
@@ -2185,6 +2185,58 @@ def register_routes(app):
             'authenticated': True,
             'session': session_info
         }), 200
+
+    @app.route('/api/auth/refresh', methods=['POST'])
+    @app.require_database
+    def refresh_token():
+        """Refresh JWT token for authenticated users"""
+        try:
+            # Check for JWT token in Authorization header
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return jsonify({'error': 'Authentication required'}), 401
+
+            token = auth_header.split(' ')[1]
+
+            try:
+                import jwt
+                # Decode JWT token (allow expired tokens for refresh)
+                payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'], options={"verify_exp": False})
+
+                # Get user from database to ensure they still exist and are active
+                user = User.query.get(payload['user_id'])
+                if not user or not user.is_active:
+                    return jsonify({'error': 'User not found or inactive'}), 401
+
+                # Check if token is too old (more than 7 days)
+                token_age = datetime.now(timezone.utc) - datetime.fromtimestamp(payload['iat'], timezone.utc)
+                if token_age > timedelta(days=7):
+                    return jsonify({'error': 'Token too old, please login again'}), 401
+
+                # Create new JWT token
+                new_payload = {
+                    'user_id': user.id,
+                    'employee_number': user.employee_number,
+                    'is_admin': user.is_admin,
+                    'department': user.department,
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24),
+                    'iat': datetime.now(timezone.utc)
+                }
+
+                new_token = jwt.encode(new_payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+                # Return new token and user data
+                user_data = user.to_dict(include_roles=True, include_permissions=True)
+                user_data['token'] = new_token
+
+                return jsonify(user_data), 200
+
+            except jwt.InvalidTokenError:
+                return jsonify({'error': 'Invalid token'}), 401
+
+        except Exception as e:
+            logger.error(f"Token refresh error: {e}")
+            return jsonify({'error': 'Token refresh failed'}), 500
 
     @app.route('/api/auth/status', methods=['GET'])
     @app.require_database

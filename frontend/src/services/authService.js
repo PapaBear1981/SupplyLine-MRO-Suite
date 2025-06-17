@@ -64,6 +64,24 @@ const AuthService = {
     }
   },
 
+  // Refresh JWT token
+  refreshToken: async () => {
+    try {
+      const response = await api.post('/auth/refresh');
+
+      // Update stored token
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+      }
+
+      return response.data;
+    } catch (error) {
+      // If refresh fails, clear the token
+      localStorage.removeItem('authToken');
+      throw error;
+    }
+  },
+
   // Get system settings
   getSystemSettings: async (category = null) => {
     try {
