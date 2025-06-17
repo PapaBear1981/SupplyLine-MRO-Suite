@@ -18,7 +18,7 @@ def init_database():
     
     # Set environment variables for Cloud SQL connection
     os.environ['FLASK_ENV'] = 'production'
-    os.environ['DB_HOST'] = '/cloudsql/gen-lang-client-0819985982:us-central1:supplyline-db'
+    os.environ['DB_HOST'] = '/cloudsql/gen-lang-client-0819985982:us-west1:supplyline-db'
     os.environ['DB_USER'] = 'supplyline_user'
     os.environ['DB_NAME'] = 'supplyline'
     

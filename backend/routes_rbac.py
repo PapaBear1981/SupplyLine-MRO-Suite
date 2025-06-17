@@ -8,22 +8,50 @@ def permission_required(permission_name):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if 'user_id' not in session:
+            # Check for JWT token in Authorization header
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
                 return jsonify({'error': 'Authentication required'}), 401
 
-            user = User.query.get(session['user_id'])
-            if not user:
-                return jsonify({'error': 'User not found'}), 404
+            token = auth_header.split(' ')[1]
 
-            # Legacy admin users have all permissions
-            if user.is_admin:
+            try:
+                import jwt
+                from flask import current_app, g
+                # Decode JWT token
+                payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+
+                # Get user from database to ensure they still exist and are active
+                user = User.query.get(payload['user_id'])
+                if not user or not user.is_active:
+                    return jsonify({'error': 'Authentication required'}), 401
+
+                # Legacy admin users have all permissions
+                if user.is_admin:
+                    # Store user info in g for use in the route
+                    g.current_user = user
+                    g.current_user_id = user.id
+                    g.is_admin = user.is_admin
+                    return f(*args, **kwargs)
+
+                # Check if user has the required permission through roles
+                if not user.has_permission(permission_name):
+                    return jsonify({'error': f'Permission {permission_name} required'}), 403
+
+                # Store user info in g for use in the route
+                g.current_user = user
+                g.current_user_id = user.id
+                g.is_admin = user.is_admin
+
                 return f(*args, **kwargs)
 
-            # Check if user has the required permission through roles
-            if not user.has_permission(permission_name):
-                return jsonify({'error': f'Permission {permission_name} required'}), 403
+            except jwt.ExpiredSignatureError:
+                return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
+            except Exception as e:
+                return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
 
-            return f(*args, **kwargs)
         return decorated_function
     return decorator
 

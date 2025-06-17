@@ -29,14 +29,42 @@ from functools import wraps
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        # Check for JWT token in Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
 
-        # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
+        token = auth_header.split(' ')[1]
+
+        try:
+            import jwt
+            from flask import current_app, g
+            # Decode JWT token
+            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+
+            # Get user from database to ensure they still exist and are active
+            user = User.query.get(payload['user_id'])
+            if not user or not user.is_active:
+                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
+
+            # Allow access for admins or Materials department users
+            if not (user.is_admin or user.department == 'Materials'):
+                return jsonify({'error': 'Tool management privileges required'}), 403
+
+            # Store user info in g for use in the route
+            g.current_user = user
+            g.current_user_id = user.id
+            g.is_admin = user.is_admin
+
             return f(*args, **kwargs)
 
-        return jsonify({'error': 'Tool management privileges required'}), 403
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
+        except Exception as e:
+            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
+
     return decorated_function
 
 def register_report_routes(app):

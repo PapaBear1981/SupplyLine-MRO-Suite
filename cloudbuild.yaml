@@ -147,9 +147,9 @@ steps:
 
 # Substitution variables (values supplied via gcloud or environment)
 substitutions:
-  _ENVIRONMENT: ''
-  _REGION: ''
-  _CLOUDSQL_INSTANCE: ''
+  _ENVIRONMENT: 'production'
+  _REGION: 'us-west1'
+  _CLOUDSQL_INSTANCE: 'gen-lang-client-0819985982:us-west1:supplyline-db'
 
 # Build options
 options:
