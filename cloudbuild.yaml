@@ -10,16 +10,19 @@ steps:
       - './backend'
     id: 'build-backend'
 
-  # Build frontend image (initial build without backend URL)
+  # Build frontend image with static backend URL
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/supplyline-frontend-temp:$BUILD_ID'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
       - '--build-arg'
-      - 'VITE_API_URL=PLACEHOLDER_BACKEND_URL'
+      - 'VITE_API_URL=${_BACKEND_URL}'
       - './frontend'
-    id: 'build-frontend-temp'
+    id: 'build-frontend'
+    waitFor: ['build-backend']
 
   # Push backend image
   - name: 'gcr.io/cloud-builders/docker'
@@ -60,37 +63,7 @@ steps:
     id: 'deploy-backend'
     waitFor: ['push-backend']
 
-  # Get backend URL after deployment
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Get the actual backend URL
-        BACKEND_URL=$$(gcloud run services describe supplyline-backend-${_ENVIRONMENT} --region=${_REGION} --format="value(status.url)")
-        echo "Backend URL: $$BACKEND_URL"
-        echo "$$BACKEND_URL" > /workspace/backend_url.txt
-    id: 'get-backend-url'
-    waitFor: ['deploy-backend']
 
-  # Build frontend with correct backend URL
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Read the backend URL
-        BACKEND_URL=$$(cat /workspace/backend_url.txt)
-        echo "Building frontend with backend URL: $$BACKEND_URL"
-
-        # Build frontend with correct backend URL
-        docker build \
-          -t gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID \
-          -t gcr.io/$PROJECT_ID/supplyline-frontend:latest \
-          --build-arg VITE_API_URL=$$BACKEND_URL \
-          ./frontend
-    id: 'build-frontend'
-    waitFor: ['get-backend-url']
 
   # Push frontend image
   - name: 'gcr.io/cloud-builders/docker'
@@ -125,23 +98,19 @@ steps:
     id: 'deploy-frontend'
     waitFor: ['push-frontend']
 
-  # Update backend CORS configuration with actual frontend URL
+  # Update backend CORS configuration with static frontend URL
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Get the actual frontend URL
-        FRONTEND_URL=$$(gcloud run services describe supplyline-frontend-${_ENVIRONMENT} --region=${_REGION} --format="value(status.url)")
-        BACKEND_URL=$$(cat /workspace/backend_url.txt)
-
-        echo "Frontend URL: $$FRONTEND_URL"
-        echo "Backend URL: $$BACKEND_URL"
+        echo "Frontend URL: ${_FRONTEND_URL}"
+        echo "Backend URL: ${_BACKEND_URL}"
 
         # Update backend with correct CORS configuration
         gcloud run services update supplyline-backend-${_ENVIRONMENT} \
           --region=${_REGION} \
-          --update-env-vars="FLASK_ENV=production,CORS_ORIGINS=$$FRONTEND_URL,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1"
+          --update-env-vars="FLASK_ENV=production,CORS_ORIGINS=${_FRONTEND_URL},DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1"
     id: 'update-backend-cors'
     waitFor: ['deploy-frontend']
 
@@ -150,6 +119,8 @@ substitutions:
   _ENVIRONMENT: 'production'
   _REGION: 'us-west1'
   _CLOUDSQL_INSTANCE: 'gen-lang-client-0819985982:us-west1:supplyline-db'
+  _BACKEND_URL: 'https://supplyline-backend-production-454313121816.us-west1.run.app'
+  _FRONTEND_URL: 'https://supplyline-frontend-production-454313121816.us-west1.run.app'
 
 # Build options
 options:
