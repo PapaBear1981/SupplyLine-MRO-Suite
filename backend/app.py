@@ -31,6 +31,9 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # Set database URI dynamically to pick up current environment variables
+    app.config['SQLALCHEMY_DATABASE_URI'] = Config.get_database_uri()
+
     # Session cookie name is already set in config.py - no need to set it again
 
     # Configure structured logging
@@ -173,7 +176,7 @@ def create_app():
             from config import Config
 
             # Create a direct connection to inspect the database
-            engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
+            engine = create_engine(Config.get_database_uri())
 
             with engine.connect() as conn:
                 # List all tables
@@ -221,7 +224,7 @@ def create_app():
             from models import db, User
 
             # Create a direct connection to reset the database
-            engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
+            engine = create_engine(Config.get_database_uri())
 
             with engine.connect() as conn:
                 # Drop all tables
@@ -274,7 +277,7 @@ def create_app():
             'DB_USER': os.environ.get('DB_USER', 'NOT_SET'),
             'DB_NAME': os.environ.get('DB_NAME', 'NOT_SET'),
             'FLASK_ENV': os.environ.get('FLASK_ENV', 'NOT_SET'),
-            'DATABASE_URI': Config.SQLALCHEMY_DATABASE_URI,
+            'DATABASE_URI': Config.get_database_uri(),
             'timestamp': datetime.datetime.now().isoformat()
         }
 
@@ -332,7 +335,7 @@ def create_app():
             from config import Config
 
             # Create a direct connection to create the sessions table
-            engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
+            engine = create_engine(Config.get_database_uri())
 
             with engine.connect() as conn:
                 # Create sessions table for Flask-Session

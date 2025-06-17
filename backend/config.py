@@ -36,7 +36,8 @@ class Config:
             logging.getLogger(__name__).debug(f"Using SQLite database path: {db_path}")
             return f'sqlite:///{db_path}'
 
-    SQLALCHEMY_DATABASE_URI = get_database_uri()
+    # Database URI will be set dynamically in app.py to pick up environment changes
+    SQLALCHEMY_DATABASE_URI = None  # Will be set in app.py
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Database connection pooling and optimization
