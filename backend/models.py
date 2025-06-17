@@ -651,6 +651,26 @@ class Announcement(db.Model):
     # Relationships
     author = db.relationship('User', foreign_keys=[created_by])
 
+    def to_dict(self, include_reads=False):
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'priority': self.priority,
+            'created_by': self.created_by,
+            'author_name': self.author.name if self.author else 'Unknown',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
+            'is_active': self.is_active
+        }
+
+        if include_reads and hasattr(self, 'reads'):
+            data['reads'] = [read.to_dict() for read in self.reads]
+            data['read_count'] = len(self.reads)
+
+        return data
+
 class SystemSettings(db.Model):
     """Model for storing system-wide configuration settings"""
     __tablename__ = 'system_settings'
