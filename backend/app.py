@@ -561,6 +561,73 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
+    # Add endpoint to recreate users table with correct schema
+    @app.route('/api/recreate-users-table', methods=['POST'])
+    def recreate_users_table():
+        try:
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            # Create a direct connection to recreate the users table
+            engine = create_engine(Config.get_database_uri())
+
+            with engine.connect() as conn:
+                # Drop existing users table
+                conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
+
+                # Create users table with all required columns
+                conn.execute(text("""
+                    CREATE TABLE users (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        employee_number VARCHAR(50) UNIQUE NOT NULL,
+                        department VARCHAR(100),
+                        password_hash VARCHAR(255) NOT NULL,
+                        is_admin BOOLEAN DEFAULT FALSE,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        reset_token VARCHAR(255),
+                        reset_token_expiry TIMESTAMP,
+                        remember_token VARCHAR(255),
+                        remember_token_expiry TIMESTAMP,
+                        failed_login_attempts INTEGER DEFAULT 0,
+                        account_locked_until TIMESTAMP,
+                        last_failed_login TIMESTAMP
+                    )
+                """))
+
+                # Create admin user
+                from werkzeug.security import generate_password_hash
+                password_hash = generate_password_hash('admin123')
+
+                conn.execute(text("""
+                    INSERT INTO users (name, employee_number, department, password_hash, is_admin, is_active, created_at)
+                    VALUES (:name, :emp_num, :dept, :pwd_hash, :is_admin, :is_active, NOW())
+                """), {
+                    'name': 'System Administrator',
+                    'emp_num': 'ADMIN001',
+                    'dept': 'Administration',
+                    'pwd_hash': password_hash,
+                    'is_admin': True,
+                    'is_active': True
+                })
+
+                conn.commit()
+
+            return jsonify({
+                'status': 'success',
+                'message': 'Users table recreated successfully with all required columns',
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Users table recreation error: {e}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 500
+
     # Skip Flask-Session initialization for now to avoid startup issues
     # Use default Flask sessions instead
     logger.info("Using default Flask sessions for simplicity")
