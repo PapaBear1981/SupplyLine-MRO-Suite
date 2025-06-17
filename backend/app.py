@@ -32,7 +32,13 @@ def create_app():
     app.config.from_object(Config)
 
     # Set database URI dynamically to pick up current environment variables
-    app.config['SQLALCHEMY_DATABASE_URI'] = Config.get_database_uri()
+    database_uri = Config.get_database_uri()
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
+
+    # Log the database URI for debugging (mask password)
+    masked_uri = database_uri.replace(os.environ.get('DB_PASSWORD', ''), '***') if os.environ.get('DB_PASSWORD') else database_uri
+    logger = logging.getLogger(__name__)
+    logger.info(f"Using database URI: {masked_uri}")
 
     # Session cookie name is already set in config.py - no need to set it again
 
@@ -72,6 +78,11 @@ def create_app():
 
     try:
         from models import db, User
+
+        # Dispose of any existing engine to force recreation with new URI
+        if hasattr(db, 'engine') and db.engine:
+            db.engine.dispose()
+
         db.init_app(app)
 
         # Test database connection and create tables if needed
