@@ -89,7 +89,7 @@ class User(db.Model):
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     remember_token = db.Column(db.String, nullable=True)
     remember_token_expiry = db.Column(db.DateTime, nullable=True)
-    avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
+    # avatar = db.Column(db.String, nullable=True)  # Temporarily commented out - will add back after DB migration
     # Account lockout fields
     failed_login_attempts = db.Column(db.Integer, default=0)
     account_locked_until = db.Column(db.DateTime, nullable=True)
@@ -237,7 +237,7 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'avatar': self.avatar
+            'avatar': None  # Temporarily set to None until avatar column is added to database
         }
 
         if include_roles:
