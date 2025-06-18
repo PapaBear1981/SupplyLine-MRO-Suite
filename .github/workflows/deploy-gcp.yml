@@ -75,8 +75,8 @@ jobs:
     - name: Get service URLs
       id: get-urls
       run: |
-        BACKEND_URL=$(gcloud run services describe "supplyline-backend-${{ env.ENVIRONMENT }}" --region="${{ env.REGION }}" --format="value(status.url)")
-        FRONTEND_URL=$(gcloud run services describe "supplyline-frontend-${{ env.ENVIRONMENT }}" --region="${{ env.REGION }}" --format="value(status.url)")
+        BACKEND_URL=$(gcloud run services describe "supplylinemrosuite" --region="${{ env.REGION }}" --format="value(status.url)")
+        FRONTEND_URL=$(gcloud run services describe "supplyline-frontend-production" --region="${{ env.REGION }}" --format="value(status.url)")
 
         echo "backend-url=$BACKEND_URL" >> $GITHUB_OUTPUT
         echo "frontend-url=$FRONTEND_URL" >> $GITHUB_OUTPUT
