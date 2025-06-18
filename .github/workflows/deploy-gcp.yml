@@ -64,9 +64,12 @@ jobs:
 
     - name: Submit build to Cloud Build
       run: |
+        echo "Starting Cloud Build submission..."
         gcloud builds submit \
           --config=cloudbuild.yaml \
           --substitutions=_REGION=${{ env.REGION }},_CLOUDSQL_INSTANCE=${{ env.PROJECT_ID }}:${{ env.REGION }}:supplyline-db \
+          --timeout=1200s \
+          --verbosity=info \
           .
 
     - name: Get service URLs
