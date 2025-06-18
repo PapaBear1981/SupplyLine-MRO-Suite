@@ -971,6 +971,7 @@ def create_app():
         return jsonify({
             'service': 'supplyline-backend',
             'status': 'running',
+            'version': '2025.1.1',
             'message': 'Backend API service is running. Frontend is available at: https://supplyline-frontend-production-454313121816.us-west1.run.app',
             'api_docs': '/api/health for health check'
         })
