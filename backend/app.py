@@ -80,8 +80,11 @@ def create_app():
         from models import db, User
 
         # Dispose of any existing engine to force recreation with new URI
-        if hasattr(db, 'engine') and db.engine:
-            db.engine.dispose()
+        try:
+            if hasattr(db, 'engine') and db.engine:
+                db.engine.dispose()
+        except Exception as dispose_error:
+            logger.warning(f"Could not dispose existing engine: {dispose_error}")
 
         db.init_app(app)
 
@@ -349,8 +352,11 @@ def create_app():
                 from models import db
 
                 # Dispose of any existing engine
-                if hasattr(db, 'engine') and db.engine:
-                    db.engine.dispose()
+                try:
+                    if hasattr(db, 'engine') and db.engine:
+                        db.engine.dispose()
+                except Exception as dispose_error:
+                    logger.warning(f"Could not dispose existing engine: {dispose_error}")
 
                 # Reinitialize the database with the app within app context
                 db.init_app(app)
@@ -426,8 +432,11 @@ def create_app():
             from models import db
             with app.app_context():
                 # Dispose of the existing db engine to force recreation
-                if hasattr(db, 'engine') and db.engine:
-                    db.engine.dispose()
+                try:
+                    if hasattr(db, 'engine') and db.engine:
+                        db.engine.dispose()
+                except Exception as dispose_error:
+                    logger.warning(f"Could not dispose existing engine: {dispose_error}")
 
                 # Set the new engine
                 db.engine = fresh_engine
@@ -692,10 +701,14 @@ def create_app():
                     'timestamp': datetime.datetime.now().isoformat()
                 }), 500
 
-            # Test database connection
-            from sqlalchemy import text
-            from models import db
-            with db.engine.connect() as conn:
+            # Test database connection using direct engine creation
+            from sqlalchemy import text, create_engine
+            from config import Config
+
+            # Create a fresh engine for testing
+            engine = create_engine(Config.get_database_uri(), poolclass=None)
+
+            with engine.connect() as conn:
                 conn.execute(text('SELECT 1'))
 
                 # Check if database is initialized
@@ -706,6 +719,8 @@ def create_app():
                     AND table_name = 'users'
                 """))
                 table_count = result.scalar()
+
+                engine.dispose()
 
                 return jsonify({
                     'status': 'success',
