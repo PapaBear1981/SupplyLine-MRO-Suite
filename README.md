@@ -4,6 +4,8 @@ A comprehensive inventory management system for tools and chemicals built with R
 
 **Current Version: 3.5.4** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
+🚀 **Deployment Status**: GitHub Actions deployment configured and ready
+
 > **⚠️ ROLLBACK NOTICE**: This repository has been rolled back to Version 3.5.4 from a later version due to stability issues. Version 3.5.4 represents the last stable release with all critical bug fixes and performance improvements.
 
 ## Overview
