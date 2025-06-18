@@ -22,12 +22,10 @@ def create_app():
         # Windows doesn't have time.tzset()
         print("Running on Windows, cannot set system timezone. Ensure system time is correct.")
 
-    # serve frontend static files from backend/static
+    # Backend API only - no static file serving
     app = Flask(
         __name__,
-        instance_relative_config=False,
-        static_folder='static',
-        static_url_path='/static'
+        instance_relative_config=False
     )
     app.config.from_object(Config)
 
@@ -551,7 +549,9 @@ def create_app():
     def test_login():
         """Test login endpoint for debugging"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No JSON data provided'}), 400
 
             if not data.get('employee_number') or not data.get('password'):
                 return jsonify({'error': 'Employee number and password required'}), 400
@@ -559,14 +559,15 @@ def create_app():
             # Simple hardcoded test for ADMIN001
             if data['employee_number'] == 'ADMIN001' and data['password'] == 'admin123':
                 # Generate a proper JWT token
-                from datetime import datetime, timedelta
+                from datetime import datetime, timedelta, timezone
                 import jwt
 
                 payload = {
                     'user_id': 1,
                     'employee_number': 'ADMIN001',
                     'is_admin': True,
-                    'exp': datetime.utcnow() + timedelta(hours=24)
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24),
+                    'iat': datetime.now(timezone.utc)
                 }
 
                 token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
@@ -967,7 +968,12 @@ def create_app():
 
     @app.route('/')
     def index():
-        return app.send_static_file('index.html')
+        return jsonify({
+            'service': 'supplyline-backend',
+            'status': 'running',
+            'message': 'Backend API service is running. Frontend is available at: https://supplyline-frontend-production-454313121816.us-west1.run.app',
+            'api_docs': '/api/health for health check'
+        })
 
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={
