@@ -21,8 +21,10 @@ spec:
       - image: gcr.io/${PROJECT_ID}/supplyline-backend:latest
         ports:
         - name: http1
-          containerPort: 5000
+          containerPort: 8080
         env:
+        - name: PORT
+          value: "8080"
         - name: FLASK_ENV
           value: "production"
         - name: SECRET_KEY
@@ -60,7 +62,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /api/health
-            port: 5000
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
@@ -68,7 +70,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /api/health
-            port: 5000
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5
@@ -76,7 +78,7 @@ spec:
         startupProbe:
           httpGet:
             path: /api/health
-            port: 5000
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5

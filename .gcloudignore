@@ -1,0 +1,58 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Ignore virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Ignore database files
+*.db
+*.sqlite3
+database/
+
+# Ignore logs
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore environment files
+.env
+.env.*
+!.env.example
+
+# Ignore build artifacts
+dist/
+build/
+*.egg-info/
+
+# Ignore test files
+tests/
+*_test.py
+test_*.py
+
+# Ignore documentation
+docs/
+*.md
+!README.md
+
+# Include important files
+!cloudbuild.yaml
+!backend/Dockerfile
+!frontend/Dockerfile
+!backend/main.py
+!backend/Procfile
+!backend/requirements.txt
+!frontend/package.json

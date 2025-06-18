@@ -60,6 +60,10 @@ flask_session/
 cookies.txt
 */cookies.txt
 
+# Google Cloud Service Account Keys
+*.json
+github-actions-key.json
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

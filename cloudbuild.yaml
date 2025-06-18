@@ -1,8 +1,10 @@
 steps:
-  # Build backend image
+  # Build backend image using explicit Dockerfile
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '-f'
+      - './backend/Dockerfile'
       - '-t'
       - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
       - '-t'
@@ -14,6 +16,8 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '-f'
+      - './frontend/Dockerfile'
       - '-t'
       - 'gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID'
       - '-t'
@@ -55,7 +59,7 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=*'
+      - 'PORT=8080,FLASK_ENV=production,DB_HOST=/cloudsql/${_CLOUDSQL_INSTANCE},DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=*'
       - '--set-secrets'
       - 'SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest'
       - '--set-cloudsql-instances'
@@ -84,6 +88,7 @@ steps:
         BACKEND_URL=$$(cat /workspace/backend_url.txt)
         echo "Building frontend with backend URL: $$BACKEND_URL"
         docker build \
+          -f ./frontend/Dockerfile \
           -t gcr.io/$PROJECT_ID/supplyline-frontend:$BUILD_ID-final \
           -t gcr.io/$PROJECT_ID/supplyline-frontend:latest \
           --build-arg VITE_API_URL=$$BACKEND_URL \
