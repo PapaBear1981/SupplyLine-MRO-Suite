@@ -839,7 +839,7 @@ def create_app():
                 # Drop existing users table
                 conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
 
-                # Create users table with all required columns
+                # Create users table with all required columns INCLUDING avatar
                 conn.execute(text("""
                     CREATE TABLE users (
                         id SERIAL PRIMARY KEY,
@@ -854,6 +854,7 @@ def create_app():
                         reset_token_expiry TIMESTAMP,
                         remember_token VARCHAR(255),
                         remember_token_expiry TIMESTAMP,
+                        avatar VARCHAR(255),
                         failed_login_attempts INTEGER DEFAULT 0,
                         account_locked_until TIMESTAMP,
                         last_failed_login TIMESTAMP
@@ -880,12 +881,73 @@ def create_app():
 
             return jsonify({
                 'status': 'success',
-                'message': 'Users table recreated successfully with all required columns',
+                'message': 'Users table recreated successfully with all required columns including avatar',
                 'timestamp': datetime.datetime.now().isoformat()
             }), 200
 
         except Exception as e:
             logger.error(f"Users table recreation error: {e}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 500
+
+    # Add specific endpoint to add avatar column
+    @app.route('/api/add-avatar-column', methods=['POST'])
+    def add_avatar_column():
+        try:
+            from sqlalchemy import create_engine, text
+            from config import Config
+
+            # Create a direct connection to add the avatar column
+            engine = create_engine(Config.get_database_uri())
+
+            with engine.connect() as conn:
+                # Check if avatar column already exists
+                result = conn.execute(text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = 'avatar'
+                """))
+
+                existing_column = result.fetchone()
+
+                if existing_column:
+                    message = "Avatar column already exists in users table"
+                    logger.info(message)
+                else:
+                    # Add the avatar column
+                    conn.execute(text("""
+                        ALTER TABLE users ADD COLUMN avatar VARCHAR(255)
+                    """))
+                    conn.commit()
+                    message = "Avatar column added successfully to users table"
+                    logger.info(message)
+
+                # Verify the column exists now
+                result = conn.execute(text("""
+                    SELECT column_name, data_type, is_nullable
+                    FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = 'avatar'
+                """))
+
+                column_info = result.fetchone()
+                if column_info:
+                    verification = f"Verified: avatar column exists - Type: {column_info[1]}, Nullable: {column_info[2]}"
+                    logger.info(verification)
+                else:
+                    raise Exception("Avatar column was not created successfully")
+
+            return jsonify({
+                'status': 'success',
+                'message': message,
+                'verification': verification,
+                'timestamp': datetime.datetime.now().isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Avatar column addition error: {e}", exc_info=True)
             return jsonify({
                 'status': 'error',
                 'message': str(e),
