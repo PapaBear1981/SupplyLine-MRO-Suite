@@ -12,7 +12,7 @@ steps:
       - './backend'
     id: 'build-backend'
 
-  # Build frontend image with static backend URL
+  # Build frontend image (will be rebuilt later with actual backend URL)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -23,7 +23,7 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
       - '--build-arg'
-      - 'VITE_API_URL=${_BACKEND_URL}'
+      - 'VITE_API_URL=https://placeholder-backend-url.com'
       - './frontend'
     id: 'build-frontend'
     waitFor: ['build-backend']
@@ -150,12 +150,8 @@ steps:
 
 # Substitution variables (values supplied via gcloud or environment)
 substitutions:
-  _ENVIRONMENT: 'production'
   _REGION: 'us-west1'
   _CLOUDSQL_INSTANCE: 'gen-lang-client-0819985982:us-west1:supplyline-db'
-  # Dynamic URLs - will be determined during deployment
-  _BACKEND_URL: 'TBD'
-  _FRONTEND_URL: 'TBD'
 
 # Build options
 options:
