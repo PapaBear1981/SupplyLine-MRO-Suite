@@ -26,7 +26,7 @@ class Config:
 
             if db_host.startswith('/cloudsql/'):
                 # Unix socket connection for Cloud SQL
-                uri = f'postgresql+psycopg2://{db_user}:{db_password}@/{db_name}?host={db_host}'
+                uri = f'postgresql+psycopg://{db_user}:{db_password}@/{db_name}?host={db_host}'
                 # Log URI with masked password
                 masked_uri = uri.replace(db_password, '***') if db_password else uri
                 logger.info(f"Generated Cloud SQL URI: {masked_uri}")
@@ -34,7 +34,7 @@ class Config:
 
             # TCP connection
             db_port = os.environ.get('DB_PORT', '5432')
-            uri = f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+            uri = f'postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
             # Log URI with masked password
             masked_uri = uri.replace(db_password, '***') if db_password else uri
             logger.info(f"Generated TCP URI: {masked_uri}")
