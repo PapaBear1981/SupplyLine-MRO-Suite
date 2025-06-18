@@ -229,6 +229,21 @@ def register_routes(app):
     # Register cycle count routes
     register_cycle_count_routes(app)
 
+    # Migration endpoint for fixing database schema
+    @app.route('/api/admin/migrate-database', methods=['POST'])
+    @require_admin
+    def migrate_database():
+        """Admin-only endpoint to run database migrations"""
+        try:
+            from create_missing_tables import run_migration_web
+            result = run_migration_web()
+            return jsonify(result), 200 if result['status'] == 'success' else 500
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Migration endpoint error: {str(e)}'
+            }), 500
+
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
     @app.require_database

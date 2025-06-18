@@ -144,5 +144,21 @@ def main():
         traceback.print_exc()
         sys.exit(1)
 
+def run_migration_web():
+    """Web-accessible function to run the migration"""
+    try:
+        success = create_missing_tables()
+        if success:
+            return {"status": "success", "message": "Migration completed successfully!"}
+        else:
+            return {"status": "error", "message": "Migration failed!"}
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": f"Fatal error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     main()
