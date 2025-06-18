@@ -115,36 +115,25 @@ def create_app():
     def init_database_lazy():
         """Check if database is initialized by testing connection and ensuring models are available."""
         try:
-            # For Cloud Run, use direct engine connection with proper pooling
-            from sqlalchemy import text, create_engine
-            from config import Config
+            # Use the existing db instance from the app context
+            from sqlalchemy import text
 
-            # Create engine with proper Cloud Run settings
-            database_uri = Config.get_database_uri()
-            engine_options = Config.get_engine_options()
-            # Add pool_pre_ping for Cloud Run reliability
-            engine_options['pool_pre_ping'] = True
-
-            engine = create_engine(database_uri, **engine_options)
-
-            # Test basic connectivity with context manager
-            with engine.connect() as conn:
+            # Simple connectivity test using existing db connection
+            with app.app_context():
                 # Test basic database connectivity
-                result = conn.execute(text('SELECT 1'))
-                logger.debug("Raw database connectivity check passed")
+                result = db.session.execute(text('SELECT 1'))
+                logger.debug("Database connectivity check passed")
 
                 # Test that users table exists and is accessible
                 try:
-                    result = conn.execute(text('SELECT COUNT(*) FROM users'))
+                    result = db.session.execute(text('SELECT COUNT(*) FROM users'))
                     user_count = result.scalar()
                     logger.debug(f"Database connectivity check passed. User count: {user_count}")
                 except Exception as table_error:
                     logger.warning(f"Users table not accessible: {table_error}")
                     # Table might not exist yet, but connection works
 
-            # Clean up engine
-            engine.dispose()
-            return True
+                return True
 
         except Exception as e:
             logger.warning(f"Database connectivity check failed: {e}")
