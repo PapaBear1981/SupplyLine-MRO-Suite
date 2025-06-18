@@ -244,6 +244,20 @@ def register_routes(app):
                 'message': f'Migration endpoint error: {str(e)}'
             }), 500
 
+    # Emergency migration endpoint (no auth required for emergency use)
+    @app.route('/api/emergency-migrate', methods=['POST'])
+    def emergency_migrate():
+        """Emergency migration endpoint to fix database schema issues"""
+        try:
+            from emergency_migration import run_emergency_migration
+            result = run_emergency_migration()
+            return jsonify(result), 200 if result['status'] == 'success' else 500
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Emergency migration error: {str(e)}'
+            }), 500
+
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
     @app.require_database
