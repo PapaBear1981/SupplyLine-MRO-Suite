@@ -70,18 +70,23 @@ def register_calibration_routes(app):
             # Get days parameter (default to 30 days)
             days = request.args.get('days', 30, type=int)
 
-            # Calculate the date threshold
-            now = datetime.now()
-            threshold_date = now + timedelta(days=days)
+            try:
+                # Calculate the date threshold
+                now = datetime.now()
+                threshold_date = now + timedelta(days=days)
 
-            # Find tools that require calibration and are due within the specified days
-            # Use the calibration_status field to ensure consistency across the application
-            tools = Tool.query.filter(
-                Tool.requires_calibration == True,
-                Tool.next_calibration_date.isnot(None),
-                Tool.calibration_status == 'due_soon' if days == 30 else
-                    ((Tool.next_calibration_date <= threshold_date) & (Tool.next_calibration_date >= now))
-            ).all()
+                # Find tools that require calibration and are due within the specified days
+                # Use the calibration_status field to ensure consistency across the application
+                tools = Tool.query.filter(
+                    Tool.requires_calibration == True,
+                    Tool.next_calibration_date.isnot(None),
+                    Tool.calibration_status == 'due_soon' if days == 30 else
+                        ((Tool.next_calibration_date <= threshold_date) & (Tool.next_calibration_date >= now))
+                ).all()
+            except Exception as column_error:
+                logger.warning(f"Calibration columns might not exist: {column_error}")
+                # Return empty list if columns don't exist
+                tools = []
 
             # Log the query results for debugging
             logger.info(f"Found {len(tools)} tools due for calibration in the next {days} days", extra={
@@ -90,14 +95,6 @@ def register_calibration_routes(app):
                 'tools_found': len(tools),
                 'tool_ids': [tool.id for tool in tools]
             })
-
-            for tool in tools:
-                logger.debug("Tool due for calibration", extra={
-                    'tool_id': tool.id,
-                    'tool_number': tool.tool_number,
-                    'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None,
-                    'calibration_status': tool.calibration_status
-                })
 
             return jsonify([tool.to_dict() for tool in tools]), 200
 
@@ -115,15 +112,20 @@ def register_calibration_routes(app):
     @require_tool_manager
     def get_calibrations_overdue():
         try:
-            # Calculate the current date
-            now = datetime.utcnow()
+            try:
+                # Calculate the current date
+                now = datetime.utcnow()
 
-            # Find tools that require calibration and are overdue
-            tools = Tool.query.filter(
-                Tool.requires_calibration == True,
-                Tool.next_calibration_date.isnot(None),
-                Tool.next_calibration_date < now
-            ).all()
+                # Find tools that require calibration and are overdue
+                tools = Tool.query.filter(
+                    Tool.requires_calibration == True,
+                    Tool.next_calibration_date.isnot(None),
+                    Tool.next_calibration_date < now
+                ).all()
+            except Exception as column_error:
+                logger.warning(f"Calibration columns might not exist: {column_error}")
+                # Return empty list if columns don't exist
+                tools = []
 
             return jsonify([tool.to_dict() for tool in tools]), 200
 

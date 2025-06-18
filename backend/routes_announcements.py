@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def register_announcement_routes(app):
     # Get all announcements
     @app.route('/api/announcements', methods=['GET'])
+    @require_auth
     def get_announcements():
         try:
             # Get pagination parameters

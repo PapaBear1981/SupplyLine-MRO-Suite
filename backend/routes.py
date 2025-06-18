@@ -249,13 +249,19 @@ def register_routes(app):
             return jsonify({'error': 'An error occurred while fetching chemicals that need reordering'}), 500
 
     @app.route('/api/chemicals/on-order', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     @handle_errors
     def chemicals_on_order_direct_route():
-        logger.info(f"Chemicals on order requested by user {session.get('user_id')}")
+        from flask import g
+        logger.info(f"Chemicals on order requested by user {g.current_user_id}")
 
-        # Get chemicals that are on order
-        chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
+        try:
+            # Get chemicals that are on order - handle missing column gracefully
+            chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
+        except Exception as e:
+            logger.warning(f"reorder_status column might not exist: {e}")
+            # Return empty list if column doesn't exist
+            chemicals = []
 
         # Convert to list of dictionaries
         result = [c.to_dict() for c in chemicals]
@@ -2034,40 +2040,57 @@ def register_routes(app):
             # Generate JWT token
             token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
 
-            # Get user permissions
-            permissions = user.get_permissions()
+            # Get user permissions and data safely
+            try:
+                permissions = user.get_permissions()
+                user_data = user.to_dict(include_roles=True, include_permissions=True)
+            except Exception as e:
+                # If RBAC access fails, rollback and start fresh transaction
+                logger.warning(f"RBAC access failed during login, using fallback: {e}")
+                db.session.rollback()
 
-            # Create response with user data and token
-            user_data = user.to_dict(include_roles=True, include_permissions=True)
+                # Get basic user data without roles/permissions
+                permissions = user.get_permissions()  # This has try-catch built in
+                user_data = user.to_dict(include_roles=False, include_permissions=False)
+                user_data['permissions'] = permissions
+                user_data['roles'] = []
+
             user_data['token'] = token
-
             response = make_response(jsonify(user_data))
 
-            # Handle remember me
+            # Handle remember me in separate transaction
             if data.get('remember_me'):
-                # Generate remember token
-                remember_token = user.generate_remember_token()
+                try:
+                    # Generate remember token
+                    remember_token = user.generate_remember_token()
+                    db.session.commit()
+
+                    # Set cookies
+                    response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
+                    response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
+                except Exception as e:
+                    logger.warning(f"Remember token generation failed: {e}")
+                    db.session.rollback()
+
+            # Log the login in separate transaction
+            try:
+                activity = UserActivity(
+                    user_id=user.id,
+                    activity_type='login',
+                    description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
+
+                log = AuditLog(
+                    action_type='user_login',
+                    action_details=f'User {user.id} ({user.name}) logged in'
+                )
+                db.session.add(log)
                 db.session.commit()
-
-                # Set cookies
-                response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
-                response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
-
-            # Log the login
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login',
-                description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            log = AuditLog(
-                action_type='user_login',
-                action_details=f'User {user.id} ({user.name}) logged in'
-            )
-            db.session.add(log)
-            db.session.commit()
+            except Exception as e:
+                logger.warning(f"Login logging failed: {e}")
+                db.session.rollback()
 
             return response
 
@@ -2629,7 +2652,7 @@ def register_routes(app):
         return jsonify({'message': 'Password updated successfully'}), 200
 
     @app.route('/api/user/activity', methods=['GET'])
-    @login_required
+    @require_auth
     def get_user_activity():
         from flask import g
         user_id = g.current_user_id
@@ -2710,7 +2733,7 @@ def register_routes(app):
         return jsonify([]), 200
 
     @app.route('/api/checkouts/user', methods=['GET'])
-    @login_required
+    @require_auth
     def get_user_checkouts():
         # Get the current user's checkouts
         from flask import g
@@ -2731,35 +2754,39 @@ def register_routes(app):
         } for c in checkouts]), 200
 
     @app.route('/api/checkouts/overdue', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_overdue_checkouts():
-        # Get all overdue checkouts (expected_return_date < current date and not returned)
-        now = datetime.now()
-        overdue_checkouts = Checkout.query.filter(
-            Checkout.return_date.is_(None),
-            Checkout.expected_return_date < now
-        ).all()
+        try:
+            # Get all overdue checkouts (expected_return_date < current date and not returned)
+            now = datetime.now()
+            overdue_checkouts = Checkout.query.filter(
+                Checkout.return_date.is_(None),
+                Checkout.expected_return_date < now
+            ).all()
 
-        result = []
-        for c in overdue_checkouts:
-            # Calculate days overdue
-            expected_date = c.expected_return_date
-            days_overdue = (now - expected_date).days if expected_date else 0
+            result = []
+            for c in overdue_checkouts:
+                # Calculate days overdue
+                expected_date = c.expected_return_date
+                days_overdue = (now - expected_date).days if expected_date else 0
 
-            result.append({
-                'id': c.id,
-                'tool_id': c.tool_id,
-                'tool_number': c.tool.tool_number if c.tool else 'Unknown',
-                'serial_number': c.tool.serial_number if c.tool else 'Unknown',
-                'description': c.tool.description if c.tool else '',
-                'user_id': c.user_id,
-                'user_name': c.user.name if c.user else 'Unknown',
-                'checkout_date': c.checkout_date.isoformat(),
-                'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
-                'days_overdue': days_overdue
-            })
+                result.append({
+                    'id': c.id,
+                    'tool_id': c.tool_id,
+                    'tool_number': c.tool.tool_number if c.tool else 'Unknown',
+                    'serial_number': c.tool.serial_number if c.tool else 'Unknown',
+                    'description': c.tool.description if c.tool else '',
+                    'user_id': c.user_id,
+                    'user_name': c.user.name if c.user else 'Unknown',
+                    'checkout_date': c.checkout_date.isoformat(),
+                    'expected_return_date': c.expected_return_date.isoformat() if c.expected_return_date else None,
+                    'days_overdue': days_overdue
+                })
 
-        return jsonify(result), 200
+            return jsonify(result), 200
+        except Exception as e:
+            logger.error(f"Error getting overdue checkouts: {str(e)}")
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/analytics/usage', methods=['GET'])
     @tool_manager_required

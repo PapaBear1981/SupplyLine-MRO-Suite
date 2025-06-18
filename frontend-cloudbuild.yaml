@@ -1,0 +1,58 @@
+steps:
+  # Build frontend image with correct backend URL
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - './frontend/Dockerfile'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
+      - '--build-arg'
+      - 'VITE_API_URL=https://supplylinemrosuite-454313121816.us-west1.run.app'
+      - './frontend'
+    id: 'build-frontend'
+
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
+    id: 'push-frontend'
+    waitFor: ['build-frontend']
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'supplyline-frontend-production'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'
+      - '--region'
+      - 'us-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '80'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '0.5'
+      - '--max-instances'
+      - '5'
+    id: 'deploy-frontend'
+    waitFor: ['push-frontend']
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout
+timeout: '600s'
+
+# Images to be pushed to Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/supplyline-frontend:latest'

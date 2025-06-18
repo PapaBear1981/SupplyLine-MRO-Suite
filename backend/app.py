@@ -351,6 +351,15 @@ def create_app():
             # Dispose of the engine
             engine.dispose()
 
+            # Run database migration to add missing columns
+            try:
+                from migrate_missing_columns import migrate_database
+                migrate_database()
+                logger.info("✓ Database migration completed successfully")
+            except Exception as migration_error:
+                logger.warning(f"Database migration failed: {migration_error}")
+                # Continue anyway - basic functionality might still work
+
             # Now properly initialize SQLAlchemy models within app context
             try:
                 from models import db

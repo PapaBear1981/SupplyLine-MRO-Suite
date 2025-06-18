@@ -163,10 +163,15 @@ class User(db.Model):
         """Get all permissions for this user from all roles"""
         permissions = set()
 
-        # Add permissions from roles
-        for role in self.roles:
-            for permission in role.permissions:
-                permissions.add(permission.name)
+        try:
+            # Add permissions from roles
+            for role in self.roles:
+                for permission in role.permissions:
+                    permissions.add(permission.name)
+        except Exception as e:
+            # If RBAC tables don't exist yet, skip role-based permissions
+            # This allows login to work while database is being set up
+            pass
 
         # Admin users get additional legacy permissions
         if self.is_admin:
@@ -241,7 +246,11 @@ class User(db.Model):
         }
 
         if include_roles:
-            result['roles'] = [role.to_dict() for role in self.roles]
+            try:
+                result['roles'] = [role.to_dict() for role in self.roles]
+            except Exception as e:
+                # If RBAC tables don't exist yet, return empty roles list
+                result['roles'] = []
 
         if include_permissions:
             result['permissions'] = self.get_permissions()
