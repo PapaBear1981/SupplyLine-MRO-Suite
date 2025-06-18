@@ -42,7 +42,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'supplyline-backend-production'
+      - 'supplylinemrosuite'
       - '--image'
       - 'gcr.io/$PROJECT_ID/supplyline-backend:$BUILD_ID'
       - '--region'
@@ -73,7 +73,7 @@ steps:
     args:
       - '-c'
       - |
-        BACKEND_URL=$$(gcloud run services describe supplyline-backend-production --region=us-west1 --format="value(status.url)")
+        BACKEND_URL=$$(gcloud run services describe supplylinemrosuite --region=us-west1 --format="value(status.url)")
         echo "Backend URL: $$BACKEND_URL"
         echo "$$BACKEND_URL" > /workspace/backend_url.txt
     id: 'get-backend-url'
@@ -142,7 +142,7 @@ steps:
         echo "Frontend URL: $$FRONTEND_URL"
 
         # Update backend with correct CORS configuration
-        gcloud run services update supplyline-backend-production \
+        gcloud run services update supplylinemrosuite \
           --region=us-west1 \
           --update-env-vars="CORS_ORIGINS=$$FRONTEND_URL"
     id: 'update-backend-cors'
