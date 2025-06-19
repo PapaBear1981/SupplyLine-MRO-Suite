@@ -4,18 +4,25 @@ const AuthService = {
   // Login user
   login: async (username, password) => {
     try {
+      console.log('🔐 Attempting login for:', username);
+      console.log('🔗 Login URL will be:', api.defaults.baseURL + '/auth/login');
+
       const response = await api.post('/auth/login', {
         employee_number: username,
         password
       });
 
+      console.log('✅ Login successful:', response.data);
+
       // Store JWT token in localStorage
       if (response.data.token) {
         localStorage.setItem('authToken', response.data.token);
+        console.log('💾 Token stored in localStorage');
       }
 
       return response.data;
     } catch (error) {
+      console.error('❌ Login failed:', error.response?.data || error.message);
       throw error;
     }
   },

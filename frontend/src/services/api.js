@@ -14,12 +14,13 @@ const getApiBaseUrl = () => {
   }
 };
 
-// Log the API base URL for debugging (only in development or when debug mode is enabled)
+// Log the API base URL for debugging (always log in production for troubleshooting)
 const apiBaseUrl = getApiBaseUrl();
-if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_MODE === 'true') {
-  console.log('API Base URL:', apiBaseUrl);
-  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-}
+console.log('🔧 API Configuration Debug:');
+console.log('  - VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('  - API Base URL:', apiBaseUrl);
+console.log('  - Environment:', import.meta.env.MODE);
+console.log('  - Is DEV:', import.meta.env.DEV);
 
 // Create an axios instance with default config
 const api = axios.create({
