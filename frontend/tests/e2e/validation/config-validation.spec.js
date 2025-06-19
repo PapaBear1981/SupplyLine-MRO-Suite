@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+// Use a local HTML file instead of an external URL
+const examplePageUrl = new URL('../fixtures/example.html', import.meta.url);
+
 test.describe('Configuration Validation', () => {
   test('should validate Playwright configuration', async ({ page }) => {
     // This test validates that Playwright is properly configured
     // without requiring the application servers to be running
     
     // Test basic page functionality
-    await page.goto('https://example.com');
+    await page.goto(examplePageUrl.href);
     await expect(page).toHaveTitle(/Example Domain/);
     
     // Test that we can interact with elements
@@ -52,7 +55,7 @@ test.describe('Configuration Validation', () => {
 
   test('should validate browser capabilities', async ({ page, browserName }) => {
     // Test browser-specific capabilities
-    await page.goto('https://example.com');
+    await page.goto(examplePageUrl.href);
     
     // Test JavaScript execution
     const userAgent = await page.evaluate(() => navigator.userAgent);
@@ -83,11 +86,11 @@ test.describe('Configuration Validation', () => {
       requests.push(request.url());
     });
     
-    await page.goto('https://example.com');
+    await page.goto(examplePageUrl.href);
     
     // Should have captured at least one request
     expect(requests.length).toBeGreaterThan(0);
-    expect(requests[0]).toContain('example.com');
+    expect(requests[0]).toContain('example.html');
     
     console.log('✅ Network interception is working!');
   });
