@@ -88,6 +88,34 @@ jobs:
         path: frontend/test-results/
         retention-days: 30
 
+    - name: Post Playwright summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const resultsPath = 'frontend/test-results/results.json';
+          let body = '';
+          if (fs.existsSync(resultsPath)) {
+            const data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+            const total = data.total || 0;
+            const passed = data.passed || 0;
+            const failed = data.failed || 0;
+            body += `### Playwright Test Summary\n`;
+            body += `- **Passed:** ${passed}\n`;
+            body += `- **Failed:** ${failed}\n`;
+            body += `- **Total:** ${total}\n`;
+          } else {
+            body = 'Playwright results not found.';
+          }
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}#artifacts`;
+          body += `\n[Artifacts](${runUrl})`;
+          await github.rest.issues.createComment({
+            ...context.repo,
+            issue_number: context.issue.number,
+            body
+          });
+
   # Run tests on multiple browsers
   cross-browser-tests:
     timeout-minutes: 60
@@ -159,3 +187,40 @@ jobs:
         name: playwright-report-${{ matrix.browser }}
         path: frontend/playwright-report/
         retention-days: 30
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.browser }}
+        path: frontend/test-results/
+        retention-days: 30
+
+    - name: Post Playwright summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      env:
+        BROWSER: ${{ matrix.browser }}
+      with:
+        script: |
+          const fs = require('fs');
+          const resultsPath = 'frontend/test-results/results.json';
+          let body = '';
+          if (fs.existsSync(resultsPath)) {
+            const data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+            const total = data.total || 0;
+            const passed = data.passed || 0;
+            const failed = data.failed || 0;
+            body += `### Playwright Test Summary (${process.env.BROWSER})\n`;
+            body += `- **Passed:** ${passed}\n`;
+            body += `- **Failed:** ${failed}\n`;
+            body += `- **Total:** ${total}\n`;
+          } else {
+            body = 'Playwright results not found.';
+          }
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}#artifacts`;
+          body += `\n[Artifacts](${runUrl})`;
+          await github.rest.issues.createComment({
+            ...context.repo,
+            issue_number: context.issue.number,
+            body
+          });
