@@ -151,10 +151,20 @@ through the Cloud SQL Auth proxy to create all tables and the default admin user
 If you ever need to run the initialization manually, start the Cloud SQL Proxy and
 execute the script:
 
+
 ```bash
 ./cloud_sql_proxy -instances=PROJECT_ID:REGION:supplyline-db=tcp:5432 &
 python backend/cloud_sql_init.py
 ```
+
+### 8. Create Sessions Table
+
+After the database is initialized, create the table used by Flask-Session:
+
+```bash
+curl -X POST "$BACKEND_URL/api/create-sessions-table"
+```
+
 
 ### 6. Deploy Using Cloud Run Templates
 
