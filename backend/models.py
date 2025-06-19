@@ -359,6 +359,9 @@ class Chemical(db.Model):
         # If the columns don't exist, we'll create them later with a migration
         pass
 
+    # Relationships
+    issuances = db.relationship('ChemicalIssuance', backref='chemical_ref', lazy='dynamic')
+
     def to_dict(self):
         result = {
             'id': self.id,

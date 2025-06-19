@@ -23,35 +23,54 @@ def register_chemical_routes(app):
         search = request.args.get('q')
         show_archived = request.args.get('archived', 'false').lower() == 'true'
 
-        # Start with base query
-        query = Chemical.query
-
-        # Filter by archived status if the column exists
         try:
-            if not show_archived:
-                query = query.filter(Chemical.is_archived.is_(False))
-        except AttributeError:
-            # If the column doesn't exist, we can't filter by it
-            logger.warning("is_archived column not found, skipping archived filter")
-            pass
+            # Use optimized function for better performance
+            filters = {
+                'show_archived': show_archived,
+                'category': category,
+                'status': status
+            }
 
-        # Apply filters if provided
-        if category:
-            query = query.filter(Chemical.category == category)
-        if status:
-            query = query.filter(Chemical.status == status)
-        if search:
-            query = query.filter(
-                db.or_(
-                    Chemical.part_number.ilike(f'%{search}%'),
-                    Chemical.lot_number.ilike(f'%{search}%'),
-                    Chemical.description.ilike(f'%{search}%'),
-                    Chemical.manufacturer.ilike(f'%{search}%')
-                )
-            )
+            if search:
+                # For search queries, we need to use regular query with filters
+                query = Chemical.query
 
-        # Execute query first
-        chemicals = query.all()
+                # Filter by archived status if the column exists
+                try:
+                    if not show_archived:
+                        query = query.filter(Chemical.is_archived.is_(False))
+                except AttributeError:
+                    logger.warning("is_archived column not found, skipping archived filter")
+                    pass
+
+                # Apply filters if provided
+                if category:
+                    query = query.filter(Chemical.category == category)
+                if status:
+                    query = query.filter(Chemical.status == status)
+
+                query = query.filter(
+                    db.or_(
+                        Chemical.part_number.ilike(f'%{search}%'),
+                        Chemical.lot_number.ilike(f'%{search}%'),
+                        Chemical.description.ilike(f'%{search}%'),
+                        Chemical.manufacturer.ilike(f'%{search}%')
+                    )
+                ).options(joinedload(Chemical.issuances))
+
+                chemicals = query.all()
+                logger.info(f"Found {len(chemicals)} chemicals matching search query")
+            else:
+                # Use optimized function for listing all chemicals
+                from utils.bulk_operations import get_chemicals_with_relationships
+                chemicals = get_chemicals_with_relationships(filters)
+                logger.info(f"Found {len(chemicals)} chemicals using optimized query")
+
+        except Exception as e:
+            logger.error(f"Error getting chemicals: {str(e)}")
+            # Fallback to basic query
+            chemicals = Chemical.query.all()
+            logger.warning(f"Falling back to basic query: {len(chemicals)} chemicals")
 
         # Batch update status based on expiration and stock level to avoid N+1 queries
         chemicals_to_update = []

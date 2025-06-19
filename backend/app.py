@@ -1037,6 +1037,31 @@ def create_app():
                 'error': 'Routes registration failed'
             }), 200
 
+    # Setup rate limiting for security (after routes are registered)
+    try:
+        from utils.rate_limiter import setup_rate_limiting
+        limiter = setup_rate_limiting(app)
+        if limiter:
+            logger.info("Rate limiting configured successfully")
+        else:
+            logger.warning("Rate limiting setup failed - continuing without rate limiting")
+    except Exception as e:
+        logger.error(f"Failed to setup rate limiting: {e}")
+        # Continue without rate limiting - not critical for basic functionality
+
+    # Setup performance monitoring (after routes are registered) - TEMPORARILY DISABLED FOR TESTING
+    # try:
+    #     from utils.performance_monitor import setup_performance_monitoring
+    #     monitor = setup_performance_monitoring(app)
+    #     if monitor:
+    #         logger.info("Performance monitoring configured successfully")
+    #     else:
+    #         logger.warning("Performance monitoring setup failed - continuing without monitoring")
+    # except Exception as e:
+    #     logger.error(f"Failed to setup performance monitoring: {e}")
+    #     # Continue without performance monitoring - not critical for basic functionality
+    logger.info("Performance monitoring temporarily disabled for testing")
+
     # Add security headers middleware
     @app.after_request
     def add_security_headers(response):

@@ -3,13 +3,117 @@ Comprehensive Input Validation Utilities
 
 This module provides validation schemas and functions for all data types
 used in the SupplyLine MRO Suite application.
+
+Enhanced for pre-deployment security improvements to handle malformed requests.
 """
 
 import re
 import html
+import json
 from datetime import datetime
+from flask import request, jsonify
 from utils.error_handler import ValidationError, validate_input
 
+
+def validate_request_size(max_size_mb=10):
+    """
+    Validate request size to prevent large payload attacks
+
+    Args:
+        max_size_mb: Maximum allowed request size in MB
+
+    Raises:
+        ValidationError: If request is too large
+    """
+    if request.content_length and request.content_length > max_size_mb * 1024 * 1024:
+        raise ValidationError(f"Request too large. Maximum size is {max_size_mb}MB")
+
+def validate_json_request():
+    """
+    Validate JSON request format and structure
+
+    Returns:
+        Parsed JSON data
+
+    Raises:
+        ValidationError: If JSON is malformed or missing
+    """
+    # Check content type
+    if not request.is_json:
+        if request.content_type and 'application/json' not in request.content_type:
+            raise ValidationError("Content-Type must be application/json")
+
+    # Validate request size first
+    validate_request_size()
+
+    try:
+        data = request.get_json(force=True)
+        if data is None:
+            raise ValidationError("Request body must contain valid JSON")
+
+        # Check for common malformed JSON patterns
+        if not isinstance(data, dict):
+            raise ValidationError("JSON request must be an object")
+
+        # Check for excessively nested objects (potential DoS)
+        _check_json_depth(data, max_depth=10)
+
+        return data
+
+    except json.JSONDecodeError as e:
+        raise ValidationError(f"Invalid JSON format: {str(e)}")
+    except UnicodeDecodeError as e:
+        raise ValidationError(f"Invalid character encoding: {str(e)}")
+
+def _check_json_depth(obj, current_depth=0, max_depth=10):
+    """
+    Check JSON object depth to prevent deeply nested DoS attacks
+
+    Args:
+        obj: Object to check
+        current_depth: Current nesting depth
+        max_depth: Maximum allowed depth
+
+    Raises:
+        ValidationError: If depth exceeds maximum
+    """
+    if current_depth > max_depth:
+        raise ValidationError(f"JSON nesting too deep. Maximum depth is {max_depth}")
+
+    if isinstance(obj, dict):
+        for value in obj.values():
+            _check_json_depth(value, current_depth + 1, max_depth)
+    elif isinstance(obj, list):
+        for item in obj:
+            _check_json_depth(item, current_depth + 1, max_depth)
+
+def validate_query_parameters(allowed_params=None, max_param_length=1000):
+    """
+    Validate URL query parameters
+
+    Args:
+        allowed_params: List of allowed parameter names (None = allow all)
+        max_param_length: Maximum length for parameter values
+
+    Raises:
+        ValidationError: If parameters are invalid
+    """
+    for key, value in request.args.items():
+        # Check parameter name length
+        if len(key) > 100:
+            raise ValidationError(f"Parameter name too long: {key}")
+
+        # Check parameter value length
+        if len(value) > max_param_length:
+            raise ValidationError(f"Parameter value too long for {key}")
+
+        # Check allowed parameters
+        if allowed_params and key not in allowed_params:
+            raise ValidationError(f"Unknown parameter: {key}")
+
+        # Basic XSS prevention in query params
+        if re.search(r'[<>"\']', value):
+            raise ValidationError(f"Invalid characters in parameter {key}")
 
 def sanitize_string(value, max_length=None, allow_html=False):
     """
@@ -409,3 +513,53 @@ def validate_cycle_count_batch_cross_fields(data):
         # Validate location for location selection
         if data.get('item_selection') == 'location' and ('location' not in data or not data['location']):
             raise ValidationError("location is required when item_selection is 'location'")
+
+
+def enhanced_validation(schema_name=None, allowed_params=None):
+    """
+    Decorator for enhanced request validation
+
+    Args:
+        schema_name: Name of validation schema to apply to JSON body
+        allowed_params: List of allowed query parameters
+
+    Returns:
+        Decorator function
+    """
+    from functools import wraps
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                # Validate query parameters
+                if request.args:
+                    validate_query_parameters(allowed_params)
+
+                # Validate JSON body if present
+                if request.method in ['POST', 'PUT', 'PATCH'] and request.content_length:
+                    data = validate_json_request()
+
+                    # Apply schema validation if specified
+                    if schema_name:
+                        data = validate_schema(data, schema_name)
+                        # Replace request data with validated data
+                        request.validated_data = data
+
+                return func(*args, **kwargs)
+
+            except ValidationError as e:
+                return jsonify({
+                    'error': 'Validation Error',
+                    'message': str(e),
+                    'type': 'validation_error'
+                }), 400
+            except Exception as e:
+                return jsonify({
+                    'error': 'Request Processing Error',
+                    'message': 'Invalid request format',
+                    'type': 'request_error'
+                }), 400
+
+        return wrapper
+    return decorator

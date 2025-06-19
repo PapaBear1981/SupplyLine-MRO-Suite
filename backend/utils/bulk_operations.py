@@ -174,27 +174,49 @@ def get_dashboard_stats_optimized():
     Get dashboard statistics using optimized queries instead of multiple separate queries
     """
     try:
-        # Single query to get all counts
-        stats = db.session.query(
+        from models import User, Checkout
+
+        # Single query to get tool counts
+        tool_stats = db.session.query(
             func.count(Tool.id).label('total_tools'),
-            func.sum(func.case([(Tool.status == 'available', 1)], else_=0)).label('available_tools'),
-            func.sum(func.case([(Tool.status == 'checked_out', 1)], else_=0)).label('checked_out_tools'),
-            func.sum(func.case([(Tool.calibration_status == 'overdue', 1)], else_=0)).label('overdue_calibrations')
+            func.sum(func.case((Tool.status == 'available', 1), else_=0)).label('available_tools'),
+            func.sum(func.case((Tool.status == 'checked_out', 1), else_=0)).label('checked_out_tools'),
+            func.sum(func.case((Tool.calibration_status == 'overdue', 1), else_=0)).label('overdue_calibrations')
+        ).first()
+
+        # Single query to get user counts
+        user_stats = db.session.query(
+            func.count(User.id).label('total_users'),
+            func.sum(func.case((User.is_active == True, 1), else_=0)).label('active_users')
+        ).first()
+
+        # Single query to get checkout counts
+        checkout_stats = db.session.query(
+            func.count(Checkout.id).label('total_checkouts'),
+            func.sum(func.case((Checkout.return_date.is_(None), 1), else_=0)).label('active_checkouts')
         ).first()
 
         # Get chemical stats
         chemical_stats = db.session.query(
             func.count(Chemical.id).label('total_chemicals'),
-            func.sum(func.case([(Chemical.status == 'expired', 1)], else_=0)).label('expired_chemicals'),
-            func.sum(func.case([(Chemical.status == 'low_stock', 1)], else_=0)).label('low_stock_chemicals')
+            func.sum(func.case((Chemical.status == 'expired', 1), else_=0)).label('expired_chemicals'),
+            func.sum(func.case((Chemical.status == 'low_stock', 1), else_=0)).label('low_stock_chemicals')
         ).filter(Chemical.is_archived.is_(False)).first()
 
         return {
+            'users': {
+                'total': user_stats.total_users or 0,
+                'active': user_stats.active_users or 0
+            },
             'tools': {
-                'total': stats.total_tools or 0,
-                'available': stats.available_tools or 0,
-                'checked_out': stats.checked_out_tools or 0,
-                'overdue_calibrations': stats.overdue_calibrations or 0
+                'total': tool_stats.total_tools or 0,
+                'available': tool_stats.available_tools or 0,
+                'checked_out': tool_stats.checked_out_tools or 0,
+                'overdue_calibrations': tool_stats.overdue_calibrations or 0
+            },
+            'checkouts': {
+                'total': checkout_stats.total_checkouts or 0,
+                'active': checkout_stats.active_checkouts or 0
             },
             'chemicals': {
                 'total': chemical_stats.total_chemicals or 0,

@@ -23,7 +23,7 @@ from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
 from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
-from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
+from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities, get_tools_with_relationships
 import logging
 
 logger = logging.getLogger(__name__)
@@ -517,28 +517,46 @@ def register_routes(app):
     @app.require_database
     @require_admin
     def get_admin_dashboard_stats():
-        print("Admin dashboard stats endpoint called")
-        print(f"Session: {session}")
-        print(f"User ID in session: {session.get('user_id')}")
-        print(f"Is admin in session: {session.get('is_admin')}")
+        logger.info("Admin dashboard stats endpoint called")
+        logger.debug(f"Session: {session}")
+        logger.debug(f"User ID in session: {session.get('user_id')}")
+        logger.debug(f"Is admin in session: {session.get('is_admin')}")
 
-        # Get counts from various tables
-        user_count = User.query.count()
-        print(f"User count: {user_count}")
-        active_user_count = User.query.filter_by(is_active=True).count()
-        print(f"Active user count: {active_user_count}")
-        tool_count = Tool.query.count()
-        print(f"Tool count: {tool_count}")
-        available_tool_count = Tool.query.filter_by(status='available').count()
-        print(f"Available tool count: {available_tool_count}")
-        checkout_count = Checkout.query.count()
-        print(f"Checkout count: {checkout_count}")
-        active_checkout_count = Checkout.query.filter(Checkout.return_date.is_(None)).count()
-        print(f"Active checkout count: {active_checkout_count}")
+        # Use optimized dashboard stats function for better performance
+        try:
+            optimized_stats = get_dashboard_stats_optimized()
+            logger.info("Successfully retrieved optimized dashboard stats")
+        except Exception as e:
+            logger.error(f"Error getting optimized stats, falling back to individual queries: {str(e)}")
+            # Fallback to individual queries if optimized version fails
+            user_count = User.query.count()
+            active_user_count = User.query.filter_by(is_active=True).count()
+            tool_count = Tool.query.count()
+            available_tool_count = Tool.query.filter_by(status='available').count()
+            checkout_count = Checkout.query.count()
+            active_checkout_count = Checkout.query.filter(Checkout.return_date.is_(None)).count()
+
+            optimized_stats = {
+                'tools': {
+                    'total': tool_count,
+                    'available': available_tool_count,
+                    'checked_out': tool_count - available_tool_count,
+                    'overdue_calibrations': 0
+                },
+                'chemicals': {
+                    'total': 0,
+                    'expired': 0,
+                    'low_stock': 0
+                }
+            }
 
         # Get pending registration requests count
         from models import RegistrationRequest
-        pending_requests_count = RegistrationRequest.query.filter_by(status='pending').count()
+        try:
+            pending_requests_count = RegistrationRequest.query.filter_by(status='pending').count()
+        except Exception as e:
+            logger.warning(f"Could not get pending registration requests: {str(e)}")
+            pending_requests_count = 0
 
         # Get recent activity
         recent_logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(10).all()
@@ -579,13 +597,17 @@ def register_routes(app):
 
         return jsonify({
             'counts': {
-                'users': user_count,
-                'activeUsers': active_user_count,
-                'tools': tool_count,
-                'availableTools': available_tool_count,
-                'checkouts': checkout_count,
-                'activeCheckouts': active_checkout_count,
-                'pendingRegistrations': pending_requests_count
+                'users': optimized_stats['users']['total'],
+                'activeUsers': optimized_stats['users']['active'],
+                'tools': optimized_stats['tools']['total'],
+                'availableTools': optimized_stats['tools']['available'],
+                'checkouts': optimized_stats['checkouts']['total'],
+                'activeCheckouts': optimized_stats['checkouts']['active'],
+                'pendingRegistrations': pending_requests_count,
+                'chemicals': optimized_stats['chemicals']['total'],
+                'expiredChemicals': optimized_stats['chemicals']['expired'],
+                'lowStockChemicals': optimized_stats['chemicals']['low_stock'],
+                'overdueCalibrations': optimized_stats['tools']['overdue_calibrations']
             },
             'recentActivity': [{
                 'id': log.id,
@@ -766,26 +788,22 @@ def register_routes(app):
     @app.route('/api/tools', methods=['GET'])
     @require_auth
     def tools_list_route():
-        # GET - List all tools
-        print("Received request for all tools")
+        # GET - List all tools with optimized queries
+        logger.info("Received request for all tools")
 
         # Check if there's a search query
-        print(f"Request method: {request.method}")
-        print(f"Request URL: {request.url}")
-        print(f"Request args: {request.args}")
-        print(f"Request args type: {type(request.args)}")
-        print(f"Request args keys: {list(request.args.keys())}")
-
         search_query = request.args.get('q')
-        print(f"Search query: {search_query}")
-        print(f"Search query type: {type(search_query)}")
+        logger.debug(f"Search query: {search_query}")
 
-        if search_query:
-            print(f"Searching for tools with query: {search_query}")
-            search_term = f'%{search_query.lower()}%'
-            print(f"Search term: {search_term}")
+        try:
+            # Use optimized function for better performance
+            filters = {}
 
-            try:
+            if search_query:
+                logger.info(f"Searching for tools with query: {search_query}")
+                search_term = f'%{search_query.lower()}%'
+
+                # For search queries, we need to use regular query with filters
                 tools = Tool.query.filter(
                     db.or_(
                         db.func.lower(Tool.tool_number).like(search_term),
@@ -793,24 +811,35 @@ def register_routes(app):
                         db.func.lower(Tool.description).like(search_term),
                         db.func.lower(Tool.location).like(search_term)
                     )
+                ).options(
+                    joinedload(Tool.checkouts.and_(Checkout.return_date.is_(None)))
                 ).all()
-                print(f"Found {len(tools)} tools matching search query")
-            except Exception as e:
-                print(f"Error during search: {str(e)}")
-                tools = Tool.query.all()
-                print(f"Falling back to all tools: {len(tools)}")
-        else:
+                logger.info(f"Found {len(tools)} tools matching search query")
+            else:
+                # Use optimized function for listing all tools
+                tools = get_tools_with_relationships(filters)
+                logger.info(f"Found {len(tools)} tools using optimized query")
+
+        except Exception as e:
+            logger.error(f"Error getting tools: {str(e)}")
+            # Fallback to basic query
             tools = Tool.query.all()
-            print(f"Found {len(tools)} tools")
+            logger.warning(f"Falling back to basic query: {len(tools)} tools")
 
-        # Get checkout status for each tool
+        # Get checkout status for each tool - optimized to avoid N+1 queries
         tool_status = {}
-        active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
-        print(f"Found {len(active_checkouts)} active checkouts")
-
-        for checkout in active_checkouts:
-            tool_status[checkout.tool_id] = 'checked_out'
-            print(f"Tool {checkout.tool_id} is checked out")
+        if hasattr(tools[0], 'checkouts') if tools else False:
+            # If we have eager loaded checkouts, use them
+            for tool in tools:
+                active_checkouts = [c for c in tool.checkouts if c.return_date is None]
+                if active_checkouts:
+                    tool_status[tool.id] = 'checked_out'
+        else:
+            # Fallback to separate query if eager loading not available
+            active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
+            logger.debug(f"Found {len(active_checkouts)} active checkouts")
+            for checkout in active_checkouts:
+                tool_status[checkout.tool_id] = 'checked_out'
 
         result = [{
             'id': t.id,
@@ -830,7 +859,7 @@ def register_routes(app):
             'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
         } for t in tools]
 
-        print(f"Returning {len(result)} tools")
+        logger.info(f"Returning {len(result)} tools")
         return jsonify(result)
 
     @app.route('/api/tools', methods=['POST'])

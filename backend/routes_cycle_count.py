@@ -389,6 +389,7 @@ def update_item_from_count_result(cycle_count_item, count_result):
 def register_cycle_count_routes(app):
     # Get all cycle count schedules
     @app.route('/api/cycle-counts/schedules', methods=['GET'])
+    @app.route('/api/cycle-count/schedules', methods=['GET'])  # Add alias for compatibility
     @require_tool_manager
     def get_cycle_count_schedules():
         try:
