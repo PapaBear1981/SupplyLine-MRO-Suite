@@ -5,9 +5,9 @@ from models_cycle_count import (
     CycleCountResult, CycleCountAdjustment
 )
 from datetime import datetime
-from functools import wraps
 import random
 import logging
+from utils.auth_decorators import require_tool_manager
 from utils.validation import validate_schema
 
 # Helper function to create cycle count notifications
@@ -385,51 +385,11 @@ def update_item_from_count_result(cycle_count_item, count_result):
         print(f"Error updating item from count result: {str(e)}")
         # Don't raise the exception to avoid breaking the count submission
 
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Allow access for admins or Materials department users
-            if not (user.is_admin or user.department == 'Materials'):
-                return jsonify({'error': 'Tool management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
 
 def register_cycle_count_routes(app):
     # Get all cycle count schedules
     @app.route('/api/cycle-counts/schedules', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_schedules():
         try:
             # Get query parameters
@@ -454,7 +414,7 @@ def register_cycle_count_routes(app):
 
     # Get a specific cycle count schedule
     @app.route('/api/cycle-counts/schedules/<int:id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_schedule(id):
         try:
             # Get query parameters
@@ -472,7 +432,7 @@ def register_cycle_count_routes(app):
 
     # Create a new cycle count schedule
     @app.route('/api/cycle-counts/schedules', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def create_cycle_count_schedule():
         try:
             # Get request data
@@ -513,7 +473,7 @@ def register_cycle_count_routes(app):
 
     # Update a cycle count schedule
     @app.route('/api/cycle-counts/schedules/<int:id>', methods=['PUT'])
-    @tool_manager_required
+    @require_tool_manager
     def update_cycle_count_schedule(id):
         try:
             # Get request data
@@ -555,7 +515,7 @@ def register_cycle_count_routes(app):
 
     # Delete a cycle count schedule
     @app.route('/api/cycle-counts/schedules/<int:id>', methods=['DELETE'])
-    @tool_manager_required
+    @require_tool_manager
     def delete_cycle_count_schedule(id):
         try:
             # Get schedule
@@ -598,7 +558,7 @@ def register_cycle_count_routes(app):
 
     # Get all cycle count batches
     @app.route('/api/cycle-counts/batches', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_batches():
         try:
             # Get query parameters
@@ -626,7 +586,7 @@ def register_cycle_count_routes(app):
 
     # Get a specific cycle count batch
     @app.route('/api/cycle-counts/batches/<int:id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_batch(id):
         try:
             # Get query parameters
@@ -644,7 +604,7 @@ def register_cycle_count_routes(app):
 
     # Create a new cycle count batch
     @app.route('/api/cycle-counts/batches', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def create_cycle_count_batch():
         try:
             # Get request data
@@ -705,7 +665,7 @@ def register_cycle_count_routes(app):
 
     # Update a cycle count batch
     @app.route('/api/cycle-counts/batches/<int:id>', methods=['PUT'])
-    @tool_manager_required
+    @require_tool_manager
     def update_cycle_count_batch(id):
         try:
             # Get request data
@@ -766,7 +726,7 @@ def register_cycle_count_routes(app):
 
     # Delete a cycle count batch
     @app.route('/api/cycle-counts/batches/<int:id>', methods=['DELETE'])
-    @tool_manager_required
+    @require_tool_manager
     def delete_cycle_count_batch(id):
         try:
             # Get batch
@@ -819,7 +779,7 @@ def register_cycle_count_routes(app):
 
     # Get all cycle count items for a batch
     @app.route('/api/cycle-counts/batches/<int:batch_id>/items', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_items(batch_id):
         try:
             # Get query parameters
@@ -850,7 +810,7 @@ def register_cycle_count_routes(app):
 
     # Get a specific cycle count item
     @app.route('/api/cycle-counts/items/<int:id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_item(id):
         try:
             # Get query parameters
@@ -868,7 +828,7 @@ def register_cycle_count_routes(app):
 
     # Update a cycle count item
     @app.route('/api/cycle-counts/items/<int:id>', methods=['PUT'])
-    @tool_manager_required
+    @require_tool_manager
     def update_cycle_count_item(id):
         try:
             # Get request data
@@ -904,7 +864,7 @@ def register_cycle_count_routes(app):
 
     # Submit a count result for an item
     @app.route('/api/cycle-counts/items/<int:item_id>/count', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def submit_count_result(item_id):
         try:
             # Get request data
@@ -988,7 +948,7 @@ def register_cycle_count_routes(app):
 
     # Get all count results with discrepancies
     @app.route('/api/cycle-counts/discrepancies', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_count_discrepancies():
         try:
             # Get query parameters
@@ -1013,7 +973,7 @@ def register_cycle_count_routes(app):
 
     # Get a specific count result
     @app.route('/api/cycle-counts/results/<int:result_id>', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_count_result(result_id):
         try:
             # Get result
@@ -1032,7 +992,7 @@ def register_cycle_count_routes(app):
 
     # Approve and process a count adjustment
     @app.route('/api/cycle-counts/results/<int:result_id>/adjust', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def approve_count_adjustment(result_id):
         try:
             # Get request data
@@ -1135,7 +1095,7 @@ def register_cycle_count_routes(app):
 
     # Get cycle count statistics
     @app.route('/api/cycle-counts/stats', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_stats():
         try:
             # Get overall statistics
@@ -1194,7 +1154,7 @@ def register_cycle_count_routes(app):
 
     # Export cycle count batch data
     @app.route('/api/cycle-counts/batches/<int:batch_id>/export', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def export_cycle_count_batch(batch_id):
         try:
             from io import StringIO
@@ -1298,7 +1258,7 @@ def register_cycle_count_routes(app):
 
     # Import cycle count results
     @app.route('/api/cycle-counts/batches/<int:batch_id>/import', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def import_cycle_count_results(batch_id):
         try:
             import csv
@@ -1417,7 +1377,7 @@ def register_cycle_count_routes(app):
 
     # Get advanced cycle count analytics
     @app.route('/api/cycle-counts/analytics', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_cycle_count_analytics():
         try:
             from datetime import datetime, timedelta
@@ -1607,7 +1567,7 @@ def register_cycle_count_routes(app):
 
     # Export cycle count schedule data
     @app.route('/api/cycle-counts/schedules/<int:schedule_id>/export', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def export_cycle_count_schedule(schedule_id):
         try:
             from io import StringIO
@@ -1737,7 +1697,7 @@ def register_cycle_count_routes(app):
 
     # Export cycle count results with discrepancy information
     @app.route('/api/cycle-counts/results/export', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def export_cycle_count_results():
         try:
             from io import StringIO
@@ -1893,7 +1853,7 @@ def register_cycle_count_routes(app):
 
     # Import cycle count schedules
     @app.route('/api/cycle-counts/schedules/import', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def import_cycle_count_schedules():
         try:
             import csv
@@ -1997,7 +1957,7 @@ def register_cycle_count_routes(app):
 
     # Import cycle count batches
     @app.route('/api/cycle-counts/batches/import', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def import_cycle_count_batches():
         try:
             import csv
