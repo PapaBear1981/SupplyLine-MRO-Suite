@@ -575,6 +575,7 @@ def create_app():
                     'user_id': 1,
                     'employee_number': 'ADMIN001',
                     'is_admin': True,
+                    'department': 'Administration',
                     'exp': datetime.now(timezone.utc) + timedelta(hours=24),
                     'iat': datetime.now(timezone.utc)
                 }
@@ -681,7 +682,9 @@ def create_app():
                     'user_id': user['id'],
                     'employee_number': user['employee_number'],
                     'is_admin': user['is_admin'],
-                    'exp': datetime.utcnow() + timedelta(hours=24)
+                    'department': user.get('department', 'Unknown'),
+                    'exp': datetime.now(timezone.utc) + timedelta(hours=24),
+                    'iat': datetime.now(timezone.utc)
                 }
 
                 token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')

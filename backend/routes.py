@@ -934,7 +934,7 @@ def register_routes(app):
         return current_app.send_static_file(filename)
 
     @app.route('/api/tools', methods=['GET'])
-    @login_required
+    @require_auth
     def tools_list_route():
         # GET - List all tools
         print("Received request for all tools")
@@ -1070,7 +1070,7 @@ def register_routes(app):
         }), 201
 
     @app.route('/api/tools/<int:id>', methods=['GET', 'PUT', 'DELETE'])
-    @login_required
+    @require_auth
     def get_tool(id):
         tool = Tool.query.get_or_404(id)
 
