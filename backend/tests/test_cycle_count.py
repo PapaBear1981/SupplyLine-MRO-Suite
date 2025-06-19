@@ -13,7 +13,8 @@ from unittest.mock import patch, MagicMock
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import app
+from app import create_app
+app = create_app()
 from models import db, User, Tool, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,

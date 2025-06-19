@@ -166,8 +166,16 @@ def create_app():
     # Store decorator in app context
     app.require_database = require_database
 
-    # Skip session configuration during startup for lazy loading
-    # Session will be configured when database is initialized
+    # Configure Flask-Session when running on Cloud Run
+    if os.environ.get('DB_HOST'):
+        try:
+            app.config['SESSION_SQLALCHEMY'] = db
+            Session(app)
+            logger.info("Flask-Session initialized with SQLAlchemy backend")
+        except Exception as e:
+            logger.error(f"Flask-Session initialization failed: {e}", exc_info=True)
+    else:
+        logger.info("Using default Flask sessions for simplicity")
 
     # Add comprehensive health endpoint for Cloud Run
     @app.route('/api/health', methods=['GET'])
@@ -966,9 +974,6 @@ def create_app():
                 'timestamp': datetime.datetime.now().isoformat()
             }), 500
 
-    # Skip Flask-Session initialization for now to avoid startup issues
-    # Use default Flask sessions instead
-    logger.info("Using default Flask sessions for simplicity")
 
     # Setup request logging middleware
     setup_request_logging(app)
