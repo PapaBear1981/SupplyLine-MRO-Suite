@@ -75,21 +75,29 @@ def create_app():
     logger.info("Initializing database connection")
 
     try:
-        from models import db, User
+        # Try to import models with better error handling
+        logger.info("Attempting to import models...")
+        from models import db
+        logger.info("✓ Successfully imported db from models")
+
+        from models import User
+        logger.info("✓ Successfully imported User model")
+
+        from models import Tool
+        logger.info("✓ Successfully imported Tool model")
 
         # Dispose of any existing engine to force recreation with new URI
         try:
             if hasattr(db, 'engine') and db.engine:
                 db.engine.dispose()
+                logger.info("✓ Disposed existing database engine")
         except Exception as dispose_error:
             logger.warning(f"Could not dispose existing engine: {dispose_error}")
 
+        # Initialize the database with the app
+        logger.info("Initializing database with app...")
         db.init_app(app)
-
-        # Import all models to ensure they're registered with SQLAlchemy
-        # This must be done after db.init_app() but within the try block
-        from models import User, Tool
-        logger.info("✓ Models imported and registered with SQLAlchemy")
+        logger.info("✓ Database initialized with app")
 
         # Skip database connection test during startup for Cloud Run
         # Database will be initialized lazily when first accessed
@@ -97,6 +105,11 @@ def create_app():
 
         # Mark database as not initialized - will be done on first access
         app._db_initialized = False
+
+    except ImportError as import_error:
+        logger.error(f"Failed to import models: {import_error}", exc_info=True)
+        app._db_initialized = False
+        # Continue without database for now
 
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
@@ -107,7 +120,8 @@ def create_app():
             logger.warning("Continuing without database - routes will return appropriate errors")
         else:
             # For local development, this is a critical error
-            raise
+            logger.error("Database initialization failed in local development")
+            # Don't raise in production to allow debugging
 
     # Database initialization function for routes
     def init_database_lazy():
@@ -166,40 +180,39 @@ def create_app():
     # Store decorator in app context
     app.require_database = require_database
 
-    # Configure Flask-Session when running on Cloud Run
-    if os.environ.get('DB_HOST'):
-        try:
-            app.config['SESSION_SQLALCHEMY'] = db
-            Session(app)
-            logger.info("Flask-Session initialized with SQLAlchemy backend")
-        except Exception as e:
-            logger.error(f"Flask-Session initialization failed: {e}", exc_info=True)
-    else:
-        logger.info("Using default Flask sessions for simplicity")
+    # Skip Flask-Session initialization for debugging
+    logger.info("Skipping Flask-Session initialization for debugging")
 
-    # Add comprehensive health endpoint for Cloud Run
+    # Add simple health endpoint for Cloud Run
     @app.route('/api/health', methods=['GET'])
     def health_check_early():
-        health_data = {
-            'status': 'healthy',
-            'service': 'supplyline-backend',
-            'timestamp': datetime.datetime.now().isoformat(),
-            'timezone': str(time.tzname),
-            'environment': os.environ.get('FLASK_ENV', 'unknown'),
-            'version': '2025.1.0'
-        }
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': 'supplyline-backend',
+                'timestamp': datetime.datetime.now().isoformat(),
+                'environment': os.environ.get('FLASK_ENV', 'unknown'),
+                'version': '2025.1.0'
+            }
 
-        # Add Cloud Run specific information
-        if os.environ.get('DB_HOST'):
-            health_data.update({
-                'deployment': 'cloud-run',
-                'region': os.environ.get('REGION', 'unknown'),
-                'project': os.environ.get('PROJECT_ID', 'unknown')
-            })
-        else:
-            health_data['deployment'] = 'local'
+            # Add Cloud Run specific information
+            if os.environ.get('DB_HOST'):
+                health_data.update({
+                    'deployment': 'cloud-run',
+                    'region': os.environ.get('REGION', 'unknown'),
+                    'project': os.environ.get('PROJECT_ID', 'unknown')
+                })
+            else:
+                health_data['deployment'] = 'local'
 
-        return jsonify(health_data), 200
+            return jsonify(health_data), 200
+        except Exception as e:
+            return jsonify({'error': 'Health check failed', 'message': str(e)}), 500
+
+    # Add simple test endpoint
+    @app.route('/api/test', methods=['GET'])
+    def simple_test():
+        return jsonify({'status': 'ok', 'message': 'Simple test endpoint working'}), 200
 
     # Add readiness check endpoint for Cloud Run
     @app.route('/api/ready', methods=['GET'])
@@ -359,14 +372,9 @@ def create_app():
             # Dispose of the engine
             engine.dispose()
 
-            # Run database migration to add missing columns
-            try:
-                from migrate_missing_columns import migrate_database
-                migrate_database()
-                logger.info("✓ Database migration completed successfully")
-            except Exception as migration_error:
-                logger.warning(f"Database migration failed: {migration_error}")
-                # Continue anyway - basic functionality might still work
+            # Skip database migration for PostgreSQL - tables are created via SQLAlchemy
+            # The migrate_missing_columns.py is designed for SQLite only
+            logger.info("✓ Skipping migration (PostgreSQL uses SQLAlchemy schema)")
 
             # Now properly initialize SQLAlchemy models within app context
             try:

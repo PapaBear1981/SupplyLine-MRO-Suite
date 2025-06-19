@@ -43,11 +43,11 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,DB_HOST=/cloudsql/gen-lang-client-0819985982:us-west1:supplyline-db,DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=*'
+      - 'FLASK_ENV=production,DB_HOST=/cloudsql/$PROJECT_ID:us-west1:supplyline-db,DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=*'
       - '--set-secrets'
       - 'SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest'
       - '--set-cloudsql-instances'
-      - 'gen-lang-client-0819985982:us-west1:supplyline-db'
+      - '$PROJECT_ID:us-west1:supplyline-db'
     id: 'deploy-backend'
     waitFor: ['push-backend']
 

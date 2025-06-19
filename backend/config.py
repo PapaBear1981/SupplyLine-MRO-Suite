@@ -138,8 +138,8 @@ class Config:
             'disable_existing_loggers': False,
             'formatters': {
                 'json': {
-                    'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-                    'format': '%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d'
+                    'class': 'logging.Formatter',  # Fallback to standard formatter
+                    'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
                 },
                 'standard': {
                     'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
@@ -151,7 +151,7 @@ class Config:
             'handlers': {
                 'console': {
                     'level': 'INFO',
-                    'formatter': 'json' if is_cloud_run else 'standard',
+                    'formatter': 'standard',
                     'class': 'logging.StreamHandler',
                 }
             },
@@ -169,7 +169,7 @@ class Config:
             config['handlers'].update({
                 'file': {
                     'level': 'DEBUG',
-                    'formatter': 'json',
+                    'formatter': 'standard',
                     'class': 'logging.handlers.RotatingFileHandler',
                     'filename': 'app.log',
                     'maxBytes': 10485760,  # 10MB
@@ -177,7 +177,7 @@ class Config:
                 },
                 'error_file': {
                     'level': 'ERROR',
-                    'formatter': 'json',
+                    'formatter': 'standard',
                     'class': 'logging.handlers.RotatingFileHandler',
                     'filename': 'error.log',
                     'maxBytes': 10485760,  # 10MB
