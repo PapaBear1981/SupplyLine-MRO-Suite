@@ -105,6 +105,7 @@ The tests are configured in `playwright.config.js` with:
 
 - `PLAYWRIGHT_BASE_URL`: Frontend URL (default: http://localhost:5173 for dev, http://localhost:4173 for preview)
 - `CI`: Set to true in CI environments
+- `RUN_PRODUCTION_TESTS`: Set to `true` to enable production environment tests
 
 ## Test Data
 
