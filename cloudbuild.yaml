@@ -43,7 +43,8 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'FLASK_ENV=production,DB_HOST=/cloudsql/$PROJECT_ID:us-west1:supplyline-db,DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=*'
+      # Explicit origin to avoid wildcard CORS in production deployments
+      - 'FLASK_ENV=production,DB_HOST=/cloudsql/$PROJECT_ID:us-west1:supplyline-db,DB_USER=supplyline_user,DB_NAME=supplyline,PYTHONDONTWRITEBYTECODE=1,PYTHONUNBUFFERED=1,CORS_ORIGINS=https://supplyline-frontend-production-454313121816.us-west1.run.app'
       - '--set-secrets'
       - 'SECRET_KEY=supplyline-secret-key:latest,DB_PASSWORD=supplyline-db-password:latest'
       - '--set-cloudsql-instances'

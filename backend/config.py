@@ -216,7 +216,8 @@ class Config:
             # Support multiple common Cloud Run URL patterns
             return [
                 'https://supplyline-frontend-production-454313121816.us-west1.run.app',
-                'https://supplyline-frontend-*.a.run.app'
+                # Use a regex pattern to match any dynamically generated frontend URL on Cloud Run
+                r'https://supplyline-frontend-.*\.a\.run\.app'
             ]
         else:
             # Development defaults
