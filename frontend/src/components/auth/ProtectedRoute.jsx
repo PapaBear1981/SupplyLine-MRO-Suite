@@ -1,32 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { fetchCurrentUser } from '../../store/authSlice';
 import { Spinner } from 'react-bootstrap';
-import { useIsAdmin } from '../../hooks/useAuth';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
+  const { isAuthenticated, loading, user, tokenExists } = useSelector((state) => state.auth);
   const location = useLocation();
-  const [isChecking, setIsChecking] = useState(true);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!isAuthenticated && !user) {
-        await dispatch(fetchCurrentUser());
-      }
-      setIsChecking(false);
-    };
-
-    checkAuth();
-  }, [dispatch, isAuthenticated, user]);
-
-  if (loading || isChecking) {
+  // Show loading spinner while validating token on app startup
+  if (loading && tokenExists) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Validating authentication...</span>
         </Spinner>
       </div>
     );
@@ -48,32 +33,20 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 // Specialized component for admin-only routes
 export const AdminRoute = ({ children }) => {
-  const { user, loading, isAuthenticated } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
-  const [isChecking, setIsChecking] = useState(true);
+  const { user, loading, isAuthenticated, tokenExists } = useSelector((state) => state.auth);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!isAuthenticated && !user) {
-        await dispatch(fetchCurrentUser());
-      }
-      setIsChecking(false);
-    };
-
-    checkAuth();
-  }, [dispatch, isAuthenticated, user]);
-
-  if (loading || isChecking) {
+  // Show loading spinner while validating token on app startup
+  if (loading && tokenExists) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Validating authentication...</span>
         </Spinner>
       </div>
     );
   }
 
-  if (!user || !user.is_admin) {
+  if (!isAuthenticated || !user || !user.is_admin) {
     return <Navigate to="/" replace />;
   }
 

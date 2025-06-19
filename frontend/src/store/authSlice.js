@@ -127,11 +127,12 @@ const getInitialAuthState = () => {
   const token = localStorage.getItem('authToken');
   return {
     user: null,
-    isAuthenticated: !!token, // Set to true if token exists, will be validated by fetchCurrentUser
-    loading: false,
+    isAuthenticated: false, // Don't assume authentication until token is validated
+    loading: !!token, // Set loading to true if token exists and needs validation
     error: null,
     registrationSuccess: null,
     activityLogs: [],
+    tokenExists: !!token, // Track if token exists for initialization logic
   };
 };
 
@@ -150,6 +151,8 @@ const authSlice = createSlice({
       // Manual logout - clear all auth state and localStorage
       state.user = null;
       state.isAuthenticated = false;
+      state.loading = false;
+      state.tokenExists = false;
       state.error = null;
       localStorage.removeItem('authToken');
     },
@@ -165,6 +168,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.tokenExists = true;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -178,6 +182,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.tokenExists = false;
         // Ensure localStorage is cleared
         localStorage.removeItem('authToken');
       })
@@ -187,6 +192,7 @@ const authSlice = createSlice({
         // Even if logout fails, clear local state
         state.user = null;
         state.isAuthenticated = false;
+        state.tokenExists = false;
         localStorage.removeItem('authToken');
       })
       // Fetch current user
@@ -197,11 +203,13 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.tokenExists = true;
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.tokenExists = false;
         // Clear token if it was invalid
         if (action.payload?.message?.includes('401') || action.payload?.status === 401) {
           localStorage.removeItem('authToken');
@@ -215,12 +223,14 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.tokenExists = true;
         // Token is already updated in the service
       })
       .addCase(refreshToken.rejected, (state, action) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.tokenExists = false;
         state.error = action.payload;
         // Token is already cleared in the service
       })
