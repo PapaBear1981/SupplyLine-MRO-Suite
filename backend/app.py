@@ -59,9 +59,10 @@ def create_app():
     # ``Access-Control-Allow-Origin`` header, causing the frontend to report a
     # CORS error.  Expanding the resource pattern ensures the middleware runs
     # for every request path.
+    # Use custom origin validation function for dynamic pattern matching
     CORS(app, resources={
         r"/*": {
-            "origins": allowed_origins,
+            "origins": Config.validate_cors_origin,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
             "supports_credentials": True,

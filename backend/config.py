@@ -216,8 +216,7 @@ class Config:
             # Support multiple common Cloud Run URL patterns
             return [
                 'https://supplyline-frontend-production-454313121816.us-west1.run.app',
-                # Use a regex pattern to match any dynamically generated frontend URL on Cloud Run
-                r'https://supplyline-frontend-.*\.a\.run\.app'
+                # Additional known production URLs can be added here
             ]
         else:
             # Development defaults
@@ -229,6 +228,30 @@ class Config:
                 'http://192.168.1.122:5173',
                 'http://100.108.111.69:5173'
             ]
+
+    @staticmethod
+    def validate_cors_origin(origin):
+        """
+        Custom CORS origin validation function that supports regex patterns.
+        This function is used by Flask-CORS to validate incoming origins.
+        """
+        import re
+
+        # Get the static origins list
+        static_origins = Config.get_cors_origins()
+
+        # Check if origin is in the static list
+        if origin in static_origins:
+            return True
+
+        # For production, also check dynamic Cloud Run URL patterns
+        if os.environ.get('FLASK_ENV') == 'production':
+            # Allow any supplyline-frontend URL on Cloud Run's a.run.app domain
+            cloud_run_pattern = r'https://supplyline-frontend-.*\.a\.run\.app'
+            if re.match(cloud_run_pattern, origin):
+                return True
+
+        return False
 
     CORS_ORIGINS = get_cors_origins()
     CORS_SUPPORTS_CREDENTIALS = True

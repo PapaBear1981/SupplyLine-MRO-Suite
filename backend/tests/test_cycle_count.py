@@ -11,7 +11,10 @@ from unittest.mock import patch, MagicMock
 
 # Import the Flask app and models
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the project root to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Add the backend directory to the path for models import
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'backend'))
 
 from app import create_app
 from models import db, User, Tool, Chemical
@@ -75,6 +78,7 @@ class CycleCountTestCase(unittest.TestCase):
         # Create test chemical
         self.test_chemical = Chemical(
             part_number='C001',
+            lot_number='L001',  # Required field
             description='Test Chemical',
             category='Testing',
             quantity=100.0,
