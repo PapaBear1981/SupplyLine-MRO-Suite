@@ -283,19 +283,16 @@ def register_announcement_routes(app):
 
     # Mark an announcement as read
     @app.route('/api/announcements/<int:id>/read', methods=['POST'])
+    @require_auth
     def mark_announcement_read(id):
         try:
-            # Check if user is logged in
-            if 'user_id' not in session:
-                return jsonify({'error': 'Authentication required'}), 401
-
             # Get the announcement
             announcement = Announcement.query.get_or_404(id)
 
             # Check if already read
             existing_read = AnnouncementRead.query.filter_by(
                 announcement_id=id,
-                user_id=session['user_id']
+                user_id=g.current_user_id
             ).first()
 
             if existing_read:
@@ -305,7 +302,7 @@ def register_announcement_routes(app):
             # Create new read record
             read = AnnouncementRead(
                 announcement_id=id,
-                user_id=session['user_id']
+                user_id=g.current_user_id
             )
 
             db.session.add(read)
