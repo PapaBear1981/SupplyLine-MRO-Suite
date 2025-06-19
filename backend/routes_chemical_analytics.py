@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 import traceback
 from sqlalchemy import func
+from utils.auth_decorators import require_materials_manager
 
 
 # Helper functions for part number analytics
@@ -206,25 +207,12 @@ def calculate_shelf_life_stats(chemicals):
 
     return results
 
-# Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Authentication check
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+# Old materials_manager_required decorator removed - now using consolidated auth decorators from utils.auth_decorators
 
 def register_chemical_analytics_routes(app):
     # Get waste analytics
     @app.route('/api/chemicals/waste-analytics', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     def waste_analytics_route():
         try:
             # Helper function to categorize waste based on archived reason
@@ -368,7 +356,7 @@ def register_chemical_analytics_routes(app):
 
     # Get part number analytics
     @app.route('/api/chemicals/part-analytics', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     def part_analytics_route():
         try:
             # Get query parameters
@@ -416,7 +404,7 @@ def register_chemical_analytics_routes(app):
 
     # Get usage analytics
     @app.route('/api/chemicals/usage-analytics', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     def chemical_usage_analytics_route():
         try:
             # Get query parameters

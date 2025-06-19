@@ -28,177 +28,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Removed duplicate materials_manager_required - using secure version below
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Store user info in g for use in the route
-            from flask import g
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.debug(f"Admin access attempted for {f.__name__}")
-
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                logger.warning(f"Admin access denied - invalid user")
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            if not user.is_admin:
-                logger.warning(f"Admin access denied - insufficient privileges for user {user.id}")
-                return jsonify({'error': 'Admin privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            logger.debug(f"Admin access granted for user {user.id}")
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
-
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Allow access for admins or Materials department users
-            if not (user.is_admin or user.department == 'Materials'):
-                log_security_event('insufficient_permissions', f'Tool management access denied for user {user.id}')
-                return jsonify({'error': 'Tool management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
-
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Check if user is admin or Materials department
-            if not (user.is_admin or user.department == 'Materials'):
-                log_security_event('insufficient_permissions', f'Materials management access denied for user {user.id}')
-                return jsonify({'error': 'Materials management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
+# Old decorators removed - now using consolidated auth decorators from utils.auth_decorators
 
 def register_routes(app):
     # Skip database initialization during route registration for lazy loading
@@ -402,7 +232,7 @@ def register_routes(app):
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
     @app.require_database
-    @materials_manager_required
+    @require_materials_manager
     def chemicals_reorder_needed_direct_route():
         try:
             print("Session info: user_id={}, is_admin={}, department={}".format(
@@ -439,7 +269,7 @@ def register_routes(app):
         return jsonify(result)
 
     @app.route('/api/chemicals/expiring-soon', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     def chemicals_expiring_soon_direct_route():
         try:
             print("Session info: user_id={}, is_admin={}, department={}".format(
@@ -462,7 +292,7 @@ def register_routes(app):
             return jsonify({'error': 'An error occurred while fetching chemicals expiring soon'}), 500
 
     @app.route('/api/chemicals/archived', methods=['GET'])
-    @materials_manager_required
+    @require_materials_manager
     def archived_chemicals_direct_route():
         try:
             # Get query parameters for filtering
@@ -587,7 +417,7 @@ def register_routes(app):
 
     # Admin dashboard endpoints
     @app.route('/api/admin/registration-requests', methods=['GET'])
-    @admin_required
+    @require_admin
     def get_registration_requests():
         from models import RegistrationRequest
 
@@ -602,7 +432,7 @@ def register_routes(app):
         return jsonify([req.to_dict() for req in requests]), 200
 
     @app.route('/api/admin/registration-requests/<int:id>/approve', methods=['POST'])
-    @admin_required
+    @require_admin
     def approve_registration_request(id):
         from models import RegistrationRequest
 
@@ -649,7 +479,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/admin/registration-requests/<int:id>/deny', methods=['POST'])
-    @admin_required
+    @require_admin
     def deny_registration_request(id):
         from models import RegistrationRequest
 
@@ -685,7 +515,7 @@ def register_routes(app):
 
     @app.route('/api/admin/dashboard/stats', methods=['GET'])
     @app.require_database
-    @admin_required
+    @require_admin
     def get_admin_dashboard_stats():
         print("Admin dashboard stats endpoint called")
         print(f"Session: {session}")
@@ -768,7 +598,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/admin/system-resources', methods=['GET'])
-    @admin_required
+    @require_admin
     @handle_errors
     def get_system_resources():
         """Get real-time system resource usage statistics"""
@@ -1307,7 +1137,7 @@ def register_routes(app):
         return jsonify(response_data)
 
     @app.route('/api/tools/<int:id>/retire', methods=['POST'])
-    @admin_required
+    @require_admin
     def retire_tool(id):
         """Retire a tool instead of deleting it to preserve history."""
         tool = Tool.query.get_or_404(id)
@@ -1345,7 +1175,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/calibrations/notifications', methods=['GET'])
-    @login_required
+    @require_auth
     def get_calibration_notifications():
         """Get calibration notifications for tools due for calibration."""
         try:
@@ -1403,40 +1233,8 @@ def register_routes(app):
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/users', methods=['GET', 'POST'])
+    @require_materials_manager
     def users_route():
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required'}), 401
-
-            # Check if user is admin or Materials department
-            if not (user.is_admin or user.department == 'Materials'):
-                return jsonify({'error': 'User management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
 
         if request.method == 'GET':
             try:
@@ -1519,40 +1317,8 @@ def register_routes(app):
         return jsonify(u.to_dict()), 201
 
     @app.route('/api/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @require_materials_manager
     def user_detail_route(id):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            current_user = User.query.get(payload['user_id'])
-            if not current_user or not current_user.is_active:
-                return jsonify({'error': 'Authentication required'}), 401
-
-            # Check if user is admin or Materials department
-            if not (current_user.is_admin or current_user.department == 'Materials'):
-                return jsonify({'error': 'User management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = current_user
-            g.current_user_id = current_user.id
-            g.is_admin = current_user.is_admin
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
 
         # Get the user
         user = User.query.get_or_404(id)
@@ -1610,7 +1376,7 @@ def register_routes(app):
             return jsonify({'message': f'User {user.name} deactivated successfully'})
 
     @app.route('/api/users/<int:id>/unlock', methods=['POST'])
-    @admin_required
+    @require_admin
     def unlock_user_account(id):
         """Unlock a user account that has been locked due to failed login attempts."""
         # Get the user
@@ -1945,7 +1711,7 @@ def register_routes(app):
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
     @app.route('/api/audit', methods=['GET'])
-    @admin_required
+    @require_admin
     def audit_route():
         logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
         return jsonify([{
@@ -2312,7 +2078,7 @@ def register_routes(app):
 
     # System Settings Routes
     @app.route('/api/admin/settings', methods=['GET'])
-    @admin_required
+    @require_admin
     @handle_errors
     def get_system_settings():
         """Get all system settings or settings by category"""
@@ -2335,7 +2101,7 @@ def register_routes(app):
         return jsonify(settings_by_category), 200
 
     @app.route('/api/admin/settings', methods=['POST'])
-    @admin_required
+    @require_admin
     @handle_errors
     def update_system_settings():
         """Update multiple system settings"""
@@ -2389,7 +2155,7 @@ def register_routes(app):
             return jsonify({'error': 'Failed to update settings'}), 500
 
     @app.route('/api/admin/settings/<setting_key>', methods=['GET'])
-    @admin_required
+    @require_admin
     @handle_errors
     def get_system_setting(setting_key):
         """Get a specific system setting"""
@@ -2401,7 +2167,7 @@ def register_routes(app):
         return jsonify(setting.to_dict()), 200
 
     @app.route('/api/admin/settings/<setting_key>', methods=['PUT'])
-    @admin_required
+    @require_admin
     @handle_errors
     def update_system_setting(setting_key):
         """Update a specific system setting"""
@@ -2693,14 +2459,14 @@ def register_routes(app):
         return jsonify({'message': 'Password reset successful'}), 200
 
     @app.route('/api/auth/user', methods=['GET'])
-    @login_required
+    @require_auth
     def get_profile():
         from flask import g
         user = User.query.get(g.current_user_id)
         return jsonify(user.to_dict(include_roles=True, include_permissions=True)), 200
 
     @app.route('/api/user/profile', methods=['PUT'])
-    @login_required
+    @require_auth
     def update_profile():
         from flask import g
         user = User.query.get(g.current_user_id)
@@ -2729,7 +2495,7 @@ def register_routes(app):
         return jsonify(user.to_dict()), 200
 
     @app.route('/api/user/avatar', methods=['POST'])
-    @login_required
+    @require_auth
     def upload_avatar():
         from flask import g
         user = User.query.get(g.current_user_id)
@@ -2784,7 +2550,7 @@ def register_routes(app):
         return jsonify({'error': 'Failed to upload avatar'}), 400
 
     @app.route('/api/user/password', methods=['PUT'])
-    @login_required
+    @require_auth
     def change_password():
         from flask import g
         user = User.query.get(g.current_user_id)
@@ -2881,7 +2647,7 @@ def register_routes(app):
         return jsonify(result)
 
     @app.route('/api/tools/new', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_new_tool_form():
         # This endpoint returns the form data needed to create a new tool
         # It can include any default values or validation rules
@@ -2897,7 +2663,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/tools/new/checkouts', methods=['GET'])
-    @login_required
+    @require_auth
     def get_new_tool_checkouts():
         # This endpoint returns checkout history for a new tool (which should be empty)
         return jsonify([]), 200
@@ -2959,7 +2725,7 @@ def register_routes(app):
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/analytics/usage', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def get_usage_analytics():
         try:
             # Get timeframe parameter (default to 'week')
@@ -3296,7 +3062,7 @@ def register_routes(app):
         }), 200
 
     @app.route('/api/tools/<int:id>/service/remove', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def remove_tool_from_service(id):
         try:
             # Get the tool
@@ -3377,7 +3143,7 @@ def register_routes(app):
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/tools/<int:id>/service/return', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def return_tool_to_service(id):
         try:
             # Get the tool

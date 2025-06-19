@@ -5,6 +5,7 @@ from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
 from utils.export_utils import generate_pdf_report, generate_excel_report
+from utils.auth_decorators import require_tool_manager
 
 def calculate_date_range(timeframe):
     """Calculate start date based on timeframe parameter."""
@@ -26,51 +27,12 @@ def calculate_date_range(timeframe):
 from sqlalchemy import func, extract
 from functools import wraps
 
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for JWT token in Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Authentication required', 'reason': 'No token provided'}), 401
-
-        token = auth_header.split(' ')[1]
-
-        try:
-            import jwt
-            from flask import current_app, g
-            # Decode JWT token
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-
-            # Get user from database to ensure they still exist and are active
-            user = User.query.get(payload['user_id'])
-            if not user or not user.is_active:
-                return jsonify({'error': 'Authentication required', 'reason': 'Invalid user'}), 401
-
-            # Allow access for admins or Materials department users
-            if not (user.is_admin or user.department == 'Materials'):
-                return jsonify({'error': 'Tool management privileges required'}), 403
-
-            # Store user info in g for use in the route
-            g.current_user = user
-            g.current_user_id = user.id
-            g.is_admin = user.is_admin
-
-            return f(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Authentication required', 'reason': 'Invalid token'}), 401
-        except Exception as e:
-            return jsonify({'error': 'Authentication required', 'reason': 'Token validation failed'}), 401
-
-    return decorated_function
+# Old tool_manager_required decorator removed - now using consolidated auth decorators from utils.auth_decorators
 
 def register_report_routes(app):
     # Export report as PDF
     @app.route('/api/reports/export/pdf', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def export_report_pdf():
         try:
             data = request.get_json()
@@ -96,7 +58,7 @@ def register_report_routes(app):
 
     # Export report as Excel
     @app.route('/api/reports/export/excel', methods=['POST'])
-    @tool_manager_required
+    @require_tool_manager
     def export_report_excel():
         try:
             data = request.get_json()
@@ -122,7 +84,7 @@ def register_report_routes(app):
 
     # Tool Inventory Report
     @app.route('/api/reports/tools', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def tool_inventory_report():
         try:
             # Get filter parameters
@@ -192,7 +154,7 @@ def register_report_routes(app):
 
     # Checkout History Report
     @app.route('/api/reports/checkouts', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def checkout_history_report():
         try:
             # Get timeframe parameter
@@ -346,7 +308,7 @@ def register_report_routes(app):
 
     # Department Usage Report
     @app.route('/api/reports/departments', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def department_usage_report():
         try:
             # Get timeframe parameter
@@ -460,7 +422,7 @@ def register_report_routes(app):
 
     # Cycle Count Accuracy Report
     @app.route('/api/reports/cycle-counts/accuracy', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def cycle_count_accuracy_report():
         try:
             # Get filter parameters
@@ -578,7 +540,7 @@ def register_report_routes(app):
 
     # Cycle Count Discrepancy Report
     @app.route('/api/reports/cycle-counts/discrepancies', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def cycle_count_discrepancy_report():
         try:
             # Check if cycle count tables exist and have data
@@ -648,7 +610,7 @@ def register_report_routes(app):
 
     # Cycle Count Performance Report
     @app.route('/api/reports/cycle-counts/performance', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def cycle_count_performance_report():
         try:
             # Check if cycle count tables exist and have data
@@ -798,7 +760,7 @@ def register_report_routes(app):
 
     # Cycle Count Coverage Report
     @app.route('/api/reports/cycle-counts/coverage', methods=['GET'])
-    @tool_manager_required
+    @require_tool_manager
     def cycle_count_coverage_report():
         try:
             # Check if cycle count tables exist and have data
