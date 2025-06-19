@@ -65,9 +65,14 @@ jobs:
     - name: Submit build to Cloud Build
       run: |
         echo "Starting Cloud Build submission..."
+        echo "Project ID: ${{ env.PROJECT_ID }}"
+        echo "Region: ${{ env.REGION }}"
+
+        # Ensure we're using the correct project
+        gcloud config set project ${{ env.PROJECT_ID }}
+
         gcloud builds submit \
           --config=cloudbuild.yaml \
-          --substitutions=_REGION=${{ env.REGION }},_CLOUDSQL_INSTANCE=${{ env.PROJECT_ID }}:${{ env.REGION }}:supplyline-db \
           --timeout=1200s \
           --verbosity=info \
           .
