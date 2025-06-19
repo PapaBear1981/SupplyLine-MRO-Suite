@@ -53,21 +53,44 @@ def create_app():
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
     print(f"DEBUG: CORS allowed origins: {allowed_origins}")  # Debug output
+
+    # For production, we need to handle dynamic origins manually since Flask-CORS
+    # doesn't support callable functions for origin validation
+    if os.environ.get('FLASK_ENV') == 'production':
+        # Use wildcard for production and handle validation manually
+        cors_origins = '*'
+    else:
+        # Use static list for development
+        cors_origins = allowed_origins
+
     # Apply CORS to all routes so that error responses (e.g. 404) also include
     # the necessary headers.  Previously CORS was limited to the ``/api``
     # prefix which meant requests to undefined routes would omit the
     # ``Access-Control-Allow-Origin`` header, causing the frontend to report a
     # CORS error.  Expanding the resource pattern ensures the middleware runs
     # for every request path.
-    # Use custom origin validation function for dynamic pattern matching
     CORS(app, resources={
         r"/*": {
-            "origins": Config.validate_cors_origin,
+            "origins": cors_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
             "supports_credentials": True,
         }
     })
+
+    # Add custom CORS validation for production
+    if os.environ.get('FLASK_ENV') == 'production':
+        @app.after_request
+        def validate_cors_origin(response):
+            """Custom CORS origin validation for production"""
+            origin = request.headers.get('Origin')
+            if origin and not Config.validate_cors_origin(origin):
+                # Remove CORS headers for invalid origins
+                response.headers.pop('Access-Control-Allow-Origin', None)
+                response.headers.pop('Access-Control-Allow-Credentials', None)
+                response.headers.pop('Access-Control-Allow-Headers', None)
+                response.headers.pop('Access-Control-Allow-Methods', None)
+            return response
 
     # Get logger early for use throughout the function
     logger = logging.getLogger(__name__)
