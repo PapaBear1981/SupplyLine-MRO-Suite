@@ -27,6 +27,7 @@ tests/e2e/
 ├── chemicals/               # Chemical management tests
 ├── cycle-count/             # Cycle count tests
 ├── calibration/             # Calibration tests
+├── reports/                # Reporting page tests
 ├── fixtures/                # Test data and fixtures
 │   └── test-data.js
 ├── utils/                   # Helper functions
