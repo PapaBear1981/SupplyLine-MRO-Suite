@@ -1,30 +1,25 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
 
-# Import time utilities for consistent time handling
-try:
-    from time_utils import get_local_timestamp
-    def get_current_time():
-        return get_local_timestamp()
-except ImportError:
-    def get_current_time():
-        return datetime.now()
+def get_current_time():
+    """Get current UTC time for consistent database timestamps"""
+    return datetime.now(timezone.utc)
 
 db = SQLAlchemy()
 
 class Tool(db.Model):
     __tablename__ = 'tools'
     id = db.Column(db.Integer, primary_key=True)
-    tool_number = db.Column(db.String, nullable=False)
-    serial_number = db.Column(db.String, nullable=False)
-    description = db.Column(db.String)
-    condition = db.Column(db.String)
-    location = db.Column(db.String)
-    category = db.Column(db.String, nullable=True, default='General')
-    status = db.Column(db.String, nullable=True, default='available')  # available, checked_out, maintenance, retired
-    status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
+    tool_number = db.Column(db.String(100), nullable=False)
+    serial_number = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    condition = db.Column(db.String(50))
+    location = db.Column(db.String(200))
+    category = db.Column(db.String(100), nullable=True, default='General')
+    status = db.Column(db.String(50), nullable=True, default='available')  # available, checked_out, maintenance, retired
+    status_reason = db.Column(db.Text, nullable=True)  # Reason for maintenance or retirement
     created_at = db.Column(db.DateTime, default=get_current_time)
 
     # Calibration fields
@@ -32,7 +27,7 @@ class Tool(db.Model):
     calibration_frequency_days = db.Column(db.Integer, nullable=True)
     last_calibration_date = db.Column(db.DateTime, nullable=True)
     next_calibration_date = db.Column(db.DateTime, nullable=True)
-    calibration_status = db.Column(db.String, nullable=True)  # current, due_soon, overdue, not_applicable
+    calibration_status = db.Column(db.String(50), nullable=True)  # current, due_soon, overdue, not_applicable
 
     def to_dict(self):
         return {
@@ -78,18 +73,18 @@ class Tool(db.Model):
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    employee_number = db.Column(db.String, unique=True, nullable=False)
-    department = db.Column(db.String)
-    password_hash = db.Column(db.String, nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    employee_number = db.Column(db.String(50), unique=True, nullable=False)
+    department = db.Column(db.String(100))
+    password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=get_current_time)
-    reset_token = db.Column(db.String, nullable=True)
+    reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
-    remember_token = db.Column(db.String, nullable=True)
+    remember_token = db.Column(db.String(255), nullable=True)
     remember_token_expiry = db.Column(db.DateTime, nullable=True)
-    avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
+    avatar = db.Column(db.String(500), nullable=True)  # Store the path or URL to the avatar image
     # Account lockout fields
     failed_login_attempts = db.Column(db.Integer, default=0)
     account_locked_until = db.Column(db.DateTime, nullable=True)
@@ -202,6 +197,10 @@ class User(db.Model):
             return False
         return get_current_time() < self.account_locked_until
 
+    def is_account_locked(self):
+        """Alias for is_locked() for compatibility"""
+        return self.is_locked()
+
     def get_lockout_remaining_time(self):
         """Get the remaining time (in seconds) until the account is unlocked."""
         if not self.account_locked_until:
@@ -249,6 +248,20 @@ class Checkout(db.Model):
     expected_return_date = db.Column(db.DateTime)
     tool = db.relationship('Tool')
     user = db.relationship('User')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tool_id': self.tool_id,
+            'user_id': self.user_id,
+            'tool_number': self.tool.tool_number if self.tool else None,
+            'tool_description': self.tool.description if self.tool else None,
+            'user_name': self.user.name if self.user else None,
+            'checkout_date': self.checkout_date.isoformat() if self.checkout_date else None,
+            'return_date': self.return_date.isoformat() if self.return_date else None,
+            'expected_return_date': self.expected_return_date.isoformat() if self.expected_return_date else None,
+            'is_overdue': self.expected_return_date and not self.return_date and get_current_time() > self.expected_return_date
+        }
 
 class AuditLog(db.Model):
     __tablename__ = 'audit_log'

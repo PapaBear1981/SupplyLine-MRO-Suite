@@ -1,49 +1,67 @@
 import os
 import logging.handlers
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
-    # Use environment variables with fallbacks for local development
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
+    """Base configuration class"""
 
-    # SQLite database path - using absolute path from project root
-    # Check if we're in Docker environment (look for /database volume)
-    if os.path.exists('/database'):
-        db_path = os.path.join('/database', 'tools.db')
+    # Flask Configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+    # Database Configuration
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL:
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
-        db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
-    print(f"Using database path: {db_path}")
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+        # Fallback to SQLite for local development
+        db_path = os.path.join(basedir, 'supplyline.db')
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Database connection pooling and optimization
-    # Note: SQLite doesn't support connection pooling, so we only set basic options
+    # Database connection pooling and optimization (PostgreSQL specific)
     SQLALCHEMY_ENGINE_OPTIONS = {
         'echo': False,  # Set to True for SQL debugging
         'pool_pre_ping': True,  # Validate connections before use
+        'pool_recycle': 3600,  # Recycle connections every hour
+        'pool_size': 10,
+        'max_overflow': 20
     }
 
-    # Session configuration - Enhanced security
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
-    SESSION_TYPE = 'filesystem'
-    # Check if we're in Docker environment (look for /flask_session volume)
-    if os.path.exists('/flask_session'):
-        SESSION_FILE_DIR = '/flask_session'
-    else:
-        SESSION_FILE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
-    print(f"Using session directory: {SESSION_FILE_DIR}")
+    # JWT Configuration
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 900))  # 15 minutes
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.environ.get('JWT_REFRESH_TOKEN_EXPIRES', 604800))  # 7 days
 
-    # Session cleanup configuration
-    SESSION_CLEANUP_INTERVAL = 3600  # 1 hour
-    SESSION_MAX_AGE = 86400  # 24 hours
+    # CORS Configuration
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+    CORS_SUPPORTS_CREDENTIALS = False  # JWT doesn't need credentials
 
-    # Enhanced cookie settings
-    SESSION_COOKIE_SECURE = False  # Set to True only in HTTPS production
-    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
+    # Security Configuration
+    BCRYPT_LOG_ROUNDS = int(os.environ.get('BCRYPT_LOG_ROUNDS', 12))
 
-    # Structured logging configuration
+    # Import security configuration
+    from security_config import SECURITY_HEADERS, CORS_CONFIG, RATE_LIMITS, PASSWORD_POLICY, ACCOUNT_LOCKOUT
+
+    # Security headers
+    SECURITY_HEADERS = SECURITY_HEADERS
+
+    # Security policies
+    ACCOUNT_LOCKOUT = ACCOUNT_LOCKOUT
+    PASSWORD_POLICY = PASSWORD_POLICY
+    RATE_LIMITS = RATE_LIMITS
+
+    # Logging Configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.environ.get('LOG_FILE', 'app.log')
+
     LOGGING_CONFIG = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -58,7 +76,7 @@ class Config:
         },
         'handlers': {
             'default': {
-                'level': 'INFO',
+                'level': LOG_LEVEL,
                 'formatter': 'standard',
                 'class': 'logging.StreamHandler',
             },
@@ -66,58 +84,66 @@ class Config:
                 'level': 'DEBUG',
                 'formatter': 'json',
                 'class': 'logging.handlers.RotatingFileHandler',
-                'filename': 'app.log',
+                'filename': LOG_FILE,
                 'maxBytes': 10485760,  # 10MB
                 'backupCount': 5
-            },
-            'error_file': {
-                'level': 'ERROR',
-                'formatter': 'json',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': 'error.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 10
             }
         },
         'loggers': {
             '': {
-                'handlers': ['default', 'file', 'error_file'],
+                'handlers': ['default', 'file'],
                 'level': 'DEBUG',
                 'propagate': False
             }
         }
     }
 
-    # Resource monitoring thresholds
-    RESOURCE_THRESHOLDS = {
-        'memory_percent': 80,
-        'disk_percent': 85,
-        'open_files': 1000,
-        'db_connections': 8  # 80% of pool size
+
+class DevelopmentConfig(Config):
+    """Development configuration"""
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///supplyline_dev.db'
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'echo': True,  # Enable SQL debugging in development
     }
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests for mobile
-    SESSION_USE_SIGNER = True  # Sign cookies
-    SESSION_COOKIE_NAME = 'supplyline_session'  # Custom name
 
-    # Session security options
-    SESSION_VALIDATE_IP = os.environ.get('SESSION_VALIDATE_IP', 'false').lower() == 'true'
 
-    # CORS settings - more restrictive in production
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.122:5173,http://100.108.111.69:5173').split(',')
-    CORS_SUPPORTS_CREDENTIALS = True
+class ProductionConfig(Config):
+    """Production configuration"""
+    DEBUG = False
 
-    # Additional security headers
+    # Use PostgreSQL in production
+    if not Config.DATABASE_URL:
+        # Build PostgreSQL URL from individual components
+        RDS_HOSTNAME = os.environ.get('RDS_HOSTNAME')
+        RDS_PORT = os.environ.get('RDS_PORT', '5432')
+        RDS_DB_NAME = os.environ.get('RDS_DB_NAME')
+        RDS_USERNAME = os.environ.get('RDS_USERNAME')
+        RDS_PASSWORD = os.environ.get('RDS_PASSWORD')
+
+        if all([RDS_HOSTNAME, RDS_DB_NAME, RDS_USERNAME, RDS_PASSWORD]):
+            SQLALCHEMY_DATABASE_URI = f'postgresql://{RDS_USERNAME}:{RDS_PASSWORD}@{RDS_HOSTNAME}:{RDS_PORT}/{RDS_DB_NAME}'
+
+    # Enhanced security for production
     SECURITY_HEADERS = {
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+        **Config.SECURITY_HEADERS,
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload'
     }
 
-    # Account lockout settings
-    ACCOUNT_LOCKOUT = {
-        'MAX_FAILED_ATTEMPTS': int(os.environ.get('MAX_FAILED_ATTEMPTS', 5)),  # Number of failed attempts before account is locked
-        'INITIAL_LOCKOUT_MINUTES': int(os.environ.get('INITIAL_LOCKOUT_MINUTES', 15)),  # Initial lockout duration in minutes
-        'LOCKOUT_MULTIPLIER': int(os.environ.get('LOCKOUT_MULTIPLIER', 2)),  # Multiplier for subsequent lockouts
-        'MAX_LOCKOUT_MINUTES': int(os.environ.get('MAX_LOCKOUT_MINUTES', 60))  # Maximum lockout duration in minutes
-    }
+
+class TestingConfig(Config):
+    """Testing configuration"""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_ENGINE_OPTIONS = {}  # Remove PostgreSQL-specific options
+    JWT_ACCESS_TOKEN_EXPIRES = 60  # 1 minute for testing
+    JWT_REFRESH_TOKEN_EXPIRES = 300  # 5 minutes for testing
+
+
+# Configuration mapping
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}

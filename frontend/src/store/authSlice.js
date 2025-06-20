@@ -5,10 +5,11 @@ import UserService from '../services/userService';
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ username, password }, { rejectWithValue }) => {
+  async ({ username, password, rememberMe = false }, { rejectWithValue }) => {
     try {
-      const data = await AuthService.login(username, password);
-      return data;
+      const data = await AuthService.login(username, password, rememberMe);
+      // Return the user data from the JWT response
+      return data.user;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Login failed' });
     }
@@ -31,17 +32,48 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      // First check if we're authenticated
-      const authStatus = await AuthService.isAuthenticated();
-      if (!authStatus) {
+      // First check if we have valid tokens
+      if (!AuthService.isAuthenticated()) {
         return rejectWithValue({ message: 'Not authenticated' });
       }
 
-      // If authenticated, get the user data
-      const data = await AuthService.getCurrentUser();
-      return data;
+      // Try to get stored user data first
+      const storedUser = AuthService.getStoredUser();
+      if (storedUser) {
+        return storedUser;
+      }
+
+      // If no stored data, fetch from server
+      const userData = await AuthService.getCurrentUser();
+      return userData;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch user' });
+    }
+  }
+);
+
+// Initialize auth state from stored tokens
+export const initializeAuth = createAsyncThunk(
+  'auth/initialize',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Check if we have valid tokens
+      if (!AuthService.isAuthenticated()) {
+        return rejectWithValue({ message: 'No valid tokens' });
+      }
+
+      // Get stored user data
+      const storedUser = AuthService.getStoredUser();
+      if (storedUser) {
+        return storedUser;
+      }
+
+      // If no stored user data, fetch from server
+      const userData = await AuthService.getCurrentUser();
+      return userData;
+    } catch (error) {
+      // If token refresh fails, clear everything
+      return rejectWithValue(error.response?.data || { message: 'Authentication failed' });
     }
   }
 );
@@ -114,6 +146,7 @@ const initialState = {
   error: null,
   registrationSuccess: null,
   activityLogs: [],
+  initialized: false, // Track if auth has been initialized
 };
 
 // Slice
@@ -127,6 +160,22 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Initialize auth
+      .addCase(initializeAuth.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.initialized = true;
+      })
+      .addCase(initializeAuth.rejected, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.initialized = true;
+      })
       // Login
       .addCase(login.pending, (state) => {
         state.loading = true;

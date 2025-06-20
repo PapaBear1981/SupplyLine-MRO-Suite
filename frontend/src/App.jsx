@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCurrentUser } from './store/authSlice';
+import { initializeAuth } from './store/authSlice';
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -53,8 +53,8 @@ function App() {
   const { theme } = useSelector((state) => state.theme);
 
   useEffect(() => {
-    // Try to fetch current user on app load
-    dispatch(fetchCurrentUser());
+    // Initialize authentication from stored tokens on app load
+    dispatch(initializeAuth());
   }, [dispatch]);
 
   // Apply theme to document

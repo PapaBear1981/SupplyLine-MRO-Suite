@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, make_response, current_app
+from flask import request, jsonify, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
 from datetime import datetime, timedelta, timezone
@@ -20,85 +20,67 @@ from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
-from utils.session_manager import SessionManager
+from auth import jwt_required, admin_required, department_required
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
 from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Removed duplicate materials_manager_required - using secure version below
+def get_current_user_info():
+    """Helper function to get current user info from JWT token"""
+    user_payload = getattr(request, 'current_user', None)
+    if not user_payload:
+        from auth import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if user_payload:
+            request.current_user = user_payload
+    return user_payload
 
+# JWT-compatible decorators for backward compatibility
 def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Login required access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        from utils.session_manager import SessionManager
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.debug(f"Admin access attempted for {f.__name__}")
-
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            logger.warning(f"Admin access denied - {message}")
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        if not session.get('is_admin', False):
-            logger.warning(f"Admin access denied - insufficient privileges for user {session.get('user_id')}")
-            return jsonify({'error': 'Admin privileges required'}), 403
-
-        logger.debug(f"Admin access granted for user {session.get('user_id')}")
-        return f(*args, **kwargs)
-    return decorated_function
+    """Alias for jwt_required for backward compatibility"""
+    return jwt_required(f)
 
 def tool_manager_required(f):
+    """Tool manager access - admin or Materials department"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
+            from auth import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+            request.current_user = user_payload
 
         # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
+        if user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials':
             return f(*args, **kwargs)
 
-        log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
-        return jsonify({'error': 'Tool management privileges required'}), 403
+        return jsonify({'error': 'Tool management privileges required', 'code': 'TOOL_MANAGER_REQUIRED'}), 403
     return decorated_function
 
 def materials_manager_required(f):
+    """Materials manager access - admin or Materials department"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
+            from auth import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+            request.current_user = user_payload
 
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials management access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Materials management privileges required'}), 403
+        if user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials':
+            return f(*args, **kwargs)
 
-        return f(*args, **kwargs)
+        return jsonify({'error': 'Materials management privileges required', 'code': 'MATERIALS_MANAGER_REQUIRED'}), 403
     return decorated_function
 
 def register_routes(app):
-    db.init_app(app)
     with app.app_context():
         db.create_all()
 
@@ -238,7 +220,7 @@ def register_routes(app):
 
     # Health check endpoint for Docker
     @app.route('/api/health', methods=['GET'])
-    def health_check():
+    def api_health_check():
         # Use standard datetime
         return jsonify({
             'status': 'healthy',
@@ -1737,265 +1719,7 @@ def register_routes(app):
             'timestamp': a.timestamp.isoformat()
         } for a in logs])
 
-    @app.route('/api/auth/login', methods=['POST'])
-    def login():
-        data = request.get_json() or {}
-
-        if not data.get('employee_number') or not data.get('password'):
-            return jsonify({'error': 'Employee number and password required'}), 400
-
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
-
-        # If user doesn't exist, return generic error message
-        if not user:
-            return jsonify({'error': 'Invalid credentials'}), 401
-
-        # Check if account is locked
-        if user.is_locked():
-            # Calculate remaining lockout time in minutes
-            remaining_seconds = user.get_lockout_remaining_time()
-            remaining_minutes = int(remaining_seconds / 60) + 1  # Round up to the next minute
-
-            # Log the failed login attempt due to account lockout
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Login attempt while account locked. Remaining lockout time: {remaining_minutes} minutes',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            log = AuditLog(
-                action_type='login_failed',
-                action_details=f'User {user.id} ({user.name}) attempted login while account locked. Remaining lockout time: {remaining_minutes} minutes'
-            )
-            db.session.add(log)
-            db.session.commit()
-
-            return jsonify({
-                'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes or contact an administrator.'
-            }), 403
-
-        # Check password
-        if not user.check_password(data['password']):
-            # Increment failed login attempts
-            user.increment_failed_login()
-
-            # Get account lockout settings from config
-            lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
-            max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
-            initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
-            lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
-            max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
-
-            # Log the failed login attempt
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Failed login attempt ({user.failed_login_attempts}/{max_attempts})',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            # Check if account should be locked
-            if user.failed_login_attempts >= max_attempts:
-                # Calculate lockout duration with exponential backoff
-                # For first lockout: initial_lockout
-                # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
-                # Number of complete lockout cycles
-                lockout_count = user.failed_login_attempts // max_attempts
-                if lockout_count == 1:
-                    lockout_minutes = initial_lockout
-                else:
-                    lockout_minutes = min(
-                        initial_lockout * (lockout_multiplier ** (lockout_count - 1)),
-                        max_lockout
-                    )
-
-                # Lock the account
-                user.lock_account(minutes=int(lockout_minutes))
-
-                # Log the account lockout
-                log = AuditLog(
-                    action_type='account_locked',
-                    action_details=f'User {user.id} ({user.name}) account locked for {lockout_minutes} minutes due to {user.failed_login_attempts} failed login attempts'
-                )
-                db.session.add(log)
-                db.session.commit()
-
-                return jsonify({
-                    'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
-                }), 403
-
-            # Calculate remaining attempts before lockout
-            remaining_attempts = max_attempts - user.failed_login_attempts
-
-            db.session.commit()
-
-            if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
-                return jsonify({
-                    'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
-                }), 401
-            else:
-                return jsonify({'error': 'Invalid credentials'}), 401
-
-        # Check if user is active
-        if not user.is_active:
-            return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
-
-        # Reset failed login attempts on successful login
-        user.reset_failed_login_attempts()
-
-        # Create secure session
-        from utils.session_manager import SessionManager
-        SessionManager.create_session(user)
-
-        # Get user permissions for session
-        permissions = user.get_permissions()
-        session['permissions'] = permissions
-
-        # Create response object with roles and permissions
-        response = make_response(jsonify(user.to_dict(include_roles=True, include_permissions=True)))
-
-        # Handle remember me
-        if data.get('remember_me'):
-            # Generate remember token
-            remember_token = user.generate_remember_token()
-            db.session.commit()
-
-            # Set cookies
-            response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
-            response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
-
-        # Log the login
-        activity = UserActivity(
-            user_id=user.id,
-            activity_type='login',
-            description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
-            ip_address=request.remote_addr
-        )
-        db.session.add(activity)
-
-        log = AuditLog(
-            action_type='user_login',
-            action_details=f'User {user.id} ({user.name}) logged in'
-        )
-        db.session.add(log)
-        db.session.commit()
-
-        return response
-
-    @app.route('/api/auth/logout', methods=['POST'])
-    def logout():
-        user_id = session.get('user_id')
-        if user_id:
-            # Get user to clear remember token
-            user = User.query.get(user_id)
-            if user:
-                user.clear_remember_token()
-                db.session.commit()
-
-                # Log the logout
-                activity = UserActivity(
-                    user_id=user.id,
-                    activity_type='logout',
-                    description='User logged out',
-                    ip_address=request.remote_addr
-                )
-                db.session.add(activity)
-
-                log = AuditLog(
-                    action_type='user_logout',
-                    action_details=f'User {user_id} ({session.get("user_name", "Unknown")}) logged out'
-                )
-                db.session.add(log)
-                db.session.commit()
-
-        # Clear session securely
-        from utils.session_manager import SessionManager
-        SessionManager.destroy_session()
-
-        # Create response and clear cookies
-        response = make_response(jsonify({'message': 'Logged out successfully'}))
-        response.delete_cookie('remember_token')
-        response.delete_cookie('user_id')
-
-        return response
-
-    @app.route('/api/auth/status', methods=['GET'])
-    def auth_status():
-        try:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.debug("Auth status check requested")
-
-            if 'user_id' not in session:
-                print("No user_id in session, checking cookies")
-                # Check for remember_me cookie
-                remember_token = request.cookies.get('remember_token')
-                if remember_token:
-                    print("Found remember_token cookie")
-                    user_id = request.cookies.get('user_id')
-                    if user_id:
-                        print(f"Found user_id cookie: {user_id}")
-                        try:
-                            user_id_int = int(user_id)
-                            user = User.query.get(user_id_int)
-                            if user and user.check_remember_token(remember_token):
-                                print(f"Valid remember token for user: {user.name}")
-                                # Valid remember token, log the user in
-                                session['user_id'] = user.id
-                                session['user_name'] = user.name
-                                session['is_admin'] = user.is_admin
-                                session['department'] = user.department
-
-                                # Get user permissions for session
-                                permissions = user.get_permissions()
-                                session['permissions'] = permissions
-
-                                # Log the auto-login
-                                activity = UserActivity(
-                                    user_id=user.id,
-                                    activity_type='auto_login',
-                                    description='Auto-login via remember me token',
-                                    ip_address=request.remote_addr
-                                )
-                                db.session.add(activity)
-                                db.session.commit()
-
-                                return jsonify({
-                                    'authenticated': True,
-                                    'user': user.to_dict(include_roles=True, include_permissions=True)
-                                }), 200
-                            else:
-                                print("Invalid or expired remember token")
-                        except (ValueError, TypeError) as e:
-                            print(f"Error converting user_id to int: {e}")
-
-                print("No valid session or remember token, returning unauthenticated")
-                return jsonify({'authenticated': False}), 200
-
-            print(f"User ID in session: {session['user_id']}")
-            user = User.query.get(session['user_id'])
-            if not user:
-                print(f"User with ID {session['user_id']} not found in database")
-                session.clear()
-                return jsonify({'authenticated': False}), 200
-
-            print(f"User authenticated: {user.name}")
-            return jsonify({
-                'authenticated': True,
-                'user': user.to_dict(include_roles=True, include_permissions=True)
-            }), 200
-
-        except Exception as e:
-            print(f"Error in auth_status route: {str(e)}")
-            # Clear session on error to prevent login loops
-            session.clear()
-            return jsonify({
-                'authenticated': False,
-                'error': 'An error occurred while checking authentication status'
-            }), 200  # Return 200 instead of 500 to prevent login loops
+    # Old session-based auth routes removed - using JWT auth routes instead
 
     @app.route('/api/auth/register', methods=['POST'])
     def register():
@@ -2121,13 +1845,15 @@ def register_routes(app):
     @app.route('/api/auth/user', methods=['GET'])
     @login_required
     def get_profile():
-        user = User.query.get(session['user_id'])
+        user_payload = get_current_user_info()
+        user = User.query.get(user_payload['user_id'])
         return jsonify(user.to_dict(include_roles=True, include_permissions=True)), 200
 
     @app.route('/api/user/profile', methods=['PUT'])
     @login_required
     def update_profile():
-        user = User.query.get(session['user_id'])
+        user_payload = get_current_user_info()
+        user = User.query.get(user_payload['user_id'])
         data = request.get_json() or {}
 
         # Update allowed fields
@@ -2155,7 +1881,8 @@ def register_routes(app):
     @app.route('/api/user/avatar', methods=['POST'])
     @login_required
     def upload_avatar():
-        user = User.query.get(session['user_id'])
+        user_payload = get_current_user_info()
+        user = User.query.get(user_payload['user_id'])
 
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file part'}), 400
@@ -2209,7 +1936,8 @@ def register_routes(app):
     @app.route('/api/user/password', methods=['PUT'])
     @login_required
     def change_password():
-        user = User.query.get(session['user_id'])
+        user_payload = get_current_user_info()
+        user = User.query.get(user_payload['user_id'])
         data = request.get_json() or {}
 
         # Validate required fields
@@ -2246,7 +1974,8 @@ def register_routes(app):
     @app.route('/api/user/activity', methods=['GET'])
     @login_required
     def get_user_activity():
-        user_id = session['user_id']
+        user_payload = get_current_user_info()
+        user_id = user_payload['user_id']
         activities = UserActivity.query.filter_by(user_id=user_id).order_by(UserActivity.timestamp.desc()).limit(50).all()
         return jsonify([activity.to_dict() for activity in activities]), 200
 

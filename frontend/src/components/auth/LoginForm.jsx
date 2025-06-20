@@ -6,6 +6,7 @@ import { login } from '../../store/authSlice';
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [validated, setValidated] = useState(false);
 
   const dispatch = useDispatch();
@@ -23,9 +24,9 @@ const LoginForm = () => {
 
     setValidated(true);
 
-    // Use the actual backend login API
+    // Use the actual backend login API with JWT
     try {
-      await dispatch(login({ username, password })).unwrap();
+      await dispatch(login({ username, password, rememberMe })).unwrap();
       console.log('Login successful!');
     } catch (err) {
       console.error('Login failed:', err);
@@ -62,6 +63,15 @@ const LoginForm = () => {
         <Form.Control.Feedback type="invalid">
           Please provide a password.
         </Form.Control.Feedback>
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="formRememberMe">
+        <Form.Check
+          type="checkbox"
+          label="Remember me"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+        />
       </Form.Group>
 
       <Button variant="primary" type="submit" disabled={loading}>
