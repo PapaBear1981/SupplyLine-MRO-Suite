@@ -1,18 +1,17 @@
-from flask import Flask, session, jsonify
+from flask import Flask, jsonify
 from routes import register_routes
-from config import Config
-from flask_session import Session
+from routes_auth import register_auth_routes
+from config import config
 from flask_cors import CORS
 import os
 import sys
 import time
 import datetime
 import logging.config
-from utils.session_cleanup import init_session_cleanup
-from utils.resource_monitor import init_resource_monitoring
-from utils.logging_utils import setup_request_logging
 
-def create_app():
+def create_app(config_name=None):
+    """Create Flask application with specified configuration"""
+
     # Set the system timezone to UTC
     os.environ['TZ'] = 'UTC'
     try:
@@ -22,47 +21,49 @@ def create_app():
         # Windows doesn't have time.tzset()
         print("Running on Windows, cannot set system timezone. Ensure system time is correct.")
 
-    # serve frontend static files from backend/static
-    app = Flask(
-        __name__,
-        instance_relative_config=False,
-        static_folder='static',
-        static_url_path='/static'
-    )
-    app.config.from_object(Config)
+    # Create Flask app
+    app = Flask(__name__, instance_relative_config=False)
+
+    # Load configuration
+    config_name = config_name or os.environ.get('FLASK_ENV', 'development')
+    app.config.from_object(config[config_name])
 
     # Configure structured logging
-    if hasattr(Config, 'LOGGING_CONFIG'):
+    if hasattr(app.config, 'LOGGING_CONFIG'):
         try:
-            logging.config.dictConfig(Config.LOGGING_CONFIG)
+            logging.config.dictConfig(app.config['LOGGING_CONFIG'])
             logging.getLogger(__name__).info("Structured logging configured successfully")
         except Exception as e:
             logging.getLogger(__name__).warning("Error configuring logging: %s", e)
             # Fall back to basic logging
             logging.basicConfig(level=logging.INFO)
 
-    # Initialize CORS with settings from config
+    # Initialize CORS with secure settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+
+    # Ensure no wildcard origins in production
+    if app.config.get('FLASK_ENV') == 'production' and '*' in allowed_origins:
+        logger.warning("Wildcard CORS origin detected in production - this is a security risk")
+        allowed_origins = [origin for origin in allowed_origins if origin != '*']
+
     CORS(app, resources={
         r"/api/*": {
             "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
-            "supports_credentials": True
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "expose_headers": ["X-Request-ID", "X-Response-Time"],
+            "supports_credentials": app.config.get('CORS_SUPPORTS_CREDENTIALS', False),
+            "max_age": 3600  # Cache preflight requests for 1 hour
         }
     })
 
-    # Initialize Flask-Session
-    Session(app)
+    # Initialize database
+    from models import db
+    db.init_app(app)
 
-    # Initialize session cleanup
-    init_session_cleanup(app)
-
-    # Initialize resource monitoring
-    init_resource_monitoring(app)
-
-    # Setup request logging middleware
-    setup_request_logging(app)
+    # Setup security middleware
+    from security import setup_security_middleware
+    setup_security_middleware(app)
 
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)
@@ -73,75 +74,29 @@ def create_app():
         'local_time': datetime.datetime.now().isoformat()
     })
 
-    # Run database migrations
-    try:
-        # Import and run the reorder fields migration
-        from migrate_reorder_fields import migrate_database
-        logger.info("Running chemical reorder fields migration...")
-        migrate_database()
-        logger.info("Chemical reorder fields migration completed successfully")
-    except Exception as e:
-        logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
-            'migration': 'reorder_fields',
-            'error_message': str(e)
-        })
+    # Create database tables if they don't exist
+    with app.app_context():
+        try:
+            db.create_all()
+            logger.info("Database tables created/verified successfully")
+        except Exception as e:
+            logger.error(f"Error creating database tables: {str(e)}")
+            # Don't fail startup for database issues - let the app start and handle DB errors per request
+            logger.warning("Application starting without database connection - database operations will fail until connection is restored")
 
-    try:
-        # Import and run the tool calibration migration
-        from migrate_tool_calibration import migrate_database as migrate_tool_calibration
-        logger.info("Running tool calibration migration...")
-        migrate_tool_calibration()
-        logger.info("Tool calibration migration completed successfully")
-    except Exception as e:
-        logger.error("Error running tool calibration migration", exc_info=True, extra={
-            'migration': 'tool_calibration',
-            'error_message': str(e)
-        })
-
-    try:
-        # Import and run the performance indexes migration
-        from migrate_performance_indexes import migrate_database as migrate_performance_indexes
-        logger.info("Running performance indexes migration...")
-        migrate_performance_indexes()
-        logger.info("Performance indexes migration completed successfully")
-    except Exception as e:
-        logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
-            'migration': 'performance_indexes',
-            'error_message': str(e)
-        })
-        raise
-
-    try:
-        # Import and run the database constraints migration
-        from migrate_database_constraints import migrate_database as migrate_database_constraints
-        logger.info("Running database constraints migration...")
-        migrate_database_constraints()
-        logger.info("Database constraints migration completed successfully")
-    except Exception as e:
-        logger.error("Database constraints migration failed", exc_info=True, extra={
-            'migration': 'database_constraints',
-            'error_message': str(e)
-        })
-        # Don't abort startup for constraints migration as it's not critical
-
-    # Setup global error handlers
-    from utils.error_handler import setup_global_error_handlers
-    setup_global_error_handlers(app)
+    # Register authentication routes
+    register_auth_routes(app)
 
     # Register main routes
     register_routes(app)
 
-    # Add security headers middleware
-    @app.after_request
-    def add_security_headers(response):
-        security_headers = app.config.get('SECURITY_HEADERS', {})
-        for header, value in security_headers.items():
-            response.headers[header] = value
-        return response
+    # Security headers are handled by security middleware
+    # No duplicate headers needed here
 
-    @app.route('/')
-    def index():
-        return app.send_static_file('index.html')
+    # Health check endpoint
+    @app.route('/health')
+    def health_check():
+        return jsonify({'status': 'healthy', 'timestamp': datetime.datetime.utcnow().isoformat()})
 
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={
@@ -151,6 +106,14 @@ def create_app():
 
     return app
 
+# Create app instance for WSGI servers like Gunicorn
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
+    # Use development config with SQLite for local testing
+    import os
+    os.environ['FLASK_ENV'] = 'development'
+    os.environ['DATABASE_URL'] = 'sqlite:///test_supplyline.db'
+
+    app = create_app('development')
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,0 +1,258 @@
+<testsuites id="" name="" tests="7" failures="6" skipped="0" errors="0" time="33.139752">
+<testsuite name="security.spec.js" timestamp="2025-06-20T03:01:55.732Z" hostname="chromium" tests="7" failures="6" skipped="0" time="138.299" errors="0">
+<testcase name="Frontend Security Tests › should prevent XSS in login form" classname="security.spec.js" time="6.385">
+<failure message="security.spec.js:9:3 should prevent XSS in login form" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:9:3 › Frontend Security Tests › should prevent XSS in login form ───
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('input[placeholder="Employee Number"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('input[placeholder="Employee Number"]')
+
+
+      12 |     
+      13 |     // Wait for login form to be visible
+    > 14 |     await expect(page.locator('input[placeholder="Employee Number"]')).toBeVisible();
+         |                                                                        ^
+      15 |     
+      16 |     // Try XSS payload in employee number field
+      17 |     const xssPayload = '<script>window.xssExecuted = true;</script>';
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:14:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should handle authentication token securely" classname="security.spec.js" time="32.085">
+<failure message="security.spec.js:36:3 should handle authentication token securely" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:36:3 › Frontend Security Tests › should handle authentication token securely 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('input[placeholder="Employee Number"]')
+
+
+      39 |     
+      40 |     // Login with valid credentials
+    > 41 |     await page.fill('input[placeholder="Employee Number"]', 'USER001');
+         |                ^
+      42 |     await page.fill('input[placeholder="Password"]', 'user123');
+      43 |     await page.click('button[type="submit"]');
+      44 |     
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:41:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-54a53-thentication-token-securely-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-54a53-thentication-token-securely-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-54a53-thentication-token-securely-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|security-Frontend-Security-54a53-thentication-token-securely-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-54a53-thentication-token-securely-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-54a53-thentication-token-securely-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should prevent CSRF attacks" classname="security.spec.js" time="1.917">
+<failure message="security.spec.js:82:3 should prevent CSRF attacks" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:82:3 › Frontend Security Tests › should prevent CSRF attacks ───────
+
+    Error: expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not 200
+
+      112 |     // If the request succeeded, it should at least require proper authentication
+      113 |     if (csrfAttempt.success) {
+    > 114 |       expect(csrfAttempt.status).not.toBe(200); // Should not succeed without proper auth
+          |                                      ^
+      115 |     }
+      116 |   });
+      117 |
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:114:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[CSRF attempt result: { success: [33mtrue[39m, status: [33m200[39m }
+
+[[ATTACHMENT|security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should handle malicious input safely" classname="security.spec.js" time="32.105">
+<failure message="security.spec.js:118:3 should handle malicious input safely" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:118:3 › Frontend Security Tests › should handle malicious input safely 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('input[placeholder="Employee Number"]')
+
+
+      131 |     for (const maliciousInput of maliciousInputs) {
+      132 |       // Clear and fill the employee number field
+    > 133 |       await page.fill('input[placeholder="Employee Number"]', '');
+          |                  ^
+      134 |       await page.fill('input[placeholder="Employee Number"]', maliciousInput);
+      135 |       
+      136 |       // Submit the form
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:133:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should enforce proper session management" classname="security.spec.js" time="32.111">
+<failure message="security.spec.js:152:3 should enforce proper session management" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:152:3 › Frontend Security Tests › should enforce proper session management 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('input[placeholder="Employee Number"]')
+
+
+      160 |     
+      161 |     // Login with valid credentials
+    > 162 |     await page.fill('input[placeholder="Employee Number"]', 'USER001');
+          |                ^
+      163 |     await page.fill('input[placeholder="Password"]', 'user123');
+      164 |     await page.click('button[type="submit"]');
+      165 |     
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:162:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-6832b-e-proper-session-management-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-6832b-e-proper-session-management-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-6832b-e-proper-session-management-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|security-Frontend-Security-6832b-e-proper-session-management-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-6832b-e-proper-session-management-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-6832b-e-proper-session-management-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should validate input length limits" classname="security.spec.js" time="32.122">
+<failure message="security.spec.js:188:3 should validate input length limits" type="FAILURE">
+<![CDATA[  [chromium] › security.spec.js:188:3 › Frontend Security Tests › should validate input length limits 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('input[placeholder="Employee Number"]')
+
+
+      193 |     const veryLongString = 'A'.repeat(10000);
+      194 |     
+    > 195 |     await page.fill('input[placeholder="Employee Number"]', veryLongString);
+          |                ^
+      196 |     await page.fill('input[placeholder="Password"]', veryLongString);
+      197 |     
+      198 |     // Submit the form
+        at C:\Users\Chris\Documents\augment-projects\SupplyLine-MRO-Suite\frontend\tests\e2e\security.spec.js:195:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\video.webm]]
+
+[[ATTACHMENT|security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Frontend Security Tests › should prevent clickjacking" classname="security.spec.js" time="1.574">
+<system-out>
+<![CDATA[Frame protection headers: { [32m'x-frame-options'[39m: [90mundefined[39m, [32m'content-security-policy'[39m: [90mundefined[39m }
+⚠️  No clickjacking protection detected
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

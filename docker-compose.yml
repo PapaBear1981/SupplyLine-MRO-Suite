@@ -1,4 +1,30 @@
 services:
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: supplyline-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-supplyline}
+      POSTGRES_USER: ${POSTGRES_USER:-supplyline_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SupplyLine2024!SecureDB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-supplyline_user} -d ${POSTGRES_DB:-supplyline}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: ${DATABASE_CPU_LIMIT:-0.5}
+          memory: ${DATABASE_MEMORY_LIMIT:-512M}
+
   backend:
     build:
       context: ./backend
@@ -13,16 +39,22 @@ services:
       - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-supplyline_user}:${POSTGRES_PASSWORD:-SupplyLine2024!SecureDB}@database:5432/${POSTGRES_DB:-supplyline}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-super-secure-jwt-secret-key-change-in-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:-admin123}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
       - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
     ports:
       - "5000:5000"
+    depends_on:
+      database:
+        condition: service_healthy
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,6 +101,8 @@ networks:
     name: supplyline-network
 
 volumes:
+  postgres_data:
+    name: supplyline-postgres-data
   database:
     name: supplyline-database
   flask_session:

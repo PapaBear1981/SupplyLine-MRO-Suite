@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Create a non-root user and install system dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl tzdata && \
+    apt-get install -y --no-install-recommends curl tzdata libpq5 && \
     # Set timezone to UTC
     ln -fs /usr/share/zoneinfo/UTC /etc/localtime && \
     dpkg-reconfigure -f noninteractive tzdata && \
@@ -27,8 +27,8 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # Create necessary directories and set permissions
-RUN mkdir -p /database /flask_session && \
-    chown -R appuser:appuser /app /database /flask_session
+RUN mkdir -p /app/logs && \
+    chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
@@ -36,6 +36,6 @@ USER appuser
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health
+  CMD curl -f http://localhost:5000/health
 
-CMD ["python", "run.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
