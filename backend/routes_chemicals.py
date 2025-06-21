@@ -10,21 +10,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator to check if user is admin or in Materials department
+# Decorator to check if user is admin or in Materials department (JWT-based)
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        # Use JWT authentication
+        from auth import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Materials access denied: No valid JWT token')
+            return jsonify({'error': 'Authentication required', 'reason': 'No active session'}), 401
 
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Materials access denied for user {user_payload.get("user_id")}')
             return jsonify({'error': 'Materials management privileges required'}), 403
 
+        # Add user info to request context
+        request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
 

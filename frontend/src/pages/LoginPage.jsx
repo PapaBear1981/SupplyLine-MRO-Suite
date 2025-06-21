@@ -5,16 +5,22 @@ import { Container, Row, Col, Card } from 'react-bootstrap';
 import LoginForm from '../components/auth/LoginForm';
 
 const LoginPage = () => {
+  console.log('=== LOGIN PAGE COMPONENT RENDERED ===');
+
   const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
+
+  console.log('LoginPage state:', { isAuthenticated, location: location.pathname });
 
   // Get the redirect path from location state or default to dashboard
   const from = location.state?.from?.pathname || '/';
 
   useEffect(() => {
+    console.log('LoginPage useEffect - isAuthenticated:', isAuthenticated, 'from:', from);
     // If user is already authenticated, redirect to the intended page
     if (isAuthenticated) {
+      console.log('User is authenticated, redirecting to:', from);
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);

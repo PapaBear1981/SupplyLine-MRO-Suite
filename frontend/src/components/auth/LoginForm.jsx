@@ -116,7 +116,6 @@ const LoginForm = () => {
         variant="primary"
         type="submit"
         disabled={loading}
-        onClick={() => console.log('=== BUTTON CLICKED ===')}
       >
         {loading ? (
           <>

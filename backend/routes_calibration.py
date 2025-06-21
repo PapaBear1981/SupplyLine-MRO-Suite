@@ -12,21 +12,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator for requiring tool manager privileges
+# Decorator for requiring tool manager privileges (JWT-based)
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        # Use JWT authentication
+        from auth import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Tool management access denied: No valid JWT token')
+            return jsonify({'error': 'Authentication required', 'reason': 'No active session'}), 401
 
         # Check if user has admin or Materials department privileges
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Tool management access denied for user {user_payload.get("user_id")}')
             return jsonify({'error': 'Tool management privileges required'}), 403
 
+        # Add user info to request context
+        request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
 

@@ -2072,13 +2072,14 @@ def register_routes(app):
         return jsonify([]), 200
 
     @app.route('/api/checkouts/user', methods=['GET'])
-    @login_required
+    @jwt_required
     def get_user_checkouts():
-        # Get the current user's checkouts
-        if 'user_id' not in session:
+        # Get the current user's checkouts using JWT authentication
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
             return jsonify({'error': 'Authentication required'}), 401
 
-        user_id = session['user_id']
+        user_id = user_payload['user_id']
         # Get all checkouts for the user (both active and past)
         checkouts = Checkout.query.filter_by(user_id=user_id).all()
 
