@@ -136,18 +136,30 @@ api.interceptors.response.use(
             // Refresh failed, clear tokens and redirect to login
             console.error('Token refresh failed:', refreshError);
             clearTokens();
-            window.location.href = '/login';
+
+            // Only redirect if we're not already on the login page
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
             return Promise.reject(refreshError);
           }
         } else {
           // No refresh token, redirect to login
           clearTokens();
-          window.location.href = '/login';
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
       } else if (error.response.status === 401) {
         // Already tried refresh or refresh not applicable
         clearTokens();
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      } else if (error.response.status >= 500) {
+        // Server error - don't redirect to login, just log the error
+        console.error('Server error occurred:', error.response.data);
+        // Let the error propagate to be handled by the component
       }
     }
 

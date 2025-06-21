@@ -17,15 +17,42 @@ const CycleCountDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    dispatch(fetchCycleCountStats());
+    // Dispatch with error handling
+    dispatch(fetchCycleCountStats()).catch((error) => {
+      console.error('Failed to fetch cycle count stats:', error);
+    });
   }, [dispatch]);
 
   if (stats.loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Loading cycle count data...</span>
         </Spinner>
+      </div>
+    );
+  }
+
+  // If there's a critical error that prevents the page from loading
+  if (stats.error && !stats.data) {
+    return (
+      <div className="container-fluid">
+        <h1>Cycle Count Management</h1>
+        <Alert variant="danger" className="mb-4">
+          <Alert.Heading>Unable to Load Cycle Count System</Alert.Heading>
+          <p>
+            The cycle count system is currently unavailable. This may be due to missing database tables
+            or a backend configuration issue.
+          </p>
+          <p className="mb-0">
+            <strong>Error:</strong> {stats.error.error || 'Unknown error occurred'}
+          </p>
+          <hr />
+          <p className="mb-0">
+            Please contact your system administrator to resolve this issue. The cycle count database
+            tables may need to be created or updated.
+          </p>
+        </Alert>
       </div>
     );
   }

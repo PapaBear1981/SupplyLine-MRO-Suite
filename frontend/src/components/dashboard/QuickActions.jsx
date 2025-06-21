@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom';
 
 const QuickActions = () => {
   const { user } = useSelector((state) => state.auth);
-  const isAdmin = user?.is_admin;
+
+  // Debug logging to help identify the issue
+  console.log('QuickActions: User object:', user);
+  console.log('QuickActions: User is_admin:', user?.is_admin);
+  console.log('QuickActions: User department:', user?.department);
+
+  // Handle both is_admin boolean and check for admin-like departments as fallback
+  const isAdmin = user?.is_admin === true || user?.department === 'Administration' || user?.department === 'IT';
   const isMaterials = user?.department === 'Materials';
   
   // Define quick actions based on user role
@@ -122,6 +129,9 @@ const QuickActions = () => {
                 state={action.state}
                 variant={action.variant}
                 className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100"
+                onClick={() => {
+                  console.log('QuickActions: Button clicked:', action.title, 'Link:', action.link);
+                }}
               >
                 <i className={`bi bi-${action.icon} fs-4 mb-2`}></i>
                 <span>{action.title}</span>
