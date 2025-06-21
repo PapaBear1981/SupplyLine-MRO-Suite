@@ -38,14 +38,22 @@ def create_app(config_name=None):
             # Fall back to basic logging
             logging.basicConfig(level=logging.INFO)
 
-    # Initialize CORS with settings from config
+    # Initialize CORS with secure settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+
+    # Ensure no wildcard origins in production
+    if app.config.get('FLASK_ENV') == 'production' and '*' in allowed_origins:
+        logger.warning("Wildcard CORS origin detected in production - this is a security risk")
+        allowed_origins = [origin for origin in allowed_origins if origin != '*']
+
     CORS(app, resources={
         r"/api/*": {
             "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": app.config.get('CORS_SUPPORTS_CREDENTIALS', False)
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "expose_headers": ["X-Request-ID", "X-Response-Time"],
+            "supports_credentials": app.config.get('CORS_SUPPORTS_CREDENTIALS', False),
+            "max_age": 3600  # Cache preflight requests for 1 hour
         }
     })
 
@@ -73,7 +81,8 @@ def create_app(config_name=None):
             logger.info("Database tables created/verified successfully")
         except Exception as e:
             logger.error(f"Error creating database tables: {str(e)}")
-            raise
+            # Don't fail startup for database issues - let the app start and handle DB errors per request
+            logger.warning("Application starting without database connection - database operations will fail until connection is restored")
 
     # Register authentication routes
     register_auth_routes(app)
@@ -81,13 +90,8 @@ def create_app(config_name=None):
     # Register main routes
     register_routes(app)
 
-    # Add security headers middleware
-    @app.after_request
-    def add_security_headers(response):
-        security_headers = app.config.get('SECURITY_HEADERS', {})
-        for header, value in security_headers.items():
-            response.headers[header] = value
-        return response
+    # Security headers are handled by security middleware
+    # No duplicate headers needed here
 
     # Health check endpoint
     @app.route('/health')
@@ -101,6 +105,9 @@ def create_app(config_name=None):
     })
 
     return app
+
+# Create app instance for WSGI servers like Gunicorn
+app = create_app()
 
 if __name__ == "__main__":
     # Use development config with SQLite for local testing

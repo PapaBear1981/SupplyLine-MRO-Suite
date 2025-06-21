@@ -11,7 +11,7 @@ This module provides JWT-based authentication endpoints including:
 
 from flask import request, jsonify, current_app
 from models import db, User, UserActivity, AuditLog
-from auth import JWTManager, jwt_required
+from auth import JWTManager, jwt_required, csrf_required
 from security import validate_request_data, rate_limit, log_security_event
 from datetime import datetime
 import logging
@@ -229,7 +229,7 @@ def register_auth_routes(app):
                     'authenticated': False,
                     'message': 'Not authenticated'
                 }), 200
-            
+
             return jsonify({
                 'authenticated': True,
                 'user': {
@@ -241,10 +241,34 @@ def register_auth_routes(app):
                     'permissions': user_payload.get('permissions', [])
                 }
             }), 200
-            
+
         except Exception as e:
             logger.error(f"Auth status error: {str(e)}")
             return jsonify({
                 'authenticated': False,
                 'error': 'Internal server error'
+            }), 500
+
+    @app.route('/api/auth/csrf-token', methods=['GET'])
+    @jwt_required
+    def get_csrf_token():
+        """Generate CSRF token for authenticated user"""
+        try:
+            user_payload = request.current_user
+            token_secret = user_payload.get('jti', '')
+
+            csrf_token = JWTManager.generate_csrf_token(
+                user_payload['user_id'],
+                token_secret
+            )
+
+            return jsonify({
+                'csrf_token': csrf_token,
+                'expires_in': 3600  # 1 hour
+            }), 200
+
+        except Exception as e:
+            logger.error(f"CSRF token generation error: {str(e)}")
+            return jsonify({
+                'error': 'Failed to generate CSRF token'
             }), 500

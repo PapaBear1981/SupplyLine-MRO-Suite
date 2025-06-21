@@ -30,7 +30,11 @@ SECURITY_HEADERS = {
         "connect-src 'self'; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
-        "form-action 'self'"
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "media-src 'self'; "
+        "worker-src 'self'; "
+        "manifest-src 'self'"
     ),
     
     # Referrer Policy

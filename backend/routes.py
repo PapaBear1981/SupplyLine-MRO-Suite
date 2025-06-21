@@ -82,7 +82,11 @@ def materials_manager_required(f):
 
 def register_routes(app):
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            app.logger.error(f"Error creating database tables in routes: {str(e)}")
+            # Don't fail startup for database issues - let the app start and handle DB errors per request
 
         # Create admin user if none exists - using secure initialization
         from utils.admin_init import create_secure_admin

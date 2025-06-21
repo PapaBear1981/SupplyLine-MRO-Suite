@@ -26,15 +26,55 @@ const clearTokens = () => {
   localStorage.removeItem('supplyline_access_token');
   localStorage.removeItem('supplyline_refresh_token');
   localStorage.removeItem('supplyline_user_data');
+  localStorage.removeItem('supplyline_csrf_token');
 };
 
-// Request interceptor for adding JWT auth token
+// CSRF token management
+const getCsrfToken = () => {
+  return localStorage.getItem('supplyline_csrf_token');
+};
+
+const setCsrfToken = (token) => {
+  localStorage.setItem('supplyline_csrf_token', token);
+};
+
+const fetchCsrfToken = async () => {
+  try {
+    const response = await api.get('/auth/csrf-token');
+    const { csrf_token } = response.data;
+    setCsrfToken(csrf_token);
+    return csrf_token;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    return null;
+  }
+};
+
+// Request interceptor for adding JWT auth token and CSRF token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // Add JWT token to Authorization header
     const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+
+      // Add CSRF token for state-changing requests
+      if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase())) {
+        let csrfToken = getCsrfToken();
+
+        // Fetch CSRF token if not available (but only if we have an auth token)
+        if (!csrfToken && !config.url.includes('/auth/login')) {
+          try {
+            csrfToken = await fetchCsrfToken();
+          } catch (error) {
+            console.warn('Failed to fetch CSRF token:', error);
+          }
+        }
+
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
     }
 
     // Only log non-GET requests in development environment or when debugging is enabled

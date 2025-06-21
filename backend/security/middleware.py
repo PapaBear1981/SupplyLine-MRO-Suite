@@ -156,19 +156,8 @@ def setup_security_middleware(app):
             if duration > 2.0:
                 logger.warning(f"Slow request: {request.method} {request.path} took {duration:.3f}s")
         
-        # CORS headers for API endpoints
-        if request.path.startswith('/api/'):
-            allowed_origins = app.config.get('CORS_ORIGINS', [])
-            origin = request.headers.get('Origin')
-            
-            if origin in allowed_origins:
-                response.headers['Access-Control-Allow-Origin'] = origin
-            elif '*' in allowed_origins:
-                response.headers['Access-Control-Allow-Origin'] = '*'
-            
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-            response.headers['Access-Control-Max-Age'] = '3600'
+        # CORS is handled by Flask-CORS extension in app.py
+        # No manual CORS headers needed here to avoid conflicts
         
         return response
     

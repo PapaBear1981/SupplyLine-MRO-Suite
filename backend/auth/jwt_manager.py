@@ -11,6 +11,7 @@ This module provides JWT-based authentication functionality including:
 import jwt
 import secrets
 import logging
+import hashlib
 from datetime import datetime, timedelta, timezone
 from flask import request, jsonify, current_app
 from functools import wraps
@@ -169,6 +170,62 @@ class JWTManager:
         
         return JWTManager.verify_token(token, 'access')
 
+    @staticmethod
+    def generate_csrf_token(user_id: int, token_secret: str) -> str:
+        """
+        Generate CSRF token for JWT-based authentication
+
+        Args:
+            user_id: User ID
+            token_secret: Secret from JWT token
+
+        Returns:
+            CSRF token string
+        """
+        # Create a unique token based on user ID, current time, and token secret
+        timestamp = str(int(datetime.now(timezone.utc).timestamp()))
+        data = f"{user_id}:{timestamp}:{token_secret}"
+        csrf_token = hashlib.sha256(data.encode()).hexdigest()[:32]
+        return f"{timestamp}:{csrf_token}"
+
+    @staticmethod
+    def validate_csrf_token(csrf_token: str, user_id: int, token_secret: str, max_age: int = 3600) -> bool:
+        """
+        Validate CSRF token for JWT-based authentication
+
+        Args:
+            csrf_token: CSRF token to validate
+            user_id: User ID from JWT
+            token_secret: Secret from JWT token
+            max_age: Maximum age of token in seconds (default: 1 hour)
+
+        Returns:
+            True if token is valid, False otherwise
+        """
+        try:
+            if ':' not in csrf_token:
+                return False
+
+            timestamp_str, token_hash = csrf_token.split(':', 1)
+            timestamp = int(timestamp_str)
+
+            # Check if token is not too old
+            current_time = int(datetime.now(timezone.utc).timestamp())
+            if current_time - timestamp > max_age:
+                logger.warning(f"CSRF token expired for user {user_id}")
+                return False
+
+            # Regenerate expected token
+            data = f"{user_id}:{timestamp_str}:{token_secret}"
+            expected_hash = hashlib.sha256(data.encode()).hexdigest()[:32]
+
+            # Compare tokens securely
+            return secrets.compare_digest(token_hash, expected_hash)
+
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid CSRF token format for user {user_id}: {e}")
+            return False
+
 
 def jwt_required(f):
     """Decorator for JWT authentication requirement"""
@@ -232,21 +289,58 @@ def department_required(department_name: str):
             user_payload = JWTManager.get_current_user()
             if not user_payload:
                 return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
-            
+
             # Allow admin access to all departments
             if user_payload.get('is_admin', False):
                 request.current_user = user_payload
                 return f(*args, **kwargs)
-            
+
             user_department = user_payload.get('department')
             if user_department != department_name:
                 return jsonify({
                     'error': f'Access restricted to {department_name} department',
                     'code': 'DEPARTMENT_REQUIRED'
                 }), 403
-            
+
             # Add user info to request context
             request.current_user = user_payload
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def csrf_required(f):
+    """Decorator for JWT-compatible CSRF protection"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Only check CSRF for state-changing methods
+        if request.method not in ['POST', 'PUT', 'DELETE', 'PATCH']:
+            return f(*args, **kwargs)
+
+        # Get current user from JWT
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+
+        # Get CSRF token from header
+        csrf_token = request.headers.get('X-CSRF-Token')
+        if not csrf_token:
+            logger.warning(f"Missing CSRF token for user {user_payload['user_id']}")
+            return jsonify({
+                'error': 'CSRF token required',
+                'code': 'CSRF_TOKEN_REQUIRED'
+            }), 403
+
+        # Validate CSRF token using JWT secret
+        token_secret = user_payload.get('jti', '')  # JWT ID as secret
+        if not JWTManager.validate_csrf_token(csrf_token, user_payload['user_id'], token_secret):
+            logger.warning(f"Invalid CSRF token for user {user_payload['user_id']}")
+            return jsonify({
+                'error': 'Invalid CSRF token',
+                'code': 'CSRF_TOKEN_INVALID'
+            }), 403
+
+        # Add user info to request context
+        request.current_user = user_payload
+        return f(*args, **kwargs)
+    return decorated_function

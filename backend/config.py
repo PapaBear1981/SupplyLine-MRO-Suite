@@ -26,14 +26,26 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Database connection pooling and optimization (PostgreSQL specific)
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'echo': False,  # Set to True for SQL debugging
-        'pool_pre_ping': True,  # Validate connections before use
-        'pool_recycle': 3600,  # Recycle connections every hour
-        'pool_size': 10,
-        'max_overflow': 20
-    }
+    # Database connection pooling and optimization
+    @staticmethod
+    def get_engine_options():
+        database_url = os.environ.get('DATABASE_URL', 'sqlite:///supplyline.db')
+        if database_url.startswith('postgresql'):
+            # PostgreSQL specific options
+            return {
+                'echo': False,  # Set to True for SQL debugging
+                'pool_pre_ping': True,  # Validate connections before use
+                'pool_recycle': 3600,  # Recycle connections every hour
+                'pool_size': 10,
+                'max_overflow': 20
+            }
+        else:
+            # SQLite and other databases
+            return {
+                'echo': False,  # Set to True for SQL debugging
+            }
+
+    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
 
     # JWT Configuration
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)

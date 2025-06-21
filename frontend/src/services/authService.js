@@ -106,6 +106,16 @@ const AuthService = {
       // Store tokens and user data
       TokenManager.setTokens(access_token, refresh_token, user);
 
+      // Fetch CSRF token for future requests
+      try {
+        const csrfResponse = await api.get('/auth/csrf-token');
+        if (csrfResponse.data.csrf_token) {
+          localStorage.setItem('supplyline_csrf_token', csrfResponse.data.csrf_token);
+        }
+      } catch (csrfError) {
+        console.warn('Failed to fetch CSRF token after login:', csrfError);
+      }
+
       return response.data;
     } catch (error) {
       throw error;
