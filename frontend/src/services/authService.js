@@ -95,29 +95,43 @@ const AuthService = {
   // Login user with JWT
   login: async (username, password, rememberMe = false) => {
     try {
+      console.log('=== AUTH SERVICE LOGIN CALLED ===');
+      console.log('Username:', username);
+      console.log('Password:', password ? '[HIDDEN]' : 'EMPTY');
+      console.log('Remember Me:', rememberMe);
+
+      console.log('Making API call to /auth/login...');
       const response = await api.post('/auth/login', {
         employee_number: username,
         password,
         remember_me: rememberMe
       });
 
+      console.log('API response received:', response.data);
+
       const { access_token, refresh_token, user } = response.data;
 
       // Store tokens and user data
+      console.log('Storing tokens in localStorage...');
       TokenManager.setTokens(access_token, refresh_token, user);
+      console.log('Tokens stored successfully');
 
       // Fetch CSRF token for future requests
       try {
+        console.log('Fetching CSRF token...');
         const csrfResponse = await api.get('/auth/csrf-token');
         if (csrfResponse.data.csrf_token) {
           localStorage.setItem('supplyline_csrf_token', csrfResponse.data.csrf_token);
+          console.log('CSRF token stored');
         }
       } catch (csrfError) {
         console.warn('Failed to fetch CSRF token after login:', csrfError);
       }
 
+      console.log('Login process completed successfully');
       return response.data;
     } catch (error) {
+      console.error('AuthService.login error:', error);
       throw error;
     }
   },

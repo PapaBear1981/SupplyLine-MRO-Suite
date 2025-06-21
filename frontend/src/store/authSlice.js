@@ -7,10 +7,19 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ username, password, rememberMe = false }, { rejectWithValue }) => {
     try {
+      console.log('=== REDUX LOGIN ACTION CALLED ===');
+      console.log('Username:', username);
+      console.log('Password:', password ? '[HIDDEN]' : 'EMPTY');
+      console.log('Remember Me:', rememberMe);
+
+      console.log('Calling AuthService.login...');
       const data = await AuthService.login(username, password, rememberMe);
+      console.log('AuthService.login successful:', data);
+
       // Return the user data from the JWT response
       return data.user;
     } catch (error) {
+      console.error('AuthService.login failed:', error);
       return rejectWithValue(error.response?.data || { message: 'Login failed' });
     }
   }
