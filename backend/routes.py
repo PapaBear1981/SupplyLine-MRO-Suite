@@ -1,4 +1,4 @@
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, session
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
 from datetime import datetime, timedelta, timezone
@@ -132,8 +132,9 @@ def register_routes(app):
     @materials_manager_required
     def chemicals_reorder_needed_direct_route():
         try:
-            print("Session info: user_id={}, is_admin={}, department={}".format(
-                session.get('user_id'), session.get('is_admin'), session.get('department')))
+            user_payload = get_current_user_info()
+            print("JWT user info: user_id={}, is_admin={}, department={}".format(
+                user_payload.get('user_id'), user_payload.get('is_admin'), user_payload.get('department')))
             # Get chemicals that need to be reordered
             chemicals = Chemical.query.filter_by(needs_reorder=True, reorder_status='needed').all()
 
@@ -149,7 +150,8 @@ def register_routes(app):
     @materials_manager_required
     @handle_errors
     def chemicals_on_order_direct_route():
-        logger.info(f"Chemicals on order requested by user {session.get('user_id')}")
+        user_payload = get_current_user_info()
+        logger.info(f"Chemicals on order requested by user {user_payload.get('user_id')}")
 
         # Get chemicals that are on order
         chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
@@ -163,8 +165,9 @@ def register_routes(app):
     @materials_manager_required
     def chemicals_expiring_soon_direct_route():
         try:
-            print("Session info: user_id={}, is_admin={}, department={}".format(
-                session.get('user_id'), session.get('is_admin'), session.get('department')))
+            user_payload = get_current_user_info()
+            print("JWT user info: user_id={}, is_admin={}, department={}".format(
+                user_payload.get('user_id'), user_payload.get('is_admin'), user_payload.get('department')))
             # Get days parameter (default to 30)
             days = request.args.get('days', 30, type=int)
 
@@ -353,9 +356,10 @@ def register_routes(app):
         )
 
         # Update the registration request status
+        user_payload = get_current_user_info()
         reg_request.status = 'approved'
         reg_request.processed_at = datetime.utcnow()
-        reg_request.processed_by = session['user_id']
+        reg_request.processed_by = user_payload.get('user_id')
         reg_request.admin_notes = request.json.get('notes', '')
 
         # Save changes
@@ -389,9 +393,10 @@ def register_routes(app):
             return jsonify({'error': f'Registration request is already {reg_request.status}'}), 400
 
         # Update the registration request status
+        user_payload = get_current_user_info()
         reg_request.status = 'denied'
         reg_request.processed_at = datetime.utcnow()
-        reg_request.processed_by = session['user_id']
+        reg_request.processed_by = user_payload.get('user_id')
         reg_request.admin_notes = request.json.get('notes', '')
 
         # Save changes
@@ -413,10 +418,11 @@ def register_routes(app):
     @app.route('/api/admin/dashboard/stats', methods=['GET'])
     @admin_required
     def get_admin_dashboard_stats():
+        user_payload = get_current_user_info()
         print("Admin dashboard stats endpoint called")
-        print(f"Session: {session}")
-        print(f"User ID in session: {session.get('user_id')}")
-        print(f"Is admin in session: {session.get('is_admin')}")
+        print(f"JWT user payload: {user_payload}")
+        print(f"User ID from JWT: {user_payload.get('user_id')}")
+        print(f"Is admin from JWT: {user_payload.get('is_admin')}")
 
         # Get counts from various tables
         user_count = User.query.count()
@@ -1348,13 +1354,14 @@ def register_routes(app):
                     user_id = None
 
             if not user_id:
-                print("No valid user_id in request, checking session")
-                # If user_id not provided in request, use the logged-in user's ID
-                if 'user_id' not in session:
-                    print("No user_id in session either")
+                print("No valid user_id in request, checking JWT token")
+                # If user_id not provided in request, use the logged-in user's ID from JWT
+                user_payload = get_current_user_info()
+                if not user_payload or not user_payload.get('user_id'):
+                    print("No user_id in JWT token either")
                     return jsonify({'error': 'Authentication required'}), 401
-                user_id = session['user_id']
-                print(f"Using user_id from session: {user_id}")
+                user_id = user_payload.get('user_id')
+                print(f"Using user_id from JWT: {user_id}")
 
             # Validate user exists
             user = User.query.get(user_id)
@@ -1419,9 +1426,10 @@ def register_routes(app):
                 db.session.add(log)
 
                 # Add user activity
-                if 'user_id' in session:
+                user_payload = get_current_user_info()
+                if user_payload and user_payload.get('user_id'):
                     activity = UserActivity(
-                        user_id=session['user_id'],
+                        user_id=user_payload.get('user_id'),
                         activity_type='tool_checkout',
                         description=f'Checked out tool {tool.tool_number}',
                         ip_address=request.remote_addr
@@ -1449,7 +1457,11 @@ def register_routes(app):
             print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
 
             # Check if user is admin or Materials department
-            if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            user_payload = get_current_user_info()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
                 print(f"Permission denied: User is not admin or Materials department")
                 return jsonify({'error': 'Only Materials and Admin personnel can return tools'}), 403
 
@@ -1535,9 +1547,10 @@ def register_routes(app):
                 db.session.add(log)
 
                 # Add user activity
-                if 'user_id' in session:
+                user_payload = get_current_user_info()
+                if user_payload and user_payload.get('user_id'):
                     activity = UserActivity(
-                        user_id=session['user_id'],
+                        user_id=user_payload.get('user_id'),
                         activity_type='tool_return',
                         description=f'Returned tool {tool.tool_number if tool else "Unknown"}',
                         ip_address=request.remote_addr
@@ -1567,20 +1580,22 @@ def register_routes(app):
                 }), 200
             except Exception as e:
                 db.session.rollback()
+                user_payload = get_current_user_info()
                 logger.error("Database error during tool return", exc_info=True, extra={
                     'operation': 'tool_return',
                     'tool_id': c.tool_id,
-                    'user_id': session.get('user_id'),
+                    'user_id': user_payload.get('user_id') if user_payload else None,
                     'error_type': type(e).__name__,
                     'error_message': str(e)
                 })
                 return jsonify({'error': 'Database error during tool return'}), 500
 
         except Exception as e:
+            user_payload = get_current_user_info()
             logger.error("Unexpected error in return route", exc_info=True, extra={
                 'operation': 'tool_return',
-                'tool_id': c.tool_id,
-                'user_id': session.get('user_id'),
+                'tool_id': c.tool_id if 'c' in locals() else None,
+                'user_id': user_payload.get('user_id') if user_payload else None,
                 'error_type': type(e).__name__,
                 'error_message': str(e)
             })

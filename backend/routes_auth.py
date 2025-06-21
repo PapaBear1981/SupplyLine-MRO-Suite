@@ -21,25 +21,25 @@ logger = logging.getLogger(__name__)
 
 def register_auth_routes(app):
     """Register JWT authentication routes"""
-    
+
     @app.route('/api/auth/login', methods=['POST'])
-    @rate_limit(limit=5, window=300)  # 5 attempts per 5 minutes
-    @validate_request_data('login')
     def login():
         """JWT-based login endpoint"""
         try:
-            # Get validated data from security middleware
-            data = request.validated_data
+            # Get JSON data
+            data = request.get_json() or {}
+
+            # Basic validation
+            employee_number = data.get('employee_number')
+            password = data.get('password')
+
+            if not employee_number or not password:
+                return jsonify({'error': 'Missing employee_number or password'}), 400
             
             # Find user
-            user = User.query.filter_by(employee_number=data['employee_number']).first()
+            user = User.query.filter_by(employee_number=employee_number).first()
             if not user:
-                logger.warning(f"Login attempt with non-existent employee number: {data['employee_number']}")
-                log_security_event('failed_login', {'reason': 'user_not_found', 'employee_number': data['employee_number']})
-                return jsonify({
-                    'error': 'Invalid credentials',
-                    'code': 'INVALID_CREDENTIALS'
-                }), 401
+                return jsonify({'error': 'Invalid credentials'}), 401
             
             # Check if user is active
             if not user.is_active:
@@ -58,7 +58,7 @@ def register_auth_routes(app):
                 }), 423
             
             # Verify password
-            if not user.check_password(data['password']):
+            if not user.check_password(password):
                 # Increment failed login attempts
                 user.increment_failed_login()
                 db.session.commit()
