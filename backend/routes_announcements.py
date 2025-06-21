@@ -8,20 +8,23 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator to check if user is admin (using secure session validation)
+# Decorator to check if user is admin (JWT-based)
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Admin access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
+            from auth import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                log_security_event('unauthorized_access_attempt', 'Admin access denied: No valid JWT token')
+                return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+            request.current_user = user_payload
 
         # Check if user is admin
-        if not session.get('is_admin', False):
-            log_security_event('insufficient_permissions', f'Admin access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Admin privileges required'}), 403
+        if not user_payload.get('is_admin', False):
+            log_security_event('insufficient_permissions', f'Admin access denied for user {user_payload["user_id"]}')
+            return jsonify({'error': 'Admin privileges required', 'code': 'ADMIN_REQUIRED'}), 403
 
         return f(*args, **kwargs)
     return decorated_function

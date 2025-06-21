@@ -140,35 +140,45 @@ class JWTManager:
     def extract_token_from_header() -> Optional[str]:
         """
         Extract JWT token from Authorization header
-        
+
         Returns:
             Token string or None if not found
         """
         auth_header = request.headers.get('Authorization')
+        print(f"DEBUG: Authorization header: {auth_header}")
         if not auth_header:
+            print("DEBUG: No Authorization header found")
             return None
-        
+
         try:
             scheme, token = auth_header.split(' ', 1)
+            print(f"DEBUG: Scheme: {scheme}, Token: {token[:50]}...")
             if scheme.lower() != 'bearer':
+                print(f"DEBUG: Invalid scheme: {scheme}")
                 return None
             return token
         except ValueError:
+            print("DEBUG: Could not split Authorization header")
             return None
     
     @staticmethod
     def get_current_user() -> Optional[Dict[str, Any]]:
         """
         Get current user from JWT token
-        
+
         Returns:
             User payload from token or None if not authenticated
         """
+        print("DEBUG: JWTManager.get_current_user() called")
         token = JWTManager.extract_token_from_header()
+        print(f"DEBUG: Extracted token: {token[:50] if token else 'None'}...")
         if not token:
+            print("DEBUG: No token found in header")
             return None
-        
-        return JWTManager.verify_token(token, 'access')
+
+        result = JWTManager.verify_token(token, 'access')
+        print(f"DEBUG: Token verification result: {result}")
+        return result
 
     @staticmethod
     def generate_csrf_token(user_id: int, token_secret: str) -> str:

@@ -3,21 +3,26 @@ from models import db, User, Role, Permission, RolePermission, UserRole, AuditLo
 from datetime import datetime
 from functools import wraps
 
-# Decorator to check if user has a specific permission
+# Decorator to check if user has a specific permission (JWT-based)
 def permission_required(permission_name):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if 'user_id' not in session:
-                return jsonify({'error': 'Authentication required'}), 401
+            user_payload = getattr(request, 'current_user', None)
+            if not user_payload:
+                from auth import JWTManager
+                user_payload = JWTManager.get_current_user()
+                if not user_payload:
+                    return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+                request.current_user = user_payload
 
-            user = User.query.get(session['user_id'])
+            user = User.query.get(user_payload['user_id'])
             if not user:
                 return jsonify({'error': 'User not found'}), 404
 
             # Check if user has the required permission
             if not user.has_permission(permission_name):
-                return jsonify({'error': f'Permission {permission_name} required'}), 403
+                return jsonify({'error': f'Permission {permission_name} required', 'code': 'PERMISSION_REQUIRED'}), 403
 
             return f(*args, **kwargs)
         return decorated_function
@@ -223,13 +228,15 @@ def register_rbac_routes(app):
     # Get current user permissions
     @app.route('/api/auth/permissions', methods=['GET'])
     def get_current_user_permissions():
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-            
-        user = User.query.get(session['user_id'])
+        from auth import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+
+        user = User.query.get(user_payload['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
-            
+
         return jsonify({
             'permissions': user.get_permissions(),
             'roles': [role.to_dict() for role in user.roles]

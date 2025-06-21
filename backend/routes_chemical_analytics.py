@@ -206,17 +206,21 @@ def calculate_shelf_life_stats(chemicals):
 
     return results
 
-# Decorator to check if user is admin or in Materials department
+# Decorator to check if user is admin or in Materials department (JWT-based)
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Authentication check
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
+            from auth import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+            request.current_user = user_payload
 
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'Materials management privileges required'}), 403
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            return jsonify({'error': 'Materials management privileges required', 'code': 'MATERIALS_MANAGER_REQUIRED'}), 403
 
         return f(*args, **kwargs)
     return decorated_function

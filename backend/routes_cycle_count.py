@@ -386,16 +386,22 @@ def update_item_from_count_result(cycle_count_item, count_result):
         # Don't raise the exception to avoid breaking the count submission
 
 def tool_manager_required(f):
+    """Tool manager access - admin or Materials department (JWT-based)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        user_payload = getattr(request, 'current_user', None)
+        if not user_payload:
+            from auth import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+            request.current_user = user_payload
 
         # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
+        if user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials':
             return f(*args, **kwargs)
 
-        return jsonify({'error': 'Tool management privileges required'}), 403
+        return jsonify({'error': 'Tool management privileges required', 'code': 'TOOL_MANAGER_REQUIRED'}), 403
     return decorated_function
 
 def register_cycle_count_routes(app):
