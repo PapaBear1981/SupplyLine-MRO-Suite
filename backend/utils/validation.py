@@ -99,6 +99,8 @@ def validate_dates(data, date_fields):
         data: Dictionary to validate
         date_fields: List of field names that should contain dates
     """
+    from datetime import timezone
+
     for field in date_fields:
         if field in data and data[field]:
             try:
@@ -107,7 +109,15 @@ def validate_dates(data, date_fields):
                     date_str = data[field]
                     if date_str.endswith('Z'):
                         date_str = date_str.replace('Z', '+00:00')
-                    data[field] = datetime.fromisoformat(date_str)
+
+                    # Parse the datetime
+                    parsed_date = datetime.fromisoformat(date_str)
+
+                    # If the datetime is timezone-naive, assume it's UTC
+                    if parsed_date.tzinfo is None:
+                        parsed_date = parsed_date.replace(tzinfo=timezone.utc)
+
+                    data[field] = parsed_date
             except ValueError as err:
                 raise ValidationError(
                     f"{field} must be a valid ISO format date"

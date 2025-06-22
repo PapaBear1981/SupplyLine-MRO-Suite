@@ -284,7 +284,7 @@ def register_auth_routes(app):
             }), 500
 
     @app.route('/api/auth/change-password', methods=['POST'])
-    def change_password():
+    def auth_change_password():
         """Change password for users with force_password_change flag"""
         try:
             data = request.get_json() or {}

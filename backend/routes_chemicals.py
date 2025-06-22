@@ -5,6 +5,7 @@ from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
 from auth import JWTManager, jwt_required
+from utils.session_manager import secure_login_required
 from sqlalchemy.orm import joinedload
 import logging
 

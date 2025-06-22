@@ -397,7 +397,16 @@ class Chemical(db.Model):
     def is_expired(self):
         if not self.expiration_date:
             return False
-        return get_current_time() > self.expiration_date
+
+        # Ensure both datetimes are timezone-aware for comparison
+        current_time = get_current_time()
+        expiration_date = self.expiration_date
+
+        # If expiration_date is timezone-naive, assume it's UTC
+        if expiration_date.tzinfo is None:
+            expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+
+        return current_time > expiration_date
 
     def is_expiring_soon(self, days=30):
         """Check if the chemical is expiring within the specified number of days"""
@@ -408,8 +417,13 @@ class Chemical(db.Model):
         now = get_current_time()
         expiration_threshold = now + timedelta(days=days)
 
+        # Ensure expiration_date is timezone-aware for comparison
+        expiration_date = self.expiration_date
+        if expiration_date.tzinfo is None:
+            expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+
         # Check if expiration date is in the future but within the threshold
-        return now < self.expiration_date <= expiration_threshold
+        return now < expiration_date <= expiration_threshold
 
     def update_reorder_status(self):
         """Update the reorder status based on expiration, quantity, and minimum stock level"""
@@ -537,6 +551,11 @@ class CalibrationStandard(db.Model):
     created_at = db.Column(db.DateTime, default=get_current_time)
 
     def to_dict(self):
+        # Ensure expiration_date is timezone-aware for comparison
+        expiration_date = self.expiration_date
+        if expiration_date.tzinfo is None:
+            expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+
         return {
             'id': self.id,
             'name': self.name,
@@ -545,7 +564,7 @@ class CalibrationStandard(db.Model):
             'certification_date': self.certification_date.isoformat(),
             'expiration_date': self.expiration_date.isoformat(),
             'created_at': self.created_at.isoformat(),
-            'is_expired': get_current_time() > self.expiration_date,
+            'is_expired': get_current_time() > expiration_date,
             'is_expiring_soon': self.is_expiring_soon()
         }
 
@@ -553,7 +572,13 @@ class CalibrationStandard(db.Model):
         """Check if the standard is expiring within the specified number of days"""
         now = get_current_time()
         expiration_threshold = now + timedelta(days=days)
-        return now < self.expiration_date <= expiration_threshold
+
+        # Ensure expiration_date is timezone-aware for comparison
+        expiration_date = self.expiration_date
+        if expiration_date.tzinfo is None:
+            expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+
+        return now < expiration_date <= expiration_threshold
 
 class ToolCalibrationStandard(db.Model):
     __tablename__ = 'tool_calibration_standards'
