@@ -70,3 +70,8 @@ logs
 *.swp
 *.swo
 *~
+
+# Electron build artifacts
+final-build/
+installer/
+portable-build/
