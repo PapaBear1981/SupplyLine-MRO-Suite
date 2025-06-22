@@ -202,8 +202,8 @@ def register_calibration_routes(app):
         logger.info(f"Adding calibration record for tool {tool.tool_number}")
 
         # Validate that calibration status is valid
-        if validated_data['calibration_status'] not in ['pass', 'fail', 'limited']:
-            raise ValidationError('Calibration status must be pass, fail, or limited')
+        if validated_data['calibration_status'] not in ['completed', 'failed', 'in_progress']:
+            raise ValidationError('Calibration status must be completed, failed, or in_progress')
 
         # Get calibration dates (already validated by schema)
         calibration_date = validated_data['calibration_date']
@@ -213,13 +213,18 @@ def register_calibration_routes(app):
         if not next_calibration_date and tool.calibration_frequency_days:
             next_calibration_date = calibration_date + timedelta(days=tool.calibration_frequency_days)
 
+        # Get current user info from JWT token
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
         # Create calibration record
         calibration = ToolCalibration(
             tool_id=id,
             calibration_date=calibration_date,
             next_calibration_date=next_calibration_date,
-            performed_by_user_id=session['user_id'],
-            calibration_notes=validated_data.get('notes', ''),
+            performed_by_user_id=user_payload['user_id'],
+            calibration_notes=validated_data.get('calibration_notes', ''),
             calibration_status=validated_data['calibration_status']
         )
 
@@ -246,11 +251,6 @@ def register_calibration_routes(app):
                         standard_id=standard_id
                     )
                     db.session.add(calibration_standard)
-
-        # Get current user info
-        user_payload = JWTManager.get_current_user()
-        if not user_payload:
-            return jsonify({'error': 'Authentication required'}), 401
 
         # Create audit log
         log = AuditLog(
