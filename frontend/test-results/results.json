@@ -1,0 +1,619 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\playwright.config.js",
+    "rootDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 7
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "C:/Users/Chris/Documents/augment-projects/SupplyLine-MRO-Suite/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.53.1",
+    "workers": 8,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:5173",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "security.spec.js",
+      "file": "security.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Frontend Security Tests",
+          "file": "security.spec.js",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should prevent XSS in login form",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 6385,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('input[placeholder=\"Employee Number\"]')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('input[placeholder=\"Employee Number\"]')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:14:72",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                          "column": 72,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 12 |\u001b[39m     \n \u001b[90m 13 |\u001b[39m     \u001b[90m// Wait for login form to be visible\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 15 |\u001b[39m     \n \u001b[90m 16 |\u001b[39m     \u001b[90m// Try XSS payload in employee number field\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mconst\u001b[39m xssPayload \u001b[33m=\u001b[39m \u001b[32m'<script>window.xssExecuted = true;</script>'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 72,
+                            "line": 14
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('input[placeholder=\"Employee Number\"]')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 12 |\u001b[39m     \n \u001b[90m 13 |\u001b[39m     \u001b[90m// Wait for login form to be visible\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 15 |\u001b[39m     \n \u001b[90m 16 |\u001b[39m     \u001b[90m// Try XSS payload in employee number field\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mconst\u001b[39m xssPayload \u001b[33m=\u001b[39m \u001b[32m'<script>window.xssExecuted = true;</script>'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:14:72\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.311Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-da77b-d-prevent-XSS-in-login-form-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                        "column": 72,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-43925e15606c563b693e",
+              "file": "security.spec.js",
+              "line": 9,
+              "column": 3
+            },
+            {
+              "title": "should handle authentication token securely",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "timedOut",
+                      "duration": 32085,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 16,
+                            "line": 41
+                          },
+                          "message": "Error: page.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 39 |\u001b[39m     \n \u001b[90m 40 |\u001b[39m     \u001b[90m// Login with valid credentials\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 41 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'USER001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 42 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'user123'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 43 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 44 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:41:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.328Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-54a53-thentication-token-securely-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-54a53-thentication-token-securely-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-54a53-thentication-token-securely-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-052ed610ffbb34c431f7",
+              "file": "security.spec.js",
+              "line": 36,
+              "column": 3
+            },
+            {
+              "title": "should prevent CSRF attacks",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 1917,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m200\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m200\u001b[39m\n    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:114:38",
+                        "location": {
+                          "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                          "column": 38,
+                          "line": 114
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 112 |\u001b[39m     \u001b[90m// If the request succeeded, it should at least require proper authentication\u001b[39m\n \u001b[90m 113 |\u001b[39m     \u001b[36mif\u001b[39m (csrfAttempt\u001b[33m.\u001b[39msuccess) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 114 |\u001b[39m       expect(csrfAttempt\u001b[33m.\u001b[39mstatus)\u001b[33m.\u001b[39mnot\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Should not succeed without proper auth\u001b[39m\n \u001b[90m     |\u001b[39m                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 115 |\u001b[39m     }\n \u001b[90m 116 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 117 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 38,
+                            "line": 114
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m200\u001b[39m\n\n\u001b[0m \u001b[90m 112 |\u001b[39m     \u001b[90m// If the request succeeded, it should at least require proper authentication\u001b[39m\n \u001b[90m 113 |\u001b[39m     \u001b[36mif\u001b[39m (csrfAttempt\u001b[33m.\u001b[39msuccess) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 114 |\u001b[39m       expect(csrfAttempt\u001b[33m.\u001b[39mstatus)\u001b[33m.\u001b[39mnot\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Should not succeed without proper auth\u001b[39m\n \u001b[90m     |\u001b[39m                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 115 |\u001b[39m     }\n \u001b[90m 116 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 117 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:114:38\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "CSRF attempt result: { success: \u001b[33mtrue\u001b[39m, status: \u001b[33m200\u001b[39m }\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.323Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-Tests-should-prevent-CSRF-attacks-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                        "column": 38,
+                        "line": 114
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-59f5625b5831768f6e8d",
+              "file": "security.spec.js",
+              "line": 82,
+              "column": 3
+            },
+            {
+              "title": "should handle malicious input safely",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "timedOut",
+                      "duration": 32105,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 18,
+                            "line": 133
+                          },
+                          "message": "Error: page.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 131 |\u001b[39m     \u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m maliciousInput \u001b[36mof\u001b[39m maliciousInputs) {\n \u001b[90m 132 |\u001b[39m       \u001b[90m// Clear and fill the employee number field\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 133 |\u001b[39m       \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m''\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 134 |\u001b[39m       \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m\u001b[33m,\u001b[39m maliciousInput)\u001b[33m;\u001b[39m\n \u001b[90m 135 |\u001b[39m       \n \u001b[90m 136 |\u001b[39m       \u001b[90m// Submit the form\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:133:18\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.328Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-d4453-ndle-malicious-input-safely-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-5efc7c6142b25e2aab91",
+              "file": "security.spec.js",
+              "line": 118,
+              "column": 3
+            },
+            {
+              "title": "should enforce proper session management",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "timedOut",
+                      "duration": 32111,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 16,
+                            "line": 162
+                          },
+                          "message": "Error: page.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 160 |\u001b[39m     \n \u001b[90m 161 |\u001b[39m     \u001b[90m// Login with valid credentials\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 162 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'USER001'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 163 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'user123'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 164 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 165 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:162:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.326Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-6832b-e-proper-session-management-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-6832b-e-proper-session-management-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-6832b-e-proper-session-management-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-b6140f2e55b0e1e0bae5",
+              "file": "security.spec.js",
+              "line": 152,
+              "column": 3
+            },
+            {
+              "title": "should validate input length limits",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "timedOut",
+                      "duration": 32122,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js",
+                            "column": 16,
+                            "line": 195
+                          },
+                          "message": "Error: page.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"Employee Number\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 193 |\u001b[39m     \u001b[36mconst\u001b[39m veryLongString \u001b[33m=\u001b[39m \u001b[32m'A'\u001b[39m\u001b[33m.\u001b[39mrepeat(\u001b[35m10000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 194 |\u001b[39m     \n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 195 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Employee Number\"]'\u001b[39m\u001b[33m,\u001b[39m veryLongString)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 196 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[placeholder=\"Password\"]'\u001b[39m\u001b[33m,\u001b[39m veryLongString)\u001b[33m;\u001b[39m\n \u001b[90m 197 |\u001b[39m     \n \u001b[90m 198 |\u001b[39m     \u001b[90m// Submit the form\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\tests\\e2e\\security.spec.js:195:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.355Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Chris\\Documents\\augment-projects\\SupplyLine-MRO-Suite\\frontend\\test-results\\security-Frontend-Security-cccb8-alidate-input-length-limits-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-0438c9ca682341469eb5",
+              "file": "security.spec.js",
+              "line": 188,
+              "column": 3
+            },
+            {
+              "title": "should prevent clickjacking",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 1574,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Frame protection headers: { \u001b[32m'x-frame-options'\u001b[39m: \u001b[90mundefined\u001b[39m, \u001b[32m'content-security-policy'\u001b[39m: \u001b[90mundefined\u001b[39m }\n"
+                        },
+                        {
+                          "text": "⚠️  No clickjacking protection detected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-06-20T03:01:56.318Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3efa7971ab9a8dd627a5-c85162b4f9f369115f8c",
+              "file": "security.spec.js",
+              "line": 213,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-06-20T03:01:55.547Z",
+    "duration": 33139.752,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SupplyLine MRO Suite - Simplified Application Deployment'
+
+Parameters:
+  InfrastructureStackName:
+    Type: String
+    Description: Name of the infrastructure CloudFormation stack
+    Default: supplyline-infrastructure-simple
+  
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Environment name
+  
+  BackendImageUri:
+    Type: String
+    Description: ECR URI for backend Docker image
+    Default: 236224546224.dkr.ecr.us-east-1.amazonaws.com/supplyline-backend:latest
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Database password (must match infrastructure stack)
+
+Resources:
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub '${AWS::StackName}-cluster'
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # IAM Roles
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+
+  # CloudWatch Log Group
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/${AWS::StackName}-backend'
+      RetentionInDays: 30
+
+  # ECS Task Definition
+  BackendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${AWS::StackName}-backend'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 1024
+      ExecutionRoleArn: !Ref ECSExecutionRole
+      TaskRoleArn: !Ref ECSTaskRole
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Ref BackendImageUri
+          Essential: true
+          PortMappings:
+            - ContainerPort: 5000
+              Protocol: tcp
+          Environment:
+            - Name: FLASK_ENV
+              Value: !Ref Environment
+            - Name: DATABASE_URL
+              Value: !Sub
+                - 'postgresql://supplyline_admin:${Password}@${Endpoint}:${Port}/postgres'
+                - Endpoint:
+                    Fn::ImportValue: !Sub '${InfrastructureStackName}-DatabaseEndpoint'
+                  Port:
+                    Fn::ImportValue: !Sub '${InfrastructureStackName}-DatabasePort'
+                  Password: !Ref DatabasePassword
+            - Name: JWT_SECRET_KEY
+              Value: 'your-jwt-secret-key-change-in-production'
+            - Name: SECRET_KEY
+              Value: 'your-app-secret-key-change-in-production'
+            - Name: CORS_ORIGINS
+              Value: 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://supplyline-frontend-236224546224.s3-website-us-east-1.amazonaws.com'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BackendLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: backend
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'supplyline-alb'
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet1Id'
+        - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet2Id'
+      SecurityGroups:
+        - Fn::ImportValue: !Sub '${InfrastructureStackName}-ApplicationSecurityGroup'
+
+  # ALB Target Group
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'supplyline-backend-tg'
+      Port: 5000
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub '${InfrastructureStackName}-VpcId'
+      TargetType: ip
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  # ALB Listener
+  BackendListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ECS Service
+  BackendService:
+    Type: AWS::ECS::Service
+    DependsOn: BackendListener
+    Properties:
+      ServiceName: !Sub '${AWS::StackName}-backend-service'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref BackendTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - Fn::ImportValue: !Sub '${InfrastructureStackName}-ApplicationSecurityGroup'
+          Subnets:
+            - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet1Id'
+            - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet2Id'
+          AssignPublicIp: ENABLED
+      LoadBalancers:
+        - ContainerName: backend
+          ContainerPort: 5000
+          TargetGroupArn: !Ref BackendTargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+
+Outputs:
+  LoadBalancerDNS:
+    Description: Application Load Balancer DNS name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${AWS::StackName}-LoadBalancerDNS'
+
+  BackendServiceArn:
+    Description: ECS Backend Service ARN
+    Value: !Ref BackendService
+    Export:
+      Name: !Sub '${AWS::StackName}-BackendServiceArn'
+
+  ApplicationURL:
+    Description: Application URL
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
