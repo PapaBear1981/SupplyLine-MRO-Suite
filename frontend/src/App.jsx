@@ -27,14 +27,15 @@ import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import ScannerPage from './pages/ScannerPage';
-import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
-import CycleCountScheduleForm from './components/cycleCount/CycleCountScheduleForm';
-import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
-import CycleCountScheduleDetailPage from './pages/CycleCountScheduleDetailPage';
-import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
-import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
-import CycleCountItemCountPage from './pages/CycleCountItemCountPage';
-import CycleCountMobilePage from './pages/CycleCountMobilePage';
+// DISABLED - Cycle count system temporarily disabled
+// import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
+// import CycleCountScheduleForm from './components/cycleCount/CycleCountScheduleForm';
+// import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
+// import CycleCountScheduleDetailPage from './pages/CycleCountScheduleDetailPage';
+// import CycleCountBatchDetailPage from './pages/CycleCountBatchDetailPage';
+// import CycleCountDiscrepancyDetailPage from './pages/CycleCountDiscrepancyDetailPage';
+// import CycleCountItemCountPage from './pages/CycleCountItemCountPage';
+// import CycleCountMobilePage from './pages/CycleCountMobilePage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
@@ -281,9 +282,9 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Cycle Count routes */}
+        {/* DISABLED - Cycle Count routes - Cycle count system temporarily disabled */}
         {/* Cycle Count Form Routes - More specific routes first */}
-        <Route path="/cycle-counts/schedules/new" element={
+        {/* <Route path="/cycle-counts/schedules/new" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountScheduleForm />
@@ -313,9 +314,9 @@ function App() {
               <CycleCountBatchForm />
             </MainLayout>
           </ProtectedRoute>
-        } />
+        } /> */}
 
-        <Route path="/cycle-counts/batches/:id/edit" element={
+        {/* <Route path="/cycle-counts/batches/:id/edit" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountBatchForm />
@@ -345,10 +346,10 @@ function App() {
               <CycleCountDiscrepancyDetailPage />
             </MainLayout>
           </ProtectedRoute>
-        } />
+        } /> */}
 
         {/* General Cycle Count routes */}
-        <Route path="/cycle-counts/schedules" element={
+        {/* <Route path="/cycle-counts/schedules" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountDashboardPage />
@@ -378,14 +379,14 @@ function App() {
               <CycleCountDashboardPage />
             </MainLayout>
           </ProtectedRoute>
-        } />
+        } /> */}
 
         {/* Mobile Cycle Count route */}
-        <Route path="/cycle-counts/mobile" element={
+        {/* <Route path="/cycle-counts/mobile" element={
           <ProtectedRoute>
             <CycleCountMobilePage />
           </ProtectedRoute>
-        } />
+        } /> */}
 
         {/* Redirect any unknown routes to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />

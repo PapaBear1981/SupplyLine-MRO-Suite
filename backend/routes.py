@@ -18,7 +18,7 @@ from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
-from routes_cycle_count import register_cycle_count_routes
+# from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
 from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
@@ -139,7 +139,7 @@ def register_routes(app):
     register_scanner_routes(app)
 
     # Register cycle count routes
-    register_cycle_count_routes(app)
+    # register_cycle_count_routes(app)  # DISABLED - Cycle count system temporarily disabled
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])

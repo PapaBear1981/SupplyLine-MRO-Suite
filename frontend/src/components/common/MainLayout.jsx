@@ -32,7 +32,7 @@ const MainLayout = ({ children }) => {
                       <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                       <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
                       <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
-                      <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link>
+                      {/* <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link> */}
                       <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                     </>
                   )}
