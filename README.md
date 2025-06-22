@@ -1,16 +1,26 @@
 # SupplyLine MRO Suite
 
-A comprehensive inventory management system for tools and chemicals built with React and Flask, designed for aerospace maintenance operations.
+A comprehensive, secure, and scalable Maintenance, Repair, and Operations (MRO) management system built with modern technologies and AWS-ready architecture.
 
-**Current Version: 3.5.3** - See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+**Current Version: 4.0.0 - AWS Production Beta** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
+
+## 🚀 Version 4.0.0 - Major AWS Release
+
+This is a **major release** featuring complete migration to AWS cloud infrastructure with enhanced security, scalability, and modern authentication. This version includes breaking changes and represents a significant architectural upgrade.
+
+### Key Highlights
+
+- **🏗️ AWS Cloud Infrastructure**: Complete migration to AWS using ECS Fargate, RDS PostgreSQL, S3, CloudFront, and more
+- **🔐 JWT Authentication**: Modern token-based authentication replacing session-based auth
+- **🛡️ Enhanced Security**: AWS Secrets Manager, IAM roles, VPC security, and comprehensive audit logging
+- **📈 Production Scalability**: Auto-scaling, load balancing, and CDN for global performance
+- **🔧 DevOps Ready**: GitHub Actions CI/CD, Infrastructure as Code, and automated deployments
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-## What's New in 3.5.3
-
-The latest version includes significant improvements to user experience and fixes several important issues:
+Built with modern security practices and designed for enterprise-scale deployments on AWS cloud infrastructure.
 
 - **Improved Admin Dashboard**: Fixed tab switching in Admin Dashboard for User Management, Role Management, System Settings, and Help Settings
 - **Enhanced Chemical Management**: Added alerts for overdue chemical deliveries and fixed chemical reorder delivery functionality
@@ -107,31 +117,97 @@ Version 3.5.0 introduced comprehensive tool calibration management:
 ## Tech Stack
 
 ### Frontend
-- React
-- Redux Toolkit
-- React Router
-- React Bootstrap
-- Axios
-- Nginx (for production deployment)
+- **React 19** - Modern UI framework with latest features
+- **Redux Toolkit** - State management
+- **React Router** - Client-side routing
+- **React Bootstrap** - UI components
+- **Axios** - HTTP client with JWT token management
+- **Chart.js & Recharts** - Data visualization
+- **Vite** - Fast build tool and development server
 
 ### Backend
-- Flask
-- SQLite
-- Flask-SQLAlchemy
-- Flask-CORS
-- Flask-Session
-- Gunicorn (for production deployment)
+- **Flask 2.2.3** - Python web framework
+- **PostgreSQL** - Production database (AWS RDS)
+- **SQLite** - Development database
+- **Flask-SQLAlchemy** - ORM
+- **Flask-CORS** - Cross-origin resource sharing
+- **PyJWT 2.8.0** - JWT token authentication
+- **Gunicorn** - WSGI HTTP server
 
-### Deployment
-- Docker
-- Docker Compose
-- Nginx (as reverse proxy)
+### AWS Cloud Infrastructure
+- **Amazon ECS Fargate** - Container orchestration
+- **Amazon RDS PostgreSQL** - Managed database service
+- **Amazon S3** - Static website hosting
+- **Amazon CloudFront** - CDN for global content delivery
+- **Application Load Balancer** - Load balancing and SSL termination
+- **Amazon ECR** - Container registry
+- **AWS Secrets Manager** - Secure secrets management
+- **AWS CloudFormation** - Infrastructure as Code
+- **Amazon VPC** - Network isolation and security
 
-## Getting Started
+### Security & Authentication
+- **JWT Tokens** - Stateless authentication
+- **AWS IAM** - Identity and access management
+- **CSRF Protection** - Cross-site request forgery protection
+- **SSL/TLS** - End-to-end encryption
+- **Security Groups** - Network-level security
+
+### DevOps & Deployment
+- **Docker** - Containerization
+- **GitHub Actions** - CI/CD pipeline
+- **Playwright** - End-to-end testing
+- **CloudFormation** - Infrastructure automation
+- **Multi-stage Docker builds** - Optimized container images
+
+## 🚀 AWS Production Deployment
+
+### Prerequisites for AWS Deployment
+- **AWS Account** with appropriate permissions
+- **AWS CLI** installed and configured
+- **Docker** installed locally
+- **Node.js** (v18+) and **Python** (v3.11+)
+- **Git** for version control
+
+### Quick AWS Deployment
+
+The application includes automated deployment scripts for AWS:
+
+```bash
+# Clone the repository
+git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
+cd SupplyLine-MRO-Suite
+
+# Configure AWS credentials
+aws configure
+
+# Deploy to AWS (creates all infrastructure)
+./scripts/deploy.sh
+```
+
+This will:
+1. Create ECR repository for container images
+2. Build and push Docker images
+3. Deploy infrastructure using CloudFormation
+4. Deploy the application to ECS Fargate
+5. Set up RDS PostgreSQL database
+6. Configure S3 and CloudFront for frontend
+7. Set up load balancer and SSL certificates
+
+### Manual AWS Setup
+
+For more control over the deployment process, see the comprehensive [AWS Deployment Guide](DEPLOYMENT.md).
+
+### Production URLs
+
+After deployment, your application will be available at:
+- **Frontend**: `https://your-cloudfront-domain.cloudfront.net`
+- **Backend API**: `https://your-alb-domain.us-east-1.elb.amazonaws.com/api`
+
+## Getting Started (Local Development)
 
 ### Prerequisites
-- Node.js (v14+)
-- Python (v3.8+)
+- Node.js (v18+)
+- Python (v3.11+)
 - npm or yarn
 - Docker and Docker Compose (for containerized deployment)
 

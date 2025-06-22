@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2025-06-22 - AWS Production Beta
+
+### 🚀 MAJOR RELEASE - BREAKING CHANGES
+
+This is a major architectural release that migrates the SupplyLine MRO Suite to AWS cloud infrastructure with significant security and scalability improvements.
+
+### Added
+- **AWS Cloud Infrastructure**: Complete migration to AWS using ECS Fargate, RDS PostgreSQL, S3, CloudFront
+- **JWT Authentication**: Modern token-based authentication system replacing session-based auth
+- **AWS Secrets Manager**: Secure management of database passwords and JWT secrets
+- **CloudFormation Templates**: Infrastructure as Code for reproducible deployments
+- **GitHub Actions CI/CD**: Automated testing and deployment pipeline
+- **Playwright Testing**: End-to-end browser testing integration
+- **Security Enhancements**: CSRF protection, account lockout, audit logging
+- **Auto-scaling**: ECS Fargate with Application Load Balancer
+- **CDN**: CloudFront distribution for global performance
+- **Container Registry**: Amazon ECR for secure Docker image management
+- **VPC Security**: Private subnets with NAT Gateway for secure backend communication
+- **SSL/TLS**: End-to-end encryption with AWS Certificate Manager
+- **Health Monitoring**: Application health checks and CloudWatch logging
+- **PyJWT 2.8.0**: Added JWT library for secure token management
+
+### Changed
+- **BREAKING**: Replaced Flask sessions with JWT token authentication
+- **BREAKING**: Migrated from SQLite to PostgreSQL for production
+- **BREAKING**: Updated API responses to include JWT token information
+- **Database**: Production database now runs on Amazon RDS PostgreSQL
+- **Frontend Deployment**: Now deployed to S3 with CloudFront CDN
+- **Backend Deployment**: Now runs on ECS Fargate containers
+- **Authentication Flow**: Complete overhaul to use access and refresh tokens
+- **Security Model**: Enhanced with AWS IAM roles and policies
+- **Environment Configuration**: New environment variables for AWS deployment
+
+### Security
+- **Critical Fix**: Resolved authentication bypass vulnerability (Issue #363)
+- **Critical Fix**: Fixed privilege escalation security flaw (Issue #364)
+- **Enhanced Admin Security**: Improved admin account creation and password reset
+- **Secure Key Generation**: Automated secure key generation for production
+- **Token Security**: JWT tokens with 15-minute access and 7-day refresh expiration
+- **CSRF Protection**: Enhanced CSRF protection using JWT token secrets
+- **Account Lockout**: Progressive lockout policy for failed login attempts
+
+### Migration Notes
+- **Data Migration Required**: Existing SQLite data must be migrated to PostgreSQL
+- **User Re-authentication**: All users must log in again due to JWT migration
+- **Environment Setup**: New AWS environment variables required
+- **DNS Configuration**: Update DNS to point to new AWS infrastructure
+
+### Deployment
+- **One-Command Deployment**: `./scripts/deploy.sh` for complete AWS setup
+- **Infrastructure Automation**: CloudFormation handles all AWS resource creation
+- **Container Optimization**: Multi-stage Docker builds for smaller images
+- **Automated Testing**: CI/CD pipeline with automated security and functionality tests
+
 ## [3.5.2] - 2025-05-19
 
 ### Fixed
