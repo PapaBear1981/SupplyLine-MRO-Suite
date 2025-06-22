@@ -214,19 +214,20 @@ CHEMICAL_ISSUANCE_SCHEMA = {
 
 CALIBRATION_SCHEMA = {
     'required': ['calibration_date', 'calibration_status'],
-    'optional': ['next_calibration_date', 'calibrated_by', 'notes', 'certificate_number'],
+    'optional': ['next_calibration_date', 'calibrated_by', 'calibration_notes', 'certificate_number', 'standard_ids'],
     'types': {
         'calibration_date': str,
         'next_calibration_date': str,
         'calibrated_by': str,
-        'notes': str,
+        'calibration_notes': str,
         'certificate_number': str,
-        'calibration_status': str
+        'calibration_status': str,
+        'standard_ids': list
     },
     'constraints': {
-        'calibration_status': {'choices': ['pass', 'fail', 'limited']},
+        'calibration_status': {'choices': ['completed', 'failed', 'in_progress']},
         'calibrated_by': {'max_length': 100},
-        'notes': {'max_length': 1000},
+        'calibration_notes': {'max_length': 1000},
         'certificate_number': {'max_length': 100}
     },
     'date_fields': ['calibration_date', 'next_calibration_date']

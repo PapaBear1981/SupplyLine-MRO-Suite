@@ -4,8 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Form, Button, Card, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { fetchToolById } from '../store/toolsSlice';
 import { addCalibration, fetchCalibrationStandards } from '../store/calibrationSlice';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+
 
 const ToolCalibrationForm = () => {
   const { id } = useParams();
@@ -16,8 +15,9 @@ const ToolCalibrationForm = () => {
   const { currentTool: selectedTool, loading: toolLoading } = useSelector((state) => state.tools);
   const { calibrationStandards, standardsLoading } = useSelector((state) => state.calibration);
 
-  const [calibrationDate, setCalibrationDate] = useState(new Date());
-  const [nextCalibrationDate, setNextCalibrationDate] = useState(null);
+  // Format current date as YYYY-MM-DD for HTML5 date input
+  const [calibrationDate, setCalibrationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [nextCalibrationDate, setNextCalibrationDate] = useState('');
   const [calibrationNotes, setCalibrationNotes] = useState('');
   const [calibrationStatus, setCalibrationStatus] = useState('completed');
   const [selectedStandards, setSelectedStandards] = useState([]);
@@ -41,9 +41,11 @@ const ToolCalibrationForm = () => {
   useEffect(() => {
     // Calculate next calibration date based on tool's calibration frequency
     if (selectedTool?.calibration_frequency_days && calibrationDate) {
-      const nextDate = new Date(calibrationDate);
+      const currentDate = new Date(calibrationDate);
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() + selectedTool.calibration_frequency_days);
-      setNextCalibrationDate(nextDate);
+      // Format as YYYY-MM-DD for HTML5 date input
+      setNextCalibrationDate(nextDate.toISOString().split('T')[0]);
     }
   }, [selectedTool, calibrationDate]);
 
@@ -64,14 +66,41 @@ const ToolCalibrationForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log('Form submission started');
     setLoading(true);
     setError(null);
 
     try {
-      // Format dates for API - use ISO string without timezone information
-      const formattedCalibrationDate = calibrationDate.toISOString().split('T')[0] + 'T00:00:00';
+      // Debug logging
+      console.log('Calibration Date:', calibrationDate);
+      console.log('Next Calibration Date:', nextCalibrationDate);
+      console.log('Calibration Notes:', calibrationNotes);
+      console.log('Calibration Status:', calibrationStatus);
+      console.log('Selected Standards:', selectedStandards);
+
+      // Validate dates (HTML5 date inputs provide YYYY-MM-DD format)
+      if (!calibrationDate) {
+        throw new Error('Calibration date is required');
+      }
+
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(calibrationDate)) {
+        throw new Error('Invalid calibration date format');
+      }
+
+      if (nextCalibrationDate && !dateRegex.test(nextCalibrationDate)) {
+        throw new Error('Invalid next calibration date format');
+      }
+
+      // Format dates for API - convert YYYY-MM-DD to ISO datetime
+      const formattedCalibrationDate = calibrationDate + 'T00:00:00';
       const formattedNextCalibrationDate = nextCalibrationDate ?
-        nextCalibrationDate.toISOString().split('T')[0] + 'T00:00:00' : null;
+        nextCalibrationDate + 'T00:00:00' : null;
+
+      console.log('Formatted Calibration Date:', formattedCalibrationDate);
+      console.log('Formatted Next Calibration Date:', formattedNextCalibrationDate);
 
       // Create calibration data
       const calibrationData = {
@@ -81,6 +110,8 @@ const ToolCalibrationForm = () => {
         calibration_status: calibrationStatus,
         standard_ids: selectedStandards
       };
+
+      console.log('Calibration Data:', calibrationData);
 
       // If there's a certificate file, handle file upload
       if (certificateFile) {
@@ -92,9 +123,14 @@ const ToolCalibrationForm = () => {
 
       // Dispatch action to add calibration
       const toolId = typeof id === 'string' ? parseInt(id, 10) : id;
+      console.log('Tool ID:', toolId);
+      console.log('Dispatching addCalibration action...');
+
       const resultAction = await dispatch(addCalibration({ toolId, calibrationData }));
+      console.log('Result Action:', resultAction);
 
       if (addCalibration.fulfilled.match(resultAction)) {
+        console.log('Calibration added successfully');
         setSuccess(true);
         // Reset form
         setCalibrationNotes('');
@@ -107,9 +143,11 @@ const ToolCalibrationForm = () => {
           navigate(`/tools/${id}`);
         }, 2000);
       } else {
+        console.error('Calibration failed:', resultAction.error);
         setError(resultAction.error.message || 'Failed to add calibration record');
       }
     } catch (err) {
+      console.error('Form submission error:', err);
       setError(err.message || 'An error occurred while adding calibration record');
     } finally {
       setLoading(false);
@@ -198,11 +236,10 @@ const ToolCalibrationForm = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Calibration Date</Form.Label>
-                  <DatePicker
-                    selected={calibrationDate}
-                    onChange={(date) => setCalibrationDate(date)}
-                    className="form-control"
-                    dateFormat="MM/dd/yyyy"
+                  <Form.Control
+                    type="date"
+                    value={calibrationDate}
+                    onChange={(e) => setCalibrationDate(e.target.value)}
                     required
                   />
                 </Form.Group>
@@ -210,12 +247,11 @@ const ToolCalibrationForm = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Next Calibration Date</Form.Label>
-                  <DatePicker
-                    selected={nextCalibrationDate}
-                    onChange={(date) => setNextCalibrationDate(date)}
-                    className="form-control"
-                    dateFormat="MM/dd/yyyy"
-                    minDate={new Date()}
+                  <Form.Control
+                    type="date"
+                    value={nextCalibrationDate}
+                    onChange={(e) => setNextCalibrationDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                   />
                   {selectedTool.calibration_frequency_days && (
                     <Form.Text className="text-muted">
@@ -291,25 +327,12 @@ const ToolCalibrationForm = () => {
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button"
                 variant="primary"
                 disabled={loading}
+                onClick={handleSubmit}
               >
-                {loading ? (
-                  <>
-                    <Spinner
-                      as="span"
-                      animation="border"
-                      size="sm"
-                      role="status"
-                      aria-hidden="true"
-                      className="me-2"
-                    />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Calibration'
-                )}
+                {loading ? 'Saving...' : 'Save Calibration'}
               </Button>
             </div>
           </Form>
