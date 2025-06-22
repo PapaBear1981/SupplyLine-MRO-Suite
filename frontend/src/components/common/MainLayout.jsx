@@ -32,6 +32,29 @@ const MainLayout = ({ children }) => {
                       <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                       <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
                       <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                      {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
+                      {/* ============================================== */}
+                      {/* The "Cycle Counts" navigation menu item has been disabled due to GitHub Issue #366 */}
+                      {/* */}
+                      {/* REASON FOR DISABLING: */}
+                      {/* - Cycle count system is completely non-functional */}
+                      {/* - Backend API endpoints return "Resource not found" errors */}
+                      {/* - Clicking this link leads to error pages that confuse users */}
+                      {/* - Production stability requires hiding broken functionality */}
+                      {/* */}
+                      {/* WHAT THIS NAVIGATION ITEM DID: */}
+                      {/* - Linked to /cycle-counts route (main cycle count dashboard) */}
+                      {/* - Provided access to inventory cycle counting operations */}
+                      {/* - Allowed users to schedule, execute, and review cycle counts */}
+                      {/* */}
+                      {/* TO RE-ENABLE: */}
+                      {/* 1. Uncomment the Nav.Link below */}
+                      {/* 2. Ensure cycle count routes are enabled in App.jsx */}
+                      {/* 3. Verify backend cycle count routes work (backend/routes.py) */}
+                      {/* 4. Test that all cycle count functionality works end-to-end */}
+                      {/* */}
+                      {/* DISABLED DATE: 2025-06-22 */}
+                      {/* GITHUB ISSUE: #366 */}
                       {/* <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link> */}
                       <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                     </>

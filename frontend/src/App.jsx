@@ -27,7 +27,34 @@ import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import ScannerPage from './pages/ScannerPage';
-// DISABLED - Cycle count system temporarily disabled
+// CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
+// =========================================
+// The cycle count system imports have been disabled due to production issues.
+//
+// REASON FOR DISABLING:
+// - GitHub Issue #366: Cycle count system completely non-functional
+// - Backend API endpoints missing/broken causing frontend errors
+// - Users experiencing "Unable to Load Cycle Count System" messages
+// - System instability affecting overall application performance
+//
+// WHAT WAS DISABLED:
+// - All cycle count page imports
+// - All cycle count component imports
+// - All cycle count routing (see routes section below)
+// - Navigation menu items (see MainLayout.jsx)
+//
+// TO RE-ENABLE IN THE FUTURE:
+// 1. Uncomment all imports below
+// 2. Uncomment all cycle count routes in the Routes section
+// 3. Ensure backend cycle count routes are enabled (see backend/routes.py)
+// 4. Verify cycle count database tables exist and are properly structured
+// 5. Test all cycle count functionality end-to-end
+// 6. Update navigation menu (see MainLayout.jsx)
+//
+// DISABLED DATE: 2025-06-22
+// GITHUB ISSUE: #366
+// RELATED BACKEND FILE: backend/routes.py (register_cycle_count_routes disabled)
+//
 // import CycleCountDashboardPage from './pages/CycleCountDashboardPage';
 // import CycleCountScheduleForm from './components/cycleCount/CycleCountScheduleForm';
 // import CycleCountBatchForm from './components/cycleCount/CycleCountBatchForm';
@@ -282,7 +309,41 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* DISABLED - Cycle Count routes - Cycle count system temporarily disabled */}
+        {/* CYCLE COUNT ROUTES - TEMPORARILY DISABLED */}
+        {/* ========================================== */}
+        {/* All cycle count routes have been disabled due to GitHub Issue #366 */}
+        {/* */}
+        {/* REASON FOR DISABLING: */}
+        {/* - Backend cycle count API endpoints are non-functional */}
+        {/* - Missing database tables causing system errors */}
+        {/* - Users experiencing "Resource not found" errors */}
+        {/* - Production stability issues */}
+        {/* */}
+        {/* ROUTES DISABLED: */}
+        {/* - /cycle-counts/schedules/new - Create new schedule */}
+        {/* - /cycle-counts/schedules/:id/edit - Edit schedule */}
+        {/* - /cycle-counts/schedules/:id - View schedule details */}
+        {/* - /cycle-counts/batches/new - Create new batch */}
+        {/* - /cycle-counts/batches/:id/edit - Edit batch */}
+        {/* - /cycle-counts/batches/:id - View batch details */}
+        {/* - /cycle-counts/items/:id/count - Count items */}
+        {/* - /cycle-counts/discrepancies/:id - View discrepancies */}
+        {/* - /cycle-counts/schedules - Schedules dashboard */}
+        {/* - /cycle-counts/batches - Batches dashboard */}
+        {/* - /cycle-counts/discrepancies - Discrepancies dashboard */}
+        {/* - /cycle-counts - Main cycle count dashboard */}
+        {/* - /cycle-counts/mobile - Mobile cycle count interface */}
+        {/* */}
+        {/* TO RE-ENABLE: */}
+        {/* 1. Uncomment all route definitions below */}
+        {/* 2. Uncomment cycle count imports at top of file */}
+        {/* 3. Enable backend routes in backend/routes.py */}
+        {/* 4. Ensure database tables are created */}
+        {/* 5. Test all functionality thoroughly */}
+        {/* */}
+        {/* DISABLED DATE: 2025-06-22 */}
+        {/* GITHUB ISSUE: #366 */}
+        {/* */}
         {/* Cycle Count Form Routes - More specific routes first */}
         {/* <Route path="/cycle-counts/schedules/new" element={
           <ProtectedRoute>
