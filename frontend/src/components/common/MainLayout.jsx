@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
@@ -12,43 +12,53 @@ const MainLayout = ({ children }) => {
   const { showHelp, showTooltips, setShowHelp, setShowTooltips } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
         <Container fluid>
-          <Navbar.Brand as={Link} to="/">SupplyLine MRO Suite</Navbar.Brand>
+          <button
+            onClick={() => navigate('/')}
+            className="navbar-brand btn btn-link p-0 border-0"
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            SupplyLine MRO Suite
+          </button>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-              <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
-              <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+              <button onClick={() => navigate('/dashboard')} className="nav-link btn btn-link border-0">Dashboard</button>
+              <button onClick={() => navigate('/tools')} className="nav-link btn btn-link border-0">Tools</button>
+              <button onClick={() => navigate('/checkouts')} className="nav-link btn btn-link border-0">Checkouts</button>
               {user && (
                 <>
                   {/* Show these links to admins and Materials department users */}
                   {(user.is_admin || user.department === 'Materials') && (
                     <>
-                      <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
-                      <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
-                      <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
-                      <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link>
-                      <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
+                      <button onClick={() => navigate('/checkouts/all')} className="nav-link btn btn-link border-0">All Checkouts</button>
+                      <button onClick={() => navigate('/chemicals')} className="nav-link btn btn-link border-0">Chemicals</button>
+                      <button onClick={() => navigate('/calibrations')} className="nav-link btn btn-link border-0">Calibrations</button>
+                      <button onClick={() => navigate('/cycle-counts')} className="nav-link btn btn-link border-0">Cycle Counts</button>
+                      <button onClick={() => navigate('/reports')} className="nav-link btn btn-link border-0">Reports</button>
                     </>
                   )}
 
                   {/* Only show Admin Dashboard to admin users */}
                   {user.is_admin === true && (
-                    <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
+                    <button onClick={() => navigate('/admin/dashboard')} className="nav-link btn btn-link border-0">Admin Dashboard</button>
                   )}
                 </>
               )}
 
               {/* Scanner button - available to all authenticated users */}
               {user && (
-                <Nav.Link as={Link} to="/scanner" className="ms-2 btn btn-outline-light btn-sm">
+                <button
+                  onClick={() => navigate('/scanner')}
+                  className="nav-link ms-2 btn btn-outline-light btn-sm border-0"
+                >
                   <i className="bi bi-upc-scan me-1"></i> Scanner
-                </Nav.Link>
+                </button>
               )}
             </Nav>
             <Nav>
