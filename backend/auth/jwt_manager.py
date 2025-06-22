@@ -15,9 +15,12 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from flask import request, jsonify, current_app
 from functools import wraps
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+# Import models at module level to avoid circular imports
+from models import User
 
 
 class JWTManager:
@@ -46,6 +49,7 @@ class JWTManager:
             'permissions': user.get_permissions(),
             'iat': now,
             'exp': now + timedelta(minutes=15),
+            'jti': secrets.token_hex(16),  # JWT ID for CSRF validation
             'type': 'access'
         }
         
@@ -92,13 +96,7 @@ class JWTManager:
             if payload.get('type') != token_type:
                 logger.warning(f"Token type mismatch. Expected: {token_type}, Got: {payload.get('type')}")
                 return None
-            
-            # Check expiration
-            exp = payload.get('exp')
-            if exp and datetime.fromtimestamp(exp, timezone.utc) < datetime.now(timezone.utc):
-                logger.warning("Token has expired")
-                return None
-            
+
             return payload
             
         except jwt.ExpiredSignatureError:
@@ -127,7 +125,6 @@ class JWTManager:
             return None
         
         # Get user from database
-        from models import User
         user = User.query.get(payload['user_id'])
         if not user or not user.is_active:
             logger.warning(f"User {payload['user_id']} not found or inactive")
@@ -342,7 +339,7 @@ def csrf_required(f):
             }), 403
 
         # Validate CSRF token using JWT secret
-        token_secret = user_payload.get('jti', '')  # JWT ID as secret
+        token_secret = user_payload.get('jti', f"{user_payload['user_id']}:{user_payload.get('iat', '')}")  # JWT ID as secret, fallback to user_id:iat
         if not JWTManager.validate_csrf_token(csrf_token, user_payload['user_id'], token_secret):
             logger.warning(f"Invalid CSRF token for user {user_payload['user_id']}")
             return jsonify({

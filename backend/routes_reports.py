@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, make_response
+from flask import request, jsonify, make_response
 from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
@@ -30,8 +30,8 @@ from functools import wraps
 # We need to do this in the register function to avoid circular imports
 
 def register_report_routes(app):
-    # Import JWT decorators
-    from auth import jwt_required
+    # Import JWT decorators for tool_manager_required
+    from auth import JWTManager
 
     def tool_manager_required(f):
         """Tool manager access - admin or Materials department (JWT-based)"""

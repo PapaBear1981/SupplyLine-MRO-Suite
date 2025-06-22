@@ -1,10 +1,10 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
-from utils.session_manager import SessionManager, secure_login_required
+from auth import JWTManager, jwt_required
 from sqlalchemy.orm import joinedload
 import logging
 
@@ -192,9 +192,10 @@ def register_chemical_routes(app):
         db.session.add(log)
 
         # Log user activity
-        if 'user_id' in session:
+        user_payload = JWTManager.get_current_user()
+        if user_payload:
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type='chemical_added',
                 description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
             )
@@ -292,9 +293,10 @@ def register_chemical_routes(app):
         db.session.add(log)
 
         # Log user activity
-        if 'user_id' in session:
+        user_payload = JWTManager.get_current_user()
+        if user_payload:
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type='chemical_issued',
                 description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
             )
@@ -368,7 +370,8 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update reorder status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_payload = JWTManager.get_current_user()
+            user_name = user_payload.get('user_name', 'Unknown user') if user_payload else 'Unknown user'
             log = AuditLog(
                 action_type='chemical_ordered',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}"
@@ -376,9 +379,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if user_payload:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=user_payload['user_id'],
                     activity_type='chemical_ordered',
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
                 )
@@ -481,7 +484,8 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update archive status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_payload = JWTManager.get_current_user()
+            user_name = user_payload.get('user_name', 'Unknown user') if user_payload else 'Unknown user'
             log = AuditLog(
                 action_type='chemical_archived',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} archived by {user_name}: {data.get('reason')}"
@@ -489,9 +493,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if user_payload:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=user_payload['user_id'],
                     activity_type='chemical_archived',
                     description=f"Archived chemical {chemical.part_number} - {chemical.lot_number}: {data.get('reason')}"
                 )
@@ -534,7 +538,8 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update archive status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_payload = JWTManager.get_current_user()
+            user_name = user_payload.get('user_name', 'Unknown user') if user_payload else 'Unknown user'
             log = AuditLog(
                 action_type='chemical_unarchived',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} unarchived by {user_name}"
@@ -542,9 +547,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if user_payload:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=user_payload['user_id'],
                     activity_type='chemical_unarchived',
                     description=f"Unarchived chemical {chemical.part_number} - {chemical.lot_number}"
                 )
@@ -619,7 +624,8 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update chemical status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_payload = JWTManager.get_current_user()
+            user_name = user_payload.get('user_name', 'Unknown user') if user_payload else 'Unknown user'
             log = AuditLog(
                 action_type='chemical_delivered',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as delivered by {user_name}{quantity_log}"
@@ -627,9 +633,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if user_payload:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=user_payload['user_id'],
                     activity_type='chemical_delivered',
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as delivered{quantity_log}"
                 )

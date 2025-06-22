@@ -62,7 +62,8 @@ def create_secure_admin():
             employee_number='ADMIN001',
             department='IT',
             is_admin=True,
-            is_active=True
+            is_active=True,
+            force_password_change=True  # Force password change on first login
         )
 
         admin.set_password(admin_password)
@@ -98,7 +99,9 @@ def validate_admin_setup():
         if admin.check_password('admin123'):
             issues.append("CRITICAL: Admin is using default password 'admin123'")
 
-        # Note: Force password change functionality not implemented yet
+        # Check if force password change is enabled for new admin accounts
+        if hasattr(admin, 'force_password_change') and not admin.force_password_change:
+            issues.append("WARNING: Admin account does not require password change on first login")
 
         # Check environment variable setup
         if not os.environ.get('INITIAL_ADMIN_PASSWORD'):
@@ -129,7 +132,8 @@ def reset_admin_password():
         new_password = secrets.token_urlsafe(16)
         admin.set_password(new_password)
 
-        # Note: Force password change functionality not implemented yet
+        # Force password change on next login
+        admin.force_password_change = True
 
         db.session.commit()
 

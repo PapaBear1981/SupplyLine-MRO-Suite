@@ -82,7 +82,17 @@ def register_auth_routes(app):
             
             # Successful login - reset failed attempts
             user.reset_failed_login_attempts()
-            
+
+            # Check if user needs to change password
+            if hasattr(user, 'force_password_change') and user.force_password_change:
+                # Return special response indicating password change required
+                return jsonify({
+                    'message': 'Password change required',
+                    'code': 'PASSWORD_CHANGE_REQUIRED',
+                    'user_id': user.id,
+                    'employee_number': user.employee_number
+                }), 200
+
             # Generate JWT tokens
             tokens = JWTManager.generate_tokens(user)
             
@@ -271,4 +281,76 @@ def register_auth_routes(app):
             logger.error(f"CSRF token generation error: {str(e)}")
             return jsonify({
                 'error': 'Failed to generate CSRF token'
+            }), 500
+
+    @app.route('/api/auth/change-password', methods=['POST'])
+    def change_password():
+        """Change password for users with force_password_change flag"""
+        try:
+            data = request.get_json() or {}
+
+            # Get required fields
+            employee_number = data.get('employee_number')
+            current_password = data.get('current_password')
+            new_password = data.get('new_password')
+
+            if not all([employee_number, current_password, new_password]):
+                return jsonify({
+                    'error': 'Missing required fields: employee_number, current_password, new_password'
+                }), 400
+
+            # Find user
+            user = User.query.filter_by(employee_number=employee_number).first()
+            if not user:
+                return jsonify({'error': 'Invalid credentials'}), 401
+
+            # Verify current password
+            if not user.check_password(current_password):
+                return jsonify({'error': 'Invalid current password'}), 401
+
+            # Check if user is required to change password
+            if not (hasattr(user, 'force_password_change') and user.force_password_change):
+                return jsonify({'error': 'Password change not required'}), 400
+
+            # Validate new password (basic validation)
+            if len(new_password) < 8:
+                return jsonify({'error': 'New password must be at least 8 characters long'}), 400
+
+            # Update password and clear force_password_change flag
+            user.set_password(new_password)
+            user.force_password_change = False
+            db.session.commit()
+
+            # Log password change
+            activity = UserActivity(
+                user_id=user.id,
+                activity_type='password_change',
+                description='User changed password (forced)',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+
+            audit_log = AuditLog(
+                action_type='password_change',
+                action_details=f'User {user.id} ({user.name}) changed password (forced)'
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+
+            logger.info(f"User {user.id} successfully changed password (forced)")
+
+            # Generate JWT tokens for the user
+            tokens = JWTManager.generate_tokens(user)
+
+            return jsonify({
+                'message': 'Password changed successfully',
+                'user': user.to_dict(include_roles=True, include_permissions=True),
+                **tokens
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Password change error: {str(e)}")
+            return jsonify({
+                'error': 'Internal server error',
+                'code': 'SERVER_ERROR'
             }), 500

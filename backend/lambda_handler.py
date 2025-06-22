@@ -7,11 +7,28 @@ on AWS Lambda with API Gateway.
 
 import json
 import base64
+import os
 from app import create_app
-from werkzeug.serving import WSGIRequestHandler
 
 # Create Flask app instance
 app = create_app('production')
+
+
+def get_cors_headers():
+    """Get CORS headers based on environment configuration"""
+    # Get allowed origins from environment variable
+    allowed_origins = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
+
+    # In production, never use wildcard
+    if os.environ.get('FLASK_ENV') == 'production' and allowed_origins == '*':
+        allowed_origins = 'https://your-production-domain.com'
+
+    return {
+        'Access-Control-Allow-Origin': allowed_origins,
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        'Access-Control-Allow-Credentials': 'true'
+    }
 
 def lambda_handler(event, context):
     """
@@ -33,18 +50,23 @@ def lambda_handler(event, context):
             
     except Exception as e:
         print(f"Lambda handler error: {str(e)}")
+
+        # Log the actual error for debugging
+        error_response = {
+            'error': 'Internal server error'
+        }
+
+        # Only include detailed error in non-production environments
+        if os.environ.get('FLASK_ENV') != 'production':
+            error_response['message'] = str(e)
+
+        headers = {'Content-Type': 'application/json'}
+        headers.update(get_cors_headers())
+
         return {
             'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-            },
-            'body': json.dumps({
-                'error': 'Internal server error',
-                'message': str(e)
-            })
+            'headers': headers,
+            'body': json.dumps(error_response)
         }
 
 
@@ -92,11 +114,7 @@ def handle_api_gateway_v1(event, context):
             response_data.append(data)
     
     # Add CORS headers
-    response_headers.update({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-    })
+    response_headers.update(get_cors_headers())
     
     return {
         'statusCode': status_code,
@@ -152,11 +170,7 @@ def handle_api_gateway_v2(event, context):
             response_data.append(data)
     
     # Add CORS headers
-    response_headers.update({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-    })
+    response_headers.update(get_cors_headers())
     
     return {
         'statusCode': status_code,

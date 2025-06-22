@@ -90,6 +90,9 @@ class User(db.Model):
     account_locked_until = db.Column(db.DateTime, nullable=True)
     last_failed_login = db.Column(db.DateTime, nullable=True)
 
+    # Force password change field
+    force_password_change = db.Column(db.Boolean, default=False)
+
     # Relationships
     roles = association_proxy('user_roles', 'role')
 
@@ -233,7 +236,8 @@ class User(db.Model):
                 'failed_login_attempts': self.failed_login_attempts,
                 'account_locked': self.is_locked(),
                 'account_locked_until': self.account_locked_until.isoformat() if self.account_locked_until else None,
-                'last_failed_login': self.last_failed_login.isoformat() if self.last_failed_login else None
+                'last_failed_login': self.last_failed_login.isoformat() if self.last_failed_login else None,
+                'force_password_change': getattr(self, 'force_password_change', False)
             })
 
         return result

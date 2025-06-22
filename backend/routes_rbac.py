@@ -1,4 +1,4 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, User, Role, Permission, RolePermission, UserRole, AuditLog, UserActivity
 from datetime import datetime
 from functools import wraps

@@ -1,4 +1,4 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
@@ -7,7 +7,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
-from utils.session_manager import SessionManager
+from auth import JWTManager, jwt_required
 import logging
 
 logger = logging.getLogger(__name__)
@@ -247,16 +247,21 @@ def register_calibration_routes(app):
                     )
                     db.session.add(calibration_standard)
 
+        # Get current user info
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
         # Create audit log
         log = AuditLog(
             action_type='tool_calibration',
-            action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
+            action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
         )
         db.session.add(log)
 
         # Create user activity
         activity = UserActivity(
-            user_id=session['user_id'],
+            user_id=user_payload['user_id'],
             activity_type='tool_calibration',
             description=f'Calibrated tool {tool.tool_number}',
             ip_address=request.remote_addr
@@ -376,16 +381,21 @@ def register_calibration_routes(app):
             db.session.add(standard)
             db.session.commit()
 
+            # Get current user info
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
             # Create audit log
             log = AuditLog(
                 action_type='add_calibration_standard',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) added calibration standard {standard.name} (ID: {standard.id})'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) added calibration standard {standard.name} (ID: {standard.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type='add_calibration_standard',
                 description=f'Added calibration standard {standard.name}',
                 ip_address=request.remote_addr
@@ -490,10 +500,15 @@ def register_calibration_routes(app):
             # Save changes
             db.session.commit()
 
+            # Get current user info
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
             # Create audit log
             log = AuditLog(
                 action_type='update_calibration_standard',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) updated calibration standard {standard.name} (ID: {id})'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) updated calibration standard {standard.name} (ID: {id})'
             )
             db.session.add(log)
             db.session.commit()

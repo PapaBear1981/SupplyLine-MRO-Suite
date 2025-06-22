@@ -1,4 +1,4 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Tool, Checkout, AuditLog, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
@@ -9,6 +9,7 @@ from functools import wraps
 import random
 import logging
 from utils.validation import validate_schema
+from auth import JWTManager, jwt_required
 
 # Helper function to create cycle count notifications
 def create_cycle_count_notification(notification_type, message, batch_id=None, schedule_id=None, created_by=None):
@@ -465,7 +466,7 @@ def register_cycle_count_routes(app):
                 description=validated_data.get('description', ''),
                 frequency=validated_data['frequency'],
                 method=validated_data['method'],
-                created_by=session['user_id'],
+                created_by=request.current_user['user_id'],
                 is_active=validated_data.get('is_active', True)
             )
 
@@ -645,7 +646,7 @@ def register_cycle_count_routes(app):
                 status='pending',
                 start_date=datetime.fromisoformat(validated_data['start_date']) if validated_data.get('start_date') else None,
                 end_date=datetime.fromisoformat(validated_data['end_date']) if validated_data.get('end_date') else None,
-                created_by=session['user_id'],
+                created_by=request.current_user['user_id'],
                 notes=validated_data.get('notes', '')
             )
 
@@ -670,7 +671,7 @@ def register_cycle_count_routes(app):
                 'batch_created',
                 f"New cycle count batch '{validated_data['name']}' has been created",
                 batch_id=batch.id,
-                created_by=session['user_id']
+                created_by=request.current_user['user_id']
             )
 
             # Return result
@@ -918,7 +919,7 @@ def register_cycle_count_routes(app):
             # Create count result
             result = CycleCountResult(
                 item_id=item_id,
-                counted_by=session['user_id'],
+                counted_by=request.current_user['user_id'],
                 actual_quantity=validated_data['actual_quantity'],
                 actual_location=validated_data.get('actual_location'),
                 condition=validated_data.get('condition'),
@@ -953,7 +954,7 @@ def register_cycle_count_routes(app):
                     'discrepancy_found',
                     f"Discrepancy found in item {item.item_number}: {discrepancy_type}",
                     batch_id=item.batch_id,
-                    created_by=session['user_id']
+                    created_by=request.current_user['user_id']
                 )
 
             # Return result
@@ -1062,7 +1063,7 @@ def register_cycle_count_routes(app):
             # Create adjustment record
             adjustment = CycleCountAdjustment(
                 result_id=result_id,
-                approved_by=session['user_id'],
+                approved_by=request.current_user['user_id'],
                 adjustment_type=data['adjustment_type'],
                 old_value=old_value,
                 new_value=data['new_value'],
@@ -1349,7 +1350,7 @@ def register_cycle_count_routes(app):
                     # Create count result
                     result = CycleCountResult(
                         item_id=item_id,
-                        counted_by=session['user_id'],
+                        counted_by=request.current_user['user_id'],
                         actual_quantity=actual_quantity,
                         actual_location=actual_location,
                         condition=condition,
@@ -1938,7 +1939,7 @@ def register_cycle_count_routes(app):
                         description=row.get('Description', ''),
                         frequency=frequency,
                         method=method,
-                        created_by=session['user_id'],
+                        created_by=request.current_user['user_id'],
                         is_active=is_active
                     )
 
@@ -2060,7 +2061,7 @@ def register_cycle_count_routes(app):
                         status=status,
                         start_date=start_date,
                         end_date=end_date,
-                        created_by=session['user_id']
+                        created_by=request.current_user['user_id']
                     )
 
                     # Save to database

@@ -1,4 +1,4 @@
-from flask import request, jsonify, current_app, session
+from flask import request, jsonify, current_app
 from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
 from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
 from datetime import datetime, timedelta, timezone
@@ -736,7 +736,11 @@ def register_routes(app):
             return jsonify(result)
 
         # POST - Create new tool (requires tool manager privileges)
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        user_payload = get_current_user_info()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
@@ -849,7 +853,11 @@ def register_routes(app):
 
         elif request.method == 'DELETE':
             # DELETE - Delete tool (requires admin privileges)
-            if not session.get('is_admin', False):
+            user_payload = get_current_user_info()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            if not user_payload.get('is_admin', False):
                 return jsonify({'error': 'Admin privileges required to delete tools'}), 403
 
             # Accept force_delete from query parameters or JSON body
@@ -915,13 +923,12 @@ def register_routes(app):
                 return jsonify({'error': f'Failed to delete tool: {str(e)}'}), 500
 
         # PUT - Update tool (requires tool manager privileges)
-        print(f"Session: {session}")
-        print(f"Session is_admin: {session.get('is_admin', False)}")
-        print(f"Session department: {session.get('department', 'None')}")
+        user_payload = get_current_user_info()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
 
-        # Temporarily disable permission check for debugging
-        # if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-        #     return jsonify({'error': 'Tool management privileges required'}), 403
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
         print(f"Received tool update request for tool ID {id} with data: {data}")
@@ -1053,10 +1060,14 @@ def register_routes(app):
         tool.status_reason = reason
 
         # Create service record for retirement
+        user_payload = get_current_user_info()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
         service_record = ToolServiceRecord(
             tool_id=id,
             action_type='remove_permanent',
-            user_id=session.get('user_id'),
+            user_id=user_payload.get('user_id'),
             reason=reason,
             comments=data.get('comments', '')
         )
@@ -1137,7 +1148,11 @@ def register_routes(app):
     @app.route('/api/users', methods=['GET', 'POST'])
     def users_route():
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        user_payload = get_current_user_info()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'User management privileges required'}), 403
 
         if request.method == 'GET':
@@ -1145,7 +1160,7 @@ def register_routes(app):
             search_query = request.args.get('q')
 
             # Check if we should include lockout info (admin only)
-            include_lockout_info = session.get('is_admin', False)
+            include_lockout_info = user_payload.get('is_admin', False)
 
             if search_query:
                 # Search for users by employee number
@@ -1201,7 +1216,11 @@ def register_routes(app):
     @app.route('/api/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     def user_detail_route(id):
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        user_payload = get_current_user_info()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'User management privileges required'}), 403
 
         # Get the user
@@ -1209,7 +1228,7 @@ def register_routes(app):
 
         if request.method == 'GET':
             # Return user details with roles and lockout info for admins
-            include_lockout_info = session.get('is_admin', False)
+            include_lockout_info = user_payload.get('is_admin', False)
             return jsonify(user.to_dict(include_roles=True, include_lockout_info=include_lockout_info))
 
         elif request.method == 'PUT':
@@ -1273,10 +1292,15 @@ def register_routes(app):
         # Unlock the account
         user.unlock_account()
 
+        # Get current admin user info
+        admin_payload = get_current_user_info()
+        admin_name = admin_payload.get('user_name', 'Unknown') if admin_payload else 'Unknown'
+        admin_id = admin_payload.get('user_id') if admin_payload else None
+
         # Log the action
         log = AuditLog(
             action_type='account_unlocked',
-            action_details=f'Admin {session.get("user_name", "Unknown")} (ID: {session.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
+            action_details=f'Admin {admin_name} (ID: {admin_id}) manually unlocked account for user {user.name} (ID: {user.id})'
         )
         db.session.add(log)
 
@@ -1284,7 +1308,7 @@ def register_routes(app):
         activity = UserActivity(
             user_id=user.id,
             activity_type='account_unlocked',
-            description=f'Account unlocked by admin {session.get("user_name", "Unknown")}',
+            description=f'Account unlocked by admin {admin_name}',
             ip_address=request.remote_addr
         )
         db.session.add(activity)
@@ -1318,7 +1342,6 @@ def register_routes(app):
             # POST - Create new checkout
             data = request.get_json() or {}
             print(f"Received checkout request with data: {data}")
-            print(f"Current session: {session}")
 
             # Validate required fields
             required_fields = ['tool_id']
@@ -1340,7 +1363,7 @@ def register_routes(app):
                 print(f"Tool with ID {tool_id} does not exist")
                 return jsonify({'error': f'Tool with ID {tool_id} does not exist'}), 404
 
-            # Get user ID - either from request data or from session
+            # Get user ID - either from request data or from JWT
             user_id = data.get('user_id')
             print(f"User ID from request: {user_id}")
 
@@ -1738,7 +1761,7 @@ def register_routes(app):
             'timestamp': a.timestamp.isoformat()
         } for a in logs])
 
-    # Old session-based auth routes removed - using JWT auth routes instead
+    # Authentication routes (JWT-based)
 
     @app.route('/api/auth/register', methods=['POST'])
     def register():
@@ -2499,10 +2522,15 @@ def register_routes(app):
 
             tool.status_reason = data.get('reason')
 
+            # Get current user info
+            user_payload = get_current_user_info()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
             # Create service record
             service_record = ToolServiceRecord(
                 tool_id=id,
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 action_type=action_type,
                 reason=data.get('reason'),
                 comments=data.get('comments', '')
@@ -2511,12 +2539,12 @@ def register_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type=action_type,
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) removed tool {tool.tool_number} (ID: {id}) from service. Reason: {data.get("reason")}'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) removed tool {tool.tool_number} (ID: {id}) from service. Reason: {data.get("reason")}'
             )
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type=action_type,
                 description=f'Removed tool {tool.tool_number} from service',
                 ip_address=request.remote_addr
@@ -2564,10 +2592,15 @@ def register_routes(app):
             tool.status = 'available'
             tool.status_reason = None
 
+            # Get current user info
+            user_payload = get_current_user_info()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+
             # Create service record
             service_record = ToolServiceRecord(
                 tool_id=id,
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 action_type='return_service',
                 reason=data.get('reason'),
                 comments=data.get('comments', '')
@@ -2576,12 +2609,12 @@ def register_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='return_service',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) returned tool {tool.tool_number} (ID: {id}) to service. Reason: {data.get("reason")}'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) returned tool {tool.tool_number} (ID: {id}) to service. Reason: {data.get("reason")}'
             )
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type='return_service',
                 description=f'Returned tool {tool.tool_number} to service',
                 ip_address=request.remote_addr

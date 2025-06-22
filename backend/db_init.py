@@ -28,14 +28,21 @@ def create_admin_user():
             return True, "Admin user already exists", None
         
         # Create default admin user
-        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        if not admin_password:
+            import secrets
+            import string
+            alphabet = string.ascii_letters + string.digits + string.punctuation
+            admin_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+            logger.warning("No ADMIN_PASSWORD environment variable set. Generated random password.")
         admin_user = User(
             name='System Administrator',
             employee_number='ADMIN001',
             department='IT',
             password_hash=generate_password_hash(admin_password),
             is_admin=True,
-            is_active=True
+            is_active=True,
+            force_password_change=True  # Force password change on first login
         )
         
         db.session.add(admin_user)
