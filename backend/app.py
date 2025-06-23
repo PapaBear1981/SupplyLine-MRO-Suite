@@ -1,14 +1,13 @@
-from flask import Flask, session, jsonify
+from flask import Flask, jsonify
 from routes import register_routes
+from routes_auth import register_auth_routes
 from config import Config
-from flask_session import Session
 from flask_cors import CORS
 import os
 import sys
 import time
 import datetime
 import logging.config
-from utils.session_cleanup import init_session_cleanup
 from utils.resource_monitor import init_resource_monitoring
 from utils.logging_utils import setup_request_logging
 
@@ -51,12 +50,6 @@ def create_app():
             "supports_credentials": True
         }
     })
-
-    # Initialize Flask-Session
-    Session(app)
-
-    # Initialize session cleanup
-    init_session_cleanup(app)
 
     # Initialize resource monitoring
     init_resource_monitoring(app)
@@ -128,7 +121,8 @@ def create_app():
     from utils.error_handler import setup_global_error_handlers
     setup_global_error_handlers(app)
 
-    # Register main routes
+    # Register authentication and main routes
+    register_auth_routes(app)
     register_routes(app)
 
     # Add security headers middleware

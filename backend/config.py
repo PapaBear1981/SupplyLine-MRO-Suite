@@ -28,16 +28,6 @@ class Config:
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
     SESSION_TYPE = 'filesystem'
-    # Check if we're in Docker environment (look for /flask_session volume)
-    if os.path.exists('/flask_session'):
-        SESSION_FILE_DIR = '/flask_session'
-    else:
-        SESSION_FILE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
-    print(f"Using session directory: {SESSION_FILE_DIR}")
-
-    # Session cleanup configuration
-    SESSION_CLEANUP_INTERVAL = 3600  # 1 hour
-    SESSION_MAX_AGE = 86400  # 24 hours
 
     # Enhanced cookie settings
     SESSION_COOKIE_SECURE = False  # Set to True only in HTTPS production
