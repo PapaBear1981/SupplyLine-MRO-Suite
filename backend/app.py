@@ -1,14 +1,13 @@
 from flask import Flask, session, jsonify
 from routes import register_routes
+from routes_auth import register_auth_routes
 from config import Config
-from flask_session import Session
 from flask_cors import CORS
 import os
 import sys
 import time
 import datetime
 import logging.config
-from utils.session_cleanup import init_session_cleanup
 from utils.resource_monitor import init_resource_monitoring
 from utils.logging_utils import setup_request_logging
 
@@ -52,17 +51,14 @@ def create_app():
         }
     })
 
-    # Initialize Flask-Session
-    Session(app)
-
-    # Initialize session cleanup
-    init_session_cleanup(app)
-
     # Initialize resource monitoring
     init_resource_monitoring(app)
 
     # Setup request logging middleware
     setup_request_logging(app)
+
+    # Register authentication routes
+    register_auth_routes(app)
 
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)
