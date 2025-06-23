@@ -159,7 +159,7 @@ CREATE INDEX idx_cycle_count_results_discrepancy ON cycle_count_results(has_disc
 ## API Documentation
 
 ### Authentication
-All API endpoints require authentication via session cookies.
+All API endpoints require a valid JWT passed in the `Authorization` header.
 
 ```python
 @require_auth
@@ -438,7 +438,7 @@ export const selectBatchItems = (batchId) => createSelector(
 ## Security Implementation
 
 ### Authentication & Authorization
-- **Session-based Auth**: Secure session management
+- **JWT Auth**: Stateless token-based authentication
 - **Role-based Access**: Different permissions by user role
 - **CSRF Protection**: Cross-site request forgery prevention
 - **Input Validation**: Comprehensive input sanitization

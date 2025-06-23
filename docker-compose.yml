@@ -7,7 +7,6 @@ services:
     restart: unless-stopped
     volumes:
       - database:/database
-      - flask_session:/flask_session
       - ./update_tools_schema.py:/app/update_tools_schema.py
       - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py
       - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
@@ -71,5 +70,3 @@ networks:
 volumes:
   database:
     name: supplyline-database
-  flask_session:
-    name: supplyline-flask-session

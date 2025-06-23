@@ -27,8 +27,8 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # Create necessary directories and set permissions
-RUN mkdir -p /database /flask_session && \
-    chown -R appuser:appuser /app /database /flask_session
+RUN mkdir -p /database && \
+    chown -R appuser:appuser /app /database
 
 # Switch to non-root user
 USER appuser

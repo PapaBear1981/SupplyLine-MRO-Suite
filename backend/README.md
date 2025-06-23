@@ -3,7 +3,7 @@
 ## What's New in 3.2.0
 - Admin dashboard registration requests are now fully connected to the backend API.
 - Approve and deny registration requests from the dashboard with live updates.
-- Improved backend startup reliability (database/session directory checks).
+- Improved backend startup reliability (database directory checks).
 
 ## Setup and Running
 
@@ -11,10 +11,6 @@
 2. Install the required dependencies:
    ```
    pip install -r requirements.txt
-   ```
-3. Create the database and flask_session directories if they don't exist:
-   ```
-   mkdir -p ../database ../flask_session
    ```
 4. Run the backend server:
    ```
