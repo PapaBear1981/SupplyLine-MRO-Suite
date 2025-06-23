@@ -1,7 +1,7 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
-from functools import wraps
+from auth import department_required
 import traceback
 from sqlalchemy import func
 
@@ -207,19 +207,7 @@ def calculate_shelf_life_stats(chemicals):
     return results
 
 # Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Authentication check
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+materials_manager_required = department_required('Materials')
 
 def register_chemical_analytics_routes(app):
     # Get waste analytics
