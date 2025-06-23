@@ -133,9 +133,15 @@ deploy_infrastructure() {
 
 deploy_application() {
     local backend_image_uri=$1
-    
+
     log_info "Deploying application stack..."
-    
+
+    # Generate secure database password if not provided
+    if [ -z "$DB_PASSWORD" ]; then
+        DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+        log_info "Generated secure database password"
+    fi
+
     # Check if stack exists
     if aws cloudformation describe-stacks --stack-name $APPLICATION_STACK --region $AWS_REGION &> /dev/null; then
         log_info "Updating existing application stack..."
@@ -146,6 +152,7 @@ deploy_application() {
                 ParameterKey=InfrastructureStackName,ParameterValue=$INFRASTRUCTURE_STACK \
                 ParameterKey=Environment,ParameterValue=production \
                 ParameterKey=BackendImageUri,ParameterValue=$backend_image_uri \
+                ParameterKey=DatabasePassword,ParameterValue=$DB_PASSWORD \
             --capabilities CAPABILITY_IAM \
             --region $AWS_REGION
     else
@@ -157,15 +164,85 @@ deploy_application() {
                 ParameterKey=InfrastructureStackName,ParameterValue=$INFRASTRUCTURE_STACK \
                 ParameterKey=Environment,ParameterValue=production \
                 ParameterKey=BackendImageUri,ParameterValue=$backend_image_uri \
+                ParameterKey=DatabasePassword,ParameterValue=$DB_PASSWORD \
             --capabilities CAPABILITY_IAM \
             --region $AWS_REGION
     fi
-    
+
     log_info "Waiting for application stack to complete..."
     aws cloudformation wait stack-create-complete --stack-name $APPLICATION_STACK --region $AWS_REGION || \
     aws cloudformation wait stack-update-complete --stack-name $APPLICATION_STACK --region $AWS_REGION
-    
+
     log_success "Application stack deployed successfully"
+}
+
+initialize_database() {
+    log_info "Initializing database..."
+
+    # Get database connection details from CloudFormation
+    DB_ENDPOINT=$(aws cloudformation describe-stacks \
+        --stack-name $INFRASTRUCTURE_STACK \
+        --region $AWS_REGION \
+        --query 'Stacks[0].Outputs[?OutputKey==`DatabaseEndpoint`].OutputValue' \
+        --output text)
+
+    DB_PORT=$(aws cloudformation describe-stacks \
+        --stack-name $INFRASTRUCTURE_STACK \
+        --region $AWS_REGION \
+        --query 'Stacks[0].Outputs[?OutputKey==`DatabasePort`].OutputValue' \
+        --output text)
+
+    # Get ECS cluster and service names
+    CLUSTER_NAME=$(aws cloudformation describe-stacks \
+        --stack-name $APPLICATION_STACK \
+        --region $AWS_REGION \
+        --query 'Stacks[0].Outputs[?OutputKey==`ClusterName`].OutputValue' \
+        --output text)
+
+    SERVICE_NAME=$(aws cloudformation describe-stacks \
+        --stack-name $APPLICATION_STACK \
+        --region $AWS_REGION \
+        --query 'Stacks[0].Outputs[?OutputKey==`ServiceName`].OutputValue' \
+        --output text)
+
+    if [ -z "$CLUSTER_NAME" ] || [ -z "$SERVICE_NAME" ]; then
+        log_warning "Could not get ECS cluster/service info. Database initialization will happen on first container start."
+        return 0
+    fi
+
+    # Wait for service to be running
+    log_info "Waiting for ECS service to be stable..."
+    aws ecs wait services-stable --cluster $CLUSTER_NAME --services $SERVICE_NAME --region $AWS_REGION
+
+    # Get running task ARN
+    TASK_ARN=$(aws ecs list-tasks \
+        --cluster $CLUSTER_NAME \
+        --service-name $SERVICE_NAME \
+        --desired-status RUNNING \
+        --region $AWS_REGION \
+        --query 'taskArns[0]' \
+        --output text)
+
+    if [ "$TASK_ARN" != "None" ] && [ ! -z "$TASK_ARN" ]; then
+        log_info "Running database initialization in ECS task..."
+
+        # Execute database initialization script
+        aws ecs execute-command \
+            --cluster $CLUSTER_NAME \
+            --task $TASK_ARN \
+            --container backend \
+            --interactive \
+            --command "python aws_db_init.py" \
+            --region $AWS_REGION
+
+        if [ $? -eq 0 ]; then
+            log_success "Database initialization completed successfully"
+        else
+            log_warning "Database initialization may have failed. Check container logs."
+        fi
+    else
+        log_warning "No running tasks found. Database initialization will happen on first container start."
+    fi
 }
 
 build_and_deploy_frontend() {
@@ -241,22 +318,25 @@ show_deployment_info() {
 # Main deployment process
 main() {
     log_info "Starting SupplyLine MRO Suite deployment..."
-    
+
     check_prerequisites
     create_ecr_repository
-    
+
     # Build and push backend
     backend_image_uri=$(build_and_push_backend)
-    
+
     # Deploy infrastructure
     deploy_infrastructure
-    
+
     # Deploy application
     deploy_application $backend_image_uri
-    
+
+    # Initialize database
+    initialize_database
+
     # Build and deploy frontend
     build_and_deploy_frontend
-    
+
     # Show deployment information
     show_deployment_info
 }

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'SupplyLine MRO Suite - Simplified Application Deployment'
+Description: 'SupplyLine MRO Suite - Minimal Application Deployment'
 
 Parameters:
   InfrastructureStackName:
@@ -10,7 +10,6 @@ Parameters:
   Environment:
     Type: String
     Default: production
-    AllowedValues: [development, staging, production]
     Description: Environment name
   
   BackendImageUri:
@@ -117,8 +116,6 @@ Resources:
               Value: !Ref JWTSecretKey
             - Name: SECRET_KEY
               Value: !Ref AppSecretKey
-            - Name: CORS_ORIGINS
-              Value: 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://supplyline-frontend-236224546224.s3-website-us-east-1.amazonaws.com'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -126,51 +123,9 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: backend
 
-  # Application Load Balancer
-  ApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub 'supplyline-alb'
-      Scheme: internet-facing
-      Type: application
-      Subnets:
-        - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet1Id'
-        - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet2Id'
-      SecurityGroups:
-        - Fn::ImportValue: !Sub '${InfrastructureStackName}-ApplicationSecurityGroup'
-
-  # ALB Target Group
-  BackendTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Sub 'supplyline-backend-tg'
-      Port: 5000
-      Protocol: HTTP
-      VpcId:
-        Fn::ImportValue: !Sub '${InfrastructureStackName}-VpcId'
-      TargetType: ip
-      HealthCheckPath: /health
-      HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
-
-  # ALB Listener
-  BackendListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref BackendTargetGroup
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
-
-  # ECS Service
+  # ECS Service (without load balancer for now)
   BackendService:
     Type: AWS::ECS::Service
-    DependsOn: BackendListener
     Properties:
       ServiceName: !Sub '${AWS::StackName}-backend-service'
       Cluster: !Ref ECSCluster
@@ -185,20 +140,16 @@ Resources:
             - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet1Id'
             - Fn::ImportValue: !Sub '${InfrastructureStackName}-PublicSubnet2Id'
           AssignPublicIp: ENABLED
-      LoadBalancers:
-        - ContainerName: backend
-          ContainerPort: 5000
-          TargetGroupArn: !Ref BackendTargetGroup
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 50
 
 Outputs:
-  LoadBalancerDNS:
-    Description: Application Load Balancer DNS name
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
+  ECSClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
     Export:
-      Name: !Sub '${AWS::StackName}-LoadBalancerDNS'
+      Name: !Sub '${AWS::StackName}-ECSCluster'
 
   BackendServiceArn:
     Description: ECS Backend Service ARN
@@ -206,6 +157,8 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-BackendServiceArn'
 
-  ApplicationURL:
-    Description: Application URL
-    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+  BackendTaskDefinitionArn:
+    Description: Backend Task Definition ARN
+    Value: !Ref BackendTaskDefinition
+    Export:
+      Name: !Sub '${AWS::StackName}-BackendTaskDefinition'

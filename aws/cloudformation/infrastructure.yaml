@@ -17,7 +17,10 @@ Parameters:
     Type: String
     NoEcho: true
     MinLength: 8
+    MaxLength: 128
     Description: Password for RDS PostgreSQL database
+    AllowedPattern: '[a-zA-Z0-9!@#$%^&*()_+=-]+'
+    ConstraintDescription: Must contain only alphanumeric characters and special characters
   
   DomainName:
     Type: String
@@ -180,23 +183,48 @@ Resources:
       DBInstanceIdentifier: !Sub '${AWS::StackName}-postgres'
       DBInstanceClass: db.t3.micro
       Engine: postgres
+      EngineVersion: '15.4'
+      DBName: supplyline
       MasterUsername: supplyline_admin
       MasterUserPassword: !Ref DatabasePassword
       AllocatedStorage: 20
+      MaxAllocatedStorage: 100
       StorageType: gp2
       StorageEncrypted: true
       VPCSecurityGroups:
         - !Ref DatabaseSecurityGroup
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
       BackupRetentionPeriod: 7
+      PreferredBackupWindow: "03:00-04:00"
+      PreferredMaintenanceWindow: "sun:04:00-sun:05:00"
       MultiAZ: false
       PubliclyAccessible: false
       DeletionProtection: true
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt DatabaseMonitoringRole.Arn
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-postgres'
         - Key: Environment
           Value: !Ref Environment
+
+  # IAM Role for RDS Enhanced Monitoring
+  DatabaseMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+      Path: /
 
   # S3 Bucket for Frontend
   FrontendBucket:
@@ -239,6 +267,9 @@ Resources:
               Service: cloudfront.amazonaws.com
             Action: 's3:GetObject'
             Resource: !Sub '${FrontendBucket}/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/*'
 
 Outputs:
   VpcId:

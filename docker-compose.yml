@@ -8,9 +8,6 @@ services:
     volumes:
       - database:/database
       - flask_session:/flask_session
-      - ./update_tools_schema.py:/app/update_tools_schema.py
-      - ./backend/migrate_chemicals.py:/app/migrate_chemicals.py
-      - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
