@@ -29,11 +29,6 @@ if not exist "%PROJECT_ROOT%database" (
     mkdir "%PROJECT_ROOT%database"
 )
 
-REM Create flask_session directory if it doesn't exist
-if not exist "%PROJECT_ROOT%flask_session" (
-    echo Creating flask_session directory...
-    mkdir "%PROJECT_ROOT%flask_session"
-)
 
 echo Starting backend server...
 start cmd /k "cd /d %PROJECT_ROOT%backend && echo Activating virtual environment if it exists... && (if exist venv\Scripts\activate.bat (call venv\Scripts\activate.bat) else (echo No virtual environment found, continuing without it...)) && echo Installing backend dependencies... && pip install -r requirements.txt && echo Starting Flask server... && python run.py"

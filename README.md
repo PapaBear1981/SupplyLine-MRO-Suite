@@ -594,6 +594,28 @@ supplyline-mro-suite/
 └── migrate_calibration.py        # Calibration database migration script
 ```
 
+## Testing
+
+Run the automated test suites to validate JWT authentication and overall functionality.
+
+### Backend Unit Tests
+
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+These tests verify login, protected routes, and the refresh token flow.
+
+### End-to-End Tests
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Playwright tests inject JWT tokens to emulate authenticated users.
+
 ## Enhanced Admin Dashboard (v3.1.0)
 
 Version 3.1.0 introduces significant improvements to the Admin Dashboard, providing administrators with comprehensive system insights and enhanced user management capabilities:

@@ -118,11 +118,13 @@ docker-compose logs -f
 
 ### Testing
 
+Run the test suites to verify JWT authentication and application flows.
+
 ```bash
-# Backend tests
+# Backend tests (includes JWT refresh)
 cd backend && python -m pytest tests/ -v --cov
 
-# Frontend E2E tests
+# Frontend E2E tests with token injection
 cd frontend && npm run test:e2e
 
 # All tests
