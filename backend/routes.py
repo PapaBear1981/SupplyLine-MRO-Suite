@@ -19,6 +19,7 @@ from routes_bulk_import import register_bulk_import_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
+from routes_auth import register_auth_routes
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
 # =====================================
 # The cycle count system has been temporarily disabled due to production issues.
@@ -170,6 +171,9 @@ def register_routes(app):
 
     # Register bulk import routes
     register_bulk_import_routes(app)
+
+    # Register JWT authentication routes
+    register_auth_routes(app)
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
@@ -1793,204 +1797,11 @@ def register_routes(app):
             'timestamp': a.timestamp.isoformat()
         } for a in logs])
 
-    @app.route('/api/auth/login', methods=['POST'])
-    def login():
-        data = request.get_json() or {}
+    # JWT-based login route is now handled by routes_auth.py
 
-        if not data.get('employee_number') or not data.get('password'):
-            return jsonify({'error': 'Employee number and password required'}), 400
+    # JWT-based logout route is now handled by routes_auth.py
 
-        user = User.query.filter_by(employee_number=data['employee_number']).first()
-
-        # If user doesn't exist, return generic error message
-        if not user:
-            return jsonify({'error': 'Invalid credentials'}), 401
-
-        # Check if account is locked
-        if user.is_locked():
-            # Calculate remaining lockout time in minutes
-            remaining_seconds = user.get_lockout_remaining_time()
-            remaining_minutes = int(remaining_seconds / 60) + 1  # Round up to the next minute
-
-            # Log the failed login attempt due to account lockout
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Login attempt while account locked. Remaining lockout time: {remaining_minutes} minutes',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            log = AuditLog(
-                action_type='login_failed',
-                action_details=f'User {user.id} ({user.name}) attempted login while account locked. Remaining lockout time: {remaining_minutes} minutes'
-            )
-            db.session.add(log)
-            db.session.commit()
-
-            return jsonify({
-                'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes or contact an administrator.'
-            }), 403
-
-        # Check password
-        if not user.check_password(data['password']):
-            # Increment failed login attempts
-            user.increment_failed_login()
-
-            # Get account lockout settings from config
-            lockout_cfg         = current_app.config.get('ACCOUNT_LOCKOUT', {})
-            max_attempts        = lockout_cfg.get('MAX_FAILED_ATTEMPTS',      5)
-            initial_lockout     = lockout_cfg.get('INITIAL_LOCKOUT_MINUTES',  15)
-            lockout_multiplier  = lockout_cfg.get('LOCKOUT_MULTIPLIER',       2)
-            max_lockout         = lockout_cfg.get('MAX_LOCKOUT_MINUTES',      60)
-
-            # Log the failed login attempt
-            activity = UserActivity(
-                user_id=user.id,
-                activity_type='login_failed',
-                description=f'Failed login attempt ({user.failed_login_attempts}/{max_attempts})',
-                ip_address=request.remote_addr
-            )
-            db.session.add(activity)
-
-            # Check if account should be locked
-            if user.failed_login_attempts >= max_attempts:
-                # Calculate lockout duration with exponential backoff
-                # For first lockout: initial_lockout
-                # For subsequent lockouts: min(initial_lockout * (lockout_multiplier ^ (failed_attempts / max_attempts - 1)), max_lockout)
-                # Number of complete lockout cycles
-                lockout_count = user.failed_login_attempts // max_attempts
-                if lockout_count == 1:
-                    lockout_minutes = initial_lockout
-                else:
-                    lockout_minutes = min(
-                        initial_lockout * (lockout_multiplier ** (lockout_count - 1)),
-                        max_lockout
-                    )
-
-                # Lock the account
-                user.lock_account(minutes=int(lockout_minutes))
-
-                # Log the account lockout
-                log = AuditLog(
-                    action_type='account_locked',
-                    action_details=f'User {user.id} ({user.name}) account locked for {lockout_minutes} minutes due to {user.failed_login_attempts} failed login attempts'
-                )
-                db.session.add(log)
-                db.session.commit()
-
-                return jsonify({
-                    'error': f'Account is temporarily locked due to multiple failed login attempts. Please try again in {lockout_minutes} minutes or contact an administrator.'
-                }), 403
-
-            # Calculate remaining attempts before lockout
-            remaining_attempts = max_attempts - user.failed_login_attempts
-
-            db.session.commit()
-
-            if remaining_attempts <= 2:  # Warn when 2 or fewer attempts remain
-                return jsonify({
-                    'error': f'Invalid credentials. Warning: Your account will be locked after {remaining_attempts} more failed attempt(s).'
-                }), 401
-            else:
-                return jsonify({'error': 'Invalid credentials'}), 401
-
-        # Check if user is active
-        if not user.is_active:
-            return jsonify({'error': 'Account is inactive. Please contact an administrator.'}), 403
-
-        # Reset failed login attempts on successful login
-        user.reset_failed_login_attempts()
-
-        # Create secure session
-        from utils.session_manager import SessionManager
-        SessionManager.create_session(user)
-
-        # Get user permissions for session
-        permissions = user.get_permissions()
-        session['permissions'] = permissions
-
-        # Create response object with roles and permissions
-        response = make_response(jsonify(user.to_dict(include_roles=True, include_permissions=True)))
-
-        # Log the login
-        activity = UserActivity(
-            user_id=user.id,
-            activity_type='login',
-            ip_address=request.remote_addr
-        )
-        db.session.add(activity)
-
-        log = AuditLog(
-            action_type='user_login',
-            action_details=f'User {user.id} ({user.name}) logged in'
-        )
-        db.session.add(log)
-        db.session.commit()
-
-        return response
-
-    @app.route('/api/auth/logout', methods=['POST'])
-    def logout():
-        user_id = session.get('user_id')
-        if user_id:
-            user = User.query.get(user_id)
-            if user:
-                # Log the logout
-                activity = UserActivity(
-                    user_id=user.id,
-                    activity_type='logout',
-                    description='User logged out',
-                    ip_address=request.remote_addr
-                )
-                db.session.add(activity)
-
-                log = AuditLog(
-                    action_type='user_logout',
-                    action_details=f'User {user_id} ({session.get("user_name", "Unknown")}) logged out'
-                )
-                db.session.add(log)
-                db.session.commit()
-
-        # Clear session securely
-        from utils.session_manager import SessionManager
-        SessionManager.destroy_session()
-
-        response = make_response(jsonify({'message': 'Logged out successfully'}))
-
-        return response
-
-    @app.route('/api/auth/status', methods=['GET'])
-    def auth_status():
-        try:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.debug("Auth status check requested")
-
-            if 'user_id' not in session:
-                return jsonify({'authenticated': False}), 200
-
-            print(f"User ID in session: {session['user_id']}")
-            user = User.query.get(session['user_id'])
-            if not user:
-                print(f"User with ID {session['user_id']} not found in database")
-                session.clear()
-                return jsonify({'authenticated': False}), 200
-
-            print(f"User authenticated: {user.name}")
-            return jsonify({
-                'authenticated': True,
-                'user': user.to_dict(include_roles=True, include_permissions=True)
-            }), 200
-
-        except Exception as e:
-            print(f"Error in auth_status route: {str(e)}")
-            # Clear session on error to prevent login loops
-            session.clear()
-            return jsonify({
-                'authenticated': False,
-                'error': 'An error occurred while checking authentication status'
-            }), 200  # Return 200 instead of 500 to prevent login loops
+    # JWT-based auth status route is now handled by routes_auth.py
 
     @app.route('/api/auth/register', methods=['POST'])
     def register():

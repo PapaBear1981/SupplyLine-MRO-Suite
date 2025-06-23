@@ -50,7 +50,7 @@ def register_auth_routes(app):
                 }), 401
             
             # Check account lockout
-            if user.is_account_locked():
+            if user.is_locked():
                 logger.warning(f"Login attempt for locked account: {user.id}")
                 return jsonify({
                     'error': 'Account is temporarily locked due to failed login attempts',

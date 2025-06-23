@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import app
+from app import create_app
 from models import db, User, Tool, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
@@ -26,7 +26,7 @@ class CycleCountTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        self.app = app
+        self.app = create_app()
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
 

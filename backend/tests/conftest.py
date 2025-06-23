@@ -20,7 +20,7 @@ def app():
     # Set test environment
     os.environ['FLASK_ENV'] = 'testing'
     
-    app = create_app('testing')
+    app = create_app()
     
     # Test database configuration
     app.config['DATABASE_URL'] = 'sqlite:///:memory:'

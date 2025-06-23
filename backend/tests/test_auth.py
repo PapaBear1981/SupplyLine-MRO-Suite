@@ -28,7 +28,7 @@ class TestJWTAuthentication:
         assert data['user']['employee_number'] == 'ADMIN001'
         assert data['user']['is_admin'] is True
         assert data['token_type'] == 'Bearer'
-        assert data['expires_in'] == 60  # Testing config has 1 minute expiry
+        assert data['expires_in'] == 900  # 15 minutes expiry
     
     def test_login_invalid_credentials(self, client, admin_user):
         """Test login with invalid credentials"""
@@ -61,7 +61,7 @@ class TestJWTAuthentication:
         
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'Employee number and password required' in data['error']
+        assert 'Missing employee_number or password' in data['error']
     
     def test_login_inactive_user(self, client, db_session):
         """Test login with inactive user"""
