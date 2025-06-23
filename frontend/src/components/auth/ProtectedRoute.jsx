@@ -12,14 +12,15 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!isAuthenticated && !user) {
+      const token = localStorage.getItem('access_token');
+      if (token && !user) {
         await dispatch(fetchCurrentUser());
       }
       setIsChecking(false);
     };
 
     checkAuth();
-  }, [dispatch, isAuthenticated, user]);
+  }, [dispatch, user]);
 
   if (loading || isChecking) {
     return (
