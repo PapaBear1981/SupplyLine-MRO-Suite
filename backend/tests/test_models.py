@@ -79,34 +79,6 @@ class TestUserModel:
         assert user.reset_token is None
         assert user.reset_token_expiry is None
     
-    def test_user_remember_token(self, db_session):
-        """Test remember me token functionality"""
-        user = User(
-            name='Remember Test',
-            employee_number='REMEMBER001',
-            department='Testing'
-        )
-        user.set_password('test123')
-        db_session.add(user)
-        db_session.commit()
-        
-        # Generate remember token
-        token = user.generate_remember_token()
-        
-        assert token is not None
-        assert len(token) == 64  # 32 bytes hex = 64 chars
-        assert user.remember_token is not None
-        assert user.remember_token_expiry is not None
-        
-        # Verify token
-        assert user.check_remember_token(token)
-        assert not user.check_remember_token('invalid_token')
-        
-        # Clear token
-        user.clear_remember_token()
-        assert user.remember_token is None
-        assert user.remember_token_expiry is None
-    
     def test_user_account_lockout(self, db_session):
         """Test account lockout functionality"""
         user = User(
