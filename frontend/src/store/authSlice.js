@@ -15,6 +15,18 @@ export const login = createAsyncThunk(
   }
 );
 
+export const refreshAccessToken = createAsyncThunk(
+  'auth/refreshToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await AuthService.refreshToken();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Token refresh failed' });
+    }
+  }
+);
+
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
@@ -29,18 +41,20 @@ export const logout = createAsyncThunk(
 
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
-      // First check if we're authenticated
-      const authStatus = await AuthService.isAuthenticated();
-      if (!authStatus) {
-        return rejectWithValue({ message: 'Not authenticated' });
-      }
-
-      // If authenticated, get the user data
       const data = await AuthService.getCurrentUser();
       return data;
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        try {
+          await dispatch(refreshAccessToken()).unwrap();
+          const data = await AuthService.getCurrentUser();
+          return data;
+        } catch (refreshError) {
+          return rejectWithValue(refreshError.response?.data || { message: 'Not authenticated' });
+        }
+      }
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch user' });
     }
   }
@@ -107,9 +121,14 @@ export const fetchUserActivity = createAsyncThunk(
 );
 
 // Initial state
+const accessToken = localStorage.getItem('access_token');
+const refreshToken = localStorage.getItem('refresh_token');
+
 const initialState = {
   user: null,
-  isAuthenticated: false,
+  accessToken,
+  refreshToken,
+  isAuthenticated: !!accessToken,
   loading: false,
   error: null,
   registrationSuccess: null,
@@ -134,7 +153,9 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.access_token;
+        state.refreshToken = action.payload.refresh_token;
         state.isAuthenticated = true;
       })
       .addCase(login.rejected, (state, action) => {
@@ -148,11 +169,24 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.loading = false;
         state.user = null;
+        state.accessToken = null;
+        state.refreshToken = null;
         state.isAuthenticated = false;
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Refresh access token
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.accessToken = action.payload.access_token;
+        state.refreshToken = action.payload.refresh_token;
+        state.isAuthenticated = true;
+      })
+      .addCase(refreshAccessToken.rejected, (state) => {
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
       })
       // Fetch current user
       .addCase(fetchCurrentUser.pending, (state) => {

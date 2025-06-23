@@ -584,7 +584,6 @@ supplyline-mro-suite/
 │   └── nginx.conf                # Nginx configuration for production
 ├── database/                     # SQLite database
 │   └── tools.db                  # Main database file
-├── flask_session/                # Flask session files
 ├── docker-compose.yml            # Docker Compose configuration
 ├── .env.example                  # Example environment variables
 ├── DOCKER_README.md              # Docker deployment instructions
@@ -594,6 +593,28 @@ supplyline-mro-suite/
 ├── migrate_chemicals.py          # Chemical database migration script
 └── migrate_calibration.py        # Calibration database migration script
 ```
+
+## Testing
+
+Run the automated test suites to validate JWT authentication and overall functionality.
+
+### Backend Unit Tests
+
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+These tests verify login, protected routes, and the refresh token flow.
+
+### End-to-End Tests
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Playwright tests inject JWT tokens to emulate authenticated users.
 
 ## Enhanced Admin Dashboard (v3.1.0)
 

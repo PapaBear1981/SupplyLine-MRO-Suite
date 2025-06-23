@@ -29,11 +29,6 @@ if [ ! -d "$PROJECT_ROOT/database" ]; then
     mkdir -p "$PROJECT_ROOT/database"
 fi
 
-# Create flask_session directory if it doesn't exist
-if [ ! -d "$PROJECT_ROOT/flask_session" ]; then
-    echo "Creating flask_session directory..."
-    mkdir -p "$PROJECT_ROOT/flask_session"
-fi
 
 # Start backend server in a new terminal
 echo "Starting backend server..."

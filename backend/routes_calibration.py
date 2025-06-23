@@ -1,37 +1,17 @@
 from flask import request, jsonify
 from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
-from functools import wraps
 import os
 import uuid
 from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
-from auth.jwt_manager import jwt_required, admin_required, department_required
+from auth import jwt_required, department_required
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator for requiring tool manager privileges (using JWT)
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # First check JWT authentication
-        from auth.jwt_manager import JWTManager
-        user_payload = JWTManager.get_current_user()
-        if not user_payload:
-            log_security_event('unauthorized_access_attempt', 'Tool management access denied: No valid JWT token')
-            return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
-
-        # Check if user has admin or Materials department privileges
-        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Tool management access denied for user {user_payload.get("user_id")}')
-            return jsonify({'error': 'Tool management privileges required'}), 403
-
-        # Add user info to request context
-        request.current_user = user_payload
-        return f(*args, **kwargs)
-    return decorated_function
+tool_manager_required = department_required('Materials')
 
 def register_calibration_routes(app):
     # Get all calibration records
@@ -250,7 +230,7 @@ def register_calibration_routes(app):
         # Create audit log
         log = AuditLog(
             action_type='tool_calibration',
-            action_details=f'User {request.current_user.get("name", "Unknown")} (ID: {request.current_user["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
+            action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) calibrated tool {tool.tool_number} (ID: {id})'
         )
         db.session.add(log)
 
@@ -379,7 +359,7 @@ def register_calibration_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='add_calibration_standard',
-                action_details=f'User {request.current_user.get("name", "Unknown")} (ID: {request.current_user["user_id"]}) added calibration standard {standard.name} (ID: {standard.id})'
+                action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) added calibration standard {standard.name} (ID: {standard.id})'
             )
             db.session.add(log)
 
@@ -493,7 +473,7 @@ def register_calibration_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='update_calibration_standard',
-                action_details=f'User {request.current_user.get("name", "Unknown")} (ID: {request.current_user["user_id"]}) updated calibration standard {standard.name} (ID: {id})'
+                action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) updated calibration standard {standard.name} (ID: {id})'
             )
             db.session.add(log)
             db.session.commit()

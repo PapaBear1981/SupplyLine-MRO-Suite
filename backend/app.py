@@ -44,14 +44,23 @@ def create_app():
 
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": allowed_origins,
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
-            "supports_credentials": True
-        }
-    })
+    allow_headers = app.config.get('CORS_ALLOW_HEADERS', [
+        "Content-Type",
+        "Authorization",
+        "X-CSRF-Token",
+    ])
+    supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', False)
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": allowed_origins,
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": allow_headers,
+                "supports_credentials": supports_credentials,
+            }
+        },
+    )
 
     # Initialize Flask-Session
     Session(app)

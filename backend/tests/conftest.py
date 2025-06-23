@@ -20,7 +20,7 @@ def app():
     # Set test environment
     os.environ['FLASK_ENV'] = 'testing'
     
-    app = create_app('testing')
+    app = create_app()
     
     # Test database configuration
     app.config['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -142,38 +142,18 @@ def sample_chemical(db_session, admin_user):
 @pytest.fixture
 def auth_headers(client, admin_user, jwt_manager):
     """Get authentication headers for admin user"""
-    # Login to get tokens
-    response = client.post('/api/auth/login', json={
-        'employee_number': admin_user.employee_number,
-        'password': 'admin123'
-    })
-    
-    if response.status_code == 200:
-        data = response.get_json()
-        access_token = data.get('access_token')
-        return {'Authorization': f'Bearer {access_token}'}
-    else:
-        # Fallback: create token directly
-        access_token = jwt_manager.create_access_token(admin_user.id)
-        return {'Authorization': f'Bearer {access_token}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(admin_user)
+    access_token = tokens['access_token']
+    return {'Authorization': f'Bearer {access_token}'}
 
 @pytest.fixture
 def user_auth_headers(client, regular_user, jwt_manager):
     """Get authentication headers for regular user"""
-    # Login to get tokens
-    response = client.post('/api/auth/login', json={
-        'employee_number': regular_user.employee_number,
-        'password': 'user123'
-    })
-    
-    if response.status_code == 200:
-        data = response.get_json()
-        access_token = data.get('access_token')
-        return {'Authorization': f'Bearer {access_token}'}
-    else:
-        # Fallback: create token directly
-        access_token = jwt_manager.create_access_token(regular_user.id)
-        return {'Authorization': f'Bearer {access_token}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(regular_user)
+    access_token = tokens['access_token']
+    return {'Authorization': f'Bearer {access_token}'}
 
 @pytest.fixture
 def sample_data(db_session, admin_user, regular_user):

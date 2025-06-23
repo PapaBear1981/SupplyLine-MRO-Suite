@@ -87,8 +87,6 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=get_current_time)
     reset_token = db.Column(db.String, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
-    remember_token = db.Column(db.String, nullable=True)
-    remember_token_expiry = db.Column(db.DateTime, nullable=True)
     avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
     # Account lockout fields
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -125,23 +123,6 @@ class User(db.Model):
         self.reset_token = None
         self.reset_token_expiry = None
 
-    def generate_remember_token(self):
-        import secrets
-        token = secrets.token_hex(32)
-        self.remember_token = generate_password_hash(token)
-        self.remember_token_expiry = get_current_time() + timedelta(days=30)  # Valid for 30 days
-        return token
-
-    def check_remember_token(self, token):
-        if not self.remember_token or not self.remember_token_expiry:
-            return False
-        if get_current_time() > self.remember_token_expiry:
-            return False
-        return check_password_hash(self.remember_token, token)
-
-    def clear_remember_token(self):
-        self.remember_token = None
-        self.remember_token_expiry = None
 
     def has_role(self, role_name):
         """Check if user has a specific role by name"""

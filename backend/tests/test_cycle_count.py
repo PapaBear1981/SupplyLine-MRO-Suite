@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import app
+from app import create_app
 from models import db, User, Tool, Chemical
 from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
@@ -26,7 +26,7 @@ class CycleCountTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        self.app = app
+        self.app = create_app()
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
 
@@ -35,6 +35,7 @@ class CycleCountTestCase(unittest.TestCase):
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + self.app.config['DATABASE']
 
         self.client = self.app.test_client()
+        self.headers = {}
 
         with self.app.app_context():
             db.create_all()
@@ -87,13 +88,23 @@ class CycleCountTestCase(unittest.TestCase):
         db.session.commit()
 
     def _login(self):
-        """Helper method to log in"""
-        return self.client.post('/api/login',
-                              data=json.dumps({
-                                  'employee_number': 'TEST001',
-                                  'password': 'test123'
-                              }),
-                              content_type='application/json')
+        """Helper method to log in using JWT auth"""
+        response = self.client.post(
+            '/api/auth/login',
+            data=json.dumps({
+                'employee_number': 'TEST001',
+                'password': 'test123'
+            }),
+            content_type='application/json'
+        )
+
+        if response.status_code == 200:
+            data = json.loads(response.data)
+            self.headers = {
+                'Authorization': f"Bearer {data['access_token']}"
+            }
+
+        return response
 
 
 class TestCycleCountSchedules(CycleCountTestCase):
@@ -110,9 +121,12 @@ class TestCycleCountSchedules(CycleCountTestCase):
             'method': 'ABC'
         }
 
-        response = self.client.post('/api/cycle-count/schedules',
-                                  data=json.dumps(schedule_data),
-                                  content_type='application/json')
+        response = self.client.post(
+            '/api/cycle-count/schedules',
+            data=json.dumps(schedule_data),
+            content_type='application/json',
+            headers=self.headers
+        )
 
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)
@@ -134,7 +148,7 @@ class TestCycleCountSchedules(CycleCountTestCase):
             db.session.add(schedule)
             db.session.commit()
 
-        response = self.client.get('/api/cycle-count/schedules')
+        response = self.client.get('/api/cycle-count/schedules', headers=self.headers)
         self.assertEqual(response.status_code, 200)
 
         data = json.loads(response.data)
@@ -163,9 +177,12 @@ class TestCycleCountSchedules(CycleCountTestCase):
             'frequency': 'monthly'
         }
 
-        response = self.client.put(f'/api/cycle-count/schedules/{schedule_id}',
-                                 data=json.dumps(update_data),
-                                 content_type='application/json')
+        response = self.client.put(
+            f'/api/cycle-count/schedules/{schedule_id}',
+            data=json.dumps(update_data),
+            content_type='application/json',
+            headers=self.headers
+        )
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -200,9 +217,12 @@ class TestCycleCountBatches(CycleCountTestCase):
             'end_date': (datetime.now() + timedelta(days=7)).isoformat()
         }
 
-        response = self.client.post('/api/cycle-count/batches',
-                                  data=json.dumps(batch_data),
-                                  content_type='application/json')
+        response = self.client.post(
+            '/api/cycle-count/batches',
+            data=json.dumps(batch_data),
+            content_type='application/json',
+            headers=self.headers
+        )
 
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)
@@ -230,9 +250,12 @@ class TestCycleCountBatches(CycleCountTestCase):
             'sample_size': 10
         }
 
-        response = self.client.post(f'/api/cycle-count/batches/{batch_id}/generate-items',
-                                  data=json.dumps(generate_data),
-                                  content_type='application/json')
+        response = self.client.post(
+            f'/api/cycle-count/batches/{batch_id}/generate-items',
+            data=json.dumps(generate_data),
+            content_type='application/json',
+            headers=self.headers
+        )
 
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
@@ -278,7 +301,10 @@ class TestCycleCountItems(CycleCountTestCase):
         """Test retrieving items for a batch"""
         self._login()
 
-        response = self.client.get(f'/api/cycle-count/batches/{self.test_batch.id}/items')
+        response = self.client.get(
+            f'/api/cycle-count/batches/{self.test_batch.id}/items',
+            headers=self.headers
+        )
         self.assertEqual(response.status_code, 200)
 
         data = json.loads(response.data)
@@ -297,9 +323,12 @@ class TestCycleCountItems(CycleCountTestCase):
             'notes': 'Test count'
         }
 
-        response = self.client.post(f'/api/cycle-count/items/{self.test_item.id}/count',
-                                  data=json.dumps(result_data),
-                                  content_type='application/json')
+        response = self.client.post(
+            f'/api/cycle-count/items/{self.test_item.id}/count',
+            data=json.dumps(result_data),
+            content_type='application/json',
+            headers=self.headers
+        )
 
         self.assertEqual(response.status_code, 201)
         data = json.loads(response.data)

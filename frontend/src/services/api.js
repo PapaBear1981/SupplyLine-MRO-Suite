@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies/session
+  withCredentials: false, // JWT auth doesn't rely on cookies
   timeout: 30000, // 30 second timeout
 });
 
@@ -19,11 +19,10 @@ api.interceptors.request.use(
     config.metadata = { startTime: Date.now() };
 
     // Add JWT token if available
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     // Only log non-GET requests in development environment or when debugging is enabled
     if (config.method.toUpperCase() !== 'GET' &&
         (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true')) {
@@ -169,7 +168,7 @@ api.interceptors.response.use(
 
 // Handle unauthorized errors with token refresh logic
 const handleUnauthorizedError = async (error) => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = localStorage.getItem('refresh_token');
 
   if (refreshToken && !error.config._retry) {
     error.config._retry = true;
@@ -181,15 +180,15 @@ const handleUnauthorizedError = async (error) => {
       });
 
       const newToken = response.data.access_token;
-      localStorage.setItem('authToken', newToken);
+      localStorage.setItem('access_token', newToken);
 
       // Retry the original request with new token
       error.config.headers.Authorization = `Bearer ${newToken}`;
       return api.request(error.config);
     } catch (refreshError) {
       // Refresh failed, redirect to login
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
 
       errorService.logWarning(
         'Token refresh failed, redirecting to login',
@@ -203,8 +202,8 @@ const handleUnauthorizedError = async (error) => {
     }
   } else {
     // No refresh token or retry already attempted
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
 
     setTimeout(() => {
       window.location.href = '/login';

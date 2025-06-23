@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, make_response
+from flask import request, jsonify, make_response
 from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
@@ -24,20 +24,9 @@ def calculate_date_range(timeframe):
     else:
         return now - timedelta(days=30)  # Default to month
 from sqlalchemy import func, extract
-from functools import wraps
+from auth import department_required
 
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
-            return f(*args, **kwargs)
-
-        return jsonify({'error': 'Tool management privileges required'}), 403
-    return decorated_function
+tool_manager_required = department_required('Materials')
 
 def register_report_routes(app):
     # Export report as PDF
