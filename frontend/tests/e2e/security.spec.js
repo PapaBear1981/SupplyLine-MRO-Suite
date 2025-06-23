@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login, TEST_USERS } from './utils/auth.js';
 
 test.describe('Frontend Security Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -34,14 +35,8 @@ test.describe('Frontend Security Tests', () => {
   });
 
   test('should handle authentication token securely', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
-    
-    // Login with valid credentials
-    await page.fill('input[placeholder="Employee Number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
-    
+    await login(page, TEST_USERS.user);
+
     // Wait for potential redirect
     await page.waitForTimeout(3000);
     
@@ -158,11 +153,8 @@ test.describe('Frontend Security Tests', () => {
     // Should be redirected to login page
     await expect(page).toHaveURL('/login');
     
-    // Login with valid credentials
-    await page.fill('input[placeholder="Employee Number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
-    
+    await login(page, TEST_USERS.user);
+
     // Wait for redirect to dashboard
     await page.waitForTimeout(3000);
     

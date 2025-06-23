@@ -24,23 +24,31 @@ export const TEST_USERS = {
  * @param {Object} user - User credentials object
  * @param {boolean} rememberMe - Whether to check remember me option
  */
-export async function login(page, user = TEST_USERS.admin, rememberMe = false) {
-  await page.goto('/login');
-  
-  // Fill in credentials
-  await page.fill('input[placeholder="Enter employee number"]', user.username);
-  await page.fill('input[placeholder="Password"]', user.password);
-  
-  // Check remember me if requested
-  if (rememberMe) {
-    await page.check('input[type="checkbox"]');
+export async function login(page, user = TEST_USERS.admin) {
+  const response = await page.request.post('/api/auth/login', {
+    data: {
+      employee_number: user.username,
+      password: user.password,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Login failed with status ${response.status()}`);
   }
-  
-  // Submit form
-  await page.click('button[type="submit"]');
-  
-  // Wait for redirect to dashboard
-  await page.waitForURL('/dashboard');
+
+  const data = await response.json();
+
+  await page.addInitScript((tokenData) => {
+    localStorage.setItem('accessToken', tokenData.access_token);
+    localStorage.setItem('refreshToken', tokenData.refresh_token);
+    localStorage.setItem('user', JSON.stringify(tokenData.user));
+  }, data);
+
+  await page.context().setExtraHTTPHeaders({
+    Authorization: `Bearer ${data.access_token}`,
+  });
+
+  await page.goto('/dashboard');
 }
 
 /**
@@ -48,14 +56,15 @@ export async function login(page, user = TEST_USERS.admin, rememberMe = false) {
  * @param {import('@playwright/test').Page} page 
  */
 export async function logout(page) {
-  // Click user menu
-  await page.click('[data-testid="user-menu"]');
-  
-  // Click logout
-  await page.click('text=Logout');
-  
-  // Wait for redirect to login
-  await page.waitForURL('/login');
+  await page.context().setExtraHTTPHeaders({});
+
+  await page.evaluate(() => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  });
+
+  await page.goto('/login');
 }
 
 /**
@@ -64,8 +73,8 @@ export async function logout(page) {
  * @returns {boolean}
  */
 export async function isAuthenticated(page) {
-  const url = page.url();
-  return !url.includes('/login');
+  const token = await page.evaluate(() => localStorage.getItem('accessToken'));
+  return Boolean(token);
 }
 
 /**
@@ -82,11 +91,9 @@ export async function setupAuthenticatedState(page, user = TEST_USERS.admin) {
  * @param {import('@playwright/test').Page} page 
  */
 export async function clearAuthState(page) {
-  // Clear localStorage
+  await page.context().setExtraHTTPHeaders({});
   await page.evaluate(() => {
     localStorage.clear();
   });
-  
-  // Navigate to login to ensure clean state
   await page.goto('/login');
 }
