@@ -280,3 +280,75 @@ class TestResourceAccess:
         else:
             # If denied, should get proper error code
             assert response.status_code in [403, 401], "Should get proper authorization error"
+
+
+class TestTokenRefreshAndCSRF:
+    """Tests for token refresh and CSRF protection"""
+
+    def test_refresh_returns_new_access_token(self, client, admin_user):
+        """Valid refresh token should yield a new access token"""
+        # Login to obtain initial tokens
+        login_resp = client.post(
+            '/api/auth/login',
+            json={
+                'employee_number': admin_user.employee_number,
+                'password': 'admin123'
+            }
+        )
+        assert login_resp.status_code == 200
+        login_data = login_resp.get_json()
+
+        refresh_token = login_data['refresh_token']
+        old_access = login_data['access_token']
+
+        # Request new tokens using refresh endpoint
+        refresh_resp = client.post('/api/auth/refresh', json={'refresh_token': refresh_token})
+        assert refresh_resp.status_code == 200
+        tokens = refresh_resp.get_json()
+
+        assert 'access_token' in tokens
+        assert tokens['access_token'] != old_access
+
+    def test_state_change_with_csrf_token(self, client, admin_user):
+        """State-changing request succeeds with valid CSRF token"""
+        # Authenticate
+        login_resp = client.post(
+            '/api/auth/login',
+            json={
+                'employee_number': admin_user.employee_number,
+                'password': 'admin123'
+            }
+        )
+        access_token = login_resp.get_json()['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+
+        # Get CSRF token
+        csrf_resp = client.get('/api/auth/csrf-token', headers=headers)
+        assert csrf_resp.status_code == 200
+        csrf_token = csrf_resp.get_json()['csrf_token']
+
+        headers['X-CSRF-Token'] = csrf_token
+        # Perform state-changing action (logout)
+        logout_resp = client.post('/api/auth/logout', headers=headers)
+        assert logout_resp.status_code == 200
+
+    def test_state_change_without_or_invalid_csrf(self, client, admin_user):
+        """Missing or invalid CSRF token should be rejected"""
+        login_resp = client.post(
+            '/api/auth/login',
+            json={
+                'employee_number': admin_user.employee_number,
+                'password': 'admin123'
+            }
+        )
+        access_token = login_resp.get_json()['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+
+        # Missing token
+        missing_resp = client.post('/api/auth/logout', headers=headers)
+        assert missing_resp.status_code == 403
+
+        # Invalid token
+        headers['X-CSRF-Token'] = 'invalid-token'
+        invalid_resp = client.post('/api/auth/logout', headers=headers)
+        assert invalid_resp.status_code == 403
