@@ -25,8 +25,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reset_token TEXT,
     reset_token_expiry TIMESTAMP,
-    remember_token TEXT,
-    remember_token_expiry TIMESTAMP
 )
 ''')
 
