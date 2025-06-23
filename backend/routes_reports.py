@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, make_response
+from flask import request, jsonify, make_response
 from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
@@ -26,23 +26,12 @@ def calculate_date_range(timeframe):
 from sqlalchemy import func, extract
 from functools import wraps
 
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
-            return f(*args, **kwargs)
-
-        return jsonify({'error': 'Tool management privileges required'}), 403
-    return decorated_function
+from auth import jwt_required, department_required
 
 def register_report_routes(app):
     # Export report as PDF
     @app.route('/api/reports/export/pdf', methods=['POST'])
-    @tool_manager_required
+    @department_required('Materials')
     def export_report_pdf():
         try:
             data = request.get_json()
@@ -68,7 +57,7 @@ def register_report_routes(app):
 
     # Export report as Excel
     @app.route('/api/reports/export/excel', methods=['POST'])
-    @tool_manager_required
+    @department_required('Materials')
     def export_report_excel():
         try:
             data = request.get_json()
@@ -94,7 +83,7 @@ def register_report_routes(app):
 
     # Tool Inventory Report
     @app.route('/api/reports/tools', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def tool_inventory_report():
         try:
             # Get filter parameters
@@ -164,7 +153,7 @@ def register_report_routes(app):
 
     # Checkout History Report
     @app.route('/api/reports/checkouts', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def checkout_history_report():
         try:
             # Get timeframe parameter
@@ -318,7 +307,7 @@ def register_report_routes(app):
 
     # Department Usage Report
     @app.route('/api/reports/departments', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def department_usage_report():
         try:
             # Get timeframe parameter
@@ -432,7 +421,7 @@ def register_report_routes(app):
 
     # Cycle Count Accuracy Report
     @app.route('/api/reports/cycle-counts/accuracy', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def cycle_count_accuracy_report():
         try:
             # Get filter parameters
@@ -550,7 +539,7 @@ def register_report_routes(app):
 
     # Cycle Count Discrepancy Report
     @app.route('/api/reports/cycle-counts/discrepancies', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def cycle_count_discrepancy_report():
         try:
             # Check if cycle count tables exist and have data
@@ -620,7 +609,7 @@ def register_report_routes(app):
 
     # Cycle Count Performance Report
     @app.route('/api/reports/cycle-counts/performance', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def cycle_count_performance_report():
         try:
             # Check if cycle count tables exist and have data
@@ -770,7 +759,7 @@ def register_report_routes(app):
 
     # Cycle Count Coverage Report
     @app.route('/api/reports/cycle-counts/coverage', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def cycle_count_coverage_report():
         try:
             # Check if cycle count tables exist and have data

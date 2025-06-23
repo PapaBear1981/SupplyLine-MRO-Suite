@@ -1,4 +1,4 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
@@ -7,33 +7,17 @@ import uuid
 from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
-from utils.session_manager import SessionManager
+from auth import jwt_required, department_required
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Decorator for requiring tool manager privileges
-def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user has admin or Materials department privileges
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Tool management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
 
 def register_calibration_routes(app):
     # Get all calibration records
     @app.route('/api/calibrations', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibrations():
         try:
             # Get pagination parameters
@@ -78,7 +62,7 @@ def register_calibration_routes(app):
 
     # Get tools due for calibration
     @app.route('/api/calibrations/due', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibrations_due():
         try:
             # Get days parameter (default to 30 days)
@@ -126,7 +110,7 @@ def register_calibration_routes(app):
 
     # Get tools overdue for calibration
     @app.route('/api/calibrations/overdue', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibrations_overdue():
         try:
             # Calculate the current date
@@ -147,7 +131,7 @@ def register_calibration_routes(app):
 
     # Get calibration history for a specific tool
     @app.route('/api/tools/<int:id>/calibrations', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_tool_calibrations(id):
         try:
             # Get pagination parameters
@@ -184,7 +168,7 @@ def register_calibration_routes(app):
 
     # Add a new calibration record for a tool
     @app.route('/api/tools/<int:id>/calibrations', methods=['POST'])
-    @tool_manager_required
+    @department_required('Materials')
     @handle_errors
     def add_tool_calibration(id):
         # Get the tool
@@ -215,7 +199,7 @@ def register_calibration_routes(app):
             tool_id=id,
             calibration_date=calibration_date,
             next_calibration_date=next_calibration_date,
-            performed_by_user_id=session['user_id'],
+            performed_by_user_id=request.current_user['user_id'],
             calibration_notes=validated_data.get('notes', ''),
             calibration_status=validated_data['calibration_status']
         )
@@ -253,7 +237,7 @@ def register_calibration_routes(app):
 
         # Create user activity
         activity = UserActivity(
-            user_id=session['user_id'],
+            user_id=request.current_user['user_id'],
             activity_type='tool_calibration',
             description=f'Calibrated tool {tool.tool_number}',
             ip_address=request.remote_addr
@@ -272,7 +256,7 @@ def register_calibration_routes(app):
 
     # Get all calibration standards
     @app.route('/api/calibration-standards', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibration_standards():
         try:
             # Get pagination parameters
@@ -327,7 +311,7 @@ def register_calibration_routes(app):
 
     # Add a new calibration standard
     @app.route('/api/calibration-standards', methods=['POST'])
-    @tool_manager_required
+    @department_required('Materials')
     def add_calibration_standard():
         try:
             # Get data from request
@@ -382,7 +366,7 @@ def register_calibration_routes(app):
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=request.current_user['user_id'],
                 activity_type='add_calibration_standard',
                 description=f'Added calibration standard {standard.name}',
                 ip_address=request.remote_addr
@@ -401,7 +385,7 @@ def register_calibration_routes(app):
 
     # Get a specific calibration record
     @app.route('/api/tools/<int:tool_id>/calibrations/<int:calibration_id>', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibration_detail(tool_id, calibration_id):
         try:
             # Get the calibration record
@@ -429,7 +413,7 @@ def register_calibration_routes(app):
 
     # Get a specific calibration standard
     @app.route('/api/calibration-standards/<int:id>', methods=['GET'])
-    @tool_manager_required
+    @department_required('Materials')
     def get_calibration_standard(id):
         try:
             standard = CalibrationStandard.query.get_or_404(id)
@@ -441,7 +425,7 @@ def register_calibration_routes(app):
 
     # Update a calibration standard
     @app.route('/api/calibration-standards/<int:id>', methods=['PUT'])
-    @tool_manager_required
+    @department_required('Materials')
     def update_calibration_standard(id):
         try:
             standard = CalibrationStandard.query.get_or_404(id)

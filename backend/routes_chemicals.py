@@ -1,32 +1,14 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
-from utils.session_manager import SessionManager, secure_login_required
+from auth import jwt_required, department_required
 from sqlalchemy.orm import joinedload
 import logging
 
 logger = logging.getLogger(__name__)
-
-# Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
 
 def register_chemical_routes(app):
     # Get all chemicals
@@ -144,7 +126,7 @@ def register_chemical_routes(app):
 
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
-    @materials_manager_required
+    @department_required('Materials')
     @handle_errors
     def create_chemical_route():
         data = request.get_json() or {}
@@ -189,9 +171,9 @@ def register_chemical_routes(app):
         db.session.add(log)
 
         # Log user activity
-        if 'user_id' in session:
+        if request.current_user is not None:
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=request.current_user['user_id'],
                 activity_type='chemical_added',
                 description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
             )
@@ -230,7 +212,7 @@ def register_chemical_routes(app):
 
     # Issue a chemical
     @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
-    @secure_login_required
+    @jwt_required
     @handle_errors
     def chemical_issue_route(id):
         # Get the chemical
@@ -289,9 +271,9 @@ def register_chemical_routes(app):
         db.session.add(log)
 
         # Log user activity
-        if 'user_id' in session:
+        if request.current_user is not None:
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=request.current_user['user_id'],
                 activity_type='chemical_issued',
                 description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
             )
@@ -328,7 +310,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as ordered
     @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
-    @materials_manager_required
+    @department_required('Materials')
     def mark_chemical_as_ordered_route(id):
         try:
             # Get the chemical
@@ -365,7 +347,7 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update reorder status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_name = request.current_user.get('user_name', 'Unknown user')
             log = AuditLog(
                 action_type='chemical_ordered',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}"
@@ -373,9 +355,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if request.current_user is not None:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=request.current_user['user_id'],
                     activity_type='chemical_ordered',
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
                 )
@@ -448,7 +430,7 @@ def register_chemical_routes(app):
 
     # Archive a chemical
     @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
-    @materials_manager_required
+    @department_required('Materials')
     def archive_chemical_route(id):
         try:
             # Get the chemical
@@ -478,7 +460,7 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update archive status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_name = request.current_user.get('user_name', 'Unknown user')
             log = AuditLog(
                 action_type='chemical_archived',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} archived by {user_name}: {data.get('reason')}"
@@ -486,9 +468,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if request.current_user is not None:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=request.current_user['user_id'],
                     activity_type='chemical_archived',
                     description=f"Archived chemical {chemical.part_number} - {chemical.lot_number}: {data.get('reason')}"
                 )
@@ -508,7 +490,7 @@ def register_chemical_routes(app):
 
     # Unarchive a chemical
     @app.route('/api/chemicals/<int:id>/unarchive', methods=['POST'])
-    @materials_manager_required
+    @department_required('Materials')
     def unarchive_chemical_route(id):
         try:
             # Get the chemical
@@ -531,7 +513,7 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update archive status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_name = request.current_user.get('user_name', 'Unknown user')
             log = AuditLog(
                 action_type='chemical_unarchived',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} unarchived by {user_name}"
@@ -539,9 +521,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if request.current_user is not None:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=request.current_user['user_id'],
                     activity_type='chemical_unarchived',
                     description=f"Unarchived chemical {chemical.part_number} - {chemical.lot_number}"
                 )
@@ -561,7 +543,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as delivered
     @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
-    @materials_manager_required
+    @department_required('Materials')
     def mark_chemical_as_delivered_route(id):
         try:
             # Get the chemical
@@ -616,7 +598,7 @@ def register_chemical_routes(app):
                 return jsonify({'error': 'Failed to update chemical status'}), 500
 
             # Log the action
-            user_name = session.get('user_name', 'Unknown user')
+            user_name = request.current_user.get('user_name', 'Unknown user')
             log = AuditLog(
                 action_type='chemical_delivered',
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as delivered by {user_name}{quantity_log}"
@@ -624,9 +606,9 @@ def register_chemical_routes(app):
             db.session.add(log)
 
             # Log user activity
-            if 'user_id' in session:
+            if request.current_user is not None:
                 activity = UserActivity(
-                    user_id=session['user_id'],
+                    user_id=request.current_user['user_id'],
                     activity_type='chemical_delivered',
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as delivered{quantity_log}"
                 )
