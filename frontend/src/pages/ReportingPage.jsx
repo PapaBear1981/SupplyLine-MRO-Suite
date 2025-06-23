@@ -71,18 +71,44 @@ const ReportingPage = () => {
       case 'department-usage':
         dispatch(fetchDepartmentUsageReport({ timeframe }));
         break;
-      case 'cycle-count-accuracy':
-        dispatch(fetchCycleCountAccuracyReport({ timeframe, filters }));
-        break;
-      case 'cycle-count-discrepancies':
-        dispatch(fetchCycleCountDiscrepancyReport({ timeframe, filters }));
-        break;
-      case 'cycle-count-performance':
-        dispatch(fetchCycleCountPerformanceReport({ timeframe, filters }));
-        break;
-      case 'cycle-count-coverage':
-        dispatch(fetchCycleCountCoverageReport({ timeframe, filters }));
-        break;
+      // CYCLE COUNT REPORTS - TEMPORARILY DISABLED
+      // ==========================================
+      // All cycle count report functionality has been disabled due to GitHub Issue #366
+      //
+      // REASON FOR DISABLING:
+      // - Backend cycle count API endpoints are non-functional
+      // - Report generation fails with "Resource not found" errors
+      // - Users cannot access cycle count analytics and reporting
+      // - Production stability requires disabling broken report types
+      //
+      // REPORTS DISABLED:
+      // - cycle-count-accuracy: Inventory accuracy analysis from cycle counts
+      // - cycle-count-discrepancies: Discrepancy tracking and resolution reports
+      // - cycle-count-performance: Cycle count team performance metrics
+      // - cycle-count-coverage: Inventory coverage and frequency analysis
+      //
+      // TO RE-ENABLE:
+      // 1. Uncomment all case statements below
+      // 2. Ensure backend cycle count routes are functional
+      // 3. Verify cycle count data exists in database
+      // 4. Test report generation thoroughly
+      // 5. Update report type dropdown options (see reportTypes array)
+      //
+      // DISABLED DATE: 2025-06-22
+      // GITHUB ISSUE: #366
+      //
+      // case 'cycle-count-accuracy':
+      //   dispatch(fetchCycleCountAccuracyReport({ timeframe, filters }));
+      //   break;
+      // case 'cycle-count-discrepancies':
+      //   dispatch(fetchCycleCountDiscrepancyReport({ timeframe, filters }));
+      //   break;
+      // case 'cycle-count-performance':
+      //   dispatch(fetchCycleCountPerformanceReport({ timeframe, filters }));
+      //   break;
+      // case 'cycle-count-coverage':
+      //   dispatch(fetchCycleCountCoverageReport({ timeframe, filters }));
+      //   break;
       default:
         break;
     }
@@ -126,10 +152,13 @@ const ReportingPage = () => {
 
       {showHelp && (
         <HelpContent title="Reports & Analytics" initialOpen={false}>
-          <p>This page provides access to various reports and analytics tools to help you analyze tool usage, chemical consumption, calibration data, and cycle count activities.</p>
+          <p>This page provides access to various reports and analytics tools to help you analyze tool usage, chemical consumption, and calibration data.</p>
           <ul>
             <li><strong>Tool Reports:</strong> Generate reports on tool inventory, checkout history, and department usage.</li>
-            <li><strong>Cycle Count Reports:</strong> Analyze inventory accuracy, discrepancies, performance, and coverage from cycle counting activities.</li>
+            {/* CYCLE COUNT REPORTS DESCRIPTION - DISABLED */}
+            {/* The cycle count reports description has been removed due to GitHub Issue #366 */}
+            {/* This feature will be restored when the cycle count system is re-enabled */}
+            {/* <li><strong>Cycle Count Reports:</strong> Analyze inventory accuracy, discrepancies, performance, and coverage from cycle counting activities.</li> */}
             <li><strong>Chemical Analytics:</strong> Analyze chemical waste and usage patterns.</li>
             <li><strong>Calibration Reports:</strong> Track calibration status, history, and compliance.</li>
             <li><strong>Part Number Analytics:</strong> Analyze part number usage and trends.</li>
@@ -198,7 +227,7 @@ const ReportingPage = () => {
                       <>
                         <p>Configure your report using these options:</p>
                         <ul>
-                          <li>Select the report type (Tool Inventory, Checkout History, Cycle Count Reports, etc.)</li>
+                          <li>Select the report type (Tool Inventory, Checkout History, etc.)</li>
                           <li>Choose a time period for time-based reports</li>
                           <li>Apply filters to narrow down your results</li>
                         </ul>

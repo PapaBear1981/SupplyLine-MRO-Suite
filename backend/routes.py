@@ -18,7 +18,36 @@ from routes_calibration import register_calibration_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
-from routes_cycle_count import register_cycle_count_routes
+# CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
+# =====================================
+# The cycle count system has been temporarily disabled due to production issues.
+#
+# REASON FOR DISABLING:
+# - GitHub Issue #366: Cycle count system was completely non-functional
+# - Missing database tables causing "Unable to Load Cycle Count System" errors
+# - Preventing users from accessing inventory cycle count operations
+# - Affecting user experience with error messages displayed to all users
+#
+# WHAT WAS DISABLED:
+# - All cycle count API routes and endpoints
+# - Frontend cycle count pages and navigation
+# - Cycle count reports and analytics
+# - Database operations for cycle counts
+#
+# TO RE-ENABLE IN THE FUTURE:
+# 1. Uncomment the import below
+# 2. Uncomment the register_cycle_count_routes(app) call in register_routes()
+# 3. Ensure cycle count database tables are properly created/migrated
+# 4. Test all cycle count functionality thoroughly
+# 5. Update frontend routes and navigation (see App.jsx and MainLayout.jsx)
+#
+# RELATED FILES TO UPDATE WHEN RE-ENABLING:
+# - frontend/src/App.jsx (uncomment cycle count routes)
+# - frontend/src/components/common/MainLayout.jsx (uncomment navigation item)
+# - frontend/src/pages/ReportingPage.jsx (uncomment cycle count reports)
+#
+# DISABLED: 2025-06-22 - Issue #366 Resolution
+# from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
 from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
@@ -139,7 +168,30 @@ def register_routes(app):
     register_scanner_routes(app)
 
     # Register cycle count routes
-    register_cycle_count_routes(app)
+    # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
+    # ===================================================
+    # The cycle count routes registration has been disabled due to production issues.
+    #
+    # ORIGINAL ISSUE:
+    # - Users experiencing "Unable to Load Cycle Count System" errors
+    # - Missing database tables causing system failures
+    # - Non-functional cycle count operations affecting inventory management
+    #
+    # SOLUTION IMPLEMENTED:
+    # - Temporarily disabled all cycle count functionality
+    # - Preserved code for future implementation
+    # - Eliminated user-facing errors and system instability
+    #
+    # TO RE-ENABLE:
+    # 1. Uncomment the line below
+    # 2. Ensure cycle count database tables exist and are properly structured
+    # 3. Test all cycle count endpoints thoroughly
+    # 4. Verify frontend integration works correctly
+    # 5. Update related frontend files (see comments in routes import section above)
+    #
+    # DISABLED DATE: 2025-06-22
+    # GITHUB ISSUE: #366
+    # register_cycle_count_routes(app)  # DISABLED - Cycle count system temporarily disabled
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])

@@ -62,7 +62,7 @@ SECURITY_HEADERS = {
 CORS_CONFIG = {
     'origins': os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(','),
     'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    'allow_headers': ['Content-Type', 'Authorization'],
+    'allow_headers': ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     'expose_headers': ['X-Request-ID', 'X-Response-Time'],
     'supports_credentials': False,  # JWT doesn't need credentials
     'max_age': 3600
