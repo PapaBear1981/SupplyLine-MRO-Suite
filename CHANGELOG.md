@@ -222,7 +222,7 @@ This is a major architectural release that migrates the SupplyLine MRO Suite to 
 - Restructured backend API for registration management
 
 ### Fixed
-- Fixed issues with user authentication and session management
+ - Fixed issues with user authentication
 - Improved error handling for registration and authentication processes
 
 ## [2.4.0] - 2025-06-05
@@ -323,7 +323,7 @@ This is a major architectural release that migrates the SupplyLine MRO Suite to 
 
 ### Fixed
 - Fixed Docker database path handling to correctly access the SQLite database in the Docker container
-- Updated Docker volume paths for database and session directories
+ - Updated Docker volume paths for database directory
 - Fixed configuration to properly detect Docker environment
 
 ## [1.1.0] - 2025-05-01
