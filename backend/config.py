@@ -7,6 +7,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     # Use environment variables with fallbacks for local development
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
 
     # SQLite database path - using absolute path from project root
     # Check if we're in Docker environment (look for /database volume)
@@ -27,21 +28,6 @@ class Config:
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
-    SESSION_TYPE = 'filesystem'
-    # Check if we're in Docker environment (look for /flask_session volume)
-    if os.path.exists('/flask_session'):
-        SESSION_FILE_DIR = '/flask_session'
-    else:
-        SESSION_FILE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'flask_session'))
-    print(f"Using session directory: {SESSION_FILE_DIR}")
-
-    # Session cleanup configuration
-    SESSION_CLEANUP_INTERVAL = 3600  # 1 hour
-    SESSION_MAX_AGE = 86400  # 24 hours
-
-    # Enhanced cookie settings
-    SESSION_COOKIE_SECURE = False  # Set to True only in HTTPS production
-    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS
 
     # Structured logging configuration
     LOGGING_CONFIG = {
@@ -95,16 +81,11 @@ class Config:
         'open_files': 1000,
         'db_connections': 8  # 80% of pool size
     }
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cross-site requests for mobile
-    SESSION_USE_SIGNER = True  # Sign cookies
-    SESSION_COOKIE_NAME = 'supplyline_session'  # Custom name
-
-    # Session security options
-    SESSION_VALIDATE_IP = os.environ.get('SESSION_VALIDATE_IP', 'false').lower() == 'true'
 
     # CORS settings - more restrictive in production
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.122:5173,http://100.108.111.69:5173').split(',')
-    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization', 'X-CSRF-Token']
+    CORS_SUPPORTS_CREDENTIALS = False
 
     # Additional security headers
     SECURITY_HEADERS = {

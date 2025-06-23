@@ -12,9 +12,9 @@
    ```
    pip install -r requirements.txt
    ```
-3. Create the database and flask_session directories if they don't exist:
+3. Create the database directory if it doesn't exist:
    ```
-   mkdir -p ../database ../flask_session
+   mkdir -p ../database
    ```
 4. Run the backend server:
    ```
