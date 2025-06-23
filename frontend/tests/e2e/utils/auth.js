@@ -25,22 +25,50 @@ export const TEST_USERS = {
  * @param {boolean} rememberMe - Whether to check remember me option
  */
 export async function login(page, user = TEST_USERS.admin, rememberMe = false) {
-  await page.goto('/login');
-  
-  // Fill in credentials
-  await page.fill('input[placeholder="Enter employee number"]', user.username);
-  await page.fill('input[placeholder="Password"]', user.password);
-  
-  // Check remember me if requested
-  if (rememberMe) {
-    await page.check('input[type="checkbox"]');
+  // Use the API login endpoint to obtain JWT tokens
+  const response = await page.request.post('/api/auth/login', {
+    data: {
+      employee_number: user.username,
+      password: user.password,
+      remember_me: rememberMe,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Login failed with status ${response.status()}`);
   }
-  
-  // Submit form
-  await page.click('button[type="submit"]');
-  
-  // Wait for redirect to dashboard
-  await page.waitForURL('/dashboard');
+
+  const result = await response.json();
+
+  const { access_token, refresh_token, user: userData } = result;
+
+  // Navigate to the app so we have the correct origin for localStorage
+  await page.goto('/');
+
+  // Store tokens and user data in localStorage
+  await page.evaluate(({ access_token, refresh_token, userData }) => {
+    localStorage.setItem('supplyline_access_token', access_token);
+    localStorage.setItem('supplyline_refresh_token', refresh_token);
+    localStorage.setItem('supplyline_user_data', JSON.stringify(userData));
+  }, { access_token, refresh_token, userData });
+
+  // Optionally fetch CSRF token if endpoint exists
+  try {
+    const csrfResp = await page.request.get('/api/auth/csrf-token', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    if (csrfResp.ok()) {
+      const { csrf_token } = await csrfResp.json();
+      await page.evaluate((token) => {
+        localStorage.setItem('supplyline_csrf_token', token);
+      }, csrf_token);
+    }
+  } catch (err) {
+    // CSRF token endpoint may not be available in all environments
+  }
+
+  // Reload page with authenticated state
+  await page.reload();
 }
 
 /**
@@ -48,14 +76,22 @@ export async function login(page, user = TEST_USERS.admin, rememberMe = false) {
  * @param {import('@playwright/test').Page} page 
  */
 export async function logout(page) {
-  // Click user menu
-  await page.click('[data-testid="user-menu"]');
-  
-  // Click logout
-  await page.click('text=Logout');
-  
-  // Wait for redirect to login
-  await page.waitForURL('/login');
+  const token = await page.evaluate(() =>
+    localStorage.getItem('supplyline_access_token')
+  );
+
+  if (token) {
+    try {
+      await page.request.post('/api/auth/logout', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (e) {
+      // ignore logout errors in tests
+    }
+  }
+
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/login');
 }
 
 /**
@@ -86,7 +122,7 @@ export async function clearAuthState(page) {
   await page.evaluate(() => {
     localStorage.clear();
   });
-  
+
   // Navigate to login to ensure clean state
   await page.goto('/login');
 }

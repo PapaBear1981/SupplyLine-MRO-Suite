@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login, TEST_USERS } from './utils/auth.js';
 
 test.describe('Frontend Security Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -34,16 +35,8 @@ test.describe('Frontend Security Tests', () => {
   });
 
   test('should handle authentication token securely', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
-    
-    // Login with valid credentials
-    await page.fill('input[placeholder="Employee Number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
-    
-    // Wait for potential redirect
-    await page.waitForTimeout(3000);
+    // Authenticate using the JWT login API
+    await login(page, TEST_USERS.user);
     
     // Check that tokens are not exposed in localStorage (should use httpOnly cookies or secure storage)
     const localStorageTokens = await page.evaluate(() => {
@@ -150,27 +143,22 @@ test.describe('Frontend Security Tests', () => {
   });
 
   test('should enforce proper session management', async ({ page }) => {
-    // Test that sessions expire properly and users are redirected to login
+    // Test that JWT tokens expire/clear properly and users are redirected to login
     
     // Navigate to a protected route without authentication
     await page.goto('/tools');
-    
+
     // Should be redirected to login page
     await expect(page).toHaveURL('/login');
-    
-    // Login with valid credentials
-    await page.fill('input[placeholder="Employee Number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
-    
-    // Wait for redirect to dashboard
-    await page.waitForTimeout(3000);
+
+    // Login using the API helper
+    await login(page, TEST_USERS.user);
     
     // Should now be on dashboard or home page
     const currentUrl = page.url();
     expect(currentUrl).not.toContain('/login');
     
-    // Clear all storage to simulate session expiration
+    // Clear all storage to simulate token expiration
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
