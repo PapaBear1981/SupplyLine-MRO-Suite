@@ -20,27 +20,24 @@ export const TEST_USERS = {
 
 /**
  * Login with specified user credentials
- * @param {import('@playwright/test').Page} page 
+ * @param {import('@playwright/test').Page} page
  * @param {Object} user - User credentials object
- * @param {boolean} rememberMe - Whether to check remember me option
  */
-export async function login(page, user = TEST_USERS.admin, rememberMe = false) {
+export async function login(page, user = TEST_USERS.admin) {
   await page.goto('/login');
   
   // Fill in credentials
   await page.fill('input[placeholder="Enter employee number"]', user.username);
   await page.fill('input[placeholder="Password"]', user.password);
   
-  // Check remember me if requested
-  if (rememberMe) {
-    await page.check('input[type="checkbox"]');
-  }
-  
   // Submit form
   await page.click('button[type="submit"]');
-  
+
   // Wait for redirect to dashboard
   await page.waitForURL('/dashboard');
+
+  // Wait until auth token is stored
+  await page.waitForFunction(() => localStorage.getItem('supplyline_access_token'));
 }
 
 /**
