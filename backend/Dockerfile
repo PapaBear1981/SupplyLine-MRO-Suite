@@ -27,8 +27,9 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # Create necessary directories and set permissions
-RUN mkdir -p /database /flask_session && \
-    chown -R appuser:appuser /app /database /flask_session
+RUN mkdir -p /database /flask_session /tmp && \
+    chown -R appuser:appuser /app /database /flask_session /tmp && \
+    chmod +x /app/aws_db_init.py /app/db_health_check.py
 
 # Switch to non-root user
 USER appuser
@@ -36,6 +37,6 @@ USER appuser
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health
+  CMD curl -f http://localhost:5000/api/health || python db_health_check.py
 
 CMD ["python", "run.py"]

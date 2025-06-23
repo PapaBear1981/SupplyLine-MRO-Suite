@@ -8,22 +8,58 @@ class Config:
     # Use environment variables with fallbacks for local development
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
-    # SQLite database path - using absolute path from project root
-    # Check if we're in Docker environment (look for /database volume)
-    if os.path.exists('/database'):
-        db_path = os.path.join('/database', 'tools.db')
-    else:
-        db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
-    print(f"Using database path: {db_path}")
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+    # Database configuration - supports both SQLite (local) and PostgreSQL (AWS)
+    @staticmethod
+    def get_database_uri():
+        """Get database URI based on environment"""
+        # Check for PostgreSQL environment variables (AWS deployment)
+        db_host = os.environ.get('DB_HOST')
+        db_port = os.environ.get('DB_PORT', '5432')
+        db_name = os.environ.get('DB_NAME', 'supplyline')
+        db_user = os.environ.get('DB_USER', 'supplyline_admin')
+        db_password = os.environ.get('DB_PASSWORD')
+
+        if db_host and db_password:
+            # PostgreSQL for AWS deployment
+            print(f"Using PostgreSQL database: {db_host}:{db_port}/{db_name}")
+            return f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+        else:
+            # SQLite for local development
+            if os.path.exists('/database'):
+                db_path = os.path.join('/database', 'tools.db')
+            else:
+                db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
+            print(f"Using SQLite database: {db_path}")
+            return f'sqlite:///{db_path}'
+
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Database connection pooling and optimization
-    # Note: SQLite doesn't support connection pooling, so we only set basic options
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'echo': False,  # Set to True for SQL debugging
-        'pool_pre_ping': True,  # Validate connections before use
-    }
+    @staticmethod
+    def get_engine_options():
+        """Get database engine options based on database type"""
+        if 'postgresql' in Config.SQLALCHEMY_DATABASE_URI:
+            # PostgreSQL configuration
+            return {
+                'echo': False,
+                'pool_size': 10,
+                'max_overflow': 20,
+                'pool_pre_ping': True,
+                'pool_recycle': 3600,  # Recycle connections every hour
+                'connect_args': {
+                    'connect_timeout': 30,
+                    'application_name': 'SupplyLine-MRO-Suite'
+                }
+            }
+        else:
+            # SQLite configuration
+            return {
+                'echo': False,
+                'pool_pre_ping': True,
+            }
+
+    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security

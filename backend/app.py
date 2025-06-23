@@ -73,6 +73,77 @@ def create_app():
         'local_time': datetime.datetime.now().isoformat()
     })
 
+    # Initialize database if needed (AWS deployment support)
+    with app.app_context():
+        try:
+            # Import database models
+            from models import db
+
+            # Check if database needs initialization
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+
+            if not tables:
+                logger.info("No database tables found. Initializing database...")
+
+                # For AWS deployment, use the comprehensive initialization script
+                if os.environ.get('DB_HOST'):
+                    logger.info("AWS environment detected. Running comprehensive database initialization...")
+                    try:
+                        from aws_db_init import initialize_aws_database
+                        success = initialize_aws_database()
+                        if success:
+                            logger.info("AWS database initialization completed successfully")
+                        else:
+                            logger.error("AWS database initialization failed")
+                            raise Exception("AWS database initialization failed")
+                    except ImportError:
+                        logger.warning("AWS database initialization script not found, falling back to basic initialization")
+                        db.create_all()
+                        logger.info("Database tables created successfully")
+
+                        # Create admin user securely
+                        from utils.admin_init import create_secure_admin
+                        success, message, password = create_secure_admin()
+                        if success:
+                            logger.info(f"Admin creation: {message}")
+                            if password:
+                                logger.warning("IMPORTANT: Generated admin password")
+                                logger.warning(f"Username: ADMIN001")
+                                logger.warning(f"Password: {password}")
+                                logger.warning("Please change the password after first login!")
+                        else:
+                            logger.error(f"Admin creation failed: {message}")
+                else:
+                    # Local development initialization
+                    logger.info("Local environment detected. Creating basic database structure...")
+                    db.create_all()
+                    logger.info("Database tables created successfully")
+
+                    # Create admin user securely
+                    from utils.admin_init import create_secure_admin
+                    success, message, password = create_secure_admin()
+                    if success:
+                        logger.info(f"Admin creation: {message}")
+                        if password:
+                            logger.warning("IMPORTANT: Generated admin password")
+                            logger.warning(f"Username: ADMIN001")
+                            logger.warning(f"Password: {password}")
+                            logger.warning("Please change the password after first login!")
+                    else:
+                        logger.error(f"Admin creation failed: {message}")
+            else:
+                logger.info(f"Database tables already exist: {len(tables)} tables found")
+
+        except Exception as e:
+            logger.error("Database initialization failed", exc_info=True, extra={
+                'error_message': str(e)
+            })
+            # Don't abort startup for database initialization issues in development
+            if os.environ.get('DB_HOST'):
+                raise  # Abort in production if database initialization fails
+
     # Run database migrations
     try:
         # Import and run the reorder fields migration
