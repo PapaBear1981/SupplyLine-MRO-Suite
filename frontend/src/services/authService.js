@@ -6,9 +6,24 @@ const AuthService = {
     try {
       const response = await api.post('/auth/login', {
         employee_number: username,
-        password
+        password,
       });
-      return response.data;
+      const { access_token, refresh_token, user } = response.data;
+      if (access_token) {
+        localStorage.setItem('access_token', access_token);
+      }
+      if (refresh_token) {
+        localStorage.setItem('refresh_token', refresh_token);
+      }
+      try {
+        const csrfRes = await api.get('/auth/csrf-token');
+        if (csrfRes.data?.csrf_token) {
+          localStorage.setItem('csrf_token', csrfRes.data.csrf_token);
+        }
+      } catch (_) {
+        // ignore CSRF fetch errors
+      }
+      return user;
     } catch (error) {
       throw error;
     }
@@ -28,6 +43,9 @@ const AuthService = {
   logout: async () => {
     try {
       const response = await api.post('/auth/logout');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('csrf_token');
       return response.data;
     } catch (error) {
       throw error;
