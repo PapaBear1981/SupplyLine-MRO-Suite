@@ -7,28 +7,13 @@ import uuid
 from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
 from utils.validation import validate_schema
-from utils.session_manager import SessionManager
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Decorator for requiring tool manager privileges
 def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user has admin or Materials department privileges
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Tool management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+    return department_required('Materials')(f)
 
 def register_calibration_routes(app):
     # Get all calibration records

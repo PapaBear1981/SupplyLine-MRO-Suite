@@ -3,28 +3,11 @@ from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
 from datetime import datetime, timezone
 from functools import wraps
 from utils.error_handler import log_security_event
-from utils.session_manager import SessionManager
+from auth import admin_required
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator to check if user is admin (using secure session validation)
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Admin access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin
-        if not session.get('is_admin', False):
-            log_security_event('insufficient_permissions', f'Admin access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Admin privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
 
 def register_announcement_routes(app):
     # Get all announcements

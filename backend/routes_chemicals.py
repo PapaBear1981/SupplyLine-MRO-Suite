@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
-from utils.session_manager import SessionManager, secure_login_required
+from auth import jwt_required, department_required
 from sqlalchemy.orm import joinedload
 import logging
 
@@ -12,21 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Decorator to check if user is admin or in Materials department
 def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+    return department_required('Materials')(f)
 
 def register_chemical_routes(app):
     # Get all chemicals
@@ -230,7 +216,7 @@ def register_chemical_routes(app):
 
     # Issue a chemical
     @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
-    @secure_login_required
+    @jwt_required
     @handle_errors
     def chemical_issue_route(id):
         # Get the chemical

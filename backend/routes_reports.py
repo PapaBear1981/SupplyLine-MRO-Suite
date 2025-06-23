@@ -1,4 +1,5 @@
 from flask import request, jsonify, session, make_response
+from auth import department_required
 from datetime import datetime, timedelta
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
@@ -27,17 +28,7 @@ from sqlalchemy import func, extract
 from functools import wraps
 
 def tool_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
-            return f(*args, **kwargs)
-
-        return jsonify({'error': 'Tool management privileges required'}), 403
-    return decorated_function
+    return department_required('Materials')(f)
 
 def register_report_routes(app):
     # Export report as PDF
