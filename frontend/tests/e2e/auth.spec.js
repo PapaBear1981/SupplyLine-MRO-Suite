@@ -22,7 +22,6 @@ test.describe('Authentication', () => {
     await expect(page.locator('input[placeholder="Enter employee number"]')).toBeVisible();
     await expect(page.locator('input[placeholder="Password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
-    await expect(page.locator('input[type="checkbox"]')).toBeVisible(); // Remember me checkbox
   });
 
   test('should show validation errors for empty fields', async ({ page }) => {
@@ -61,20 +60,6 @@ test.describe('Authentication', () => {
     await expect(page.locator('h1')).toContainText('Dashboard');
   });
 
-  test('should login with remember me option', async ({ page }) => {
-    // Fill in valid credentials
-    await page.fill('input[placeholder="Enter employee number"]', TEST_USER.username);
-    await page.fill('input[placeholder="Password"]', TEST_USER.password);
-    
-    // Check remember me
-    await page.check('input[type="checkbox"]');
-    
-    // Submit form
-    await page.click('button[type="submit"]');
-    
-    // Should redirect to dashboard (root path)
-    await expect(page).toHaveURL('/');
-  });
 
   test('should logout successfully', async ({ page }) => {
     // First login

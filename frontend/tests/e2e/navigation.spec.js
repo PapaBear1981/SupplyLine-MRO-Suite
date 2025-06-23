@@ -1,21 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-// Test data
-const TEST_USER = {
-  username: 'ADMIN001',
-  password: 'admin123'
-};
+import { login, TEST_USERS } from './utils/auth.js';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await page.goto('/login');
-    await page.fill('input[placeholder="Enter employee number"]', TEST_USER.username);
-    await page.fill('input[placeholder="Password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    
-    // Wait for dashboard to load
-    await expect(page).toHaveURL('/dashboard');
+    await login(page, TEST_USERS.admin);
   });
 
   test('should display main navigation menu', async ({ page }) => {

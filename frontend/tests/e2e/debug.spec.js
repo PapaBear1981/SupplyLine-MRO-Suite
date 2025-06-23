@@ -1,17 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { login, TEST_USERS } from './utils/auth.js';
 
 test.describe('Debug Tests', () => {
   test('debug page content after login', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
-    
-    // Login
-    await page.fill('input[placeholder="Employee Number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
-    
-    // Wait for redirect
-    await expect(page).toHaveURL('/');
+    await login(page, TEST_USERS.user);
     
     // Wait a moment for the page to fully load
     await page.waitForTimeout(2000);
