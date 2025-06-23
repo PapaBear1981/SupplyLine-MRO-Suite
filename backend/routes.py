@@ -1913,21 +1913,10 @@ def register_routes(app):
         # Create response object with roles and permissions
         response = make_response(jsonify(user.to_dict(include_roles=True, include_permissions=True)))
 
-        # Handle remember me
-        if data.get('remember_me'):
-            # Generate remember token
-            remember_token = user.generate_remember_token()
-            db.session.commit()
-
-            # Set cookies
-            response.set_cookie('remember_token', remember_token, max_age=30*24*60*60, httponly=True)  # 30 days
-            response.set_cookie('user_id', str(user.id), max_age=30*24*60*60, httponly=True)  # 30 days
-
         # Log the login
         activity = UserActivity(
             user_id=user.id,
             activity_type='login',
-            description='User logged in' + (' with remember me' if data.get('remember_me') else ''),
             ip_address=request.remote_addr
         )
         db.session.add(activity)
@@ -1945,12 +1934,8 @@ def register_routes(app):
     def logout():
         user_id = session.get('user_id')
         if user_id:
-            # Get user to clear remember token
             user = User.query.get(user_id)
             if user:
-                user.clear_remember_token()
-                db.session.commit()
-
                 # Log the logout
                 activity = UserActivity(
                     user_id=user.id,
@@ -1971,10 +1956,7 @@ def register_routes(app):
         from utils.session_manager import SessionManager
         SessionManager.destroy_session()
 
-        # Create response and clear cookies
         response = make_response(jsonify({'message': 'Logged out successfully'}))
-        response.delete_cookie('remember_token')
-        response.delete_cookie('user_id')
 
         return response
 
@@ -1986,49 +1968,6 @@ def register_routes(app):
             logger.debug("Auth status check requested")
 
             if 'user_id' not in session:
-                print("No user_id in session, checking cookies")
-                # Check for remember_me cookie
-                remember_token = request.cookies.get('remember_token')
-                if remember_token:
-                    print("Found remember_token cookie")
-                    user_id = request.cookies.get('user_id')
-                    if user_id:
-                        print(f"Found user_id cookie: {user_id}")
-                        try:
-                            user_id_int = int(user_id)
-                            user = User.query.get(user_id_int)
-                            if user and user.check_remember_token(remember_token):
-                                print(f"Valid remember token for user: {user.name}")
-                                # Valid remember token, log the user in
-                                session['user_id'] = user.id
-                                session['user_name'] = user.name
-                                session['is_admin'] = user.is_admin
-                                session['department'] = user.department
-
-                                # Get user permissions for session
-                                permissions = user.get_permissions()
-                                session['permissions'] = permissions
-
-                                # Log the auto-login
-                                activity = UserActivity(
-                                    user_id=user.id,
-                                    activity_type='auto_login',
-                                    description='Auto-login via remember me token',
-                                    ip_address=request.remote_addr
-                                )
-                                db.session.add(activity)
-                                db.session.commit()
-
-                                return jsonify({
-                                    'authenticated': True,
-                                    'user': user.to_dict(include_roles=True, include_permissions=True)
-                                }), 200
-                            else:
-                                print("Invalid or expired remember token")
-                        except (ValueError, TypeError) as e:
-                            print(f"Error converting user_id to int: {e}")
-
-                print("No valid session or remember token, returning unauthenticated")
                 return jsonify({'authenticated': False}), 200
 
             print(f"User ID in session: {session['user_id']}")
