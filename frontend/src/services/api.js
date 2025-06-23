@@ -6,13 +6,16 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies/session
 });
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    // You could add auth token here if using JWT
+    const token = localStorage.getItem('supplyline_access_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     // Only log non-GET requests in development environment or when debugging is enabled
     if (config.method.toUpperCase() !== 'GET' &&
         (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true')) {

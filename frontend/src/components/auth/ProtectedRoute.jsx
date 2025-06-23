@@ -5,21 +5,22 @@ import { fetchCurrentUser } from '../../store/authSlice';
 import { Spinner } from 'react-bootstrap';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
+  const { accessToken, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!isAuthenticated && !user) {
+      const token = accessToken || localStorage.getItem('supplyline_access_token');
+      if (token && !user) {
         await dispatch(fetchCurrentUser());
       }
       setIsChecking(false);
     };
 
     checkAuth();
-  }, [dispatch, isAuthenticated, user]);
+  }, [dispatch, accessToken, user]);
 
   if (loading || isChecking) {
     return (
@@ -31,7 +32,9 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  const token = accessToken || localStorage.getItem('supplyline_access_token');
+
+  if (!token) {
     // Redirect to login page but save the location they were trying to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
