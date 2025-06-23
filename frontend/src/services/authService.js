@@ -37,7 +37,17 @@ const AuthService = {
   // Get current user info
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/auth/user');
+      const response = await api.get('/auth/me');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Refresh access token using refresh token
+  refreshToken: async (refreshToken) => {
+    try {
+      const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
       return response.data;
     } catch (error) {
       throw error;

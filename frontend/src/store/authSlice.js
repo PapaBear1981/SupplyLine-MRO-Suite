@@ -2,6 +2,35 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AuthService from '../services/authService';
 import UserService from '../services/userService';
 
+// LocalStorage keys
+const ACCESS_TOKEN_KEY = 'supplyline_access_token';
+const REFRESH_TOKEN_KEY = 'supplyline_refresh_token';
+const USER_DATA_KEY = 'supplyline_user_data';
+
+// Helper to decode JWT token
+const decodeToken = (token) => {
+  try {
+    const payload = token.split('.')[1];
+    let decoded;
+    if (typeof atob === 'function') {
+      decoded = atob(payload);
+    } else if (typeof Buffer !== 'undefined') {
+      decoded = Buffer.from(payload, 'base64').toString('binary');
+    } else {
+      return null;
+    }
+    return JSON.parse(decoded);
+  } catch (err) {
+    return null;
+  }
+};
+
+const isTokenExpired = (token) => {
+  const data = decodeToken(token);
+  if (!data || !data.exp) return true;
+  return data.exp * 1000 < Date.now();
+};
+
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
@@ -31,15 +60,28 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      // First check if we're authenticated
-      const authStatus = await AuthService.isAuthenticated();
-      if (!authStatus) {
+      const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
+      if (!refreshToken) {
         return rejectWithValue({ message: 'Not authenticated' });
       }
 
-      // If authenticated, get the user data
+      let tokenToUse = accessToken;
+      if (!accessToken || isTokenExpired(accessToken)) {
+        const newTokens = await AuthService.refreshToken(refreshToken);
+        localStorage.setItem(ACCESS_TOKEN_KEY, newTokens.access_token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, newTokens.refresh_token);
+        tokenToUse = newTokens.access_token;
+      }
+
+      if (!tokenToUse) {
+        return rejectWithValue({ message: 'Not authenticated' });
+      }
+
       const data = await AuthService.getCurrentUser();
-      return data;
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(data.user));
+      return data.user;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch user' });
     }
@@ -106,10 +148,17 @@ export const fetchUserActivity = createAsyncThunk(
   }
 );
 
+// Load initial auth state from localStorage
+const storedAccess = localStorage.getItem(ACCESS_TOKEN_KEY);
+const storedRefresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+const storedUser = localStorage.getItem(USER_DATA_KEY);
+
 // Initial state
 const initialState = {
-  user: null,
-  isAuthenticated: false,
+  user: storedUser ? JSON.parse(storedUser) : null,
+  accessToken: storedAccess || null,
+  refreshToken: storedRefresh || null,
+  isAuthenticated: !!storedAccess,
   loading: false,
   error: null,
   registrationSuccess: null,
@@ -134,8 +183,14 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.access_token;
+        state.refreshToken = action.payload.refresh_token;
         state.isAuthenticated = true;
+        // Persist to localStorage
+        localStorage.setItem(USER_DATA_KEY, JSON.stringify(action.payload.user));
+        localStorage.setItem(ACCESS_TOKEN_KEY, action.payload.access_token);
+        localStorage.setItem(REFRESH_TOKEN_KEY, action.payload.refresh_token);
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -148,7 +203,12 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.loading = false;
         state.user = null;
+        state.accessToken = null;
+        state.refreshToken = null;
         state.isAuthenticated = false;
+        localStorage.removeItem(USER_DATA_KEY);
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
@@ -161,11 +221,15 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+        state.refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
         state.isAuthenticated = true;
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.loading = false;
         state.user = null;
+        state.accessToken = null;
+        state.refreshToken = null;
         state.isAuthenticated = false;
       })
       // Register
