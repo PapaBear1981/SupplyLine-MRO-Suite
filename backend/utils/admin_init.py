@@ -62,8 +62,7 @@ def create_secure_admin():
             employee_number='ADMIN001',
             department='IT',
             is_admin=True,
-            is_active=True,
-            force_password_change=True  # Force password change on first login
+            is_active=True
         )
 
         admin.set_password(admin_password)

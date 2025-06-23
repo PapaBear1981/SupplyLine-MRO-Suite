@@ -1,0 +1,60 @@
+{
+    "family": "supplyline-application-simple-backend",
+    "taskRoleArn": "arn:aws:iam::236224546224:role/ecsTaskExecutionRole",
+    "executionRoleArn": "arn:aws:iam::236224546224:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "containerDefinitions": [
+        {
+            "name": "backend",
+            "image": "236224546224.dkr.ecr.us-east-1.amazonaws.com/supplyline-backend:latest",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 5000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "SECRET_KEY",
+                    "value": "your-app-secret-key-change-in-production"
+                },
+                {
+                    "name": "DATABASE_URL",
+                    "value": "postgresql://supplyline_admin:SupplyLine2024!SecureDB@supplyline-infrastructure-simple-postgres.c2las2g82og9.us-east-1.rds.amazonaws.com:5432/postgres"
+                },
+                {
+                    "name": "CORS_ORIGINS",
+                    "value": "http://localhost:5173,http://127.0.0.1:5173,http://supplyline-frontend-236224546224.s3-website-us-east-1.amazonaws.com"
+                },
+                {
+                    "name": "FLASK_ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "JWT_SECRET_KEY",
+                    "value": "your-jwt-secret-key-change-in-production"
+                },
+                {
+                    "name": "INITIAL_ADMIN_PASSWORD",
+                    "value": "Freedom2025!!"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/supplyline-application-simple-backend",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}

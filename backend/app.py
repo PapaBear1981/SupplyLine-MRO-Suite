@@ -3,6 +3,7 @@ from routes import register_routes
 from config import Config
 from flask_session import Session
 from flask_cors import CORS
+from models import db
 import os
 import sys
 import time
@@ -73,6 +74,9 @@ def create_app():
     # Setup request logging middleware
     setup_request_logging(app)
 
+    # Initialize database with app
+    db.init_app(app)
+
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)
 
@@ -136,6 +140,35 @@ def create_app():
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers
     setup_global_error_handlers(app)
+
+    # Create database tables (after all setup is complete)
+    try:
+        logger.info("Creating database tables...")
+        with app.app_context():
+            db.create_all()
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error("Error creating database tables", exc_info=True, extra={
+            'error_message': str(e)
+        })
+        raise
+
+    # Create admin user if it doesn't exist (after tables are created)
+    try:
+        from utils.admin_init import create_secure_admin
+        logger.info("Checking/creating admin user...")
+        with app.app_context():
+            success, message, password = create_secure_admin()
+            if success:
+                logger.warning("SECURITY NOTICE: Admin user created successfully")
+                if password:
+                    logger.warning("INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs")
+            else:
+                logger.error(f"Failed to create admin user: {message}")
+    except Exception as e:
+        logger.error("Error during admin user creation", exc_info=True, extra={
+            'error_message': str(e)
+        })
 
     # Register main routes
     register_routes(app)

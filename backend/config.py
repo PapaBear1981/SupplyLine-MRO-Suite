@@ -9,22 +9,39 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
 
-    # SQLite database path - using absolute path from project root
-    # Check if we're in Docker environment (look for /database volume)
-    if os.path.exists('/database'):
-        db_path = os.path.join('/database', 'tools.db')
+    # Database configuration - check for DATABASE_URL environment variable first
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL:
+        print(f"Using PostgreSQL database from DATABASE_URL")
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
-        db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
-    print(f"Using database path: {db_path}")
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+        # Fallback to SQLite database path - using absolute path from project root
+        # Check if we're in Docker environment (look for /database volume)
+        if os.path.exists('/database'):
+            db_path = os.path.join('/database', 'tools.db')
+        else:
+            db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'tools.db'))
+        print(f"Using SQLite database path: {db_path}")
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Database connection pooling and optimization
-    # Note: SQLite doesn't support connection pooling, so we only set basic options
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'echo': False,  # Set to True for SQL debugging
-        'pool_pre_ping': True,  # Validate connections before use
-    }
+    if DATABASE_URL:
+        # PostgreSQL connection pooling options
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'echo': False,  # Set to True for SQL debugging
+            'pool_pre_ping': True,  # Validate connections before use
+            'pool_size': 10,  # Number of connections to maintain
+            'max_overflow': 20,  # Additional connections beyond pool_size
+            'pool_timeout': 30,  # Timeout for getting connection from pool
+            'pool_recycle': 3600,  # Recycle connections after 1 hour
+        }
+    else:
+        # SQLite doesn't support connection pooling, so we only set basic options
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'echo': False,  # Set to True for SQL debugging
+            'pool_pre_ping': True,  # Validate connections before use
+        }
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
