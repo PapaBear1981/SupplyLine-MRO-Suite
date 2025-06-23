@@ -1,0 +1,8 @@
+{
+  "containerOverrides": [
+    {
+      "name": "backend",
+      "command": ["python3", "check_users.py"]
+    }
+  ]
+}

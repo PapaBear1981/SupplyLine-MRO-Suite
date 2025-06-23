@@ -61,11 +61,15 @@ logger = logging.getLogger(__name__)
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Login required access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        # Use JWT authentication
+        from auth.jwt_manager import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Login required access denied: No valid JWT token')
+            return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
+
+        # Add user info to request context
+        request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
 
@@ -95,34 +99,40 @@ def admin_required(f):
 def tool_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Tool management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        # Use JWT authentication
+        from auth.jwt_manager import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Tool management access denied: No valid JWT token')
+            return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
 
         # Allow access for admins or Materials department users
-        if session.get('is_admin', False) or session.get('department') == 'Materials':
+        if user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials':
+            # Add user info to request context
+            request.current_user = user_payload
             return f(*args, **kwargs)
 
-        log_security_event('insufficient_permissions', f'Tool management access denied for user {session.get("user_id")}')
+        log_security_event('insufficient_permissions', f'Tool management access denied for user {user_payload.get("user_id")}')
         return jsonify({'error': 'Tool management privileges required'}), 403
     return decorated_function
 
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials management access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        # Use JWT authentication
+        from auth.jwt_manager import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Materials management access denied: No valid JWT token')
+            return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
 
         # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials management access denied for user {session.get("user_id")}')
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Materials management access denied for user {user_payload.get("user_id")}')
             return jsonify({'error': 'Materials management privileges required'}), 403
 
+        # Add user info to request context
+        request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
 
@@ -215,7 +225,7 @@ def register_routes(app):
     @materials_manager_required
     @handle_errors
     def chemicals_on_order_direct_route():
-        logger.info(f"Chemicals on order requested by user {session.get('user_id')}")
+        logger.info(f"Chemicals on order requested by user {request.current_user.get('user_id')}")
 
         # Get chemicals that are on order
         chemicals = Chemical.query.filter_by(reorder_status='ordered').all()
@@ -230,7 +240,7 @@ def register_routes(app):
     def chemicals_expiring_soon_direct_route():
         try:
             print("Session info: user_id={}, is_admin={}, department={}".format(
-                session.get('user_id'), session.get('is_admin'), session.get('department')))
+                request.current_user.get('user_id'), request.current_user.get('is_admin'), request.current_user.get('department')))
             # Get days parameter (default to 30)
             days = request.args.get('days', 30, type=int)
 
@@ -297,6 +307,44 @@ def register_routes(app):
             'timestamp': datetime.now().isoformat(),
             'timezone': str(time.tzname)
         })
+
+    # Database initialization endpoint
+    @app.route('/api/admin/init-database', methods=['POST'])
+    def init_database():
+        """Initialize the database with tables and default data"""
+        try:
+            # Check if database is already initialized
+            try:
+                user_count = User.query.count()
+                if user_count > 0:
+                    return jsonify({
+                        'success': False,
+                        'message': 'Database already initialized',
+                        'user_count': user_count
+                    }), 400
+            except Exception:
+                # Tables don't exist, proceed with initialization
+                pass
+
+            # Create all tables
+            db.create_all()
+            logger.info("Database tables created")
+
+            # Run the initialization script
+            from init_db import init_db
+            init_db()
+
+            return jsonify({
+                'success': True,
+                'message': 'Database initialized successfully'
+            })
+
+        except Exception as e:
+            logger.error(f"Database initialization failed: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Database initialization failed: {str(e)}'
+            }), 500
 
     # Time API endpoint
     @app.route('/api/time', methods=['GET'])
@@ -421,7 +469,7 @@ def register_routes(app):
         # Update the registration request status
         reg_request.status = 'approved'
         reg_request.processed_at = datetime.utcnow()
-        reg_request.processed_by = session['user_id']
+        reg_request.processed_by = request.current_user['user_id']
         reg_request.admin_notes = request.json.get('notes', '')
 
         # Save changes
@@ -457,7 +505,7 @@ def register_routes(app):
         # Update the registration request status
         reg_request.status = 'denied'
         reg_request.processed_at = datetime.utcnow()
-        reg_request.processed_by = session['user_id']
+        reg_request.processed_by = request.current_user['user_id']
         reg_request.admin_notes = request.json.get('notes', '')
 
         # Save changes
@@ -480,9 +528,9 @@ def register_routes(app):
     @admin_required
     def get_admin_dashboard_stats():
         print("Admin dashboard stats endpoint called")
-        print(f"Session: {session}")
-        print(f"User ID in session: {session.get('user_id')}")
-        print(f"Is admin in session: {session.get('is_admin')}")
+        print(f"Current user: {request.current_user}")
+        print(f"User ID: {request.current_user.get('user_id')}")
+        print(f"Is admin: {request.current_user.get('is_admin')}")
 
         # Get counts from various tables
         user_count = User.query.count()
