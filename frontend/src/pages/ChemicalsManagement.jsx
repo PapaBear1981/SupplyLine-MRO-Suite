@@ -5,6 +5,7 @@ import { Link, Navigate } from 'react-router-dom';
 import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import ReorderManagement from '../components/chemicals/ReorderManagement';
+import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
 import {
   fetchChemicals,
   fetchArchivedChemicals,
@@ -41,10 +42,13 @@ const ChemicalsManagement = () => {
     <div className="w-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <h1 className="mb-0">Chemical Inventory</h1>
-        <Button as={Link} to="/chemicals/new" variant="success" size="lg">
-          <i className="bi bi-plus-circle me-2"></i>
-          Add New Chemical
-        </Button>
+        <div className="d-flex gap-2">
+          {user?.is_admin && <BulkImportChemicals />}
+          <Button as={Link} to="/chemicals/new" variant="success" size="lg">
+            <i className="bi bi-plus-circle me-2"></i>
+            Add New Chemical
+          </Button>
+        </div>
       </div>
 
       <Tabs
