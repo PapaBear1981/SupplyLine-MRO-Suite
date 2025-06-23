@@ -27,6 +27,7 @@ import UserCheckoutsPage from './pages/UserCheckoutsPage';
 import CheckoutsPage from './pages/CheckoutsPage';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
 import ScannerPage from './pages/ScannerPage';
+import ErrorHandlingTestPage from './pages/ErrorHandlingTestPage';
 // CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
 // =========================================
 // The cycle count system imports have been disabled due to production issues.
