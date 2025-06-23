@@ -142,7 +142,6 @@ The update process includes:
 The application uses Docker volumes to persist data:
 
 - `database`: Stores the SQLite database file
-- `flask_session`: Stores Flask session data
 
 These volumes ensure your data is preserved even when containers are restarted or rebuilt.
 
@@ -188,7 +187,6 @@ If you encounter permission issues:
 1. Check the ownership of the mounted volumes:
    ```bash
    docker-compose exec backend ls -la /database
-   docker-compose exec backend ls -la /flask_session
    ```
 
 2. Verify that the application has write access to the necessary directories:

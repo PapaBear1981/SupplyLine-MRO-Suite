@@ -584,7 +584,6 @@ supplyline-mro-suite/
 │   └── nginx.conf                # Nginx configuration for production
 ├── database/                     # SQLite database
 │   └── tools.db                  # Main database file
-├── flask_session/                # Flask session files
 ├── docker-compose.yml            # Docker Compose configuration
 ├── .env.example                  # Example environment variables
 ├── DOCKER_README.md              # Docker deployment instructions

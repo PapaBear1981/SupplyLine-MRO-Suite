@@ -29,7 +29,7 @@ Frontend (React/Redux) ↔ Backend (Flask/SQLAlchemy) ↔ Database (SQLite)
 #### Backend Stack
 - **Flask 2.2**: Web framework
 - **SQLAlchemy 1.4**: ORM
-- **Flask-Session**: Session management
+- **PyJWT**: JWT authentication
 - **Flask-CORS**: Cross-origin requests
 
 #### Database
@@ -159,7 +159,7 @@ CREATE INDEX idx_cycle_count_results_discrepancy ON cycle_count_results(has_disc
 ## API Documentation
 
 ### Authentication
-All API endpoints require authentication via session cookies.
+All API endpoints require authentication via JWT tokens provided in the Authorization header.
 
 ```python
 @require_auth
@@ -438,7 +438,7 @@ export const selectBatchItems = (batchId) => createSelector(
 ## Security Implementation
 
 ### Authentication & Authorization
-- **Session-based Auth**: Secure session management
+- **JWT-Based Auth**: Stateless authentication using access and refresh tokens
 - **Role-based Access**: Different permissions by user role
 - **CSRF Protection**: Cross-site request forgery prevention
 - **Input Validation**: Comprehensive input sanitization
