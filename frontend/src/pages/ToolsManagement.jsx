@@ -2,6 +2,7 @@ import { useSelector } from 'react-redux';
 import { Button, Alert, Badge } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
+import BulkImportTools from '../components/tools/BulkImportTools';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
@@ -30,6 +31,7 @@ const ToolsManagement = () => {
               Calibration Management
             </Button>
           )}
+          {isAdmin && <BulkImportTools />}
           {isAdmin && (
             <Button as={Link} to="/tools/new" variant="success" size="lg">
               <i className="bi bi-plus-circle me-2"></i>

@@ -15,6 +15,7 @@ from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
+from routes_bulk_import import register_bulk_import_routes
 from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
@@ -166,6 +167,9 @@ def register_routes(app):
 
     # Register scanner routes
     register_scanner_routes(app)
+
+    # Register bulk import routes
+    register_bulk_import_routes(app)
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
