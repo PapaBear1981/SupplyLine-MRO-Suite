@@ -10,7 +10,10 @@ from .jwt_manager import (
     admin_required,
     permission_required,
     department_required,
-    csrf_required
+    csrf_required,
+    login_required,
+    tool_manager_required,
+    materials_manager_required
 )
 
 __all__ = [
@@ -19,5 +22,8 @@ __all__ = [
     'admin_required',
     'permission_required',
     'department_required',
-    'csrf_required'
+    'csrf_required',
+    'login_required',
+    'tool_manager_required',
+    'materials_manager_required'
 ]

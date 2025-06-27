@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AuthService from '../services/authService';
 import UserService from '../services/userService';
+import TokenStorage from '../utils/tokenStorage';
 
 // Async thunks
 export const login = createAsyncThunk(
@@ -20,8 +21,11 @@ export const logout = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await AuthService.logout();
+      // Tokens are cleared in AuthService.logout()
       return null;
     } catch (error) {
+      // Even if logout fails, clear local tokens
+      TokenStorage.clearTokens();
       return rejectWithValue(error.response?.data || { message: 'Logout failed' });
     }
   }
@@ -31,17 +35,45 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      // First check if we're authenticated
-      const authStatus = await AuthService.isAuthenticated();
+      // First check if we have stored user data
+      const storedUser = AuthService.getCurrentUserFromStorage();
+      if (storedUser) {
+        return { user: storedUser };
+      }
+
+      // If no stored data, check if we're authenticated
+      const authStatus = AuthService.isAuthenticated();
       if (!authStatus) {
         return rejectWithValue({ message: 'Not authenticated' });
       }
 
-      // If authenticated, get the user data
+      // If authenticated, get fresh user data from server
       const data = await AuthService.getCurrentUser();
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch user' });
+    }
+  }
+);
+
+// Initialize authentication state from stored tokens
+export const initializeAuth = createAsyncThunk(
+  'auth/initializeAuth',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Check if we have stored tokens and user data
+      if (AuthService.isAuthenticated()) {
+        const storedUser = AuthService.getCurrentUserFromStorage();
+        if (storedUser) {
+          console.log('Initializing auth from stored tokens');
+          return { user: storedUser };
+        }
+      }
+
+      // No valid authentication found
+      return rejectWithValue({ message: 'No stored authentication' });
+    } catch (error) {
+      return rejectWithValue({ message: 'Failed to initialize auth' });
     }
   }
 );
@@ -106,15 +138,22 @@ export const fetchUserActivity = createAsyncThunk(
   }
 );
 
-// Initial state
-const initialState = {
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-  error: null,
-  registrationSuccess: null,
-  activityLogs: [],
+// Initial state - check for stored authentication
+const getInitialState = () => {
+  const isAuthenticated = AuthService.isAuthenticated();
+  const storedUser = AuthService.getCurrentUserFromStorage();
+
+  return {
+    user: storedUser,
+    isAuthenticated: isAuthenticated,
+    loading: false,
+    error: null,
+    registrationSuccess: null,
+    activityLogs: [],
+  };
 };
+
+const initialState = getInitialState();
 
 // Slice
 const authSlice = createSlice({
@@ -123,6 +162,13 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    // Manual logout action (for when tokens are cleared externally)
+    clearAuth: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.error = null;
+      TokenStorage.clearTokens();
     },
   },
   extraReducers: (builder) => {
@@ -134,8 +180,10 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        // Extract user data from login response (tokens are handled in AuthService)
+        state.user = action.payload.user || action.payload;
         state.isAuthenticated = true;
+        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -149,6 +197,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.error = null;
       })
       .addCase(logout.rejected, (state, action) => {
         state.loading = false;
@@ -238,9 +287,24 @@ const authSlice = createSlice({
       .addCase(fetchUserActivity.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.error || 'Failed to fetch activity logs';
+      })
+      // Initialize auth
+      .addCase(initializeAuth.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(initializeAuth.rejected, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
       });
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

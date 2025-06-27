@@ -351,3 +351,52 @@ def csrf_required(f):
         request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
+
+
+def login_required(f):
+    """JWT-based login requirement decorator (alias for jwt_required)"""
+    return jwt_required(f)
+
+
+def tool_manager_required(f):
+    """JWT-based tool manager requirement decorator"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from utils.error_handler import log_security_event
+
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Tool management access denied: no JWT token')
+            return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+
+        # Allow access for admins or Materials department users
+        if user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials':
+            # Add user info to request context
+            request.current_user = user_payload
+            return f(*args, **kwargs)
+
+        log_security_event('insufficient_permissions', f'Tool management access denied for user {user_payload.get("user_id")}')
+        return jsonify({'error': 'Tool management privileges required', 'code': 'TOOL_MANAGER_REQUIRED'}), 403
+    return decorated_function
+
+
+def materials_manager_required(f):
+    """JWT-based materials manager requirement decorator"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from utils.error_handler import log_security_event
+
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            log_security_event('unauthorized_access_attempt', 'Materials management access denied: no JWT token')
+            return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
+
+        # Check if user is admin or Materials department
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
+            log_security_event('insufficient_permissions', f'Materials management access denied for user {user_payload.get("user_id")}')
+            return jsonify({'error': 'Materials management privileges required', 'code': 'MATERIALS_MANAGER_REQUIRED'}), 403
+
+        # Add user info to request context
+        request.current_user = user_payload
+        return f(*args, **kwargs)
+    return decorated_function

@@ -89,7 +89,8 @@ const UserService = {
   getUserActivity: async () => {
     try {
       const response = await api.get('/user/activity');
-      return response.data;
+      // Return just the activities array for backward compatibility
+      return response.data.activities || response.data;
     } catch (error) {
       throw error;
     }

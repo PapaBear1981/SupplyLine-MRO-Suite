@@ -23,7 +23,7 @@ def register_auth_routes(app):
     """Register JWT authentication routes"""
 
     @app.route('/api/auth/login', methods=['POST'])
-    def login():
+    def jwt_login():
         """JWT-based login endpoint"""
         try:
             # Get JSON data
@@ -50,7 +50,7 @@ def register_auth_routes(app):
                 }), 401
             
             # Check account lockout
-            if user.is_account_locked():
+            if user.is_locked():
                 logger.warning(f"Login attempt for locked account: {user.id}")
                 return jsonify({
                     'error': 'Account is temporarily locked due to failed login attempts',
@@ -281,6 +281,51 @@ def register_auth_routes(app):
             logger.error(f"CSRF token generation error: {str(e)}")
             return jsonify({
                 'error': 'Failed to generate CSRF token'
+            }), 500
+
+    @app.route('/api/user/activity', methods=['GET'])
+    @jwt_required
+    def get_user_activity():
+        """Get current user's activity logs"""
+        try:
+            user_payload = request.current_user
+            user_id = user_payload['user_id']
+
+            # Get pagination parameters
+            page = request.args.get('page', 1, type=int)
+            limit = request.args.get('limit', 20, type=int)
+
+            # Calculate offset
+            offset = (page - 1) * limit
+
+            # Get user activities, ordered by most recent first
+            activities = UserActivity.query.filter_by(
+                user_id=user_id
+            ).order_by(
+                UserActivity.timestamp.desc()
+            ).offset(offset).limit(limit).all()
+
+            # Get total count for pagination info
+            total_count = UserActivity.query.filter_by(user_id=user_id).count()
+
+            # Convert to dict format
+            activity_list = [activity.to_dict() for activity in activities]
+
+            return jsonify({
+                'activities': activity_list,
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total': total_count,
+                    'pages': (total_count + limit - 1) // limit
+                }
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Get user activity error: {str(e)}")
+            return jsonify({
+                'error': 'Internal server error',
+                'code': 'SERVER_ERROR'
             }), 500
 
     @app.route('/api/auth/change-password', methods=['POST'])

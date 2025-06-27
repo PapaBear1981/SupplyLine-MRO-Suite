@@ -43,12 +43,17 @@ def create_app():
 
     # Initialize CORS with settings from config
     allowed_origins = app.config.get('CORS_ORIGINS', ['http://localhost:5173'])
+    supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', False)
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"CORS configured with origins: {allowed_origins}, credentials: {supports_credentials}")
+
     CORS(app, resources={
         r"/api/*": {
             "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token"],
-            "supports_credentials": True
+            "allow_headers": ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With"],
+            "supports_credentials": supports_credentials
         }
     })
 
@@ -78,6 +83,9 @@ def create_app():
         try:
             # Import database models
             from models import db
+
+            # Set engine options dynamically
+            app.config['SQLALCHEMY_ENGINE_OPTIONS'] = Config.get_engine_options()
 
             # Check if database needs initialization
             from sqlalchemy import inspect
@@ -198,6 +206,10 @@ def create_app():
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers
     setup_global_error_handlers(app)
+
+    # Register JWT authentication routes first
+    from routes_auth import register_auth_routes
+    register_auth_routes(app)
 
     # Register main routes
     register_routes(app)

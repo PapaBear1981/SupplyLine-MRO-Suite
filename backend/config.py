@@ -39,7 +39,9 @@ class Config:
     @staticmethod
     def get_engine_options():
         """Get database engine options based on database type"""
-        if 'postgresql' in Config.SQLALCHEMY_DATABASE_URI:
+        # Get the database URI using the same method
+        db_uri = Config.get_database_uri()
+        if 'postgresql' in db_uri:
             # PostgreSQL configuration
             return {
                 'echo': False,
@@ -59,7 +61,7 @@ class Config:
                 'pool_pre_ping': True,
             }
 
-    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
+    # SQLALCHEMY_ENGINE_OPTIONS will be set dynamically in app.py
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
@@ -139,8 +141,10 @@ class Config:
     SESSION_VALIDATE_IP = os.environ.get('SESSION_VALIDATE_IP', 'false').lower() == 'true'
 
     # CORS settings - more restrictive in production
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.122:5173,http://100.108.111.69:5173').split(',')
-    CORS_SUPPORTS_CREDENTIALS = True
+    # Default includes both development (5173) and Docker (80) ports
+    default_origins = 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:80,http://127.0.0.1:80,http://localhost,http://127.0.0.1'
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', default_origins).split(',')
+    CORS_SUPPORTS_CREDENTIALS = False  # JWT doesn't need credentials
 
     # Additional security headers
     SECURITY_HEADERS = {

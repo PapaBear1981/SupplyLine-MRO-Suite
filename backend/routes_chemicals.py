@@ -1,32 +1,17 @@
-from flask import request, jsonify, session
+from flask import request, jsonify
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
 from utils.validation import validate_schema, validate_types, validate_constraints
-from utils.session_manager import SessionManager, secure_login_required
+from auth.jwt_manager import jwt_required, materials_manager_required as jwt_materials_manager_required
 from sqlalchemy.orm import joinedload
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Decorator to check if user is admin or in Materials department
-def materials_manager_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            log_security_event('unauthorized_access_attempt', f'Materials access denied: {message}')
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
-
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-            log_security_event('insufficient_permissions', f'Materials access denied for user {session.get("user_id")}')
-            return jsonify({'error': 'Materials management privileges required'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+# Use JWT-based materials manager decorator from auth module
+# (The jwt_materials_manager_required is imported above)
 
 def register_chemical_routes(app):
     # Get all chemicals
@@ -144,7 +129,7 @@ def register_chemical_routes(app):
 
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
-    @materials_manager_required
+    @jwt_materials_manager_required
     @handle_errors
     def create_chemical_route():
         data = request.get_json() or {}
@@ -230,7 +215,7 @@ def register_chemical_routes(app):
 
     # Issue a chemical
     @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
-    @secure_login_required
+    @jwt_required
     @handle_errors
     def chemical_issue_route(id):
         # Get the chemical
@@ -328,7 +313,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as ordered
     @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
-    @materials_manager_required
+    @jwt_materials_manager_required
     def mark_chemical_as_ordered_route(id):
         try:
             # Get the chemical
@@ -448,7 +433,7 @@ def register_chemical_routes(app):
 
     # Archive a chemical
     @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
-    @materials_manager_required
+    @jwt_materials_manager_required
     def archive_chemical_route(id):
         try:
             # Get the chemical
@@ -508,7 +493,7 @@ def register_chemical_routes(app):
 
     # Unarchive a chemical
     @app.route('/api/chemicals/<int:id>/unarchive', methods=['POST'])
-    @materials_manager_required
+    @jwt_materials_manager_required
     def unarchive_chemical_route(id):
         try:
             # Get the chemical
@@ -561,7 +546,7 @@ def register_chemical_routes(app):
 
     # Mark a chemical as delivered
     @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
-    @materials_manager_required
+    @jwt_materials_manager_required
     def mark_chemical_as_delivered_route(id):
         try:
             # Get the chemical
@@ -643,3 +628,103 @@ def register_chemical_routes(app):
             db.session.rollback()
             print(f"Error in mark chemical as delivered route: {str(e)}")
             return jsonify({'error': 'An error occurred while marking the chemical as delivered'}), 500
+
+    # Additional chemical management endpoints
+    @app.route('/api/chemicals/reorder-needed', methods=['GET'])
+    @jwt_materials_manager_required
+    def chemicals_reorder_needed_route():
+        """Get chemicals that need reordering"""
+        try:
+            print("Session info: user_id={}, is_admin={}, department={}".format(
+                session.get('user_id'), session.get('is_admin'), session.get('department')))
+
+            # Get chemicals that need reordering
+            chemicals = Chemical.query.filter(Chemical.needs_reorder == True).all()
+
+            result = [chemical.to_dict() for chemical in chemicals]
+            print(f"Found {len(result)} chemicals that need reordering")
+
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error in chemicals reorder needed route: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching chemicals that need reordering'}), 500
+
+    @app.route('/api/chemicals/on-order', methods=['GET'])
+    @jwt_materials_manager_required
+    @handle_errors
+    def chemicals_on_order_route():
+        """Get chemicals that are currently on order"""
+        logger.info(f"Chemicals on order requested by user {request.current_user.get('user_id')}")
+
+        # Get chemicals with status 'on_order'
+        chemicals = Chemical.query.filter(Chemical.status == 'on_order').all()
+
+        result = [chemical.to_dict() for chemical in chemicals]
+        logger.info(f"Found {len(result)} chemicals on order")
+
+        return jsonify(result)
+
+    @app.route('/api/chemicals/expiring-soon', methods=['GET'])
+    @jwt_materials_manager_required
+    def chemicals_expiring_soon_route():
+        """Get chemicals that are expiring soon"""
+        try:
+            print("Session info: user_id={}, is_admin={}, department={}".format(
+                session.get('user_id'), session.get('is_admin'), session.get('department')))
+
+            # Get chemicals expiring within the next 30 days
+            thirty_days_from_now = datetime.now() + timedelta(days=30)
+            chemicals = Chemical.query.filter(
+                Chemical.expiration_date <= thirty_days_from_now,
+                Chemical.expiration_date >= datetime.now()
+            ).all()
+
+            result = []
+            for chemical in chemicals:
+                chemical_dict = chemical.to_dict()
+                # Calculate days until expiration
+                if chemical.expiration_date:
+                    days_until_expiration = (chemical.expiration_date - datetime.now()).days
+                    chemical_dict['days_until_expiration'] = days_until_expiration
+                result.append(chemical_dict)
+
+            print(f"Found {len(result)} chemicals expiring soon")
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error in chemicals expiring soon route: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching chemicals expiring soon'}), 500
+
+    @app.route('/api/chemicals/archived', methods=['GET'])
+    @jwt_materials_manager_required
+    def archived_chemicals_route():
+        """Get archived chemicals"""
+        try:
+            # Get query parameters for filtering
+            category = request.args.get('category')
+            search = request.args.get('q')
+
+            # Start with base query for archived chemicals
+            query = Chemical.query.filter(Chemical.is_archived == True)
+
+            # Apply filters if provided
+            if category:
+                query = query.filter(Chemical.category == category)
+
+            if search:
+                search_term = f'%{search}%'
+                query = query.filter(
+                    db.or_(
+                        Chemical.part_number.like(search_term),
+                        Chemical.lot_number.like(search_term),
+                        Chemical.description.like(search_term)
+                    )
+                )
+
+            chemicals = query.all()
+            result = [chemical.to_dict() for chemical in chemicals]
+
+            print(f"Found {len(result)} archived chemicals")
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error in archived chemicals route: {str(e)}")
+            return jsonify({'error': 'An error occurred while fetching archived chemicals'}), 500

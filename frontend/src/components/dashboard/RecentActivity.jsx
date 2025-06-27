@@ -13,7 +13,9 @@ const RecentActivity = () => {
       try {
         setLoading(true);
         const response = await api.get('/user/activity');
-        setActivities(response.data);
+        // Handle both old format (array) and new format (object with activities)
+        const activityData = response.data.activities || response.data;
+        setActivities(activityData);
         setError(null);
       } catch (err) {
         console.error('Error fetching user activity:', err);
