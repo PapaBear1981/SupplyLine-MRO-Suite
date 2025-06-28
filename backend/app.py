@@ -22,12 +22,10 @@ def create_app():
         # Windows doesn't have time.tzset()
         print("Running on Windows, cannot set system timezone. Ensure system time is correct.")
 
-    # serve frontend static files from backend/static
+    # Backend API server - no static file serving
     app = Flask(
         __name__,
-        instance_relative_config=False,
-        static_folder='static',
-        static_url_path='/static'
+        instance_relative_config=False
     )
     app.config.from_object(Config)
 
@@ -222,9 +220,7 @@ def create_app():
             response.headers[header] = value
         return response
 
-    @app.route('/')
-    def index():
-        return app.send_static_file('index.html')
+    # Root route removed - this is an API-only backend
 
     # Log all registered routes for debugging
     logger.info("Application routes registered", extra={
