@@ -3,7 +3,7 @@ import TokenStorage from '../utils/tokenStorage';
 
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: '/api', // Use relative URL to work with Vite proxy
+  baseURL: import.meta.env.VITE_API_URL || '/api', // Use environment variable or fallback to relative URL
   headers: {
     'Content-Type': 'application/json',
   },

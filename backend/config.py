@@ -144,7 +144,7 @@ class Config:
     # Default includes both development (5173) and Docker (80) ports
     default_origins = 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:80,http://127.0.0.1:80,http://localhost,http://127.0.0.1'
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', default_origins).split(',')
-    CORS_SUPPORTS_CREDENTIALS = False  # JWT doesn't need credentials
+    CORS_SUPPORTS_CREDENTIALS = True  # Required for withCredentials: true in frontend
 
     # Additional security headers
     SECURITY_HEADERS = {

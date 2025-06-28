@@ -64,7 +64,7 @@ CORS_CONFIG = {
     'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     'allow_headers': ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     'expose_headers': ['X-Request-ID', 'X-Response-Time'],
-    'supports_credentials': False,  # JWT doesn't need credentials
+    'supports_credentials': True,  # Required for withCredentials: true in frontend
     'max_age': 3600
 }
 

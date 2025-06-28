@@ -1,0 +1,64 @@
+{
+    "family": "supplyline-mro-suite-app-simple-backend",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::236224546224:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "backend",
+            "image": "236224546224.dkr.ecr.us-east-1.amazonaws.com/supplyline-backend:v1.5-cors-fix",
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 5000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/supplyline-mro-suite-app-simple-backend",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "environment": [
+                {
+                    "name": "DATABASE_URL",
+                    "value": "postgresql://postgres:SupplyLine2024SecureDB@supplyline-mro-suite-infra-v3-postgres.c2las2g82og9.us-east-1.rds.amazonaws.com:5432/supplyline"
+                },
+                {
+                    "name": "PYTHONUNBUFFERED",
+                    "value": "1"
+                },
+                {
+                    "name": "FLASK_ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "SECRET_KEY",
+                    "value": "your-secret-key-here"
+                },
+                {
+                    "name": "CORS_ORIGINS",
+                    "value": "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://supplyline-frontend-236224546224.s3-website-us-east-1.amazonaws.com"
+                },
+                {
+                    "name": "JWT_SECRET_KEY",
+                    "value": "your-jwt-secret-key-here"
+                },
+                {
+                    "name": "LOG_LEVEL",
+                    "value": "INFO"
+                },
+                {
+                    "name": "PYTHONDONTWRITEBYTECODE",
+                    "value": "1"
+                }
+            ]
+        }
+    ]
+}
