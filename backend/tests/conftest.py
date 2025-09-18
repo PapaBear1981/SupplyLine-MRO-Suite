@@ -5,7 +5,16 @@ Test configuration and fixtures for SupplyLine MRO Suite tests
 import pytest
 import os
 import sys
+import uuid
 from datetime import datetime
+
+# Use in-memory database for tests before importing the application factory
+os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+
+# Ensure the expected database directory exists for SQLite URIs that rely on it
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATABASE_DIR = os.path.join(PROJECT_ROOT, 'database')
+os.makedirs(DATABASE_DIR, exist_ok=True)
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -67,21 +76,41 @@ def client(app, db_session):
     return app.test_client()
 
 @pytest.fixture
-def jwt_manager(app):
-    """Create JWT manager for testing"""
-    return JWTManager(app)
+def jwt_manager():
+    """Provide JWT manager helper"""
+    return JWTManager
 
 @pytest.fixture
 def admin_user(db_session):
     """Create admin user for testing"""
+    user = db_session.query(User).filter_by(employee_number='ADMIN001').one_or_none()
+
+    if user is None:
+        user = User(
+            name='Test Admin',
+            employee_number='ADMIN001',
+            department='IT',
+            is_admin=True,
+            is_active=True
+        )
+        db_session.add(user)
+
+    user.set_password('adminpass123')
+    db_session.commit()
+    return user
+
+@pytest.fixture
+def test_user(db_session):
+    """Create standard test user with unique employee number"""
+    unique_employee_number = f"TEST{uuid.uuid4().hex[:8].upper()}"
     user = User(
-        name='Test Admin',
-        employee_number='ADMIN001',
-        department='IT',
-        is_admin=True,
+        name='Rate Limit Tester',
+        employee_number=unique_employee_number,
+        department='Quality Assurance',
+        is_admin=False,
         is_active=True
     )
-    user.set_password('admin123')
+    user.set_password('testpass123')
     db_session.add(user)
     db_session.commit()
     return user
