@@ -32,6 +32,9 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # Validate security configuration (deferred to allow test fixtures to set values)
+    Config.validate_security_config(app.config)
+
     # Configure structured logging
     if hasattr(Config, 'LOGGING_CONFIG'):
         try:
