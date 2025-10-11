@@ -129,9 +129,10 @@ def test_calibration_certificate_upload_and_download(
     )
 
     assert upload_response.status_code == 201
-    with client.application.app_context():
-        db_session.refresh(calibration)
-        assert calibration.calibration_certificate_file is not None
+    upload_body = upload_response.get_json()
+    assert upload_body is not None
+    assert 'certificate' in upload_body
+    certificate_filename = upload_body['certificate']
 
     download_response = client.get(
         f'/api/calibrations/{calibration.id}/certificate',
@@ -141,7 +142,7 @@ def test_calibration_certificate_upload_and_download(
     assert download_response.status_code == 200
     assert download_response.data.startswith(b'%PDF')
     content_disposition = download_response.headers.get('Content-Disposition', '')
-    assert calibration.calibration_certificate_file in content_disposition
+    assert certificate_filename in content_disposition
 
 
 def test_calibration_certificate_rejects_invalid_file(
@@ -178,6 +179,10 @@ def test_calibration_certificate_rejects_invalid_file(
     assert response.status_code == 400
     body = response.get_json()
     assert body is not None and 'error' in body
-    with client.application.app_context():
-        db_session.refresh(calibration)
-        assert calibration.calibration_certificate_file is None
+
+    # Verify the certificate was not uploaded by trying to download it
+    download_response = client.get(
+        f'/api/calibrations/{calibration.id}/certificate',
+        headers=auth_headers
+    )
+    assert download_response.status_code == 404

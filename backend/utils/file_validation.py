@@ -6,7 +6,6 @@ files before persisting them to disk or processing their contents.
 
 from __future__ import annotations
 
-import imghdr
 import os
 import uuid
 from typing import Callable, Iterable, Tuple
@@ -28,11 +27,12 @@ DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif"}
 ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/gif"}
 
-# Mapping returned by ``imghdr`` -> (extension, mimetype)
-IMAGE_TYPE_MAPPINGS = {
-    "jpeg": (".jpg", "image/jpeg"),
-    "png": (".png", "image/png"),
-    "gif": (".gif", "image/gif"),
+# Image file signatures (magic bytes) for detection
+IMAGE_SIGNATURES = {
+    b'\x89PNG\r\n\x1a\n': (".png", "image/png"),
+    b'\xff\xd8\xff': (".jpg", "image/jpeg"),
+    b'GIF87a': (".gif", "image/gif"),
+    b'GIF89a': (".gif", "image/gif"),
 }
 
 ALLOWED_CERTIFICATE_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
@@ -103,10 +103,16 @@ def _validate_file(
 
 
 def _detect_image(file_bytes: bytes) -> Tuple[str, str]:
-    image_type = imghdr.what(None, file_bytes)
-    if image_type is None or image_type not in IMAGE_TYPE_MAPPINGS:
-        raise FileValidationError("Uploaded file is not a valid image")
-    return IMAGE_TYPE_MAPPINGS[image_type]
+    """Detect image type by checking file signature (magic bytes)."""
+    if not file_bytes:
+        raise FileValidationError("Uploaded file is empty")
+
+    # Check for known image signatures
+    for signature, (ext, mime) in IMAGE_SIGNATURES.items():
+        if file_bytes.startswith(signature):
+            return (ext, mime)
+
+    raise FileValidationError("Uploaded file is not a valid image")
 
 
 def _detect_certificate(file_bytes: bytes) -> Tuple[str, str]:
