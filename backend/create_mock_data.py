@@ -31,7 +31,7 @@ from models_cycle_count import (
     CycleCountSchedule, CycleCountBatch, CycleCountItem,
     CycleCountResult, CycleCountAdjustment
 )
-from config import config
+from config import Config
 from werkzeug.security import generate_password_hash
 import random
 
@@ -532,7 +532,7 @@ def main():
 
         # Create Flask app
         app = Flask(__name__)
-        app.config.from_object(config[config_name])
+        app.config.from_object(Config)
 
         # Initialize database
         db.init_app(app)

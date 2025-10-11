@@ -78,23 +78,25 @@ def login_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Use secure session validation
-        from utils.session_manager import SessionManager
+        # Use JWT authentication
+        from auth.jwt_manager import JWTManager
         import logging
 
         logger = logging.getLogger(__name__)
         logger.debug(f"Admin access attempted for {f.__name__}")
 
-        valid, message = SessionManager.validate_session()
-        if not valid:
-            logger.warning(f"Admin access denied - {message}")
-            return jsonify({'error': 'Authentication required', 'reason': message}), 401
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            logger.warning(f"Admin access denied - No valid JWT token")
+            return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
 
-        if not session.get('is_admin', False):
-            logger.warning(f"Admin access denied - insufficient privileges for user {session.get('user_id')}")
+        if not user_payload.get('is_admin', False):
+            logger.warning(f"Admin access denied - insufficient privileges for user {user_payload.get('user_id')}")
             return jsonify({'error': 'Admin privileges required'}), 403
 
-        logger.debug(f"Admin access granted for user {session.get('user_id')}")
+        logger.debug(f"Admin access granted for user {user_payload.get('user_id')}")
+        # Add user info to request context
+        request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
 
@@ -139,7 +141,7 @@ def materials_manager_required(f):
     return decorated_function
 
 def register_routes(app):
-    db.init_app(app)
+    # db.init_app(app) is now called in app.py, not here
     with app.app_context():
         db.create_all()
 
@@ -852,7 +854,11 @@ def register_routes(app):
             return jsonify(result)
 
         # POST - Create new tool (requires tool manager privileges)
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        from auth.jwt_manager import JWTManager
+        user_payload = JWTManager.get_current_user()
+        if not user_payload:
+            return jsonify({'error': 'Authentication required'}), 401
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
@@ -965,7 +971,11 @@ def register_routes(app):
 
         elif request.method == 'DELETE':
             # DELETE - Delete tool (requires admin privileges)
-            if not session.get('is_admin', False):
+            from auth.jwt_manager import JWTManager
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({'error': 'Authentication required'}), 401
+            if not user_payload.get('is_admin', False):
                 return jsonify({'error': 'Admin privileges required to delete tools'}), 403
 
             # Accept force_delete from query parameters or JSON body
@@ -1168,11 +1178,11 @@ def register_routes(app):
         tool.status = 'retired'
         tool.status_reason = reason
 
-        # Create service record for retirement
+        # Create service record for retirement (use user_id from JWT token)
         service_record = ToolServiceRecord(
             tool_id=id,
             action_type='remove_permanent',
-            user_id=session.get('user_id'),
+            user_id=request.current_user['user_id'],
             reason=reason,
             comments=data.get('comments', '')
         )
@@ -1251,9 +1261,11 @@ def register_routes(app):
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     @app.route('/api/users', methods=['GET', 'POST'])
+    @login_required
     def users_route():
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        # Check if user is admin or Materials department (from JWT token)
+        user_payload = request.current_user
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'User management privileges required'}), 403
 
         if request.method == 'GET':
@@ -1261,7 +1273,7 @@ def register_routes(app):
             search_query = request.args.get('q')
 
             # Check if we should include lockout info (admin only)
-            include_lockout_info = session.get('is_admin', False)
+            include_lockout_info = user_payload.get('is_admin', False)
 
             if search_query:
                 # Search for users by employee number
@@ -1315,9 +1327,11 @@ def register_routes(app):
         return jsonify(u.to_dict()), 201
 
     @app.route('/api/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @login_required
     def user_detail_route(id):
-        # Check if user is admin or Materials department
-        if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+        # Check if user is admin or Materials department (from JWT token)
+        user_payload = request.current_user
+        if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
             return jsonify({'error': 'User management privileges required'}), 403
 
         # Get the user
@@ -1325,7 +1339,7 @@ def register_routes(app):
 
         if request.method == 'GET':
             # Return user details with roles and lockout info for admins
-            include_lockout_info = session.get('is_admin', False)
+            include_lockout_info = user_payload.get('is_admin', False)
             return jsonify(user.to_dict(include_roles=True, include_lockout_info=include_lockout_info))
 
         elif request.method == 'PUT':
@@ -1389,10 +1403,11 @@ def register_routes(app):
         # Unlock the account
         user.unlock_account()
 
-        # Log the action
+        # Log the action (get admin info from JWT token)
+        user_payload = request.current_user
         log = AuditLog(
             action_type='account_unlocked',
-            action_details=f'Admin {session.get("user_name", "Unknown")} (ID: {session.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
+            action_details=f'Admin {user_payload.get("user_name", "Unknown")} (ID: {user_payload.get("user_id")}) manually unlocked account for user {user.name} (ID: {user.id})'
         )
         db.session.add(log)
 
@@ -1400,7 +1415,7 @@ def register_routes(app):
         activity = UserActivity(
             user_id=user.id,
             activity_type='account_unlocked',
-            description=f'Account unlocked by admin {session.get("user_name", "Unknown")}',
+            description=f'Account unlocked by admin {user_payload.get("user_name", "Unknown")}',
             ip_address=request.remote_addr
         )
         db.session.add(activity)
@@ -1470,13 +1485,15 @@ def register_routes(app):
                     user_id = None
 
             if not user_id:
-                print("No valid user_id in request, checking session")
-                # If user_id not provided in request, use the logged-in user's ID
-                if 'user_id' not in session:
-                    print("No user_id in session either")
+                print("No valid user_id in request, using JWT token")
+                # If user_id not provided in request, use the logged-in user's ID from JWT
+                from auth.jwt_manager import JWTManager
+                user_payload = JWTManager.get_current_user()
+                if not user_payload:
+                    print("No valid JWT token")
                     return jsonify({'error': 'Authentication required'}), 401
-                user_id = session['user_id']
-                print(f"Using user_id from session: {user_id}")
+                user_id = user_payload['user_id']
+                print(f"Using user_id from JWT: {user_id}")
 
             # Validate user exists
             user = User.query.get(user_id)
@@ -1540,15 +1557,14 @@ def register_routes(app):
                 )
                 db.session.add(log)
 
-                # Add user activity
-                if 'user_id' in session:
-                    activity = UserActivity(
-                        user_id=session['user_id'],
-                        activity_type='tool_checkout',
-                        description=f'Checked out tool {tool.tool_number}',
-                        ip_address=request.remote_addr
-                    )
-                    db.session.add(activity)
+                # Add user activity (use user_id from checkout, not session)
+                activity = UserActivity(
+                    user_id=user_id,
+                    activity_type='tool_checkout',
+                    description=f'Checked out tool {tool.tool_number}',
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
 
                 db.session.commit()
 
@@ -1566,12 +1582,14 @@ def register_routes(app):
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
     @app.route('/api/checkouts/<int:id>/return', methods=['POST', 'PUT'])
+    @login_required
     def return_route(id):
         try:
             print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
 
-            # Check if user is admin or Materials department
-            if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
+            # Check if user is admin or Materials department (from JWT token)
+            user_payload = request.current_user
+            if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
                 print(f"Permission denied: User is not admin or Materials department")
                 return jsonify({'error': 'Only Materials and Admin personnel can return tools'}), 403
 
@@ -1656,15 +1674,14 @@ def register_routes(app):
                 )
                 db.session.add(log)
 
-                # Add user activity
-                if 'user_id' in session:
-                    activity = UserActivity(
-                        user_id=session['user_id'],
-                        activity_type='tool_return',
-                        description=f'Returned tool {tool.tool_number if tool else "Unknown"}',
-                        ip_address=request.remote_addr
-                    )
-                    db.session.add(activity)
+                # Add user activity (use user_id from JWT token)
+                activity = UserActivity(
+                    user_id=user_payload['user_id'],
+                    activity_type='tool_return',
+                    description=f'Returned tool {tool.tool_number if tool else "Unknown"}',
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
 
                 db.session.commit()
 
@@ -1692,7 +1709,7 @@ def register_routes(app):
                 logger.error("Database error during tool return", exc_info=True, extra={
                     'operation': 'tool_return',
                     'tool_id': c.tool_id,
-                    'user_id': session.get('user_id'),
+                    'user_id': user_payload.get('user_id'),
                     'error_type': type(e).__name__,
                     'error_message': str(e)
                 })
@@ -1702,7 +1719,7 @@ def register_routes(app):
             logger.error("Unexpected error in return route", exc_info=True, extra={
                 'operation': 'tool_return',
                 'tool_id': c.tool_id,
-                'user_id': session.get('user_id'),
+                'user_id': user_payload.get('user_id'),
                 'error_type': type(e).__name__,
                 'error_message': str(e)
             })
@@ -1975,13 +1992,15 @@ def register_routes(app):
     @app.route('/api/auth/user', methods=['GET'])
     @login_required
     def get_profile():
-        user = User.query.get(session['user_id'])
+        # Get user_id from JWT token
+        user = User.query.get(request.current_user['user_id'])
         return jsonify(user.to_dict(include_roles=True, include_permissions=True)), 200
 
     @app.route('/api/user/profile', methods=['PUT'])
     @login_required
     def update_profile():
-        user = User.query.get(session['user_id'])
+        # Get user_id from JWT token
+        user = User.query.get(request.current_user['user_id'])
         data = request.get_json() or {}
 
         # Update allowed fields
@@ -2009,7 +2028,8 @@ def register_routes(app):
     @app.route('/api/user/avatar', methods=['POST'])
     @login_required
     def upload_avatar():
-        user = User.query.get(session['user_id'])
+        # Get user_id from JWT token
+        user = User.query.get(request.current_user['user_id'])
 
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file part'}), 400
@@ -2063,7 +2083,8 @@ def register_routes(app):
     @app.route('/api/user/password', methods=['PUT'])
     @login_required
     def change_password():
-        user = User.query.get(session['user_id'])
+        # Get user_id from JWT token
+        user = User.query.get(request.current_user['user_id'])
         data = request.get_json() or {}
 
         # Validate required fields
@@ -2100,7 +2121,8 @@ def register_routes(app):
     @app.route('/api/user/activity', methods=['GET'])
     @login_required
     def get_user_activity():
-        user_id = session['user_id']
+        # Get user_id from JWT token
+        user_id = request.current_user['user_id']
         activities = UserActivity.query.filter_by(user_id=user_id).order_by(UserActivity.timestamp.desc()).limit(50).all()
         return jsonify([activity.to_dict() for activity in activities]), 200
 
@@ -2180,11 +2202,9 @@ def register_routes(app):
     @app.route('/api/checkouts/user', methods=['GET'])
     @login_required
     def get_user_checkouts():
-        # Get the current user's checkouts
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+        # Get the current user's checkouts from JWT token
+        user_id = request.current_user['user_id']
 
-        user_id = session['user_id']
         # Get all checkouts for the user (both active and past)
         checkouts = Checkout.query.filter_by(user_id=user_id).all()
 
@@ -2604,24 +2624,25 @@ def register_routes(app):
 
             tool.status_reason = data.get('reason')
 
-            # Create service record
+            # Create service record (use user_id from JWT token)
             service_record = ToolServiceRecord(
                 tool_id=id,
-                user_id=session['user_id'],
+                user_id=request.current_user['user_id'],
                 action_type=action_type,
                 reason=data.get('reason'),
                 comments=data.get('comments', '')
             )
 
-            # Create audit log
+            # Create audit log (use user info from JWT token)
+            user_payload = request.current_user
             log = AuditLog(
                 action_type=action_type,
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) removed tool {tool.tool_number} (ID: {id}) from service. Reason: {data.get("reason")}'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) removed tool {tool.tool_number} (ID: {id}) from service. Reason: {data.get("reason")}'
             )
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type=action_type,
                 description=f'Removed tool {tool.tool_number} from service',
                 ip_address=request.remote_addr
@@ -2669,10 +2690,11 @@ def register_routes(app):
             tool.status = 'available'
             tool.status_reason = None
 
-            # Create service record
+            # Create service record (use user_id from JWT token)
+            user_payload = request.current_user
             service_record = ToolServiceRecord(
                 tool_id=id,
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 action_type='return_service',
                 reason=data.get('reason'),
                 comments=data.get('comments', '')
@@ -2681,12 +2703,12 @@ def register_routes(app):
             # Create audit log
             log = AuditLog(
                 action_type='return_service',
-                action_details=f'User {session.get("name", "Unknown")} (ID: {session["user_id"]}) returned tool {tool.tool_number} (ID: {id}) to service. Reason: {data.get("reason")}'
+                action_details=f'User {user_payload.get("user_name", "Unknown")} (ID: {user_payload["user_id"]}) returned tool {tool.tool_number} (ID: {id}) to service. Reason: {data.get("reason")}'
             )
 
             # Create user activity
             activity = UserActivity(
-                user_id=session['user_id'],
+                user_id=user_payload['user_id'],
                 activity_type='return_service',
                 description=f'Returned tool {tool.tool_number} to service',
                 ip_address=request.remote_addr

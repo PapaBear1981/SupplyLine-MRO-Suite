@@ -40,7 +40,6 @@ def check_users():
                 logger.info(f"   Employee Number: {user.employee_number}")
                 logger.info(f"   Name: {user.name}")
                 logger.info(f"   Department: {user.department}")
-                logger.info(f"   Email: {user.email}")
                 logger.info(f"   Active: {user.is_active}")
                 logger.info(f"   Admin: {user.is_admin}")
                 logger.info(f"   Failed Login Attempts: {user.failed_login_attempts}")
@@ -50,6 +49,7 @@ def check_users():
                     remaining = user.get_lockout_remaining_time()
                     logger.info(f"   Lockout Remaining: {remaining:.0f} seconds")
                 logger.info(f"   Created: {user.created_at}")
+                logger.info(f"   Password Hash: {user.password_hash[:60]}...")
                 logger.info("   " + "="*50)
 
             return True

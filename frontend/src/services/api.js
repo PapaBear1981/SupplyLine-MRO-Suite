@@ -195,19 +195,25 @@ const handleUnauthorizedError = async (error) => {
         'AUTH_TOKEN_REFRESH_FAILED'
       );
 
-      // Delay redirect to allow error message to be shown
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1000);
+      // Only redirect if not already on login or register page
+      if (!window.location.pathname.match(/^\/(login|register)/)) {
+        // Delay redirect to allow error message to be shown
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1000);
+      }
     }
   } else {
     // No refresh token or retry already attempted
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
 
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 1000);
+    // Only redirect if not already on login or register page
+    if (!window.location.pathname.match(/^\/(login|register)/)) {
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1000);
+    }
   }
 };
 

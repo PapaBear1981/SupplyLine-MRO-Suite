@@ -41,10 +41,10 @@ def reset_admin_password():
             
             logger.info(f"📋 Admin user found: ID={admin_user.id}, Employee Number={admin_user.employee_number}")
             logger.info(f"👤 Name: {admin_user.name}")
-            logger.info(f"📧 Email: {admin_user.email}")
-            
+            logger.info(f"🏢 Department: {admin_user.department}")
+
             # Reset password to a known value
-            new_password = "Freedom2025!"
+            new_password = "password123"
             logger.info(f"🔑 Setting new password: {new_password}")
             
             # Generate new password hash
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         logger.info("✅ Admin password reset completed successfully!")
         logger.info("🎯 You can now login with:")
         logger.info("   Employee Number: ADMIN001")
-        logger.info("   Password: Freedom2025!")
+        logger.info("   Password: password123")
         sys.exit(0)
     else:
         logger.error("❌ Admin password reset failed!")
