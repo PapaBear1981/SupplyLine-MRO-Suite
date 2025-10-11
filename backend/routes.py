@@ -20,6 +20,7 @@ from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_auth import register_auth_routes
+from utils.rate_limiter import rate_limit
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
 # =====================================
 # The cycle count system has been temporarily disabled due to production issues.
@@ -1914,6 +1915,7 @@ def register_routes(app):
         return jsonify({'message': 'Registration request submitted. An administrator will review your request.'}), 201
 
     @app.route('/api/auth/reset-password/request', methods=['POST'])
+    @rate_limit(limit=3, window=3600)  # 3 requests per hour per IP
     def request_password_reset():
         data = request.get_json() or {}
 
@@ -1929,8 +1931,14 @@ def register_routes(app):
         reset_code = user.generate_reset_token()
         db.session.commit()
 
-        # In a real application, you would send this code via email or SMS
-        # For this demo, we'll just return it in the response (not secure for production)
+        # TODO: Implement email/SMS delivery for password reset codes
+        # For now, log the reset code for admin retrieval
+        # SECURITY: Never return reset codes in API responses
+        app.logger.warning(
+            f'Password reset requested for user {user.employee_number}. '
+            f'Reset code: {reset_code} (expires in 1 hour). '
+            f'IP: {request.remote_addr}'
+        )
 
         # Log the password reset request
         activity = UserActivity(
@@ -1942,14 +1950,14 @@ def register_routes(app):
         db.session.add(activity)
         db.session.commit()
 
-        # In a real app, you would not return the code in the response
-        # This is just for demonstration purposes
+        # Return generic message without exposing the reset code
+        # This prevents account enumeration and maintains security
         return jsonify({
-            'message': 'Reset code generated',
-            'reset_code': reset_code  # In production, remove this line and send via email/SMS
+            'message': 'If your employee number is registered, a reset code will be sent to your registered contact method'
         }), 200
 
     @app.route('/api/auth/reset-password/confirm', methods=['POST'])
+    @rate_limit(limit=5, window=3600)  # 5 attempts per hour per IP
     def confirm_password_reset():
         data = request.get_json() or {}
 
