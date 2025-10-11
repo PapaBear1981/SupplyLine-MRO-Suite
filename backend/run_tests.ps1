@@ -6,8 +6,14 @@ $env:FLASK_ENV = "testing"
 $env:SECRET_KEY = "test-secret-key-do-not-use-in-production"
 $env:JWT_SECRET_KEY = "test-jwt-secret-key-do-not-use-in-production"
 
-# Run pytest
-python -m pytest tests/test_issue_410_secret_keys.py -v
+# Run pytest with all arguments passed to this script
+if ($args.Count -eq 0) {
+    # No arguments, run all tests
+    python -m pytest -v
+} else {
+    # Run with provided arguments
+    python -m pytest @args
+}
 
 # Exit with pytest's exit code
 exit $LASTEXITCODE

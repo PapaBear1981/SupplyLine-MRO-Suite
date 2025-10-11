@@ -60,20 +60,24 @@ class TestUserModel:
         user.set_password('test123')
         db_session.add(user)
         db_session.commit()
-        
+
         # Generate reset token
         token = user.generate_reset_token()
-        
+
+        # Updated for Issue #412: Token is now 32-character alphanumeric, not 6-digit
         assert token is not None
-        assert len(token) == 6  # 6-digit code
-        assert token.isdigit()
+        assert len(token) >= 32, f"Token should be at least 32 characters, got {len(token)}"
+        # Token should contain alphanumeric characters (URL-safe base64)
+        import re
+        assert re.match(r'^[A-Za-z0-9_-]+$', token), "Token should be URL-safe alphanumeric"
         assert user.reset_token is not None
         assert user.reset_token_expiry is not None
-        
+
         # Verify token
         assert user.check_reset_token(token)
         assert not user.check_reset_token('123456')
-        
+        assert not user.check_reset_token('wrong_token_12345')
+
         # Clear token
         user.clear_reset_token()
         assert user.reset_token is None
