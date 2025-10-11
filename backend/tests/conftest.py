@@ -31,9 +31,9 @@ def app():
 
     original_db_url = os.environ.get('DATABASE_URL')
     original_flask_env = os.environ.get('FLASK_ENV')
+    original_session_type = os.environ.get('SESSION_TYPE')
     os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
     os.environ['FLASK_ENV'] = 'testing'
-    original_session_type = os.environ.get('SESSION_TYPE')
     os.environ['SESSION_TYPE'] = 'filesystem'
 
     try:

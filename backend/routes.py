@@ -1921,9 +1921,14 @@ def register_routes(app):
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
+        if hasattr(user, 'is_password_reused') and user.is_password_reused(data['new_password']):
+            return jsonify({'error': 'New password cannot match any of your last 5 passwords'}), 400
+
         # Update password
         user.set_password(data['new_password'])
         user.clear_reset_token()
+        if hasattr(user, 'force_password_change'):
+            user.force_password_change = False
         db.session.commit()
 
         # Successful reset clears any tracking
@@ -2048,8 +2053,13 @@ def register_routes(app):
         if not is_valid:
             return jsonify({'error': 'Password does not meet security requirements', 'details': errors}), 400
 
+        if hasattr(user, 'is_password_reused') and user.is_password_reused(data['new_password']):
+            return jsonify({'error': 'New password cannot match any of your last 5 passwords'}), 400
+
         # Update password
         user.set_password(data['new_password'])
+        if hasattr(user, 'force_password_change'):
+            user.force_password_change = False
         db.session.commit()
 
         # Log the password change
@@ -2062,7 +2072,7 @@ def register_routes(app):
         db.session.add(activity)
         db.session.commit()
 
-        return jsonify({'message': 'Password updated successfully'}), 200
+        return jsonify({'message': 'Password changed successfully'}), 200
 
     @app.route('/api/user/activity', methods=['GET'])
     @login_required

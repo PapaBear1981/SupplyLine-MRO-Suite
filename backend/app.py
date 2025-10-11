@@ -41,7 +41,12 @@ def create_app():
         os.path.join(app.instance_path, 'calibration_certificates')
     )
     os.makedirs(app.config['CALIBRATION_CERTIFICATE_FOLDER'], exist_ok=True)
-    app.config.setdefault('SESSION_TYPE', 'filesystem')
+
+    # Ensure session storage is configured with a supported backend
+    session_type = app.config.get('SESSION_TYPE')
+    if not session_type or session_type.lower() == 'null':
+        app.config['SESSION_TYPE'] = 'filesystem'
+
     if app.config['SESSION_TYPE'] == 'filesystem':
         session_dir = app.config.get('SESSION_FILE_DIR') or os.path.join(app.instance_path, 'flask_session')
         os.makedirs(session_dir, exist_ok=True)

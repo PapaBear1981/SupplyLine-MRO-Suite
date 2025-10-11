@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import object_session
 
 # Import time utilities for consistent time handling
 try:
@@ -22,6 +23,17 @@ except ImportError:
         return datetime.now()
 
 db = SQLAlchemy()
+
+
+class PasswordHistory(db.Model):
+    __tablename__ = 'password_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    password_hash = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
+
+    user = db.relationship('User', back_populates='password_histories')
 
 class Tool(db.Model):
     __tablename__ = 'tools'
@@ -97,6 +109,8 @@ class User(db.Model):
     reset_token = db.Column(db.String, nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     avatar = db.Column(db.String, nullable=True)  # Store the path or URL to the avatar image
+    force_password_change = db.Column(db.Boolean, default=False)
+    password_changed_at = db.Column(db.DateTime, nullable=True, default=get_current_time)
     # Account lockout fields
     failed_login_attempts = db.Column(db.Integer, default=0)
     account_locked_until = db.Column(db.DateTime, nullable=True)
@@ -104,12 +118,70 @@ class User(db.Model):
 
     # Relationships
     roles = association_proxy('user_roles', 'role')
+    password_histories = db.relationship(
+        'PasswordHistory',
+        back_populates='user',
+        order_by='PasswordHistory.created_at.desc()',
+        cascade='all, delete-orphan',
+        lazy='dynamic'
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        now = get_current_time()
+        self.password_changed_at = now
+
+        session = object_session(self)
+        if session is None:
+            session = db.session
+            session.add(self)
+        elif self not in session:
+            session.add(self)
+
+        if self.id is None:
+            session.flush()
+
+        history_entry = PasswordHistory(
+            user_id=self.id,
+            password_hash=self.password_hash,
+            created_at=now
+        )
+        session.add(history_entry)
+
+        # Maintain only the most recent 5 password history records
+        history_records = (
+            session.query(PasswordHistory)
+            .filter_by(user_id=self.id)
+            .order_by(PasswordHistory.created_at.desc(), PasswordHistory.id.desc())
+            .all()
+        )
+
+        for stale_record in history_records[5:]:
+            session.delete(stale_record)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def is_password_reused(self, candidate_password, history_limit=5):
+        """Check whether the candidate password matches recent password history."""
+        if not self.id:
+            return False
+
+        query = self.password_histories.order_by(PasswordHistory.created_at.desc())
+        if history_limit:
+            query = query.limit(history_limit)
+
+        for history in query:
+            if check_password_hash(history.password_hash, candidate_password):
+                return True
+        return False
+
+    def is_password_expired(self, max_age_days=90):
+        """Determine if the user's password exceeds the maximum allowed age."""
+        if not self.password_changed_at:
+            return True
+
+        return get_current_time() - self.password_changed_at >= timedelta(days=max_age_days)
 
     def generate_reset_token(self):
         import secrets
@@ -220,7 +292,9 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
-            'avatar': self.avatar
+            'avatar': self.avatar,
+            'force_password_change': self.force_password_change,
+            'password_changed_at': self.password_changed_at.isoformat() if self.password_changed_at else None
         }
 
         if include_roles:

@@ -83,6 +83,32 @@ def register_auth_routes(app):
             # Successful login - reset failed attempts
             user.reset_failed_login_attempts()
 
+            # Enforce password expiry policy (90 days)
+            if hasattr(user, 'is_password_expired') and user.is_password_expired():
+                user.force_password_change = True
+
+                activity = UserActivity(
+                    user_id=user.id,
+                    activity_type='password_expired',
+                    description='User password expired - change required',
+                    ip_address=request.remote_addr
+                )
+                db.session.add(activity)
+
+                audit_log = AuditLog(
+                    action_type='password_expired',
+                    action_details=f'User {user.id} ({user.name}) password expired'
+                )
+                db.session.add(audit_log)
+                db.session.commit()
+
+                return jsonify({
+                    'message': 'Password change required',
+                    'code': 'PASSWORD_CHANGE_REQUIRED',
+                    'user_id': user.id,
+                    'employee_number': user.employee_number
+                }), 200
+
             # Check if user needs to change password
             if hasattr(user, 'force_password_change') and user.force_password_change:
                 # Return special response indicating password change required
@@ -315,6 +341,9 @@ def register_auth_routes(app):
             # Validate new password (basic validation)
             if len(new_password) < 8:
                 return jsonify({'error': 'New password must be at least 8 characters long'}), 400
+
+            if hasattr(user, 'is_password_reused') and user.is_password_reused(new_password):
+                return jsonify({'error': 'New password cannot match any of your last 5 passwords'}), 400
 
             # Update password and clear force_password_change flag
             user.set_password(new_password)
