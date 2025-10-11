@@ -219,8 +219,10 @@ def register_routes(app):
     @materials_manager_required
     def chemicals_reorder_needed_direct_route():
         try:
-            print("Session info: user_id={}, is_admin={}, department={}".format(
-                session.get('user_id'), session.get('is_admin'), session.get('department')))
+            logger.debug("Chemicals reorder-needed requested", extra={
+                'user_id': request.current_user.get('user_id') if hasattr(request, 'current_user') else session.get('user_id'),
+                'department': request.current_user.get('department') if hasattr(request, 'current_user') else session.get('department')
+            })
             # Get chemicals that need to be reordered
             chemicals = Chemical.query.filter_by(needs_reorder=True, reorder_status='needed').all()
 
@@ -229,7 +231,7 @@ def register_routes(app):
 
             return jsonify(result)
         except Exception as e:
-            print(f"Error in chemicals reorder needed route: {str(e)}")
+            logger.exception("Error in chemicals reorder needed route")
             return jsonify({'error': 'An error occurred while fetching chemicals that need reordering'}), 500
 
     @app.route('/api/chemicals/on-order', methods=['GET'])
@@ -250,8 +252,10 @@ def register_routes(app):
     @materials_manager_required
     def chemicals_expiring_soon_direct_route():
         try:
-            print("Session info: user_id={}, is_admin={}, department={}".format(
-                request.current_user.get('user_id'), request.current_user.get('is_admin'), request.current_user.get('department')))
+            logger.debug("Chemicals expiring-soon requested", extra={
+                'user_id': request.current_user.get('user_id'),
+                'department': request.current_user.get('department')
+            })
             # Get days parameter (default to 30)
             days = request.args.get('days', 30, type=int)
 
@@ -266,7 +270,7 @@ def register_routes(app):
 
             return jsonify(result)
         except Exception as e:
-            print(f"Error in chemicals expiring soon route: {str(e)}")
+            logger.exception("Error in chemicals expiring soon route")
             return jsonify({'error': 'An error occurred while fetching chemicals expiring soon'}), 500
 
     @app.route('/api/chemicals/archived', methods=['GET'])
@@ -306,7 +310,7 @@ def register_routes(app):
 
             return jsonify(result)
         except Exception as e:
-            print(f"Error in archived chemicals route: {str(e)}")
+            logger.exception("Error in archived chemicals route")
             return jsonify({'error': 'An error occurred while fetching archived chemicals'}), 500
 
     # Health check endpoint for Docker
@@ -371,7 +375,7 @@ def register_routes(app):
             - timezone: System timezone information
             - using_time_utils: Boolean indicating if time utilities are being used
         """
-        print("Time API endpoint called!")  # Debug log
+        logger.debug("Time API endpoint called")
         try:
             from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
             result = {
@@ -381,10 +385,10 @@ def register_routes(app):
                 'timezone': str(time.tzname),
                 'using_time_utils': True
             }
-            print(f"Time API endpoint returning: {result}")  # Debug log
+            logger.debug("Time API endpoint executed successfully")
             return jsonify(result)
         except ImportError as e:
-            print(f"Error importing time_utils in time_api_endpoint: {str(e)}")
+            logger.exception("time_utils import failed in time_api_endpoint")
             result = {
                 'status': 'ok',
                 'utc_time': datetime.now(timezone.utc).isoformat(),
@@ -392,7 +396,7 @@ def register_routes(app):
                 'timezone': str(time.tzname),
                 'using_time_utils': False
             }
-            print(f"Time API endpoint fallback returning: {result}")  # Debug log
+            logger.debug("Time API endpoint fallback executed")
             return jsonify(result)
 
     # Time test endpoint
@@ -401,7 +405,7 @@ def register_routes(app):
         """
         Time test endpoint for debugging time functionality.
         """
-        print("Time test endpoint called!")  # Debug log
+        logger.debug("Time test endpoint called")
         try:
             from time_utils import get_utc_timestamp, get_local_timestamp, format_datetime
             result = {
@@ -413,10 +417,10 @@ def register_routes(app):
                 'using_time_utils': True,
                 'timestamp': datetime.now().isoformat()
             }
-            print(f"Time test endpoint returning: {result}")  # Debug log
+            logger.debug("Time test endpoint executed successfully")
             return jsonify(result)
         except ImportError as e:
-            print(f"Error importing time_utils in time_test_endpoint: {str(e)}")
+            logger.exception("time_utils import failed in time_test_endpoint")
             result = {
                 'status': 'ok',
                 'message': 'Time test endpoint working (fallback)',
@@ -426,13 +430,13 @@ def register_routes(app):
                 'using_time_utils': False,
                 'timestamp': datetime.now().isoformat()
             }
-            print(f"Time test endpoint fallback returning: {result}")  # Debug log
+            logger.debug("Time test endpoint fallback executed")
             return jsonify(result)
 
     # Test endpoint for admin dashboard
     @app.route('/api/admin/dashboard/test', methods=['GET'])
     def admin_dashboard_test():
-        print("Admin dashboard test endpoint called")
+        logger.debug("Admin dashboard test endpoint called")
         return jsonify({
             'status': 'success',
             'message': 'Admin dashboard test endpoint works',
@@ -538,24 +542,15 @@ def register_routes(app):
     @app.route('/api/admin/dashboard/stats', methods=['GET'])
     @admin_required
     def get_admin_dashboard_stats():
-        print("Admin dashboard stats endpoint called")
-        print(f"Current user: {request.current_user}")
-        print(f"User ID: {request.current_user.get('user_id')}")
-        print(f"Is admin: {request.current_user.get('is_admin')}")
+        logger.debug("Admin dashboard stats requested", extra={'user_id': request.current_user.get('user_id')})
 
         # Get counts from various tables
         user_count = User.query.count()
-        print(f"User count: {user_count}")
         active_user_count = User.query.filter_by(is_active=True).count()
-        print(f"Active user count: {active_user_count}")
         tool_count = Tool.query.count()
-        print(f"Tool count: {tool_count}")
         available_tool_count = Tool.query.filter_by(status='available').count()
-        print(f"Available tool count: {available_tool_count}")
         checkout_count = Checkout.query.count()
-        print(f"Checkout count: {checkout_count}")
         active_checkout_count = Checkout.query.filter(Checkout.return_date.is_(None)).count()
-        print(f"Active checkout count: {active_checkout_count}")
 
         # Get pending registration requests count
         from models import RegistrationRequest
@@ -788,23 +783,11 @@ def register_routes(app):
     def tools_route():
         # GET - List all tools
         if request.method == 'GET':
-            print("Received request for all tools")
-
-            # Check if there's a search query
-            print(f"Request method: {request.method}")
-            print(f"Request URL: {request.url}")
-            print(f"Request args: {request.args}")
-            print(f"Request args type: {type(request.args)}")
-            print(f"Request args keys: {list(request.args.keys())}")
-
             search_query = request.args.get('q')
-            print(f"Search query: {search_query}")
-            print(f"Search query type: {type(search_query)}")
+            logger.debug("Tools list requested", extra={'has_search_query': bool(search_query)})
 
             if search_query:
-                print(f"Searching for tools with query: {search_query}")
                 search_term = f'%{search_query.lower()}%'
-                print(f"Search term: {search_term}")
 
                 try:
                     tools = Tool.query.filter(
@@ -815,23 +798,22 @@ def register_routes(app):
                             db.func.lower(Tool.location).like(search_term)
                         )
                     ).all()
-                    print(f"Found {len(tools)} tools matching search query")
+                    logger.debug("Tools search executed", extra={'result_count': len(tools)})
                 except Exception as e:
-                    print(f"Error during search: {str(e)}")
+                    logger.exception("Error during tools search")
                     tools = Tool.query.all()
-                    print(f"Falling back to all tools: {len(tools)}")
+                    logger.debug("Falling back to full tools list", extra={'result_count': len(tools)})
             else:
                 tools = Tool.query.all()
-                print(f"Found {len(tools)} tools")
+                logger.debug("Tools retrieved without search", extra={'result_count': len(tools)})
 
             # Get checkout status for each tool
             tool_status = {}
             active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
-            print(f"Found {len(active_checkouts)} active checkouts")
+            logger.debug("Active checkouts fetched", extra={'active_checkout_count': len(active_checkouts)})
 
             for checkout in active_checkouts:
                 tool_status[checkout.tool_id] = 'checked_out'
-                print(f"Tool {checkout.tool_id} is checked out")
 
             result = [{
                 'id': t.id,
@@ -851,7 +833,7 @@ def register_routes(app):
                 'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
             } for t in tools]
 
-            print(f"Returning {len(result)} tools")
+            logger.debug("Tools response ready", extra={'result_count': len(result)})
             return jsonify(result)
 
         # POST - Create new tool (requires tool manager privileges)
@@ -933,24 +915,9 @@ def register_routes(app):
 
             # Determine status - checkout status takes precedence over tool status
             status = 'checked_out' if active_checkout else getattr(tool, 'status', 'available')
-
-            # Debug tool attributes
-            print(f"Tool ID: {tool.id}")
-            print(f"Tool Number: {tool.tool_number}")
-            print(f"Tool Serial Number: {tool.serial_number}")
-            print(f"Tool Description: {tool.description}")
-            print(f"Tool Condition: {tool.condition}")
-            print(f"Tool Location: {tool.location}")
-            print(f"Tool Category: {getattr(tool, 'category', 'General')}")
-            print(f"Tool Status: {status}")
-
-            # Check if category attribute exists
             has_category = hasattr(tool, 'category')
-            print(f"Tool has category attribute: {has_category}")
-
-            # Get category value directly
             category_value = tool.category if has_category else 'General'
-            print(f"Tool category value: {category_value}")
+            logger.debug("Tool detail requested", extra={'tool_id': id, 'status': status})
 
             return jsonify({
                 'id': tool.id,
@@ -1039,31 +1006,16 @@ def register_routes(app):
 
             except Exception as e:
                 db.session.rollback()
-                return jsonify({'error': f'Failed to delete tool: {str(e)}'}), 500
+                logger.exception("Failed to delete tool", extra={'tool_id': id})
+                return jsonify({'error': 'Failed to delete tool'}), 500
 
         # PUT - Update tool (requires tool manager privileges)
-        print(f"Session: {session}")
-        print(f"Session is_admin: {session.get('is_admin', False)}")
-        print(f"Session department: {session.get('department', 'None')}")
-
-        # Temporarily disable permission check for debugging
-        # if not (session.get('is_admin', False) or session.get('department') == 'Materials'):
-        #     return jsonify({'error': 'Tool management privileges required'}), 403
 
         data = request.get_json() or {}
-        print(f"Received tool update request for tool ID {id} with data: {data}")
-        print(f"Tool before update: {tool.__dict__}")
-
-        # Debug request
-        print(f"Request content type: {request.content_type}")
-        print(f"Request headers: {request.headers}")
-        print(f"Request data: {request.data}")
-
-        # Check if category is in the data
-        if 'category' in data:
-            print(f"Category in data: {data['category']}")
-        else:
-            print("Category not in data")
+        logger.debug("Received tool update request", extra={
+            'tool_id': id,
+            'request_content_type': request.content_type
+        })
 
         # Update fields
         if 'tool_number' in data or 'serial_number' in data:
@@ -1079,62 +1031,50 @@ def register_routes(app):
             # Update the fields if they were provided
             if 'tool_number' in data:
                 tool.tool_number = data['tool_number']
-                print(f"Updated tool_number to: {tool.tool_number}")
             if 'serial_number' in data:
                 tool.serial_number = data['serial_number']
-                print(f"Updated serial_number to: {tool.serial_number}")
 
         if 'description' in data:
             tool.description = data['description']
-            print(f"Updated description to: {tool.description}")
 
         if 'condition' in data:
             tool.condition = data['condition']
-            print(f"Updated condition to: {tool.condition}")
 
         if 'location' in data:
             tool.location = data['location']
-            print(f"Updated location to: {tool.location}")
 
         if 'category' in data:
             old_category = tool.category
             tool.category = data['category']
-            print(f"Updated tool category from {old_category} to: {tool.category}")
+            logger.debug("Updated tool category", extra={'tool_id': id, 'old_category': old_category, 'new_category': tool.category})
 
         # Update calibration fields
         if 'requires_calibration' in data:
             tool.requires_calibration = data['requires_calibration']
-            print(f"Updated requires_calibration to: {tool.requires_calibration}")
 
             # If requires_calibration is being turned off, reset calibration status
             if not tool.requires_calibration:
                 tool.calibration_status = 'not_applicable'
-                print(f"Reset calibration_status to: {tool.calibration_status}")
             # If requires_calibration is being turned on, set initial calibration status
             elif tool.requires_calibration and not tool.calibration_status:
                 tool.calibration_status = 'due_soon'
-                print(f"Set initial calibration_status to: {tool.calibration_status}")
 
         if 'calibration_frequency_days' in data:
             tool.calibration_frequency_days = data['calibration_frequency_days']
-            print(f"Updated calibration_frequency_days to: {tool.calibration_frequency_days}")
 
             # If we have a last calibration date and frequency, update the next calibration date
             if tool.last_calibration_date and tool.calibration_frequency_days:
                 tool.next_calibration_date = tool.last_calibration_date + timedelta(days=tool.calibration_frequency_days)
-                print(f"Updated next_calibration_date to: {tool.next_calibration_date}")
 
                 # Update calibration status based on new next_calibration_date
                 if hasattr(tool, 'update_calibration_status'):
                     tool.update_calibration_status()
-                    print(f"Updated calibration_status to: {tool.calibration_status}")
 
         db.session.commit()
 
         # Verify the update in the database
         updated_tool = Tool.query.get(id)
-        print(f"Tool after update and commit: {updated_tool.__dict__}")
-        print(f"Tool category after update: {updated_tool.category}")
+        logger.debug("Tool updated successfully", extra={'tool_id': id})
 
         # Log the action
         log = AuditLog(
@@ -1163,7 +1103,6 @@ def register_routes(app):
             'message': 'Tool updated successfully'
         }
 
-        print(f"Sending response: {response_data}")
         return jsonify(response_data)
 
     @app.route('/api/tools/<int:id>/retire', methods=['POST'])
@@ -1258,8 +1197,8 @@ def register_routes(app):
             }), 200
 
         except Exception as e:
-            print(f"Error getting calibration notifications: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            logger.exception("Error getting calibration notifications")
+            return jsonify({'error': 'Unable to fetch calibration notifications'}), 500
 
     @app.route('/api/users', methods=['GET', 'POST'])
     @login_required
@@ -1449,70 +1388,57 @@ def register_routes(app):
 
             # POST - Create new checkout
             data = request.get_json() or {}
-            print(f"Received checkout request with data: {data}")
-            print(f"Current session: {session}")
+            logger.debug("Checkout request received", extra={'tool_id': data.get('tool_id')})
 
             # Validate required fields
             required_fields = ['tool_id']
             for field in required_fields:
                 if field not in data or data.get(field) is None:
-                    print(f"Missing required field: {field}")
                     return jsonify({'error': f'Missing required field: {field}'}), 400
 
             # Validate tool exists
             try:
                 tool_id = int(data.get('tool_id'))
-                print(f"Tool ID: {tool_id}")
             except (ValueError, TypeError):
-                print(f"Invalid tool_id format: {data.get('tool_id')}")
                 return jsonify({'error': 'Invalid tool ID format'}), 400
 
             tool = Tool.query.get(tool_id)
             if not tool:
-                print(f"Tool with ID {tool_id} does not exist")
                 return jsonify({'error': f'Tool with ID {tool_id} does not exist'}), 404
 
             # Get user ID - either from request data or from session
             user_id = data.get('user_id')
-            print(f"User ID from request: {user_id}")
 
             # Convert user_id to integer if it's a string
             if user_id is not None:
                 try:
                     user_id = int(user_id)
-                    print(f"Converted user_id to integer: {user_id}")
                 except (ValueError, TypeError):
-                    print(f"Could not convert user_id '{user_id}' to integer")
                     user_id = None
 
             if not user_id:
-                print("No valid user_id in request, using JWT token")
                 # If user_id not provided in request, use the logged-in user's ID from JWT
                 from auth.jwt_manager import JWTManager
                 user_payload = JWTManager.get_current_user()
                 if not user_payload:
-                    print("No valid JWT token")
                     return jsonify({'error': 'Authentication required'}), 401
                 user_id = user_payload['user_id']
-                print(f"Using user_id from JWT: {user_id}")
 
             # Validate user exists
             user = User.query.get(user_id)
             if not user:
-                print(f"User with ID {user_id} does not exist")
                 return jsonify({'error': f'User with ID {user_id} does not exist'}), 404
 
-            print(f"Found user: {user.name} (ID: {user.id})")
+            logger.debug("Checkout user validated", extra={'user_id': user.id})
 
             # Check if tool is already checked out
             active_checkout = Checkout.query.filter_by(tool_id=tool_id, return_date=None).first()
             if active_checkout:
-                print(f"Tool {tool.tool_number} is already checked out")
                 return jsonify({'error': f'Tool {tool.tool_number} is already checked out'}), 400
 
             # Create checkout
             expected_return_date = data.get('expected_return_date')
-            print(f"Creating checkout for tool {tool_id} to user {user_id}")
+            logger.debug("Creating checkout", extra={'tool_id': tool_id, 'user_id': user_id})
 
             # Parse expected_return_date if it's a string
             parsed_date = None
@@ -1529,16 +1455,12 @@ def register_routes(app):
                             parsed_date = datetime.strptime(expected_return_date, '%Y-%m-%d')
                     else:
                         parsed_date = expected_return_date
-                    print(f"Parsed expected return date: {parsed_date}")
                 except Exception as e:
-                    print(f"Error parsing date: {e}")
                     # Use a default date (7 days from now) if parsing fails
                     parsed_date = datetime.now() + timedelta(days=7)
-                    print(f"Using default date: {parsed_date}")
             else:
                 # Default to 7 days from now if no date provided
                 parsed_date = datetime.now() + timedelta(days=7)
-                print(f"No date provided, using default: {parsed_date}")
 
             # Create and save the checkout
             try:
@@ -1549,7 +1471,7 @@ def register_routes(app):
                 )
                 db.session.add(c)
                 db.session.commit()
-                print(f"Checkout created with ID: {c.id}")
+                logger.debug("Checkout created", extra={'checkout_id': c.id})
 
                 # Log the action
                 log = AuditLog(
@@ -1575,36 +1497,32 @@ def register_routes(app):
                 }), 201
             except Exception as e:
                 db.session.rollback()
-                print(f"Database error during checkout: {str(e)}")
+                logger.exception("Database error during checkout")
                 return jsonify({'error': 'Database error during checkout'}), 500
 
         except Exception as e:
-            print(f"Unexpected error in checkouts route: {str(e)}")
-            return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+            logger.exception("Unexpected error in checkouts route")
+            return jsonify({'error': 'An unexpected error occurred while processing the checkout request'}), 500
 
     @app.route('/api/checkouts/<int:id>/return', methods=['POST', 'PUT'])
     @login_required
     def return_route(id):
         try:
-            print(f"Received tool return request for checkout ID: {id}, method: {request.method}")
+            logger.debug("Return request received", extra={'checkout_id': id, 'method': request.method})
 
             # Check if user is admin or Materials department (from JWT token)
             user_payload = request.current_user
             if not (user_payload.get('is_admin', False) or user_payload.get('department') == 'Materials'):
-                print(f"Permission denied: User is not admin or Materials department")
                 return jsonify({'error': 'Only Materials and Admin personnel can return tools'}), 403
 
             # Validate checkout exists
             c = Checkout.query.get(id)
             if not c:
-                print(f"Checkout with ID {id} not found")
                 return jsonify({'error': f'Checkout with ID {id} not found'}), 404
-
-            print(f"Found checkout: {c.id} for tool_id: {c.tool_id}, user_id: {c.user_id}")
+            logger.debug("Checkout record found", extra={'checkout_id': c.id, 'tool_id': c.tool_id, 'user_id': c.user_id})
 
             # Check if already returned
             if c.return_date:
-                print(f"Tool already returned on: {c.return_date}")
                 return jsonify({'error': 'This tool has already been returned'}), 400
 
             # Get tool and user info for better logging
@@ -1612,14 +1530,12 @@ def register_routes(app):
             user = User.query.get(c.user_id)
 
             if not tool:
-                print(f"Tool with ID {c.tool_id} not found")
                 return jsonify({'error': f'Tool with ID {c.tool_id} not found'}), 404
 
             if not user:
-                print(f"User with ID {c.user_id} not found")
-                # Continue anyway since we can still return the tool
+                logger.warning("Return processing user not found", extra={'checkout_id': c.id, 'missing_user_id': c.user_id})
 
-            print(f"Tool: {tool.tool_number if tool else 'Unknown'}, User: {user.name if user else 'Unknown'}")
+            logger.debug("Processing return", extra={'tool_id': tool.id if tool else None, 'user_id': user.id if user else None})
 
             # Get data from request if provided
             data = request.get_json() or {}
@@ -1627,10 +1543,7 @@ def register_routes(app):
             returned_by = data.get('returned_by')
             found = data.get('found', False)
             notes = data.get('notes', '')
-            print(f"Return condition: {condition}")
-            print(f"Returned by: {returned_by}")
-            print(f"Found: {found}")
-            print(f"Notes: {notes}")
+            logger.debug("Return details parsed", extra={'checkout_id': id, 'has_condition': bool(condition), 'found_flag': bool(found)})
 
             try:
                 # Mark as returned
@@ -1640,13 +1553,11 @@ def register_routes(app):
                 if condition and tool:
                     old_condition = tool.condition
                     tool.condition = condition
-                    print(f"Updated tool condition from {old_condition} to {condition}")
 
                 # Update tool status to available
                 if tool:
                     old_status = tool.status
                     tool.status = 'available'
-                    print(f"Updated tool status from {old_status} to available")
 
                 # Store return details in the database
                 # We'll add these as attributes to the checkout record
@@ -1717,14 +1628,14 @@ def register_routes(app):
                 return jsonify({'error': 'Database error during tool return'}), 500
 
         except Exception as e:
+            checkout_record = locals().get('c')
             logger.error("Unexpected error in return route", exc_info=True, extra={
                 'operation': 'tool_return',
-                'tool_id': c.tool_id,
-                'user_id': user_payload.get('user_id'),
-                'error_type': type(e).__name__,
-                'error_message': str(e)
+                'tool_id': checkout_record.tool_id if checkout_record else None,
+                'user_id': user_payload.get('user_id') if 'user_payload' in locals() else None,
+                'error_type': type(e).__name__
             })
-            return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+            return jsonify({'error': 'An unexpected error occurred while processing the return'}), 500
 
     @app.route('/api/audit', methods=['GET'])
     @admin_required
@@ -2165,14 +2076,13 @@ def register_routes(app):
     def search_tools():
         # Get search query from request parameters
         query = request.args.get('q', '')
-        print(f"Search endpoint called with query: {query}")
+        logger.debug("Tools search endpoint called", extra={'has_query': bool(query)})
 
         if not query:
             return jsonify({'error': 'Search query is required'}), 400
 
         # Convert query to lowercase for case-insensitive search
         search_term = f'%{query.lower()}%'
-        print(f"Search term: {search_term}")
 
         # Search in tool_number, serial_number, description, and location
         try:
@@ -2184,10 +2094,10 @@ def register_routes(app):
                     db.func.lower(Tool.location).like(search_term)
                 )
             ).all()
-            print(f"Found {len(tools)} tools matching search query")
+            logger.debug("Tools search results", extra={'result_count': len(tools)})
         except Exception as e:
-            print(f"Error during search: {str(e)}")
-            return jsonify({'error': f'Search error: {str(e)}'}), 500
+            logger.exception("Error during tools search endpoint")
+            return jsonify({'error': 'Search error'}), 500
 
         # Get checkout status for each tool
         tool_status = {}
@@ -2342,7 +2252,7 @@ def register_routes(app):
 
                 response_data['checkoutsByDepartment'] = dept_data
             except Exception as e:
-                print(f"Error getting department data: {str(e)}")
+                logger.exception("Error getting department data")
                 # Continue with other queries even if this one fails
 
             # 2. Get daily checkout and return data
@@ -2406,7 +2316,7 @@ def register_routes(app):
 
                 response_data['checkoutsByDay'] = daily_data
             except Exception as e:
-                print(f"Error getting daily data: {str(e)}")
+                logger.exception("Error getting daily checkout data")
                 # Continue with other queries even if this one fails
 
             # 3. Get tool usage by category
@@ -2445,7 +2355,7 @@ def register_routes(app):
 
                 response_data['toolUsageByCategory'] = category_data
             except Exception as e:
-                print(f"Error getting category data: {str(e)}")
+                logger.exception("Error getting tool usage by category")
                 # Continue with other queries even if this one fails
 
             # 4. Get most frequently checked out tools
@@ -2474,7 +2384,7 @@ def register_routes(app):
 
                 response_data['mostFrequentlyCheckedOut'] = top_tools_data
             except Exception as e:
-                print(f"Error getting top tools data: {str(e)}")
+                logger.exception("Error getting top tools data")
                 # Continue with other queries even if this one fails
 
             # 5. Get overall statistics
@@ -2522,16 +2432,15 @@ def register_routes(app):
                     'overdueCount': overdue_count
                 }
             except Exception as e:
-                print(f"Error getting overall stats: {str(e)}")
+                logger.exception("Error getting overall checkout stats")
                 # Continue even if this query fails
 
             return jsonify(response_data), 200
 
         except Exception as e:
-            print(f"Error in analytics endpoint: {str(e)}")
+            logger.exception("Error in analytics endpoint")
             return jsonify({
-                'error': 'An error occurred while generating analytics data',
-                'message': str(e)
+                'error': 'An error occurred while generating analytics data'
             }), 500
 
     # Helper function for analytics
@@ -2700,8 +2609,8 @@ def register_routes(app):
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error removing tool from service: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            logger.exception("Error removing tool from service", extra={'tool_id': id})
+            return jsonify({'error': 'An error occurred while updating tool service status'}), 500
 
     @app.route('/api/tools/<int:id>/service/return', methods=['POST'])
     @tool_manager_required
@@ -2765,8 +2674,8 @@ def register_routes(app):
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error returning tool to service: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            logger.exception("Error returning tool to service", extra={'tool_id': id})
+            return jsonify({'error': 'An error occurred while returning the tool to service'}), 500
 
     @app.route('/api/tools/<int:id>/service/history', methods=['GET'])
     def get_tool_service_history(id):
@@ -2789,5 +2698,5 @@ def register_routes(app):
             return jsonify([record.to_dict() for record in service_records]), 200
 
         except Exception as e:
-            print(f"Error getting tool service history: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            logger.exception("Error getting tool service history", extra={'tool_id': id})
+            return jsonify({'error': 'An error occurred while retrieving tool service history'}), 500
