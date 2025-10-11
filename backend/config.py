@@ -5,9 +5,26 @@ from datetime import timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
-    # Use environment variables with fallbacks for local development
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
+    # Security: Require SECRET_KEY and JWT_SECRET_KEY to be set via environment variables
+    # This prevents the use of hardcoded default values in production
+    # Exception: Testing environment can set these via app.config after initialization
+
+    # Check if we're in testing mode (set by pytest or test configuration)
+    _is_testing = os.environ.get('FLASK_ENV') == 'testing'
+
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY and not _is_testing:
+        raise RuntimeError(
+            'SECRET_KEY environment variable must be set. '
+            'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+        )
+
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    if not JWT_SECRET_KEY and not _is_testing:
+        raise RuntimeError(
+            'JWT_SECRET_KEY environment variable must be set. '
+            'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+        )
 
     # Database configuration - check for DATABASE_URL environment variable first
     DATABASE_URL = os.environ.get('DATABASE_URL')
