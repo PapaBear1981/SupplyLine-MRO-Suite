@@ -1922,10 +1922,18 @@ def register_routes(app):
         if not data.get('employee_number'):
             return jsonify({'error': 'Employee number is required'}), 400
 
+        # Generic response message to prevent user enumeration
+        # This message is returned for both existing and non-existing users
+        generic_message = 'If your employee number is registered, a password reset code has been sent to your registered contact method'
+
         user = User.query.filter_by(employee_number=data['employee_number']).first()
         if not user:
-            # Don't reveal that the user doesn't exist
-            return jsonify({'message': 'If your employee number is registered, a reset code will be sent'}), 200
+            # Don't reveal that the user doesn't exist - return same message
+            app.logger.info(
+                f'Password reset requested for non-existent employee number. '
+                f'IP: {request.remote_addr}'
+            )
+            return jsonify({'message': generic_message}), 200
 
         # Generate reset token
         reset_code = user.generate_reset_token()
@@ -1936,7 +1944,7 @@ def register_routes(app):
         # SECURITY: Never return reset codes in API responses
         app.logger.warning(
             f'Password reset requested for user {user.employee_number}. '
-            f'Reset code: {reset_code} (expires in 1 hour). '
+            f'Reset code: {reset_code} (expires in 15 minutes). '
             f'IP: {request.remote_addr}'
         )
 
@@ -1950,11 +1958,8 @@ def register_routes(app):
         db.session.add(activity)
         db.session.commit()
 
-        # Return generic message without exposing the reset code
-        # This prevents account enumeration and maintains security
-        return jsonify({
-            'message': 'If your employee number is registered, a reset code will be sent to your registered contact method'
-        }), 200
+        # Return same generic message to prevent user enumeration
+        return jsonify({'message': generic_message}), 200
 
     @app.route('/api/auth/reset-password/confirm', methods=['POST'])
     @rate_limit(limit=5, window=3600)  # 5 attempts per hour per IP
