@@ -1,6 +1,10 @@
 import os
 import logging.handlers
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

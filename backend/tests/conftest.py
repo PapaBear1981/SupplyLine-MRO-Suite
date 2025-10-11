@@ -33,6 +33,8 @@ def app():
     original_flask_env = os.environ.get('FLASK_ENV')
     os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
     os.environ['FLASK_ENV'] = 'testing'
+    original_session_type = os.environ.get('SESSION_TYPE')
+    os.environ['SESSION_TYPE'] = 'filesystem'
 
     try:
         global create_app, db, User, Tool, Chemical, UserActivity, AuditLog, JWTManager
@@ -69,6 +71,7 @@ def app():
             'SECRET_KEY': 'test-secret-key',
             'JWT_SECRET_KEY': 'test-jwt-secret-key',
             'RATE_LIMITS': {},
+            'SESSION_TYPE': 'filesystem',
         })
 
         yield application
@@ -82,6 +85,11 @@ def app():
             os.environ['FLASK_ENV'] = original_flask_env
         else:
             os.environ.pop('FLASK_ENV', None)
+
+        if original_session_type is not None:
+            os.environ['SESSION_TYPE'] = original_session_type
+        else:
+            os.environ.pop('SESSION_TYPE', None)
 
         os.close(db_fd)
         os.unlink(db_path)
@@ -143,6 +151,11 @@ def admin_user(db_session):
 @pytest.fixture
 def regular_user(db_session):
     """Create regular user for testing"""
+    existing = User.query.filter_by(employee_number='USER001').first()
+    if existing:
+        db_session.delete(existing)
+        db_session.flush()
+
     user = User(
         name='Test User',
         employee_number='USER001',

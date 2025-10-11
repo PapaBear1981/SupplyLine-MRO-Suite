@@ -19,6 +19,7 @@ from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_auth import register_auth_routes
 from utils.rate_limiter import rate_limit
+from utils.password_reset_security import get_password_reset_tracker
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
 # =====================================
 # The cycle count system has been temporarily disabled due to production issues.
@@ -1975,9 +1976,34 @@ def register_routes(app):
         if not user:
             return jsonify({'error': 'Invalid employee number'}), 400
 
+        tracker = get_password_reset_tracker()
+
+        # Enforce account-level exponential backoff
+        is_locked, retry_after = tracker.is_locked(user.employee_number)
+        if is_locked:
+            return jsonify({
+                'error': 'Too many password reset attempts. Please try again later.',
+                'retry_after': retry_after
+            }), 429
+
         # Verify reset code
         if not user.check_reset_token(data['reset_code']):
-            return jsonify({'error': 'Invalid or expired reset code'}), 400
+            remaining_attempts, delay_seconds = tracker.record_failure(user.employee_number)
+
+            # Invalidate the reset token after repeated failures
+            if tracker.should_invalidate_token(user.employee_number):
+                user.clear_reset_token()
+                db.session.commit()
+                tracker.reset(user.employee_number)
+                return jsonify({
+                    'error': 'Invalid or expired reset code. Reset token invalidated after multiple failed attempts.'
+                }), 400
+
+            return jsonify({
+                'error': 'Invalid or expired reset code',
+                'attempts_remaining': remaining_attempts,
+                'retry_after': delay_seconds
+            }), 400
 
         # Validate password strength
         is_valid, errors = password_utils.validate_password_strength(data['new_password'])
@@ -1988,6 +2014,9 @@ def register_routes(app):
         user.set_password(data['new_password'])
         user.clear_reset_token()
         db.session.commit()
+
+        # Successful reset clears any tracking
+        tracker.reset(user.employee_number)
 
         # Log the password reset
         activity = UserActivity(

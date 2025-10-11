@@ -76,6 +76,12 @@ class RateLimiter:
             for key in keys_to_delete:
                 del self.requests[key]
 
+    def reset_all(self):
+        """Clear all tracked requests (useful for tests)."""
+
+        with self.lock:
+            self.requests.clear()
+
 
 # Global rate limiter instance
 _rate_limiter = RateLimiter()
