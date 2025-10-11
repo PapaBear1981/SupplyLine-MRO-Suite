@@ -1,7 +1,7 @@
 """
 Bulk import routes for tools and chemicals
 """
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from functools import wraps
 from utils.bulk_import import (
     bulk_import_tools, 
@@ -11,6 +11,7 @@ from utils.bulk_import import (
     BulkImportError
 )
 from utils.validation import ValidationError
+from utils.file_validation import FileValidationError, validate_csv_upload
 from auth import JWTManager, admin_required as jwt_admin_required
 import logging
 
@@ -101,10 +102,12 @@ def register_bulk_import_routes(app):
             file = request.files['file']
             if file.filename == '':
                 return jsonify({'error': 'No file selected'}), 400
-            
-            # Check file type
-            if not file.filename.lower().endswith('.csv'):
-                return jsonify({'error': 'Only CSV files are supported'}), 400
+
+            try:
+                max_size = current_app.config.get('MAX_BULK_IMPORT_FILE_SIZE')
+                validate_csv_upload(file, max_size=max_size)
+            except FileValidationError as exc:
+                return jsonify({'error': str(exc)}), getattr(exc, 'status_code', 400)
             
             # Get import options
             skip_duplicates = request.form.get('skip_duplicates', 'true').lower() == 'true'
@@ -166,10 +169,12 @@ def register_bulk_import_routes(app):
             file = request.files['file']
             if file.filename == '':
                 return jsonify({'error': 'No file selected'}), 400
-            
-            # Check file type
-            if not file.filename.lower().endswith('.csv'):
-                return jsonify({'error': 'Only CSV files are supported'}), 400
+
+            try:
+                max_size = current_app.config.get('MAX_BULK_IMPORT_FILE_SIZE')
+                validate_csv_upload(file, max_size=max_size)
+            except FileValidationError as exc:
+                return jsonify({'error': str(exc)}), getattr(exc, 'status_code', 400)
             
             # Get import options
             skip_duplicates = request.form.get('skip_duplicates', 'true').lower() == 'true'

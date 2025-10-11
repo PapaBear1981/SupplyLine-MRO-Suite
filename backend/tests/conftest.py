@@ -7,6 +7,8 @@ import os
 import sys
 from datetime import datetime
 
+os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -19,7 +21,8 @@ def app():
     """Create application for testing"""
     # Set test environment
     os.environ['FLASK_ENV'] = 'testing'
-    
+    os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
+
     app = create_app()
     
     # Test database configuration
@@ -30,7 +33,11 @@ def app():
     app.config['WTF_CSRF_ENABLED'] = False
     app.config['SECRET_KEY'] = 'test-secret-key'
     app.config['JWT_SECRET_KEY'] = 'test-jwt-secret-key'
-    
+    app.config['SESSION_TYPE'] = 'filesystem'
+    session_dir = os.path.join(app.instance_path, 'test_sessions')
+    os.makedirs(session_dir, exist_ok=True)
+    app.config['SESSION_FILE_DIR'] = session_dir
+
     # Disable rate limiting for tests
     app.config['RATE_LIMITS'] = {}
     
@@ -69,14 +76,18 @@ def client(app, db_session):
 @pytest.fixture
 def jwt_manager(app):
     """Create JWT manager for testing"""
-    return JWTManager(app)
+    return JWTManager
 
 @pytest.fixture
 def admin_user(db_session):
     """Create admin user for testing"""
+    existing = User.query.filter_by(employee_number='ADMTEST001').first()
+    if existing:
+        return existing
+
     user = User(
         name='Test Admin',
-        employee_number='ADMIN001',
+        employee_number='ADMTEST001',
         department='IT',
         is_admin=True,
         is_active=True
@@ -111,9 +122,7 @@ def sample_tool(db_session, admin_user):
         condition='Good',
         location='Test Location',
         category='Testing',
-        status='available',
-        created_by=admin_user.id,
-        created_at=datetime.utcnow()
+        status='available'
     )
     db_session.add(tool)
     db_session.commit()

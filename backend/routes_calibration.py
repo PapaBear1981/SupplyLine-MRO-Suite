@@ -1,10 +1,9 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app, send_from_directory
 from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
 import os
-import uuid
-from werkzeug.utils import secure_filename
 from utils.error_handler import handle_errors, ValidationError, log_security_event
+from utils.file_validation import FileValidationError, validate_certificate_upload
 from utils.validation import validate_schema
 from auth import jwt_required, department_required
 import logging
@@ -491,3 +490,111 @@ def register_calibration_routes(app):
                 'error_message': str(e)
             })
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+    @app.route('/api/calibrations/<int:calibration_id>/certificate', methods=['POST'])
+    @tool_manager_required
+    def upload_calibration_certificate(calibration_id):
+        try:
+            calibration = ToolCalibration.query.get_or_404(calibration_id)
+
+            if 'certificate' not in request.files:
+                return jsonify({'error': 'No certificate uploaded'}), 400
+
+            file = request.files['certificate']
+            if file.filename == '':
+                return jsonify({'error': 'No file selected'}), 400
+
+            try:
+                max_size = current_app.config.get('MAX_CALIBRATION_CERTIFICATE_FILE_SIZE')
+                safe_filename = validate_certificate_upload(file, max_size=max_size)
+            except FileValidationError as exc:
+                return jsonify({'error': str(exc)}), getattr(exc, 'status_code', 400)
+
+            upload_dir = current_app.config.get('CALIBRATION_CERTIFICATE_FOLDER')
+            os.makedirs(upload_dir, exist_ok=True)
+
+            file_path = os.path.join(upload_dir, safe_filename)
+            file.save(file_path)
+
+            # Remove existing certificate if present
+            if calibration.calibration_certificate_file:
+                old_path = os.path.join(upload_dir, calibration.calibration_certificate_file)
+                if os.path.exists(old_path) and old_path != file_path:
+                    try:
+                        os.remove(old_path)
+                    except OSError as remove_error:
+                        logger.warning(
+                            "Failed to remove old calibration certificate",
+                            extra={
+                                'calibration_id': calibration_id,
+                                'path': old_path,
+                                'error': str(remove_error)
+                            }
+                        )
+
+            calibration.calibration_certificate_file = safe_filename
+
+            user_info = getattr(request, 'current_user', {}) or {}
+            log = AuditLog(
+                action_type='upload_calibration_certificate',
+                action_details=(
+                    f"User {user_info.get('user_name', 'Unknown')} (ID: {user_info.get('user_id')}) "
+                    f"uploaded certificate for calibration {calibration_id}"
+                )
+            )
+            db.session.add(log)
+
+            activity = UserActivity(
+                user_id=user_info.get('user_id'),
+                activity_type='upload_calibration_certificate',
+                description=f'Uploaded calibration certificate for calibration {calibration_id}',
+                ip_address=request.remote_addr
+            )
+            db.session.add(activity)
+
+            db.session.commit()
+
+            return jsonify({
+                'message': 'Calibration certificate uploaded successfully',
+                'certificate': safe_filename
+            }), 201
+
+        except FileValidationError as exc:
+            return jsonify({'error': str(exc)}), getattr(exc, 'status_code', 400)
+        except Exception as e:
+            logger.error("Error uploading calibration certificate", exc_info=True, extra={
+                'operation': 'upload_calibration_certificate',
+                'calibration_id': calibration_id,
+                'error_type': type(e).__name__,
+                'error_message': str(e)
+            })
+            return jsonify({'error': 'Failed to upload calibration certificate'}), 500
+
+    @app.route('/api/calibrations/<int:calibration_id>/certificate', methods=['GET'])
+    @tool_manager_required
+    def get_calibration_certificate(calibration_id):
+        try:
+            calibration = ToolCalibration.query.get_or_404(calibration_id)
+            if not calibration.calibration_certificate_file:
+                return jsonify({'error': 'No certificate available for this calibration'}), 404
+
+            upload_dir = current_app.config.get('CALIBRATION_CERTIFICATE_FOLDER')
+            file_path = os.path.join(upload_dir, calibration.calibration_certificate_file)
+            if not os.path.exists(file_path):
+                return jsonify({'error': 'Certificate file is missing'}), 404
+
+            return send_from_directory(
+                upload_dir,
+                calibration.calibration_certificate_file,
+                as_attachment=True,
+                download_name=calibration.calibration_certificate_file
+            )
+
+        except Exception as e:
+            logger.error("Error retrieving calibration certificate", exc_info=True, extra={
+                'operation': 'get_calibration_certificate',
+                'calibration_id': calibration_id,
+                'error_type': type(e).__name__,
+                'error_message': str(e)
+            })
+            return jsonify({'error': 'Failed to retrieve calibration certificate'}), 500
