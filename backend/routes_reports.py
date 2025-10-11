@@ -1,10 +1,13 @@
 from flask import request, jsonify, make_response
 from datetime import datetime, timedelta
+import logging
 from models import db, Tool, User, Checkout
 from models_cycle_count import (
     CycleCountBatch, CycleCountItem, CycleCountResult
 )
 from utils.export_utils import generate_pdf_report, generate_excel_report
+
+logger = logging.getLogger(__name__)
 
 def calculate_date_range(timeframe):
     """Calculate start date based on timeframe parameter."""
@@ -53,7 +56,8 @@ def register_report_routes(app):
             return response
 
         except Exception as e:
-            return jsonify({'error': f'Failed to generate PDF: {str(e)}'}), 500
+            logger.exception("Failed to generate PDF report")
+            return jsonify({'error': 'Failed to generate PDF'}), 500
 
     # Export report as Excel
     @app.route('/api/reports/export/excel', methods=['POST'])
@@ -79,7 +83,8 @@ def register_report_routes(app):
             return response
 
         except Exception as e:
-            return jsonify({'error': f'Failed to generate Excel: {str(e)}'}), 500
+            logger.exception("Failed to generate Excel report")
+            return jsonify({'error': 'Failed to generate Excel'}), 500
 
     # Tool Inventory Report
     @app.route('/api/reports/tools', methods=['GET'])
@@ -145,10 +150,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in tool inventory report: {str(e)}")
+            logger.exception("Error in tool inventory report")
             return jsonify({
-                'error': 'An error occurred while generating the tool inventory report',
-                'message': str(e)
+                'error': 'An error occurred while generating the tool inventory report'
             }), 500
 
     # Checkout History Report
@@ -299,10 +303,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in checkout history report: {str(e)}")
+            logger.exception("Error in checkout history report")
             return jsonify({
-                'error': 'An error occurred while generating the checkout history report',
-                'message': str(e)
+                'error': 'An error occurred while generating the checkout history report'
             }), 500
 
     # Department Usage Report
@@ -365,7 +368,7 @@ def register_report_routes(app):
                                 duration = 0  # Handle case where return_date might be before checkout_date
                             durations.append(duration)
                         except Exception as e:
-                            print(f"Error calculating duration: {str(e)}")
+                            logger.exception("Error calculating checkout duration for department usage report")
                             # Skip this checkout if there's an error
 
                 average_duration = sum(durations) / len(durations) if durations else 0
@@ -413,10 +416,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in department usage report: {str(e)}")
+            logger.exception("Error in department usage report")
             return jsonify({
-                'error': 'An error occurred while generating the department usage report',
-                'message': str(e)
+                'error': 'An error occurred while generating the department usage report'
             }), 500
 
     # Cycle Count Accuracy Report
@@ -531,10 +533,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in cycle count accuracy report: {str(e)}")
+            logger.exception("Error in cycle count accuracy report")
             return jsonify({
-                'error': 'An error occurred while generating the cycle count accuracy report',
-                'message': str(e)
+                'error': 'An error occurred while generating the cycle count accuracy report'
             }), 500
 
     # Cycle Count Discrepancy Report
@@ -601,10 +602,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in cycle count discrepancy report: {str(e)}")
+            logger.exception("Error in cycle count discrepancy report")
             return jsonify({
-                'error': 'An error occurred while generating the cycle count discrepancy report',
-                'message': str(e)
+                'error': 'An error occurred while generating the cycle count discrepancy report'
             }), 500
 
     # Cycle Count Performance Report
@@ -751,10 +751,9 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in cycle count performance report: {str(e)}")
+            logger.exception("Error in cycle count performance report")
             return jsonify({
-                'error': 'An error occurred while generating the cycle count performance report',
-                'message': str(e)
+                'error': 'An error occurred while generating the cycle count performance report'
             }), 500
 
     # Cycle Count Coverage Report
@@ -911,8 +910,7 @@ def register_report_routes(app):
             return jsonify(result), 200
 
         except Exception as e:
-            print(f"Error in cycle count coverage report: {str(e)}")
+            logger.exception("Error in cycle count coverage report")
             return jsonify({
-                'error': 'An error occurred while generating the cycle count coverage report',
-                'message': str(e)
+                'error': 'An error occurred while generating the cycle count coverage report'
             }), 500

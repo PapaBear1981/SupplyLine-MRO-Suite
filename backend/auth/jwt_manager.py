@@ -142,20 +142,18 @@ class JWTManager:
             Token string or None if not found
         """
         auth_header = request.headers.get('Authorization')
-        print(f"DEBUG: Authorization header: {auth_header}")
         if not auth_header:
-            print("DEBUG: No Authorization header found")
+            logger.debug("Authorization header missing")
             return None
 
         try:
             scheme, token = auth_header.split(' ', 1)
-            print(f"DEBUG: Scheme: {scheme}, Token: {token[:50]}...")
             if scheme.lower() != 'bearer':
-                print(f"DEBUG: Invalid scheme: {scheme}")
+                logger.debug("Invalid authorization scheme", extra={'scheme': scheme})
                 return None
             return token
         except ValueError:
-            print("DEBUG: Could not split Authorization header")
+            logger.debug("Authorization header format invalid")
             return None
     
     @staticmethod
@@ -166,15 +164,11 @@ class JWTManager:
         Returns:
             User payload from token or None if not authenticated
         """
-        print("DEBUG: JWTManager.get_current_user() called")
         token = JWTManager.extract_token_from_header()
-        print(f"DEBUG: Extracted token: {token[:50] if token else 'None'}...")
         if not token:
-            print("DEBUG: No token found in header")
             return None
 
         result = JWTManager.verify_token(token, 'access')
-        print(f"DEBUG: Token verification result: {result}")
         return result
 
     @staticmethod
