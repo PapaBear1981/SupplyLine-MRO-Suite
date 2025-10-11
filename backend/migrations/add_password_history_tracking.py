@@ -5,12 +5,8 @@ import os
 import sys
 from datetime import datetime
 
-from flask import Flask
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, MetaData, String, Table, inspect
 from sqlalchemy.exc import SQLAlchemyError
-
-from config import config
-from models import PasswordHistory, User, db
 
 
 logging.basicConfig(level=logging.INFO)
@@ -19,29 +15,37 @@ logger = logging.getLogger(__name__)
 
 def ensure_users_columns(inspector):
     """Ensure password tracking columns exist on the users table."""
+    from models import db
+
     columns = {column['name'] for column in inspector.get_columns('users')}
     dialect = db.engine.dialect.name
 
     if 'force_password_change' not in columns:
         logger.info("Adding force_password_change column to users table")
         default_value = '0' if dialect == 'sqlite' else 'FALSE'
-        db.engine.execute(
-            f"ALTER TABLE users ADD COLUMN force_password_change BOOLEAN DEFAULT {default_value}"
-        )
+        with db.engine.connect() as conn:
+            conn.execute(db.text(
+                f"ALTER TABLE users ADD COLUMN force_password_change BOOLEAN DEFAULT {default_value}"
+            ))
+            conn.commit()
 
     if 'password_changed_at' not in columns:
         logger.info("Adding password_changed_at column to users table")
         column_type = 'DATETIME' if dialect == 'sqlite' else 'TIMESTAMP'
-        db.engine.execute(
-            f"ALTER TABLE users ADD COLUMN password_changed_at {column_type}"
-        )
-        db.engine.execute(
-            "UPDATE users SET password_changed_at = CURRENT_TIMESTAMP WHERE password_changed_at IS NULL"
-        )
+        with db.engine.connect() as conn:
+            conn.execute(db.text(
+                f"ALTER TABLE users ADD COLUMN password_changed_at {column_type}"
+            ))
+            conn.execute(db.text(
+                "UPDATE users SET password_changed_at = CURRENT_TIMESTAMP WHERE password_changed_at IS NULL"
+            ))
+            conn.commit()
 
 
 def ensure_password_history_table(inspector):
     """Create password_history table if it does not exist."""
+    from models import db
+
     if 'password_history' in inspector.get_table_names():
         return
 
@@ -63,6 +67,8 @@ def ensure_password_history_table(inspector):
 
 def backfill_password_history():
     """Backfill password history entries for existing users."""
+    from models import PasswordHistory, User, db
+
     users = User.query.all()
     inserted = 0
     for user in users:
@@ -88,6 +94,8 @@ def backfill_password_history():
 
 def run_migration():
     """Run the password history migration."""
+    from models import db
+
     inspector = inspect(db.engine)
     ensure_users_columns(inspector)
     ensure_password_history_table(inspector)
@@ -96,13 +104,14 @@ def run_migration():
 
 def main():
     try:
-        config_name = os.environ.get('FLASK_ENV', 'development')
-        app = Flask(__name__)
-        app.config.from_object(config[config_name])
-        db.init_app(app)
+        # Import here to avoid circular dependencies
+        from app import create_app
+        from models import PasswordHistory, User, db
+
+        app = create_app()
 
         with app.app_context():
-            logger.info("Running password history migration with config: %s", config_name)
+            logger.info("Running password history migration")
             run_migration()
             logger.info("Password history migration completed successfully")
             return True
