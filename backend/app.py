@@ -32,6 +32,29 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # Allow runtime overrides of the database URL (useful for tests)
+    runtime_db_url = os.environ.get('DATABASE_URL')
+    if runtime_db_url:
+        app.config['SQLALCHEMY_DATABASE_URI'] = runtime_db_url
+
+    # Normalize engine options when using SQLite (particularly in tests)
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if db_uri.startswith('sqlite'):
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'echo': False,
+            'pool_pre_ping': True,
+            'connect_args': {'check_same_thread': False},
+        }
+
+    # Determine if we're running in a testing environment
+    is_testing_env = bool(
+        app.config.get('TESTING')
+        or os.environ.get('FLASK_ENV') == 'testing'
+        or os.environ.get('PYTEST_CURRENT_TEST')
+    )
+    if is_testing_env:
+        app.config['TESTING'] = True
+
     # Configure structured logging
     if hasattr(Config, 'LOGGING_CONFIG'):
         try:
@@ -86,89 +109,94 @@ def create_app():
         'local_time': datetime.datetime.now().isoformat()
     })
 
-    # Run database migrations
-    try:
-        # Import and run the reorder fields migration
-        from migrate_reorder_fields import migrate_database
-        logger.info("Running chemical reorder fields migration...")
-        migrate_database()
-        logger.info("Chemical reorder fields migration completed successfully")
-    except Exception as e:
-        logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
-            'migration': 'reorder_fields',
-            'error_message': str(e)
-        })
+    # Run database migrations unless we're running tests
+    if not is_testing_env:
+        try:
+            # Import and run the reorder fields migration
+            from migrate_reorder_fields import migrate_database
+            logger.info("Running chemical reorder fields migration...")
+            migrate_database()
+            logger.info("Chemical reorder fields migration completed successfully")
+        except Exception as e:
+            logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
+                'migration': 'reorder_fields',
+                'error_message': str(e)
+            })
 
-    try:
-        # Import and run the tool calibration migration
-        from migrate_tool_calibration import migrate_database as migrate_tool_calibration
-        logger.info("Running tool calibration migration...")
-        migrate_tool_calibration()
-        logger.info("Tool calibration migration completed successfully")
-    except Exception as e:
-        logger.error("Error running tool calibration migration", exc_info=True, extra={
-            'migration': 'tool_calibration',
-            'error_message': str(e)
-        })
+        try:
+            # Import and run the tool calibration migration
+            from migrate_tool_calibration import migrate_database as migrate_tool_calibration
+            logger.info("Running tool calibration migration...")
+            migrate_tool_calibration()
+            logger.info("Tool calibration migration completed successfully")
+        except Exception as e:
+            logger.error("Error running tool calibration migration", exc_info=True, extra={
+                'migration': 'tool_calibration',
+                'error_message': str(e)
+            })
 
-    try:
-        # Import and run the performance indexes migration
-        from migrate_performance_indexes import migrate_database as migrate_performance_indexes
-        logger.info("Running performance indexes migration...")
-        migrate_performance_indexes()
-        logger.info("Performance indexes migration completed successfully")
-    except Exception as e:
-        logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
-            'migration': 'performance_indexes',
-            'error_message': str(e)
-        })
-        raise
+        try:
+            # Import and run the performance indexes migration
+            from migrate_performance_indexes import migrate_database as migrate_performance_indexes
+            logger.info("Running performance indexes migration...")
+            migrate_performance_indexes()
+            logger.info("Performance indexes migration completed successfully")
+        except Exception as e:
+            logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
+                'migration': 'performance_indexes',
+                'error_message': str(e)
+            })
+            raise
 
-    try:
-        # Import and run the database constraints migration
-        from migrate_database_constraints import migrate_database as migrate_database_constraints
-        logger.info("Running database constraints migration...")
-        migrate_database_constraints()
-        logger.info("Database constraints migration completed successfully")
-    except Exception as e:
-        logger.error("Database constraints migration failed", exc_info=True, extra={
-            'migration': 'database_constraints',
-            'error_message': str(e)
-        })
-        # Don't abort startup for constraints migration as it's not critical
+        try:
+            # Import and run the database constraints migration
+            from migrate_database_constraints import migrate_database as migrate_database_constraints
+            logger.info("Running database constraints migration...")
+            migrate_database_constraints()
+            logger.info("Database constraints migration completed successfully")
+        except Exception as e:
+            logger.error("Database constraints migration failed", exc_info=True, extra={
+                'migration': 'database_constraints',
+                'error_message': str(e)
+            })
+            # Don't abort startup for constraints migration as it's not critical
 
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers
     setup_global_error_handlers(app)
 
     # Create database tables (after all setup is complete)
-    try:
-        logger.info("Creating database tables...")
-        with app.app_context():
-            db.create_all()
-        logger.info("Database tables created successfully")
-    except Exception as e:
-        logger.error("Error creating database tables", exc_info=True, extra={
-            'error_message': str(e)
-        })
-        raise
+    if not is_testing_env:
+        try:
+            logger.info("Creating database tables...")
+            with app.app_context():
+                db.create_all()
+            logger.info("Database tables created successfully")
+        except Exception as e:
+            logger.error("Error creating database tables", exc_info=True, extra={
+                'error_message': str(e)
+            })
+            raise
+    else:
+        logger.info("Skipping automatic database table creation in testing mode")
 
     # Create admin user if it doesn't exist (after tables are created)
-    try:
-        from utils.admin_init import create_secure_admin
-        logger.info("Checking/creating admin user...")
-        with app.app_context():
-            success, message, password = create_secure_admin()
-            if success:
-                logger.warning("SECURITY NOTICE: Admin user created successfully")
-                if password:
-                    logger.warning("INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs")
-            else:
-                logger.error(f"Failed to create admin user: {message}")
-    except Exception as e:
-        logger.error("Error during admin user creation", exc_info=True, extra={
-            'error_message': str(e)
-        })
+    if not is_testing_env:
+        try:
+            from utils.admin_init import create_secure_admin
+            logger.info("Checking/creating admin user...")
+            with app.app_context():
+                success, message, password = create_secure_admin()
+                if success:
+                    logger.warning("SECURITY NOTICE: Admin user created successfully")
+                    if password:
+                        logger.warning("INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs")
+                else:
+                    logger.error(f"Failed to create admin user: {message}")
+        except Exception as e:
+            logger.error("Error during admin user creation", exc_info=True, extra={
+                'error_message': str(e)
+            })
 
     # Register main routes
     register_routes(app)

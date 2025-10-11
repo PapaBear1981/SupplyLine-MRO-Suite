@@ -1,16 +1,20 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
 
 # Import time utilities for consistent time handling
 try:
     from time_utils import get_local_timestamp
+
     def get_current_time():
-        return get_local_timestamp()
+        timestamp = get_local_timestamp()
+        if timestamp.tzinfo is None:
+            return timestamp.replace(tzinfo=timezone.utc)
+        return timestamp
 except ImportError:
     def get_current_time():
-        return datetime.now()
+        return datetime.now(timezone.utc)
 
 db = SQLAlchemy()
 
@@ -182,6 +186,10 @@ class User(db.Model):
         if not self.account_locked_until:
             return False
         return get_current_time() < self.account_locked_until
+
+    def is_account_locked(self):
+        """Backward-compatible alias for lock status checks."""
+        return self.is_locked()
 
     def get_lockout_remaining_time(self):
         """Get the remaining time (in seconds) until the account is unlocked."""

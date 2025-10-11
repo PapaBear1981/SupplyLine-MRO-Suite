@@ -2,13 +2,59 @@
 Pytest configuration and fixtures for SupplyLine MRO Suite backend tests
 """
 
-import pytest
-import tempfile
 import os
-from app import create_app
-from models import db, User, Tool, Chemical, Role, Permission, UserRole, RolePermission
-from auth import JWTManager
+import sys
+import tempfile
+
+import pytest
 from werkzeug.security import generate_password_hash
+
+# Ensure the backend directory is on the Python path so absolute imports work
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+# These globals are populated lazily after we configure the environment for tests
+create_app = None
+JWTManager = None
+db = None
+User = None
+Tool = None
+Chemical = None
+Role = None
+Permission = None
+UserRole = None
+RolePermission = None
+
+
+def _ensure_imports():
+    """Lazy-load application modules when first needed."""
+    global create_app, JWTManager, db, User, Tool, Chemical, Role, Permission, UserRole, RolePermission
+
+    if create_app is None:
+        from app import create_app as _create_app
+        from auth import JWTManager as _JWTManager
+        from models import (
+            Permission as _Permission,
+            Role as _Role,
+            RolePermission as _RolePermission,
+            Tool as _Tool,
+            User as _User,
+            UserRole as _UserRole,
+            Chemical as _Chemical,
+            db as _db,
+        )
+
+        create_app = _create_app
+        JWTManager = _JWTManager
+        db = _db
+        User = _User
+        Tool = _Tool
+        Chemical = _Chemical
+        Role = _Role
+        Permission = _Permission
+        UserRole = _UserRole
+        RolePermission = _RolePermission
 
 
 @pytest.fixture(scope='session')
@@ -16,23 +62,43 @@ def app():
     """Create application for testing"""
     # Create a temporary database file
     db_fd, db_path = tempfile.mkstemp()
-    
-    app = create_app()
-    app.config.update({
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
-        'WTF_CSRF_ENABLED': False,
-        'SECRET_KEY': 'test-secret-key',
-        'JWT_SECRET_KEY': 'test-jwt-secret-key'
-    })
-    
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.drop_all()
-    
-    os.close(db_fd)
-    os.unlink(db_path)
+
+    # Configure environment for testing before app creation so Config picks it up
+    original_db_url = os.environ.get('DATABASE_URL')
+    original_flask_env = os.environ.get('FLASK_ENV')
+    os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
+    os.environ['FLASK_ENV'] = 'testing'
+
+    try:
+        _ensure_imports()
+
+        app = create_app()
+        app.config.update({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
+            'WTF_CSRF_ENABLED': False,
+            'SECRET_KEY': 'test-secret-key',
+            'JWT_SECRET_KEY': 'test-jwt-secret-key'
+        })
+
+        with app.app_context():
+            db.create_all()
+            yield app
+            db.drop_all()
+    finally:
+        # Restore environment configuration
+        if original_db_url is not None:
+            os.environ['DATABASE_URL'] = original_db_url
+        else:
+            os.environ.pop('DATABASE_URL', None)
+
+        if original_flask_env is not None:
+            os.environ['FLASK_ENV'] = original_flask_env
+        else:
+            os.environ.pop('FLASK_ENV', None)
+
+        os.close(db_fd)
+        os.unlink(db_path)
 
 
 @pytest.fixture(scope='function')
@@ -44,6 +110,7 @@ def client(app):
 @pytest.fixture(scope='function')
 def db_session(app):
     """Create database session for testing"""
+    _ensure_imports()
     with app.app_context():
         # Clear all tables
         db.session.query(UserRole).delete()
@@ -61,6 +128,7 @@ def db_session(app):
 @pytest.fixture
 def admin_user(db_session):
     """Create admin user for testing"""
+    _ensure_imports()
     user = User(
         name='Test Admin',
         employee_number='ADMIN001',
@@ -77,6 +145,7 @@ def admin_user(db_session):
 @pytest.fixture
 def regular_user(db_session):
     """Create regular user for testing"""
+    _ensure_imports()
     user = User(
         name='Test User',
         employee_number='USER001',
@@ -93,6 +162,7 @@ def regular_user(db_session):
 @pytest.fixture
 def materials_user(db_session):
     """Create materials department user for testing"""
+    _ensure_imports()
     user = User(
         name='Materials User',
         employee_number='MAT001',
@@ -109,6 +179,7 @@ def materials_user(db_session):
 @pytest.fixture
 def test_tool(db_session):
     """Create test tool"""
+    _ensure_imports()
     tool = Tool(
         tool_number='T001',
         serial_number='S001',
@@ -126,6 +197,7 @@ def test_tool(db_session):
 @pytest.fixture
 def test_chemical(db_session):
     """Create test chemical"""
+    _ensure_imports()
     chemical = Chemical(
         part_number='C001',
         lot_number='L001',
@@ -145,6 +217,7 @@ def test_chemical(db_session):
 @pytest.fixture
 def admin_token(app, admin_user):
     """Generate JWT token for admin user"""
+    _ensure_imports()
     with app.app_context():
         tokens = JWTManager.generate_tokens(admin_user)
         return tokens['access_token']
@@ -153,6 +226,7 @@ def admin_token(app, admin_user):
 @pytest.fixture
 def user_token(app, regular_user):
     """Generate JWT token for regular user"""
+    _ensure_imports()
     with app.app_context():
         tokens = JWTManager.generate_tokens(regular_user)
         return tokens['access_token']
@@ -161,6 +235,7 @@ def user_token(app, regular_user):
 @pytest.fixture
 def materials_token(app, materials_user):
     """Generate JWT token for materials user"""
+    _ensure_imports()
     with app.app_context():
         tokens = JWTManager.generate_tokens(materials_user)
         return tokens['access_token']

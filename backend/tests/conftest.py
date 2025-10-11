@@ -2,39 +2,89 @@
 Test configuration and fixtures for SupplyLine MRO Suite tests
 """
 
-import pytest
 import os
 import sys
+import tempfile
 from datetime import datetime
 
-# Add the backend directory to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
-from app import create_app
-from models import db, User, Tool, Chemical, UserActivity, AuditLog
-from auth import JWTManager
+# Add the backend directory to the Python path
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+# Lazily imported globals populated once we configure the environment
+create_app = None
+db = None
+User = None
+Tool = None
+Chemical = None
+UserActivity = None
+AuditLog = None
+JWTManager = None
 
 @pytest.fixture(scope='session')
 def app():
     """Create application for testing"""
-    # Set test environment
+    db_fd, db_path = tempfile.mkstemp()
+
+    original_db_url = os.environ.get('DATABASE_URL')
+    original_flask_env = os.environ.get('FLASK_ENV')
+    os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
     os.environ['FLASK_ENV'] = 'testing'
-    
-    app = create_app()
-    
-    # Test database configuration
-    app.config['DATABASE_URL'] = 'sqlite:///:memory:'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    app.config['JWT_SECRET_KEY'] = 'test-jwt-secret-key'
-    
-    # Disable rate limiting for tests
-    app.config['RATE_LIMITS'] = {}
-    
-    return app
+
+    try:
+        global create_app, db, User, Tool, Chemical, UserActivity, AuditLog, JWTManager
+        if create_app is None:
+            from app import create_app as _create_app
+            from models import (
+                AuditLog as _AuditLog,
+                Chemical as _Chemical,
+                Tool as _Tool,
+                User as _User,
+                UserActivity as _UserActivity,
+                db as _db,
+            )
+            from auth import JWTManager as _JWTManager
+
+            create_app = _create_app
+            db = _db
+            User = _User
+            Tool = _Tool
+            Chemical = _Chemical
+            UserActivity = _UserActivity
+            AuditLog = _AuditLog
+            JWTManager = _JWTManager
+
+        application = create_app()
+
+        # Test database configuration
+        application.config.update({
+            'DATABASE_URL': f'sqlite:///{db_path}',
+            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SECRET_KEY': 'test-secret-key',
+            'JWT_SECRET_KEY': 'test-jwt-secret-key',
+            'RATE_LIMITS': {},
+        })
+
+        yield application
+    finally:
+        if original_db_url is not None:
+            os.environ['DATABASE_URL'] = original_db_url
+        else:
+            os.environ.pop('DATABASE_URL', None)
+
+        if original_flask_env is not None:
+            os.environ['FLASK_ENV'] = original_flask_env
+        else:
+            os.environ.pop('FLASK_ENV', None)
+
+        os.close(db_fd)
+        os.unlink(db_path)
 
 @pytest.fixture(scope='session')
 def _db(app):
