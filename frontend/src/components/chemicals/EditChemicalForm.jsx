@@ -202,6 +202,7 @@ const EditChemicalForm = () => {
                   <option value="kg">Kilogram (kg)</option>
                   <option value="lb">Pound (lb)</option>
                   <option value="gal">Gallon (gal)</option>
+                  <option value="tubes">Tubes</option>
                 </Form.Select>
               </Form.Group>
             </Col>

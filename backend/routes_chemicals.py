@@ -380,6 +380,7 @@ def register_chemical_routes(app):
 
     # Get, update, or delete a specific chemical
     @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @handle_errors
     def chemical_detail_route(id):
         # Get the chemical
         chemical = Chemical.query.get_or_404(id)
@@ -430,6 +431,95 @@ def register_chemical_routes(app):
                 db.session.commit()
 
             return jsonify(chemical.to_dict())
+
+        elif request.method == 'PUT':
+            # Update chemical
+            data = request.get_json() or {}
+
+            # Validate and sanitize input using schema
+            validated_data = validate_schema(data, 'chemical')
+
+            logger.info(f"Updating chemical {id} with data: {validated_data}")
+
+            # Update fields
+            if 'part_number' in validated_data:
+                chemical.part_number = validated_data['part_number']
+            if 'lot_number' in validated_data:
+                chemical.lot_number = validated_data['lot_number']
+            if 'description' in validated_data:
+                chemical.description = validated_data['description']
+            if 'manufacturer' in validated_data:
+                chemical.manufacturer = validated_data['manufacturer']
+            if 'quantity' in validated_data:
+                chemical.quantity = validated_data['quantity']
+            if 'unit' in validated_data:
+                chemical.unit = validated_data['unit']
+            if 'location' in validated_data:
+                chemical.location = validated_data['location']
+            if 'category' in validated_data:
+                chemical.category = validated_data['category']
+            if 'status' in validated_data:
+                chemical.status = validated_data['status']
+            if 'expiration_date' in validated_data:
+                chemical.expiration_date = validated_data['expiration_date']
+            if 'minimum_stock_level' in validated_data:
+                chemical.minimum_stock_level = validated_data['minimum_stock_level']
+            if 'notes' in validated_data:
+                chemical.notes = validated_data['notes']
+
+            # Update reorder status based on new values
+            chemical.update_reorder_status()
+
+            db.session.commit()
+
+            # Log the action
+            log = AuditLog(
+                action_type='chemical_updated',
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} updated"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if hasattr(request, 'current_user'):
+                activity = UserActivity(
+                    user_id=request.current_user['user_id'],
+                    activity_type='chemical_updated',
+                    description=f"Updated chemical {chemical.part_number} - {chemical.lot_number}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            logger.info(f"Chemical {id} updated successfully")
+            return jsonify(chemical.to_dict())
+
+        elif request.method == 'DELETE':
+            # Delete chemical
+            part_number = chemical.part_number
+            lot_number = chemical.lot_number
+
+            db.session.delete(chemical)
+
+            # Log the action
+            log = AuditLog(
+                action_type='chemical_deleted',
+                action_details=f"Chemical {part_number} - {lot_number} deleted"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if hasattr(request, 'current_user'):
+                activity = UserActivity(
+                    user_id=request.current_user['user_id'],
+                    activity_type='chemical_deleted',
+                    description=f"Deleted chemical {part_number} - {lot_number}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            logger.info(f"Chemical {id} deleted successfully")
+            return jsonify({'message': 'Chemical deleted successfully'}), 200
 
     # Archive a chemical
     @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
