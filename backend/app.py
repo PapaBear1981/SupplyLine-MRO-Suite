@@ -32,6 +32,11 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # Ensure session storage is configured with a supported backend
+    session_type = app.config.get('SESSION_TYPE')
+    if not session_type or session_type.lower() == 'null':
+        app.config['SESSION_TYPE'] = 'filesystem'
+
     # Allow runtime overrides of the database URL (useful for tests)
     runtime_db_url = os.environ.get('DATABASE_URL')
     if runtime_db_url:

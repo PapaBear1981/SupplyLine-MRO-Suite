@@ -38,18 +38,22 @@ class TestUserModel:
             employee_number='PASS001',
             department='Testing'
         )
-        
+
         password = 'securepassword123!'
         user.set_password(password)
-        
+
         # Password should be hashed
         assert user.password_hash != password
         assert len(user.password_hash) > 50  # Hashed passwords are long
-        
+
         # Should verify correctly
         assert user.check_password(password)
         assert not user.check_password('wrongpassword')
-    
+
+        # History should contain the password that was just set
+        assert user.password_histories.count() == 1
+        assert user.is_password_reused('securepassword123!')
+
     def test_user_reset_token(self, db_session):
         """Test password reset token functionality"""
         user = User(
@@ -121,6 +125,58 @@ class TestUserModel:
         assert not user.is_locked()
         assert user.failed_login_attempts == 0
         assert user.account_locked_until is None
+
+    def test_password_history_limits_reuse(self, db_session):
+        """Ensure password history prevents reuse of previous passwords."""
+        user = User(
+            name='History Test',
+            employee_number='HIST001',
+            department='Testing'
+        )
+        user.set_password('Password0!')
+        db_session.add(user)
+        db_session.commit()
+
+        passwords = [
+            'Password1!',
+            'Password2!',
+            'Password3!',
+            'Password4!',
+            'Password5!',
+            'Password6!'
+        ]
+
+        for pwd in passwords:
+            user.set_password(pwd)
+            db_session.commit()
+
+        # Only the five most recent passwords should be retained
+        assert user.password_histories.count() == 5
+
+        # Reusing the most recent password should be blocked
+        assert user.is_password_reused('Password6!')
+
+        # The oldest password should no longer be in history (Password1!)
+        assert not user.is_password_reused('Password1!')
+
+    def test_password_expiration_flag(self, db_session):
+        """Verify password expiration detection."""
+        user = User(
+            name='Expiry Test',
+            employee_number='EXP001',
+            department='Testing'
+        )
+        user.set_password('InitialPass1!')
+        db_session.add(user)
+        db_session.commit()
+
+        assert not user.is_password_expired()
+
+        # Simulate password older than 90 days
+        user.password_changed_at = user.password_changed_at - timedelta(days=91)
+        db_session.commit()
+
+        assert user.is_password_expired()
     
     def test_user_to_dict(self, db_session):
         """Test user serialization"""

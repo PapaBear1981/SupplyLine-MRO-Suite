@@ -58,7 +58,7 @@ class TestJWTSecurity:
         # Login to get a valid token
         login_data = {
             'employee_number': regular_user.employee_number,
-            'password': 'password123'
+            'password': 'user123'
         }
         response = client.post('/api/auth/login', json=login_data)
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class TestJWTSecurity:
         headers = {'Authorization': f'Bearer {tampered_token}'}
         response = client.get('/api/user/profile', headers=headers)
         assert response.status_code == 401
-    
+
     def test_jwt_algorithm_confusion(self, client, regular_user):
         """Test protection against algorithm confusion attacks"""
         # Try to create a token with 'none' algorithm
@@ -87,6 +87,62 @@ class TestJWTSecurity:
         headers = {'Authorization': f'Bearer {none_token}'}
         response = client.get('/api/user/profile', headers=headers)
         assert response.status_code == 401
+
+    def test_password_expiry_requires_change(self, client, db_session, regular_user):
+        """Expired passwords should force a change on login."""
+        regular_user.password_changed_at = datetime.utcnow() - timedelta(days=95)
+        regular_user.force_password_change = False
+        db_session.commit()
+
+        login_data = {
+            'employee_number': regular_user.employee_number,
+            'password': 'user123'
+        }
+
+        response = client.post('/api/auth/login', json=login_data)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert data['code'] == 'PASSWORD_CHANGE_REQUIRED'
+        assert data['employee_number'] == regular_user.employee_number
+
+    def test_password_reuse_blocked_on_change(self, client, db_session, regular_user):
+        """Users should not be able to reuse previous passwords."""
+        login_data = {
+            'employee_number': regular_user.employee_number,
+            'password': 'user123'
+        }
+
+        response = client.post('/api/auth/login', json=login_data)
+        assert response.status_code == 200
+
+        access_token = response.get_json()['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+
+        # Change to a new password
+        first_change_payload = {
+            'current_password': 'user123',
+            'new_password': 'NewPassword123!'
+        }
+        response = client.put('/api/user/password', json=first_change_payload, headers=headers)
+        assert response.status_code == 200
+
+        # Change again to build history
+        second_change_payload = {
+            'current_password': 'NewPassword123!',
+            'new_password': 'AnotherPassword123!'
+        }
+        response = client.put('/api/user/password', json=second_change_payload, headers=headers)
+        assert response.status_code == 200
+
+        # Attempt to reuse a previous password from history
+        reuse_payload = {
+            'current_password': 'AnotherPassword123!',
+            'new_password': 'NewPassword123!'
+        }
+        response = client.put('/api/user/password', json=reuse_payload, headers=headers)
+        assert response.status_code == 400
+        assert 'last 5 passwords' in response.get_json()['error']
 
 
 class TestPasswordSecurity:
@@ -164,7 +220,7 @@ class TestSessionSecurity:
         """Test handling of concurrent logins"""
         login_data = {
             'employee_number': regular_user.employee_number,
-            'password': 'password123'
+            'password': 'user123'
         }
         
         # Login multiple times
@@ -194,7 +250,7 @@ class TestSessionSecurity:
         # Login
         login_data = {
             'employee_number': regular_user.employee_number,
-            'password': 'password123'
+            'password': 'user123'
         }
         response = client.post('/api/auth/login', json=login_data)
         assert response.status_code == 200
