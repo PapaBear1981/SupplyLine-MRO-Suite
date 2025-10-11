@@ -19,7 +19,7 @@ const ToolCalibrationForm = () => {
   const [calibrationDate, setCalibrationDate] = useState(new Date());
   const [nextCalibrationDate, setNextCalibrationDate] = useState(null);
   const [calibrationNotes, setCalibrationNotes] = useState('');
-  const [calibrationStatus, setCalibrationStatus] = useState('completed');
+  const [calibrationStatus, setCalibrationStatus] = useState('pass');
   const [selectedStandards, setSelectedStandards] = useState([]);
   const [certificateFile, setCertificateFile] = useState(null);
   const [error, setError] = useState(null);
@@ -77,7 +77,7 @@ const ToolCalibrationForm = () => {
       const calibrationData = {
         calibration_date: formattedCalibrationDate,
         next_calibration_date: formattedNextCalibrationDate,
-        calibration_notes: calibrationNotes,
+        notes: calibrationNotes,
         calibration_status: calibrationStatus,
         standard_ids: selectedStandards
       };
@@ -98,7 +98,7 @@ const ToolCalibrationForm = () => {
         setSuccess(true);
         // Reset form
         setCalibrationNotes('');
-        setCalibrationStatus('completed');
+        setCalibrationStatus('pass');
         setSelectedStandards([]);
         setCertificateFile(null);
 
@@ -233,9 +233,9 @@ const ToolCalibrationForm = () => {
                 onChange={(e) => setCalibrationStatus(e.target.value)}
                 required
               >
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-                <option value="in_progress">In Progress</option>
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="limited">Limited</option>
               </Form.Select>
             </Form.Group>
 

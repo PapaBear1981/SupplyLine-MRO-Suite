@@ -173,10 +173,16 @@ const CalibrationDetailPage = () => {
                 <Col sm={4} className="fw-bold">Status:</Col>
                 <Col sm={8}>
                   <Badge bg={
+                    calibration.calibration_status === 'pass' ? 'success' :
+                    calibration.calibration_status === 'fail' ? 'danger' :
+                    calibration.calibration_status === 'limited' ? 'warning' :
                     calibration.calibration_status === 'completed' ? 'success' :
                     calibration.calibration_status === 'failed' ? 'danger' : 'warning'
                   }>
-                    {calibration.calibration_status === 'completed' ? 'Completed' :
+                    {calibration.calibration_status === 'pass' ? 'Pass' :
+                     calibration.calibration_status === 'fail' ? 'Fail' :
+                     calibration.calibration_status === 'limited' ? 'Limited' :
+                     calibration.calibration_status === 'completed' ? 'Completed' :
                      calibration.calibration_status === 'failed' ? 'Failed' : 'In Progress'}
                   </Badge>
                 </Col>

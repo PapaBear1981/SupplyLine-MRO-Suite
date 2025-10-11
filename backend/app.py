@@ -1,7 +1,7 @@
 from flask import Flask, session, jsonify
 from routes import register_routes
 from config import Config
-from flask_session import Session
+# from flask_session import Session  # Disabled due to Flask 3.x compatibility issues - using JWT instead
 from flask_cors import CORS
 from models import db
 import os
@@ -113,11 +113,12 @@ def create_app():
     if not session_type or str(session_type).lower() in {'none', 'null', ''}:
         app.config['SESSION_TYPE'] = 'filesystem'
 
-    # Initialize Flask-Session
-    Session(app)
+    # Initialize Flask-Session - DISABLED due to Flask 3.x compatibility issues
+    # The application uses JWT authentication, so Flask-Session is not needed
+    # Session(app)
 
-    # Initialize session cleanup
-    init_session_cleanup(app)
+    # Initialize session cleanup - DISABLED since Flask-Session is disabled
+    # init_session_cleanup(app)
 
     # Initialize resource monitoring
     init_resource_monitoring(app)
