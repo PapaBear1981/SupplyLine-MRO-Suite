@@ -6,9 +6,7 @@ from functools import wraps
 import secrets
 import string
 import os
-import uuid
 import time
-from werkzeug.utils import secure_filename
 from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
 from routes_reports import register_report_routes
@@ -55,6 +53,7 @@ import utils as password_utils
 from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
 from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
+from utils.file_validation import FileValidationError, validate_image_upload
 import logging
 
 logger = logging.getLogger(__name__)
@@ -2053,26 +2052,20 @@ def register_routes(app):
             return jsonify({'error': 'No selected file'}), 400
 
         if file:
-            # Check file extension
-            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-            if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-                return jsonify({'error': 'File type not allowed. Please upload an image (PNG, JPG, JPEG, GIF)'}), 400
+            try:
+                max_size = current_app.config.get('MAX_AVATAR_FILE_SIZE')
+                safe_filename = validate_image_upload(file, max_size=max_size)
+            except FileValidationError as exc:
+                return jsonify({'error': str(exc)}), getattr(exc, 'status_code', 400)
 
-            # Create a unique filename
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}_{filename}"
-
-            # Save the file
             avatar_dir = os.path.join(current_app.static_folder, 'avatars')
-            if not os.path.exists(avatar_dir):
-                os.makedirs(avatar_dir)
+            os.makedirs(avatar_dir, exist_ok=True)
 
-            file_path = os.path.join(avatar_dir, unique_filename)
+            file_path = os.path.join(avatar_dir, safe_filename)
             file.save(file_path)
 
             # Update user's avatar field with the relative path
-            # Use absolute URL for the avatar to ensure it's accessible from the frontend
-            avatar_url = f"/api/static/avatars/{unique_filename}"
+            avatar_url = f"/api/static/avatars/{safe_filename}"
             user.avatar = avatar_url
             db.session.commit()
 

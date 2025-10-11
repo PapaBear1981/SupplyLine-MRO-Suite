@@ -32,6 +32,21 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # File upload safeguards
+    app.config.setdefault('MAX_AVATAR_FILE_SIZE', 5 * 1024 * 1024)  # 5MB
+    app.config.setdefault('MAX_BULK_IMPORT_FILE_SIZE', 5 * 1024 * 1024)
+    app.config.setdefault('MAX_CALIBRATION_CERTIFICATE_FILE_SIZE', 5 * 1024 * 1024)
+    app.config.setdefault(
+        'CALIBRATION_CERTIFICATE_FOLDER',
+        os.path.join(app.instance_path, 'calibration_certificates')
+    )
+    os.makedirs(app.config['CALIBRATION_CERTIFICATE_FOLDER'], exist_ok=True)
+    app.config.setdefault('SESSION_TYPE', 'filesystem')
+    if app.config['SESSION_TYPE'] == 'filesystem':
+        session_dir = app.config.get('SESSION_FILE_DIR') or os.path.join(app.instance_path, 'flask_session')
+        os.makedirs(session_dir, exist_ok=True)
+        app.config['SESSION_FILE_DIR'] = session_dir
+
     # Allow runtime overrides of the database URL (useful for tests)
     runtime_db_url = os.environ.get('DATABASE_URL')
     if runtime_db_url:

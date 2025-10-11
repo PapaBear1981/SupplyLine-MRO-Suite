@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from models import db, Tool, Chemical
 from utils.validation import validate_schema, ValidationError
+from utils.file_validation import sanitize_csv_cell, neutralize_csv_formula
 import logging
 
 logger = logging.getLogger(__name__)
@@ -107,9 +108,10 @@ def parse_csv_content(content: str, expected_headers: List[str]) -> Tuple[List[D
             cleaned_row = {}
             for key, value in row.items():
                 if value is not None:
-                    cleaned_row[key] = str(value).strip() if value else ''
+                    cleaned_value = sanitize_csv_cell(str(value)) if value else ''
                 else:
-                    cleaned_row[key] = ''
+                    cleaned_value = ''
+                cleaned_row[key] = cleaned_value
             
             # Add row number for error reporting
             cleaned_row['_row_number'] = row_num
@@ -154,7 +156,13 @@ def validate_tool_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
                 raise ValidationError(f"Invalid calibration frequency: {freq_str}")
     
     # Validate using existing schema
-    return validate_schema(tool_data, 'tool')
+    validated_tool = validate_schema(tool_data, 'tool')
+
+    for field in ['tool_number', 'serial_number', 'description', 'location', 'category', 'status', 'status_reason']:
+        if field in validated_tool:
+            validated_tool[field] = neutralize_csv_formula(validated_tool[field])
+
+    return validated_tool
 
 def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -204,7 +212,13 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
             raise ValidationError(f"Invalid expiration date: {exp_date_str}")
     
     # Validate using existing schema
-    return validate_schema(chemical_data, 'chemical')
+    validated_chemical = validate_schema(chemical_data, 'chemical')
+
+    for field in ['part_number', 'lot_number', 'description', 'manufacturer', 'location', 'category', 'msds_url']:
+        if field in validated_chemical:
+            validated_chemical[field] = neutralize_csv_formula(validated_chemical[field])
+
+    return validated_chemical
 
 def check_duplicate_tool(tool_data: Dict[str, Any]) -> Optional[Tool]:
     """Check if a tool with the same tool_number and serial_number already exists"""

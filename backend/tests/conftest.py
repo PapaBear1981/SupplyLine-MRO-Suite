@@ -119,14 +119,18 @@ def client(app, db_session):
 @pytest.fixture
 def jwt_manager(app):
     """Create JWT manager for testing"""
-    return JWTManager(app)
+    return JWTManager
 
 @pytest.fixture
 def admin_user(db_session):
     """Create admin user for testing"""
+    existing = User.query.filter_by(employee_number='ADMTEST001').first()
+    if existing:
+        return existing
+
     user = User(
         name='Test Admin',
-        employee_number='ADMIN001',
+        employee_number='ADMTEST001',
         department='IT',
         is_admin=True,
         is_active=True
@@ -161,9 +165,7 @@ def sample_tool(db_session, admin_user):
         condition='Good',
         location='Test Location',
         category='Testing',
-        status='available',
-        created_by=admin_user.id,
-        created_at=datetime.utcnow()
+        status='available'
     )
     db_session.add(tool)
     db_session.commit()
