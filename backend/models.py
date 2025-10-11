@@ -8,13 +8,18 @@ try:
     from time_utils import get_local_timestamp
 
     def get_current_time():
-        timestamp = get_local_timestamp()
-        if timestamp.tzinfo is None:
-            return timestamp.replace(tzinfo=timezone.utc)
-        return timestamp
+        """
+        Get current time as a naive datetime for database storage.
+        Returns naive datetime to match SQLAlchemy's db.DateTime column type.
+        """
+        return get_local_timestamp()
 except ImportError:
     def get_current_time():
-        return datetime.now(timezone.utc)
+        """
+        Fallback to naive datetime.now() if time_utils is not available.
+        Returns naive datetime to match SQLAlchemy's db.DateTime column type.
+        """
+        return datetime.now()
 
 db = SQLAlchemy()
 
@@ -108,12 +113,18 @@ class User(db.Model):
 
     def generate_reset_token(self):
         import secrets
-        import string
 
-        # Generate a 6-digit code
-        code = ''.join(secrets.choice(string.digits) for _ in range(6))
+        # Generate a cryptographically secure 32-character token
+        # This provides ~256 bits of entropy, making brute force attacks infeasible
+        # Previous 6-digit code had only 1 million combinations (easily brute-forceable)
+        code = secrets.token_urlsafe(32)  # Generates 43-character URL-safe string
+
         self.reset_token = generate_password_hash(code)  # Store hash of code
-        self.reset_token_expiry = get_current_time() + timedelta(hours=1)  # Valid for 1 hour
+
+        # Reduced expiry time from 1 hour to 15 minutes for better security
+        # Shorter window reduces the time available for brute force attacks
+        self.reset_token_expiry = get_current_time() + timedelta(minutes=15)
+
         return code
 
     def check_reset_token(self, token):

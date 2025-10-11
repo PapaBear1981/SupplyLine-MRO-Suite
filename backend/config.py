@@ -5,9 +5,13 @@ from datetime import timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
-    # Use environment variables with fallbacks for local development
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
+    # Security: Require SECRET_KEY and JWT_SECRET_KEY to be set via environment variables
+    # This prevents the use of hardcoded default values in production
+    # Exception: Testing environment can set these via app.config after initialization
+
+    # Load from environment variables (may be None if not set)
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
 
     # Database configuration - check for DATABASE_URL environment variable first
     DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -119,3 +123,33 @@ class Config:
         'LOCKOUT_MULTIPLIER': int(os.environ.get('LOCKOUT_MULTIPLIER', 2)),  # Multiplier for subsequent lockouts
         'MAX_LOCKOUT_MINUTES': int(os.environ.get('MAX_LOCKOUT_MINUTES', 60))  # Maximum lockout duration in minutes
     }
+
+    @staticmethod
+    def validate_security_config(app_config):
+        """
+        Validate that required security configuration is present.
+        This is called after app initialization to allow test fixtures to set values programmatically.
+
+        Args:
+            app_config: Flask app.config object
+
+        Raises:
+            RuntimeError: If required security keys are missing in non-testing environments
+        """
+        # Check if we're in testing mode
+        is_testing = os.environ.get('FLASK_ENV') == 'testing' or app_config.get('TESTING', False)
+
+        if not is_testing:
+            if not app_config.get('SECRET_KEY'):
+                raise RuntimeError(
+                    'SECRET_KEY must be set in production. '
+                    'Set the SECRET_KEY environment variable or app.config["SECRET_KEY"]. '
+                    'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+                )
+
+            if not app_config.get('JWT_SECRET_KEY'):
+                raise RuntimeError(
+                    'JWT_SECRET_KEY must be set in production. '
+                    'Set the JWT_SECRET_KEY environment variable or app.config["JWT_SECRET_KEY"]. '
+                    'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+                )

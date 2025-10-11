@@ -60,20 +60,24 @@ class TestUserModel:
         user.set_password('test123')
         db_session.add(user)
         db_session.commit()
-        
+
         # Generate reset token
         token = user.generate_reset_token()
-        
+
+        # Updated for Issue #412: Token is now 32-character alphanumeric, not 6-digit
         assert token is not None
-        assert len(token) == 6  # 6-digit code
-        assert token.isdigit()
+        assert len(token) >= 32, f"Token should be at least 32 characters, got {len(token)}"
+        # Token should contain alphanumeric characters (URL-safe base64)
+        import re
+        assert re.match(r'^[A-Za-z0-9_-]+$', token), "Token should be URL-safe alphanumeric"
         assert user.reset_token is not None
         assert user.reset_token_expiry is not None
-        
+
         # Verify token
         assert user.check_reset_token(token)
         assert not user.check_reset_token('123456')
-        
+        assert not user.check_reset_token('wrong_token_12345')
+
         # Clear token
         user.clear_reset_token()
         assert user.reset_token is None
@@ -182,21 +186,21 @@ class TestToolModel:
         )
         
         # Set next calibration date in the future (more than 30 days)
-        future_date = datetime.now(timezone.utc) + timedelta(days=60)
+        future_date = datetime.now() + timedelta(days=60)
         tool.next_calibration_date = future_date
 
         tool.update_calibration_status()
         assert tool.calibration_status == 'current'
-        
+
         # Set next calibration date in near future (due soon)
-        soon_date = datetime.now(timezone.utc) + timedelta(days=15)
+        soon_date = datetime.now() + timedelta(days=15)
         tool.next_calibration_date = soon_date
-        
+
         tool.update_calibration_status()
         assert tool.calibration_status == 'due_soon'
-        
+
         # Set next calibration date in the past (overdue)
-        past_date = datetime.now(timezone.utc) - timedelta(days=10)
+        past_date = datetime.now() - timedelta(days=10)
         tool.next_calibration_date = past_date
         
         tool.update_calibration_status()
@@ -262,13 +266,13 @@ class TestChemicalModel:
         )
         
         # Set expiration date in the past
-        past_date = datetime.now(timezone.utc) - timedelta(days=10)
+        past_date = datetime.now() - timedelta(days=10)
         chemical.expiration_date = past_date
-        
+
         assert chemical.is_expired()
-        
+
         # Set expiration date in the future
-        future_date = datetime.now(timezone.utc) + timedelta(days=10)
+        future_date = datetime.now() + timedelta(days=10)
         chemical.expiration_date = future_date
         
         assert not chemical.is_expired()
