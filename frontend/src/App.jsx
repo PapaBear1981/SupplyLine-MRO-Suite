@@ -14,6 +14,7 @@ import MainLayout from './components/common/MainLayout';
 import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
 
 // Import pages
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
@@ -77,6 +78,23 @@ import ToolCalibrationForm from './pages/ToolCalibrationForm';
 import CalibrationStandardForm from './pages/CalibrationStandardForm';
 import CalibrationDetailPage from './pages/CalibrationDetailPage';
 
+// Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
+const RootRoute = () => {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  if (isAuthenticated) {
+    return (
+      <ProtectedRoute>
+        <MainLayout>
+          <UserDashboardPage />
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  return <LandingPage />;
+};
+
 function App() {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.theme);
@@ -99,14 +117,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes - Dashboard as default landing page */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <UserDashboardPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+        {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}
+        <Route path="/" element={<RootRoute />} />
 
         <Route path="/dashboard" element={
           <ProtectedRoute>
