@@ -88,6 +88,11 @@ def create_app():
         },
     )
 
+    # Ensure session storage is configured (default to secure filesystem storage)
+    session_type = app.config.get('SESSION_TYPE')
+    if not session_type or str(session_type).lower() in {'none', 'null', ''}:
+        app.config['SESSION_TYPE'] = 'filesystem'
+
     # Initialize Flask-Session
     Session(app)
 
