@@ -37,7 +37,13 @@ IMAGE_SIGNATURES = {
 
 ALLOWED_CERTIFICATE_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
 ALLOWED_CERTIFICATE_MIME_TYPES = {"application/pdf", "image/png", "image/jpeg"}
-ALLOWED_CSV_MIME_TYPES = {"text/csv", "application/vnd.ms-excel"}
+# Allow common MIME types sent by different browsers for CSV files
+ALLOWED_CSV_MIME_TYPES = {
+    "text/csv",
+    "application/vnd.ms-excel",
+    "text/plain",  # Safari, Firefox, curl
+    "application/octet-stream"  # Generic binary fallback
+}
 
 DANGEROUS_CSV_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
