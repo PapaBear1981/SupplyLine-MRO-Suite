@@ -186,21 +186,21 @@ class TestToolModel:
         )
         
         # Set next calibration date in the future (more than 30 days)
-        future_date = datetime.now(timezone.utc) + timedelta(days=60)
+        future_date = datetime.now() + timedelta(days=60)
         tool.next_calibration_date = future_date
 
         tool.update_calibration_status()
         assert tool.calibration_status == 'current'
-        
+
         # Set next calibration date in near future (due soon)
-        soon_date = datetime.now(timezone.utc) + timedelta(days=15)
+        soon_date = datetime.now() + timedelta(days=15)
         tool.next_calibration_date = soon_date
-        
+
         tool.update_calibration_status()
         assert tool.calibration_status == 'due_soon'
-        
+
         # Set next calibration date in the past (overdue)
-        past_date = datetime.now(timezone.utc) - timedelta(days=10)
+        past_date = datetime.now() - timedelta(days=10)
         tool.next_calibration_date = past_date
         
         tool.update_calibration_status()
@@ -266,13 +266,13 @@ class TestChemicalModel:
         )
         
         # Set expiration date in the past
-        past_date = datetime.now(timezone.utc) - timedelta(days=10)
+        past_date = datetime.now() - timedelta(days=10)
         chemical.expiration_date = past_date
-        
+
         assert chemical.is_expired()
-        
+
         # Set expiration date in the future
-        future_date = datetime.now(timezone.utc) + timedelta(days=10)
+        future_date = datetime.now() + timedelta(days=10)
         chemical.expiration_date = future_date
         
         assert not chemical.is_expired()
