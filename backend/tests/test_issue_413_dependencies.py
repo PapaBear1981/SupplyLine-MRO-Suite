@@ -8,10 +8,10 @@ import sys
 
 
 def test_flask_version():
-    """Test that Flask is updated to 3.1.0 or higher"""
+    """Test that Flask is updated to 3.1.1 or higher (fixes CVE-2025-47278)"""
     import flask
-    version = tuple(map(int, flask.__version__.split('.')[:2]))
-    assert version >= (3, 1), f"Flask version should be 3.1.0 or higher, got {flask.__version__}"
+    version = tuple(map(int, flask.__version__.split('.')[:3]))
+    assert version >= (3, 1, 1), f"Flask version should be 3.1.1 or higher, got {flask.__version__}"
 
 
 def test_werkzeug_version():
@@ -126,11 +126,12 @@ def test_flask_app_can_be_created():
 def test_sqlalchemy_can_create_engine():
     """Test that SQLAlchemy can create a database engine"""
     from sqlalchemy import create_engine
-    
+    import sqlalchemy
+
     # Create in-memory SQLite engine for testing
     engine = create_engine('sqlite:///:memory:')
     assert engine is not None
-    
+
     # Test connection
     with engine.connect() as conn:
         result = conn.execute(sqlalchemy.text('SELECT 1'))
