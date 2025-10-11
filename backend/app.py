@@ -142,7 +142,7 @@ def create_app():
             migrate_performance_indexes()
             logger.info("Performance indexes migration completed successfully")
         except Exception as e:
-            logger.error("Performance indexes migration failed – aborting startup", exc_info=True, extra={
+            logger.error("Performance indexes migration failed - aborting startup", exc_info=True, extra={
                 'migration': 'performance_indexes',
                 'error_message': str(e)
             })
@@ -190,7 +190,7 @@ def create_app():
                 if success:
                     logger.warning("SECURITY NOTICE: Admin user created successfully")
                     if password:
-                        logger.warning("INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs")
+                        logger.warning("INITIAL ADMIN PASSWORD GENERATED - copy from env-var not from logs")
                 else:
                     logger.error(f"Failed to create admin user: {message}")
         except Exception as e:

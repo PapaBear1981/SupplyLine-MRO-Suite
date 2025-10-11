@@ -8,13 +8,18 @@ try:
     from time_utils import get_local_timestamp
 
     def get_current_time():
-        timestamp = get_local_timestamp()
-        if timestamp.tzinfo is None:
-            return timestamp.replace(tzinfo=timezone.utc)
-        return timestamp
+        """
+        Get current time as a naive datetime for database storage.
+        Returns naive datetime to match SQLAlchemy's db.DateTime column type.
+        """
+        return get_local_timestamp()
 except ImportError:
     def get_current_time():
-        return datetime.now(timezone.utc)
+        """
+        Fallback to naive datetime.now() if time_utils is not available.
+        Returns naive datetime to match SQLAlchemy's db.DateTime column type.
+        """
+        return datetime.now()
 
 db = SQLAlchemy()
 
