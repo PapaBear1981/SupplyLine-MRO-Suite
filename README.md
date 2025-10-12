@@ -2,65 +2,52 @@
 
 A comprehensive, secure, and scalable Maintenance, Repair, and Operations (MRO) management system built with modern technologies and AWS-ready architecture.
 
-**Current Version: 4.0.0 - AWS Production Beta** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
+**Current Version: 4.1.0 - Security Hardening & Feature Enhancements** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
 
-## 🚀 Version 4.0.0 - Major AWS Release
+## 🔒 Version 4.1.0 - Security Hardening & Feature Enhancements
 
-This is a **major release** featuring complete migration to AWS cloud infrastructure with enhanced security, scalability, and modern authentication. This version includes breaking changes and represents a significant architectural upgrade.
+This is a **major security release** featuring comprehensive fixes for critical vulnerabilities, enhanced authentication mechanisms, and new barcode/QR code features for improved tool tracking. This version includes breaking changes that significantly improve the security posture of the application.
 
 ### Key Highlights
 
-- **🏗️ AWS Cloud Infrastructure**: Complete migration to AWS using ECS Fargate, RDS PostgreSQL, S3, CloudFront, and more
-- **🔐 JWT Authentication**: Modern token-based authentication replacing session-based auth
-- **🛡️ Enhanced Security**: AWS Secrets Manager, IAM roles, VPC security, and comprehensive audit logging
-- **📈 Production Scalability**: Auto-scaling, load balancing, and CDN for global performance
-- **🔧 DevOps Ready**: GitHub Actions CI/CD, Infrastructure as Code, and automated deployments
+- **🛡️ Critical Security Fixes**: 8 vulnerabilities fixed (1 Critical, 3 High, 4 Medium)
+- **🔐 Enhanced Authentication**: Password history tracking, 90-day expiration, secure reset tokens
+- **📱 Barcode/QR Code Features**: Calibration information display, mobile-friendly landing pages
+- **🧪 Chemical Management**: Fixed critical bug preventing expiration date edits
+- **📦 Dependency Updates**: All dependencies updated to latest secure versions
+- **🔒 Hardened Security**: Removed hardcoded secrets, rate limiting, file upload validation
+
+### Security Improvements
+
+- **Removed Hardcoded Secrets** (CRITICAL): Application now requires environment variables for SECRET_KEY and JWT_SECRET_KEY
+- **Strengthened Password Reset**: 32-character cryptographically secure tokens with 15-minute expiry
+- **Rate Limiting**: Protection against brute force attacks on authentication endpoints
+- **Password Security**: History tracking (last 5 passwords), 90-day expiration enforcement
+- **File Upload Validation**: Strict type checking, size limits, CSV sanitization
+- **Enhanced Logging**: Structured logging with sanitized error responses
+- **Updated Dependencies**: Fixed CVE-2023-25577, CVE-2023-46136, and other vulnerabilities
+
+### New Features in v4.1.0
+
+#### 📱 Barcode/QR Code Enhancements
+- **Calibration Information on Printed Tags**: Calibration date and expiration date prominently displayed on physical labels
+- **Color-Coded Dates**: Green for calibration date, red for due date for easy identification
+- **QR Code Certification Access**: QR codes link to mobile-friendly landing pages with tool and calibration information
+- **Public Tool View**: No authentication required for QR code scans, perfect for field use
+- **Certificate Download**: Direct access to calibration certificates from QR code scans
+- **Enhanced Print Layout**: Professional labels optimized for printing without interfering with scannability
+
+#### 🧪 Chemical Management Improvements
+- **Fixed Critical Bug**: Resolved issue preventing chemical expiration date edits
+- **Complete CRUD Operations**: Added missing PUT/DELETE handlers for chemical management
+- **Enhanced Validation**: Added "tubes" unit support and improved schema validation
+- **Audit Logging**: Comprehensive logging for all chemical updates and changes
 
 ## Overview
 
 This application provides a complete solution for managing tool and chemical inventories in aerospace maintenance environments. It allows for tracking tools, managing checkouts, monitoring chemical usage, and generating detailed reports. The system is designed with different user roles and permissions to ensure proper access control.
 
-Built with modern security practices and designed for enterprise-scale deployments on AWS cloud infrastructure.
-
-- **Improved Admin Dashboard**: Fixed tab switching in Admin Dashboard for User Management, Role Management, System Settings, and Help Settings
-- **Enhanced Chemical Management**: Added alerts for overdue chemical deliveries and fixed chemical reorder delivery functionality
-- **Improved Reporting**: Connected Chemical Waste Analytics to real data and fixed Part Number Analytics
-- **Fixed Login Issues**: Resolved login functionality for non-admin users
-- **UI Enhancements**: Removed redundant UI elements and the Activity Log tab from profile page
-- **Standardized Date Formats**: Implemented consistent date formatting across the application
-- **Fixed Calibration Reports**: Added serial numbers and descriptions to Calibration History reports
-- **Improved Tool Status Display**: Enhanced status indicators for overdue tools
-
-### Previous Release (3.5.2)
-
-Version 3.5.2 included significant improvements to chemical management functionality:
-
-- **Simplified Chemical Interface**: Removed dropdown menu from chemical list for a cleaner interface
-- **Enhanced Chemical Issuance**: Fixed and improved chemical issuance functionality
-- **Improved Chemical Reordering**: Added endpoints for marking chemicals as ordered and delivered
-- **Real-time Chemical Analytics**: Enhanced chemical usage analytics with real-time data
-- **Improved Security**: Removed debug login functionality and debug endpoints
-- **Better API Integration**: Fixed chemical issuance history endpoint
-
-### Previous Release (3.5.1)
-
-- **Fixed Tool Management**: Improved tool addition and return functionality
-- **Enhanced Chemical Management**: Fixed chemical creation and management
-- **Improved User Management**: Enhanced user addition and management operations
-- **Fixed Calibration System**: Resolved issues with calibration standards and tool calibration
-- **Enhanced Tool Return Process**: Added detailed tracking for tool returns including condition, who returned it, and notes
-- **Consistent Dark Mode**: Fixed styling inconsistencies across the application
-- **Improved Docker Support**: Enhanced Docker configuration for better reliability
-
-### Previous Release (3.5.0)
-
-Version 3.5.0 introduced comprehensive tool calibration management:
-
-- **Calibration Tracking**: Track calibration status for tools requiring regular calibration
-- **Calibration Standards**: Manage calibration standards used for tool verification
-- **Calibration History**: View complete calibration history for each tool
-- **Calibration Alerts**: Receive notifications for tools due for calibration
-- **Calibration Reports**: Generate detailed reports on calibration status and history
+Built with modern security practices and designed for enterprise-scale deployments with comprehensive security hardening.
 
 ## Key Features
 
