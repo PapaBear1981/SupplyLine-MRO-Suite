@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Nav, Tab, Alert, Row, Col } from 'react-bootstrap';
+import { Card, Nav, Tab, Alert } from 'react-bootstrap';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
@@ -8,11 +8,10 @@ import SystemSettings from './SystemSettings';
 import HelpSettings from './HelpSettings';
 import LoadingSpinner from '../common/LoadingSpinner';
 import DashboardStats from './DashboardStats';
-import SystemResources from './SystemResources';
 import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
 import PasswordReset from './PasswordReset';
-import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } from '../../store/adminSlice';
+import { fetchDashboardStats, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,7 +19,6 @@ const AdminDashboard = () => {
   const { user: currentUser, isLoading: authLoading } = useSelector((state) => state.auth);
   const {
     dashboardStats,
-    systemResources,
     loading: adminLoading
   } = useSelector((state) => state.admin);
 
@@ -51,7 +49,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (canViewDashboard) {
       dispatch(fetchDashboardStats());
-      dispatch(fetchSystemResources());
       dispatch(fetchRegistrationRequests('pending'));
     }
   }, [dispatch, canViewDashboard]);
@@ -149,14 +146,7 @@ const AdminDashboard = () => {
             <Tab.Content>
               <Tab.Pane eventKey="dashboard">
                 {canViewDashboard && (
-                  <Row>
-                    <Col md={8}>
-                      <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
-                    </Col>
-                    <Col md={4}>
-                      <SystemResources resources={systemResources} loading={adminLoading.systemResources} />
-                    </Col>
-                  </Row>
+                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
                 )}
               </Tab.Pane>
               <Tab.Pane eventKey="users">
