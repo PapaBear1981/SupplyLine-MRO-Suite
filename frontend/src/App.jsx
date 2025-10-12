@@ -77,6 +77,12 @@ import CalibrationManagement from './pages/CalibrationManagement';
 import ToolCalibrationForm from './pages/ToolCalibrationForm';
 import CalibrationStandardForm from './pages/CalibrationStandardForm';
 import CalibrationDetailPage from './pages/CalibrationDetailPage';
+import KitsManagement from './pages/KitsManagement';
+import KitWizard from './components/kits/KitWizard';
+import KitDetailPage from './pages/KitDetailPage';
+import KitReports from './pages/KitReports';
+import KitMobileInterface from './pages/KitMobileInterface';
+import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
 const RootRoute = () => {
@@ -209,6 +215,14 @@ function App() {
           </AdminRoute>
         } />
 
+        <Route path="/admin/aircraft-types" element={
+          <AdminRoute>
+            <MainLayout>
+              <AircraftTypeManagement />
+            </MainLayout>
+          </AdminRoute>
+        } />
+
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePageNew />
@@ -319,6 +333,45 @@ function App() {
             <MainLayout>
               <ScannerPage />
             </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Kit routes */}
+        <Route path="/kits" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <KitsManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/kits/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <KitWizard />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/kits/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <KitDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/kits/reports" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <KitReports />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/kits/mobile" element={
+          <ProtectedRoute>
+            <KitMobileInterface />
           </ProtectedRoute>
         } />
 

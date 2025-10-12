@@ -12,6 +12,9 @@ import rbacReducer from './rbacSlice';
 import adminReducer from './adminSlice';
 import announcementsReducer from './announcementSlice';
 import cycleCountReducer from './cycleCountSlice';
+import kitsReducer from './kitsSlice';
+import kitTransfersReducer from './kitTransfersSlice';
+import kitMessagesReducer from './kitMessagesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +31,9 @@ export const store = configureStore({
     admin: adminReducer,
     announcements: announcementsReducer,
     cycleCount: cycleCountReducer,
+    kits: kitsReducer,
+    kitTransfers: kitTransfersReducer,
+    kitMessages: kitMessagesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

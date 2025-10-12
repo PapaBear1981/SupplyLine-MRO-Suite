@@ -8,6 +8,9 @@ import RecentActivity from '../components/dashboard/RecentActivity';
 import Announcements from '../components/dashboard/Announcements';
 import QuickActions from '../components/dashboard/QuickActions';
 import PastDueTools from '../components/dashboard/PastDueTools';
+import MyKits from '../components/dashboard/MyKits';
+import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
+import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 
 const UserDashboardPage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -32,8 +35,17 @@ const UserDashboardPage = () => {
             {/* Only show PastDueTools to admins and Materials department */}
             {isAdmin && <PastDueTools />}
 
+            {/* Kit Alerts - Show to all users */}
+            <KitAlertsSummary />
+
             {/* User's Checked Out Tools */}
             <UserCheckoutStatus />
+
+            {/* My Kits - Show active kits */}
+            <MyKits />
+
+            {/* Recent Kit Activity */}
+            <RecentKitActivity />
 
             {/* Recent Activity */}
             <RecentActivity />

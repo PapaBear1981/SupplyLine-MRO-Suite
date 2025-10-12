@@ -6,7 +6,7 @@
 export const TEST_USERS = {
   admin: {
     username: 'ADMIN001',
-    password: 'admin123'
+    password: 'password123'
   },
   user: {
     username: 'USER001',
@@ -33,10 +33,13 @@ export async function setAuthTokens(page, accessToken, refreshToken) {
 
 /**
  * Login with specified user credentials
- * @param {import('@playwright/test').Page} page 
+ * @param {import('@playwright/test').Page} page
  * @param {Object} user - User credentials object
  */
 export async function login(page, user = TEST_USERS.admin) {
+  // Navigate to login page first to establish context
+  await page.goto('/login');
+
   const response = await page.request.post('/api/auth/login', {
     data: {
       employee_number: user.username,

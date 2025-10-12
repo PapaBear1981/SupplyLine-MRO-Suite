@@ -10,23 +10,29 @@ const QuickActions = () => {
   // Define quick actions based on user role
   const getQuickActions = () => {
     const commonActions = [
-      { 
-        title: 'Checkout Tool', 
-        icon: 'box-arrow-right', 
-        link: '/tools', 
-        variant: 'primary' 
+      {
+        title: 'Checkout Tool',
+        icon: 'box-arrow-right',
+        link: '/tools',
+        variant: 'primary'
       },
-      { 
-        title: 'My Checkouts', 
-        icon: 'list-check', 
-        link: '/my-checkouts', 
-        variant: 'info' 
+      {
+        title: 'My Checkouts',
+        icon: 'list-check',
+        link: '/my-checkouts',
+        variant: 'info'
       },
-      { 
-        title: 'View Profile', 
-        icon: 'person', 
-        link: '/profile', 
-        variant: 'secondary' 
+      {
+        title: 'View Kits',
+        icon: 'box',
+        link: '/kits',
+        variant: 'success'
+      },
+      {
+        title: 'View Profile',
+        icon: 'person',
+        link: '/profile',
+        variant: 'secondary'
       }
     ];
     
