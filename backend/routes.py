@@ -18,6 +18,7 @@ from routes_rbac import register_rbac_routes, permission_required
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_auth import register_auth_routes
+from routes_password_reset import register_password_reset_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
@@ -187,6 +188,9 @@ def register_routes(app):
 
     # Register JWT authentication routes
     register_auth_routes(app)
+
+    # Register password reset routes
+    register_password_reset_routes(app)
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution

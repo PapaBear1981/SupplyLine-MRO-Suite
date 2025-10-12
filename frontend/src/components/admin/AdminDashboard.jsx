@@ -11,6 +11,7 @@ import DashboardStats from './DashboardStats';
 import SystemResources from './SystemResources';
 import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
+import PasswordReset from './PasswordReset';
 import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
@@ -32,7 +33,8 @@ const AdminDashboard = () => {
     canManageSettings,
     canManageHelp,
     canViewRegistrations,
-    canManageAnnouncements
+    canManageAnnouncements,
+    canResetPasswords
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
     canViewUsers: currentUser?.permissions?.includes('user.view'),
@@ -41,7 +43,8 @@ const AdminDashboard = () => {
     canManageSettings: currentUser?.permissions?.includes('system.settings'),
     canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
     canViewRegistrations: currentUser?.is_admin,
-    canManageAnnouncements: currentUser?.is_admin
+    canManageAnnouncements: currentUser?.is_admin,
+    canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage')
   }), [currentUser?.permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
@@ -83,8 +86,9 @@ const AdminDashboard = () => {
       else if (canManageHelp) setActiveTab('help');
       else if (canViewRegistrations) setActiveTab('registrations');
       else if (canManageAnnouncements) setActiveTab('announcements');
+      else if (canResetPasswords) setActiveTab('password-reset');
     }
-  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, activeTab]);
+  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, canResetPasswords, activeTab]);
 
   return (
     <div>
@@ -134,6 +138,11 @@ const AdminDashboard = () => {
                   <Nav.Link eventKey="announcements">Announcements</Nav.Link>
                 </Nav.Item>
               )}
+              {canResetPasswords && (
+                <Nav.Item>
+                  <Nav.Link eventKey="password-reset">Password Reset</Nav.Link>
+                </Nav.Item>
+              )}
             </Nav>
           </Card.Header>
           <Card.Body>
@@ -170,6 +179,9 @@ const AdminDashboard = () => {
               </Tab.Pane>
               <Tab.Pane eventKey="announcements">
                 {canManageAnnouncements && <AnnouncementManagement />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="password-reset">
+                {canResetPasswords && <PasswordReset />}
               </Tab.Pane>
             </Tab.Content>
           </Card.Body>
