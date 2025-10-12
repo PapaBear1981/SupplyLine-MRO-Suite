@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Card, Table, Button, Form, InputGroup, Alert, Modal, Badge, Spinner 
 } from 'react-bootstrap';
@@ -23,21 +23,17 @@ const PasswordReset = () => {
   const [copied, setCopied] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  // Fetch users on component mount
-  useEffect(() => {
-    fetchUsers();
-  }, [includeInactive]);
-
-  const fetchUsers = async () => {
+  // Memoize fetchUsers to avoid unnecessary re-renders
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('q', searchQuery);
       if (departmentFilter) params.append('department', departmentFilter);
       if (includeInactive) params.append('include_inactive', 'true');
-      
+
       const response = await api.get(`/admin/users/search?${params.toString()}`);
       setUsers(response.data);
       setFilteredUsers(response.data);
@@ -47,7 +43,12 @@ const PasswordReset = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, departmentFilter, includeInactive]);
+
+  // Fetch users on component mount and when filters change
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Handle search
   const handleSearch = () => {
