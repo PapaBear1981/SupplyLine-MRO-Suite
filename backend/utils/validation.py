@@ -140,7 +140,7 @@ TOOL_SCHEMA = {
 
 CHEMICAL_SCHEMA = {
     'required': ['part_number', 'lot_number', 'quantity', 'unit'],
-    'optional': ['description', 'manufacturer', 'location', 'expiration_date', 'msds_url'],
+    'optional': ['description', 'manufacturer', 'location', 'expiration_date', 'msds_url', 'category', 'status', 'minimum_stock_level', 'notes'],
     'types': {
         'part_number': str,
         'lot_number': str,
@@ -149,16 +149,24 @@ CHEMICAL_SCHEMA = {
         'description': str,
         'manufacturer': str,
         'location': str,
-        'msds_url': str
+        'msds_url': str,
+        'category': str,
+        'status': str,
+        'minimum_stock_level': (int, float),
+        'notes': str
     },
     'constraints': {
         'part_number': {'max_length': 100},
         'lot_number': {'max_length': 100},
         'quantity': {'min': 0},
-        'unit': {'choices': ['each', 'oz', 'ml', 'gal', 'lb', 'kg', 'liter']},
+        'unit': {'choices': ['each', 'oz', 'ml', 'l', 'g', 'kg', 'lb', 'gal', 'tubes']},
         'description': {'max_length': 500},
         'manufacturer': {'max_length': 200},
-        'location': {'max_length': 100}
+        'location': {'max_length': 100},
+        'category': {'max_length': 100},
+        'status': {'choices': ['available', 'low_stock', 'out_of_stock', 'expired']},
+        'minimum_stock_level': {'min': 0},
+        'notes': {'max_length': 1000}
     },
     'date_fields': ['expiration_date']
 }
