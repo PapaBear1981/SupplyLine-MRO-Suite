@@ -14,18 +14,6 @@ export const fetchDashboardStats = createAsyncThunk(
   }
 );
 
-export const fetchSystemResources = createAsyncThunk(
-  'admin/fetchSystemResources',
-  async (_, { rejectWithValue }) => {
-    try {
-      const data = await AdminService.getSystemResources();
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch system resources' });
-    }
-  }
-);
-
 export const fetchRegistrationRequests = createAsyncThunk(
   'admin/fetchRegistrationRequests',
   async (status = 'pending', { rejectWithValue }) => {
@@ -69,7 +57,6 @@ export const denyRegistrationRequest = createAsyncThunk(
 // Initial state
 const initialState = {
   dashboardStats: null,
-  systemResources: null,
   registrationRequests: {
     pending: [],
     approved: [],
@@ -78,14 +65,12 @@ const initialState = {
   },
   loading: {
     dashboardStats: false,
-    systemResources: false,
     registrationRequests: false,
     approveRequest: false,
     denyRequest: false
   },
   error: {
     dashboardStats: null,
-    systemResources: null,
     registrationRequests: null,
     approveRequest: null,
     denyRequest: null
@@ -100,7 +85,6 @@ const adminSlice = createSlice({
     clearErrors: (state) => {
       state.error = {
         dashboardStats: null,
-        systemResources: null,
         registrationRequests: null,
         approveRequest: null,
         denyRequest: null
@@ -121,23 +105,6 @@ const adminSlice = createSlice({
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.loading.dashboardStats = false;
         state.error.dashboardStats = action.payload || { message: 'Failed to fetch dashboard statistics' };
-      })
-
-      // System resources
-      .addCase(fetchSystemResources.pending, (state) => {
-        console.log('fetchSystemResources.pending');
-        state.loading.systemResources = true;
-        state.error.systemResources = null;
-      })
-      .addCase(fetchSystemResources.fulfilled, (state, action) => {
-        console.log('fetchSystemResources.fulfilled - payload:', action.payload);
-        state.loading.systemResources = false;
-        state.systemResources = action.payload;
-      })
-      .addCase(fetchSystemResources.rejected, (state, action) => {
-        console.log('fetchSystemResources.rejected - error:', action.payload);
-        state.loading.systemResources = false;
-        state.error.systemResources = action.payload || { message: 'Failed to fetch system resources' };
       })
 
       // Registration requests

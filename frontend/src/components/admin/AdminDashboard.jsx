@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Nav, Tab, Alert, Row, Col } from 'react-bootstrap';
+import { Card, Nav, Tab, Alert } from 'react-bootstrap';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
@@ -8,10 +8,10 @@ import SystemSettings from './SystemSettings';
 import HelpSettings from './HelpSettings';
 import LoadingSpinner from '../common/LoadingSpinner';
 import DashboardStats from './DashboardStats';
-import SystemResources from './SystemResources';
 import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
-import { fetchDashboardStats, fetchSystemResources, fetchRegistrationRequests } from '../../store/adminSlice';
+import PasswordReset from './PasswordReset';
+import { fetchDashboardStats, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,7 +19,6 @@ const AdminDashboard = () => {
   const { user: currentUser, isLoading: authLoading } = useSelector((state) => state.auth);
   const {
     dashboardStats,
-    systemResources,
     loading: adminLoading
   } = useSelector((state) => state.admin);
 
@@ -32,7 +31,8 @@ const AdminDashboard = () => {
     canManageSettings,
     canManageHelp,
     canViewRegistrations,
-    canManageAnnouncements
+    canManageAnnouncements,
+    canResetPasswords
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
     canViewUsers: currentUser?.permissions?.includes('user.view'),
@@ -41,14 +41,14 @@ const AdminDashboard = () => {
     canManageSettings: currentUser?.permissions?.includes('system.settings'),
     canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
     canViewRegistrations: currentUser?.is_admin,
-    canManageAnnouncements: currentUser?.is_admin
+    canManageAnnouncements: currentUser?.is_admin,
+    canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage')
   }), [currentUser?.permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
   useEffect(() => {
     if (canViewDashboard) {
       dispatch(fetchDashboardStats());
-      dispatch(fetchSystemResources());
       dispatch(fetchRegistrationRequests('pending'));
     }
   }, [dispatch, canViewDashboard]);
@@ -83,8 +83,9 @@ const AdminDashboard = () => {
       else if (canManageHelp) setActiveTab('help');
       else if (canViewRegistrations) setActiveTab('registrations');
       else if (canManageAnnouncements) setActiveTab('announcements');
+      else if (canResetPasswords) setActiveTab('password-reset');
     }
-  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, activeTab]);
+  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, canResetPasswords, activeTab]);
 
   return (
     <div>
@@ -134,20 +135,18 @@ const AdminDashboard = () => {
                   <Nav.Link eventKey="announcements">Announcements</Nav.Link>
                 </Nav.Item>
               )}
+              {canResetPasswords && (
+                <Nav.Item>
+                  <Nav.Link eventKey="password-reset">Password Reset</Nav.Link>
+                </Nav.Item>
+              )}
             </Nav>
           </Card.Header>
           <Card.Body>
             <Tab.Content>
               <Tab.Pane eventKey="dashboard">
                 {canViewDashboard && (
-                  <Row>
-                    <Col md={8}>
-                      <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
-                    </Col>
-                    <Col md={4}>
-                      <SystemResources resources={systemResources} loading={adminLoading.systemResources} />
-                    </Col>
-                  </Row>
+                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
                 )}
               </Tab.Pane>
               <Tab.Pane eventKey="users">
@@ -170,6 +169,9 @@ const AdminDashboard = () => {
               </Tab.Pane>
               <Tab.Pane eventKey="announcements">
                 {canManageAnnouncements && <AnnouncementManagement />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="password-reset">
+                {canResetPasswords && <PasswordReset />}
               </Tab.Pane>
             </Tab.Content>
           </Card.Body>

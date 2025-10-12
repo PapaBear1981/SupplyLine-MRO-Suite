@@ -49,6 +49,9 @@ reportlab==4.2.5
 # Updated from 3.1.2 to 3.1.5 for security patches
 openpyxl==3.1.5
 
+# Environment Variables
+python-dotenv==1.0.1
+
 # Testing Framework
 # Already at latest version
 pytest==8.3.5
