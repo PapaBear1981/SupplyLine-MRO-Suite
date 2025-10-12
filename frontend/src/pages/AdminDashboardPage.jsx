@@ -9,19 +9,19 @@ const AdminDashboardPage = () => {
   // Define admin permission prefixes as a constant
   const ADMIN_PERMISSION_PREFIXES = ['user.', 'role.', 'system.'];
 
-  // Check if user has any admin permissions
-  const hasAdminPermissions = user?.permissions?.some(permission =>
+  // Check if user has any admin permissions or is an admin
+  const hasAdminPermissions = user?.is_admin || user?.permissions?.some(permission =>
     ADMIN_PERMISSION_PREFIXES.some(prefix => permission.startsWith(prefix))
   );
-
-  // Redirect if user doesn't have admin permissions
-  if (!hasAdminPermissions) {
-    return <Navigate to="/" replace />;
-  }
 
   // Show loading spinner while fetching user data
   if (isLoading) {
     return <LoadingSpinner />;
+  }
+
+  // Redirect if user doesn't have admin permissions
+  if (!hasAdminPermissions) {
+    return <Navigate to="/" replace />;
   }
 
   // At this point, we know the user has admin permissions
