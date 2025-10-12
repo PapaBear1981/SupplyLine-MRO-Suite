@@ -593,8 +593,8 @@ def register_routes(app):
         ).all()
 
         dept_data = [{
-            'name': dept.department or 'Unknown',
-            'value': dept.count
+            'department': dept.department or 'Unknown',
+            'count': dept.count
         } for dept in dept_distribution]
 
         return jsonify({
