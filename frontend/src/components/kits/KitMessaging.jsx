@@ -73,9 +73,9 @@ const KitMessaging = ({ kitId }) => {
 
   const handleSendReply = (e) => {
     e.preventDefault();
-    
+
     dispatch(replyToMessage({
-      messageId: selectedMessage.id,
+      id: selectedMessage.id,
       data: { message: replyData.message }
     }))
       .unwrap()
@@ -93,7 +93,7 @@ const KitMessaging = ({ kitId }) => {
   const handleMessageClick = (message) => {
     setSelectedMessage(message);
     if (!message.is_read && message.recipient_id === user?.id) {
-      dispatch(markMessageAsRead({ messageId: message.id }));
+      dispatch(markMessageAsRead(message.id));
     }
   };
 
