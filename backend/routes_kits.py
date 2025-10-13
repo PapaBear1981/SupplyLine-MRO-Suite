@@ -844,6 +844,8 @@ def register_kit_routes(app):
                 raise ValidationError(f'Insufficient quantity. Available: {item.quantity}')
 
             item.quantity -= quantity
+            # Round to avoid floating-point precision errors
+            item.quantity = round(item.quantity, 2)
 
             if item.quantity <= 0:
                 item.status = 'issued'

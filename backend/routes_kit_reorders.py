@@ -205,7 +205,9 @@ def register_kit_reorder_routes(app):
                 # Update existing item
                 item = KitItem.query.get(reorder.item_id)
                 if item:
-                    item.quantity += int(reorder.quantity_requested)
+                    item.quantity += reorder.quantity_requested
+                    # Round to avoid floating-point precision errors
+                    item.quantity = round(item.quantity, 2)
                     item.status = 'available'
                     item.box_id = box_id
             else:
@@ -216,7 +218,7 @@ def register_kit_reorder_routes(app):
                     item_type=reorder.item_type,
                     part_number=reorder.part_number,
                     description=reorder.description,
-                    quantity=int(reorder.quantity_requested),
+                    quantity=round(reorder.quantity_requested, 2),
                     location=f'Box {box.box_number}',
                     status='available'
                 )
