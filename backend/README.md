@@ -49,6 +49,57 @@ The server will start on http://localhost:5000
 - Audit:
   - GET /api/audit - Get audit logs (requires admin privileges)
 
+- Mobile Warehouses (Kits):
+  - GET /api/kits - List all kits
+  - POST /api/kits - Create a new kit (requires admin/materials privileges)
+  - GET /api/kits/:id - Get kit details
+  - PUT /api/kits/:id - Update kit (requires admin/materials privileges)
+  - DELETE /api/kits/:id - Delete kit (requires admin privileges)
+  - POST /api/kits/:id/duplicate - Duplicate kit as template
+  - GET /api/kits/:id/items - List items in kit
+  - POST /api/kits/:id/items - Add item to kit
+  - PUT /api/kits/:id/items/:itemId - Update kit item
+  - DELETE /api/kits/:id/items/:itemId - Remove item from kit
+  - POST /api/kits/:id/issue - Issue items from kit
+  - GET /api/kits/:id/issuances - Get issuance history
+  - POST /api/kits/:id/reorder - Create reorder request
+  - GET /api/kits/:id/alerts - Get kit alerts
+
+- Aircraft Types:
+  - GET /api/aircraft-types - List all aircraft types
+  - POST /api/aircraft-types - Create aircraft type (requires admin privileges)
+  - PUT /api/aircraft-types/:id - Update aircraft type (requires admin privileges)
+  - DELETE /api/aircraft-types/:id - Deactivate aircraft type (requires admin privileges)
+
+- Kit Transfers:
+  - GET /api/transfers - List all transfers
+  - POST /api/transfers - Create transfer
+  - GET /api/transfers/:id - Get transfer details
+  - PUT /api/transfers/:id/complete - Complete transfer
+  - PUT /api/transfers/:id/cancel - Cancel transfer
+
+- Kit Reorder Requests:
+  - GET /api/reorder-requests - List all reorder requests
+  - GET /api/reorder-requests/:id - Get request details
+  - PUT /api/reorder-requests/:id/approve - Approve request (requires admin/materials privileges)
+  - PUT /api/reorder-requests/:id/fulfill - Mark request fulfilled
+  - PUT /api/reorder-requests/:id/cancel - Cancel request
+
+- Kit Messages:
+  - GET /api/messages - Get user's messages
+  - POST /api/kits/:id/messages - Send message
+  - GET /api/kits/:id/messages - Get messages for kit
+  - GET /api/messages/:id - Get message details
+  - PUT /api/messages/:id/read - Mark message as read
+  - POST /api/messages/:id/reply - Reply to message
+
+- Kit Reports:
+  - GET /api/kits/reports/inventory - Inventory report
+  - GET /api/kits/reports/issuances - Issuance history report
+  - GET /api/kits/reports/transfers - Transfer history report
+  - GET /api/kits/reports/reorders - Reorder status report
+  - GET /api/kits/analytics/utilization - Kit utilization analytics
+
 ## Default Admin User
 
 A default admin user is created when the application starts:

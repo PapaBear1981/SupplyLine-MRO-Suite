@@ -2,6 +2,245 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2025-10-12 - Mobile Warehouse/Kits System
+
+### 🚀 MAJOR FEATURE RELEASE
+
+This release introduces the Mobile Warehouse (Kits) system, enabling tracking and management of mobile warehouses that follow aircraft to operating bases for maintenance operations.
+
+### Added
+
+#### Backend - Database & Models
+- **9 New Database Models** for comprehensive kit management:
+  - `AircraftType`: Manage aircraft types (Q400, RJ85, CL415) with admin controls
+  - `Kit`: Main kit entity with aircraft type association and status tracking
+  - `KitBox`: Box containers (expendable, tooling, consumable, loose, floor)
+  - `KitItem`: Items transferred into kits (tools/chemicals) with quantity tracking
+  - `KitExpendable`: Manually added expendables not linked to existing inventory
+  - `KitIssuance`: Complete issuance tracking with work order integration
+  - `KitTransfer`: Transfer system supporting kit-to-kit, kit-to-warehouse, warehouse-to-kit
+  - `KitReorderRequest`: Automatic and manual reorder requests with approval workflow
+  - `KitMessage`: Messaging system with threading, attachments, and read status
+- **Database Migration Script** (`backend/migrate_kits.py`):
+  - Creates all 9 tables with proper indexes and foreign keys
+  - Seeds default aircraft types (Q400, RJ85, CL415)
+  - Includes verification and rollback capability
+
+#### Backend - API Endpoints (40+ new endpoints)
+- **Kit Management** (`/api/kits`):
+  - GET /api/kits - List all kits with filtering
+  - POST /api/kits - Create new kit
+  - GET /api/kits/:id - Get kit details
+  - PUT /api/kits/:id - Update kit
+  - DELETE /api/kits/:id - Delete kit (soft delete)
+  - POST /api/kits/:id/duplicate - Duplicate kit as template
+  - POST /api/kits/wizard - Multi-step kit creation wizard
+- **Aircraft Type Management** (`/api/aircraft-types`) - Admin only:
+  - GET /api/aircraft-types - List aircraft types
+  - POST /api/aircraft-types - Create aircraft type
+  - PUT /api/aircraft-types/:id - Update aircraft type
+  - DELETE /api/aircraft-types/:id - Deactivate aircraft type
+- **Box Management** (`/api/kits/:id/boxes`):
+  - GET /api/kits/:id/boxes - List boxes
+  - POST /api/kits/:id/boxes - Add box
+  - PUT /api/kits/:id/boxes/:boxId - Update box
+  - DELETE /api/kits/:id/boxes/:boxId - Remove box
+- **Item Management** (`/api/kits/:id/items`):
+  - GET /api/kits/:id/items - List items with filters
+  - POST /api/kits/:id/items - Add item
+  - PUT /api/kits/:id/items/:itemId - Update item
+  - DELETE /api/kits/:id/items/:itemId - Remove item
+- **Expendable Management** (`/api/kits/:id/expendables`):
+  - GET /api/kits/:id/expendables - List expendables
+  - POST /api/kits/:id/expendables - Add expendable
+  - PUT /api/kits/:id/expendables/:id - Update expendable
+  - DELETE /api/kits/:id/expendables/:id - Remove expendable
+- **Issuance System** (`/api/kits/:id/issue`):
+  - POST /api/kits/:id/issue - Issue items from kit
+  - GET /api/kits/:id/issuances - Get issuance history
+  - GET /api/kits/:id/issuances/:issuanceId - Get issuance details
+  - Automatic reorder trigger on low stock
+- **Transfer System** (`/api/transfers`):
+  - POST /api/transfers - Initiate transfer
+  - GET /api/transfers - List transfers with filters
+  - GET /api/transfers/:id - Transfer details
+  - PUT /api/transfers/:id/complete - Complete transfer
+  - PUT /api/transfers/:id/cancel - Cancel transfer
+- **Reorder Management** (`/api/reorder-requests`):
+  - POST /api/kits/:id/reorder - Create reorder request
+  - GET /api/reorder-requests - List all requests with filters
+  - GET /api/reorder-requests/:id - Request details
+  - PUT /api/reorder-requests/:id/approve - Approve request
+  - PUT /api/reorder-requests/:id/order - Mark as ordered
+  - PUT /api/reorder-requests/:id/fulfill - Mark as fulfilled
+  - PUT /api/reorder-requests/:id/cancel - Cancel request
+- **Messaging System** (`/api/messages`):
+  - POST /api/kits/:id/messages - Send message
+  - GET /api/kits/:id/messages - Get messages for kit
+  - GET /api/messages - Get user's messages
+  - GET /api/messages/:id - Message details
+  - PUT /api/messages/:id/read - Mark as read
+  - POST /api/messages/:id/reply - Reply to message
+  - GET /api/messages/unread-count - Get unread count
+- **Analytics & Reporting**:
+  - GET /api/kits/:id/analytics - Kit usage statistics
+  - GET /api/kits/reports/inventory - Inventory report
+  - GET /api/kits/:id/alerts - Get alerts for kit
+
+#### Frontend - State Management
+- **Redux Slices**:
+  - `kitsSlice.js`: Kit operations, wizard, analytics, alerts
+  - `kitTransfersSlice.js`: Transfer operations with status tracking
+  - `kitMessagesSlice.js`: Messaging with unread count tracking
+- **Async Thunks**: 30+ async operations for all kit functionality
+- **Error Handling**: Comprehensive error handling and loading states
+
+#### Frontend - UI Components & Pages
+- **KitsManagement Page**: Main dashboard with tabs (All, Active, Inactive, Alerts)
+  - Search and filter by aircraft type
+  - Kit cards showing status, aircraft type, item counts, alerts
+  - Quick actions for create, view, messages
+- **KitWizard Component**: 4-step guided kit creation
+  - Step 1: Aircraft type selection
+  - Step 2: Kit details (name, description)
+  - Step 3: Box configuration
+  - Step 4: Review and create
+  - Progress indicator and validation
+- **KitDetailPage**: Comprehensive kit detail view
+  - Overview tab with kit information and statistics
+  - Quick action buttons (Edit, Duplicate, Issue, Transfer, Reorder, Message)
+  - Tabs for Items, Issuances, Transfers, Reorders, Messages
+  - Alert display
+- **KitItemsList Component**: Items display with filtering
+  - Group by box with filters (box type, item type, status)
+  - Item details with quantity, location, status badges
+  - Action buttons for issue and transfer
+- **KitAlerts Component**: Alert display system
+  - Color-coded severity levels (high, medium, low)
+  - Low stock alerts, pending reorders, unread messages
+  - Dismissible alerts with action buttons
+- **Navigation Integration**:
+  - "Kits" link added to main navigation
+  - Routes configured with protected route wrappers
+  - Seamless integration with existing UI
+
+### Features
+
+#### Core Functionality
+- ✅ **Aircraft Type Management**: Admin can manage aircraft types
+- ✅ **Kit CRUD Operations**: Full create, read, update, delete for kits
+- ✅ **Kit Wizard**: Guided 4-step kit creation process
+- ✅ **Box System**: Numbered boxes with type constraints (expendable, tooling, consumable, loose, floor)
+- ✅ **Item Tracking**: Track tools, chemicals, and expendables in kits
+- ✅ **Issuance System**: Issue items with work order tracking
+- ✅ **Transfer System**: Kit-to-kit, kit-to-warehouse, warehouse-to-kit transfers
+- ✅ **Automatic Reordering**: Trigger reorders on low stock/issuance
+- ✅ **Messaging**: Communication between mechanics and stores personnel
+- ✅ **Alerts**: Low stock, expiring items, pending reorders notifications
+- ✅ **Reporting**: Analytics and inventory reports
+
+#### Security & Authorization
+- **Department-based Access**: Materials department required for kit management
+- **Admin Controls**: Aircraft type management restricted to admins
+- **JWT Authentication**: All endpoints protected with JWT tokens
+- **Audit Logging**: All kit operations logged for compliance
+
+### Database Changes
+
+#### New Tables (9)
+1. `aircraft_types` - Aircraft type definitions
+2. `kits` - Main kit records
+3. `kit_boxes` - Box containers within kits
+4. `kit_items` - Items in kits (tools/chemicals)
+5. `kit_expendables` - Manually added expendables
+6. `kit_issuances` - Issuance tracking
+7. `kit_transfers` - Transfer records
+8. `kit_reorder_requests` - Reorder requests
+9. `kit_messages` - Messaging system
+
+#### Indexes Added
+- Performance indexes on all foreign keys
+- Composite indexes for common queries
+- Status and date indexes for filtering
+
+### Migration Instructions
+
+#### Database Migration
+```bash
+# Run the migration script
+python backend/migrate_kits.py development
+
+# For production
+python backend/migrate_kits.py production
+```
+
+#### No Breaking Changes
+- All existing functionality remains unchanged
+- New feature is additive only
+- No changes to existing database tables
+- No changes to existing API endpoints
+
+### Technical Details
+
+#### Backend Architecture
+- **Route Modules**: 4 new route files (`routes_kits.py`, `routes_kit_transfers.py`, `routes_kit_reorders.py`, `routes_kit_messages.py`)
+- **Models**: 9 new SQLAlchemy models with proper relationships
+- **Validation**: Comprehensive input validation and error handling
+- **Logging**: Structured logging for all operations
+
+#### Frontend Architecture
+- **Redux Toolkit**: Modern state management with async thunks
+- **React Router**: Protected routes with authentication
+- **React-Bootstrap**: Consistent UI components
+- **Component Composition**: Reusable components following existing patterns
+
+### Known Limitations
+
+#### Current Version
+- Mobile interface not yet implemented (desktop only)
+- Some advanced UI features pending (issuance/transfer forms)
+- No automated tests yet (manual testing performed)
+- Documentation in progress
+
+#### Future Enhancements
+- Real-time updates for messaging (WebSocket/polling)
+- Barcode scanner integration for mobile
+- Offline capability for field use
+- Bulk operations for transfers
+- Advanced reporting with charts
+
+### Files Added
+
+#### Backend
+- `backend/models_kits.py` - Database models
+- `backend/migrate_kits.py` - Migration script
+- `backend/routes_kits.py` - Main kit routes
+- `backend/routes_kit_transfers.py` - Transfer routes
+- `backend/routes_kit_reorders.py` - Reorder routes
+- `backend/routes_kit_messages.py` - Messaging routes
+
+#### Frontend
+- `frontend/src/store/kitsSlice.js` - Kit state management
+- `frontend/src/store/kitTransfersSlice.js` - Transfer state
+- `frontend/src/store/kitMessagesSlice.js` - Message state
+- `frontend/src/pages/KitsManagement.jsx` - Main dashboard
+- `frontend/src/pages/KitDetailPage.jsx` - Detail view
+- `frontend/src/components/kits/KitWizard.jsx` - Creation wizard
+- `frontend/src/components/kits/KitItemsList.jsx` - Items display
+- `frontend/src/components/kits/KitAlerts.jsx` - Alert display
+
+#### Documentation
+- `mobile_warehouse_spec.txt` - Original specification
+- `KITS_IMPLEMENTATION_STATUS.md` - Implementation tracking
+- `IMPLEMENTATION_COMPLETE_SUMMARY.md` - Completion summary
+
+### Acknowledgments
+- Feature specification based on operational requirements for mobile maintenance operations
+- Implementation follows existing codebase patterns and conventions
+- Designed for scalability and future enhancements
+
+---
+
 ## [4.0.0] - 2025-06-22 - AWS Production Beta
 
 ### 🚀 MAJOR RELEASE - BREAKING CHANGES

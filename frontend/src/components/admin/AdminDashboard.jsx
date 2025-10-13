@@ -11,6 +11,7 @@ import DashboardStats from './DashboardStats';
 import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
 import PasswordReset from './PasswordReset';
+import AircraftTypeManagement from './AircraftTypeManagement';
 import { fetchDashboardStats, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
@@ -32,7 +33,8 @@ const AdminDashboard = () => {
     canManageHelp,
     canViewRegistrations,
     canManageAnnouncements,
-    canResetPasswords
+    canResetPasswords,
+    canManageAircraftTypes
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
     canViewUsers: currentUser?.permissions?.includes('user.view'),
@@ -42,7 +44,8 @@ const AdminDashboard = () => {
     canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
     canViewRegistrations: currentUser?.is_admin,
     canManageAnnouncements: currentUser?.is_admin,
-    canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage')
+    canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage'),
+    canManageAircraftTypes: currentUser?.is_admin
   }), [currentUser?.permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
@@ -65,7 +68,7 @@ const AdminDashboard = () => {
   }
 
   // If user doesn't have permission for any tabs, show an error
-  if (!canViewDashboard && !canViewUsers && !canManageRoles && !canViewAudit && !canManageSettings && !canManageHelp && !canViewRegistrations && !canManageAnnouncements) {
+  if (!canViewDashboard && !canViewUsers && !canManageRoles && !canViewAudit && !canManageSettings && !canManageHelp && !canViewRegistrations && !canManageAnnouncements && !canManageAircraftTypes) {
     return (
       <Alert variant="danger">
         You do not have permission to access the Admin Dashboard. Please contact your administrator.
@@ -140,6 +143,11 @@ const AdminDashboard = () => {
                   <Nav.Link eventKey="password-reset">Password Reset</Nav.Link>
                 </Nav.Item>
               )}
+              {canManageAircraftTypes && (
+                <Nav.Item>
+                  <Nav.Link eventKey="aircraft-types">Aircraft Types</Nav.Link>
+                </Nav.Item>
+              )}
             </Nav>
           </Card.Header>
           <Card.Body>
@@ -172,6 +180,9 @@ const AdminDashboard = () => {
               </Tab.Pane>
               <Tab.Pane eventKey="password-reset">
                 {canResetPasswords && <PasswordReset />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="aircraft-types">
+                {canManageAircraftTypes && <AircraftTypeManagement />}
               </Tab.Pane>
             </Tab.Content>
           </Card.Body>

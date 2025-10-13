@@ -70,7 +70,7 @@ def handle_errors(f):
                 'error_message': str(e),
                 'duration_ms': round(duration, 2)
             })
-            return jsonify({'error': 'Invalid input', 'message': str(e)}), 400
+            return jsonify({'error': str(e)}), 400
 
         except AuthenticationError as e:
             duration = (time.time() - start_time) * 1000
@@ -122,6 +122,17 @@ def handle_errors(f):
             return jsonify({'error': 'Database error occurred'}), 500
 
         except Exception as e:
+            # Handle werkzeug NotFound (from get_or_404)
+            if type(e).__name__ == 'NotFound':
+                duration = (time.time() - start_time) * 1000
+                logger.warning(f"Resource not found in {f.__name__}", extra={
+                    **context,
+                    'operation': f.__name__,
+                    'error_type': 'NotFound',
+                    'duration_ms': round(duration, 2)
+                })
+                return jsonify({'error': 'Resource not found'}), 404
+
             duration = (time.time() - start_time) * 1000
             logger.error(f"Unexpected error in {f.__name__}", exc_info=True, extra={
                 **context,

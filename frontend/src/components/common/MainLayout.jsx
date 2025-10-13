@@ -24,6 +24,7 @@ const MainLayout = ({ children }) => {
               <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
               <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+              <Nav.Link as={Link} to="/kits">Kits</Nav.Link>
               {user && (
                 <>
                   {/* Show these links to admins and Materials department users */}

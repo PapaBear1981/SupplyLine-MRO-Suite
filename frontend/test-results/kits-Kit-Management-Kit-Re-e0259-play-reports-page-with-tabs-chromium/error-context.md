@@ -1,0 +1,123 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - link "SupplyLine MRO Suite" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Dashboard" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Tools" [ref=e10] [cursor=pointer]:
+            - /url: /tools
+          - link "Checkouts" [ref=e11] [cursor=pointer]:
+            - /url: /checkouts
+          - link "Kits" [ref=e12] [cursor=pointer]:
+            - /url: /kits
+          - link "All Checkouts" [ref=e13] [cursor=pointer]:
+            - /url: /checkouts/all
+          - link "Chemicals" [ref=e14] [cursor=pointer]:
+            - /url: /chemicals
+          - link "Calibrations" [ref=e15] [cursor=pointer]:
+            - /url: /calibrations
+          - link "Reports" [ref=e16] [cursor=pointer]:
+            - /url: /reports
+          - link "Admin Dashboard" [ref=e17] [cursor=pointer]:
+            - /url: /admin/dashboard
+          - link " Scanner" [ref=e18] [cursor=pointer]:
+            - /url: /scanner
+            - generic [ref=e19]: 
+            - text: Scanner
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - button "Hide help features" [ref=e22] [cursor=pointer]:
+              - generic [ref=e23]: 
+            - button "Start guided tour" [ref=e24] [cursor=pointer]:
+              - generic [ref=e25]: 
+          - button "System Administrator S" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]: System Administrator
+            - generic [ref=e28]: S
+  - generic [ref=e30]:
+    - generic [ref=e32]:
+      - heading "Kit Reports & Analytics" [level=2] [ref=e33]:
+        - img [ref=e34]
+        - text: Kit Reports & Analytics
+      - paragraph [ref=e36]: Comprehensive reporting for kit inventory, issuances, transfers, and utilization
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - img [ref=e39]
+        - text: Report Filters
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: Aircraft Type
+            - combobox [ref=e46]:
+              - option "All Aircraft Types" [selected]
+              - option "CL415"
+              - option "Q400"
+              - option "RJ85"
+          - generic [ref=e48]:
+            - generic [ref=e49]: Kit
+            - combobox [ref=e50]:
+              - option "All Kits" [selected]
+              - option "RJ85Kit1"
+          - generic [ref=e52]:
+            - generic [ref=e53]: Start Date
+            - textbox [ref=e54]
+          - generic [ref=e56]:
+            - generic [ref=e57]: End Date
+            - textbox [ref=e58]
+          - button "Clear Filters" [ref=e60] [cursor=pointer]
+        - generic [ref=e62]:
+          - button "Export CSV" [ref=e63] [cursor=pointer]:
+            - img [ref=e64]
+            - text: Export CSV
+          - button "Export JSON" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+            - text: Export JSON
+    - tablist [ref=e69]:
+      - tab "Inventory" [selected] [ref=e70] [cursor=pointer]:
+        - img [ref=e71]
+        - text: Inventory
+      - tab "Issuances" [ref=e73] [cursor=pointer]
+      - tab "Transfers" [ref=e74] [cursor=pointer]:
+        - img [ref=e75]
+        - text: Transfers
+      - tab "Reorders" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+        - text: Reorders
+      - tab "Utilization" [ref=e80] [cursor=pointer]:
+        - img [ref=e81]
+        - text: Utilization
+    - tabpanel "Inventory" [ref=e84]:
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - heading "Kit Inventory Report" [level=5] [ref=e87]
+          - text: Overview of all kits with item counts and stock levels
+        - table [ref=e90]:
+          - rowgroup [ref=e91]:
+            - row "Kit Name Aircraft Type Total Items Low Stock Items Boxes Status" [ref=e92]:
+              - cell "Kit Name" [ref=e93]
+              - cell "Aircraft Type" [ref=e94]
+              - cell "Total Items" [ref=e95]
+              - cell "Low Stock Items" [ref=e96]
+              - cell "Boxes" [ref=e97]
+              - cell "Status" [ref=e98]
+          - rowgroup [ref=e99]:
+            - row "RJ85Kit1 RJ85 0 0 5 Good" [ref=e100]:
+              - cell "RJ85Kit1" [ref=e101]:
+                - strong [ref=e102]: RJ85Kit1
+              - cell "RJ85" [ref=e103]
+              - cell "0" [ref=e104]
+              - cell "0" [ref=e105]:
+                - generic [ref=e106]: "0"
+              - cell "5" [ref=e107]
+              - cell "Good" [ref=e108]:
+                - generic [ref=e109]: Good
+  - contentinfo [ref=e110]:
+    - generic [ref=e112]:
+      - generic [ref=e113]: SupplyLine MRO Suite © 2025
+      - generic [ref=e114]: Version 3.5.3
+```

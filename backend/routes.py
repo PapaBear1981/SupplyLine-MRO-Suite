@@ -19,6 +19,10 @@ from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_auth import register_auth_routes
 from routes_password_reset import register_password_reset_routes
+from routes_kits import register_kit_routes
+from routes_kit_transfers import register_kit_transfer_routes
+from routes_kit_reorders import register_kit_reorder_routes
+from routes_kit_messages import register_kit_message_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
@@ -191,6 +195,12 @@ def register_routes(app):
 
     # Register password reset routes
     register_password_reset_routes(app)
+
+    # Register kit/mobile warehouse routes
+    register_kit_routes(app)
+    register_kit_transfer_routes(app)
+    register_kit_reorder_routes(app)
+    register_kit_message_routes(app)
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution

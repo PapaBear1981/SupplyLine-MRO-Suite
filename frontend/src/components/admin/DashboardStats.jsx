@@ -2,6 +2,10 @@ import React from 'react';
 import { Card, Row, Col, Badge, ListGroup, Alert } from 'react-bootstrap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import LoadingSpinner from '../common/LoadingSpinner';
+import KitStatistics from './KitStatistics';
+import PendingKitTransfers from './PendingKitTransfers';
+import PendingReorderApprovals from './PendingReorderApprovals';
+import KitUtilizationStats from './KitUtilizationStats';
 
 const DashboardStats = ({ stats, loading }) => {
   if (loading) {
@@ -60,6 +64,22 @@ const DashboardStats = ({ stats, loading }) => {
           </Row>
         </Card.Body>
       </Card>
+
+      {/* Kit Statistics */}
+      <KitStatistics />
+
+      {/* Kit Management Widgets */}
+      <Row>
+        <Col md={6}>
+          <PendingKitTransfers />
+        </Col>
+        <Col md={6}>
+          <PendingReorderApprovals />
+        </Col>
+      </Row>
+
+      {/* Kit Utilization Stats */}
+      <KitUtilizationStats />
 
       <Row>
         <Col md={7}>
