@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Alert } from 'react-bootstrap';
-import { FaEdit, FaCopy, FaBox, FaExchangeAlt, FaShoppingCart, FaEnvelope, FaChartBar, FaArrowLeft } from 'react-icons/fa';
-import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts } from '../store/kitsSlice';
+import { FaEdit, FaCopy, FaBox, FaExchangeAlt, FaShoppingCart, FaEnvelope, FaChartBar, FaArrowLeft, FaPlus } from 'react-icons/fa';
+import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts, fetchReorderRequests } from '../store/kitsSlice';
 import { fetchTransfers } from '../store/kitTransfersSlice';
 import { fetchKitMessages } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -13,16 +13,22 @@ import KitIssuanceForm from '../components/kits/KitIssuanceForm';
 import KitTransferForm from '../components/kits/KitTransferForm';
 import KitMessaging from '../components/kits/KitMessaging';
 import KitReorderManagement from '../components/kits/KitReorderManagement';
+import AddKitItemModal from '../components/kits/AddKitItemModal';
+import RequestReorderModal from '../components/kits/RequestReorderModal';
+import SendMessageModal from '../components/kits/SendMessageModal';
 
 const KitDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { currentKit, loading, error } = useSelector((state) => state.kits);
   const [activeTab, setActiveTab] = useState('overview');
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [showTransferForm, setShowTransferForm] = useState(false);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -164,6 +170,15 @@ const KitDetailPage = () => {
             <Card.Body>
               <h6 className="mb-3">Quick Actions</h6>
               <Button
+                variant="success"
+                size="sm"
+                className="me-2 mb-2"
+                onClick={() => setShowAddItemModal(true)}
+              >
+                <FaPlus className="me-1" />
+                Add Items
+              </Button>
+              <Button
                 variant="primary"
                 size="sm"
                 className="me-2 mb-2"
@@ -181,11 +196,21 @@ const KitDetailPage = () => {
                 <FaExchangeAlt className="me-1" />
                 Transfer Items
               </Button>
-              <Button variant="warning" size="sm" className="me-2 mb-2">
+              <Button
+                variant="warning"
+                size="sm"
+                className="me-2 mb-2"
+                onClick={() => setShowReorderModal(true)}
+              >
                 <FaShoppingCart className="me-1" />
                 Request Reorder
               </Button>
-              <Button variant="secondary" size="sm" className="me-2 mb-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="me-2 mb-2"
+                onClick={() => setShowMessageModal(true)}
+              >
                 <FaEnvelope className="me-1" />
                 Send Message
               </Button>
@@ -261,6 +286,17 @@ const KitDetailPage = () => {
         </Tab>
       </Tabs>
 
+      {/* Add Item Modal */}
+      <AddKitItemModal
+        show={showAddItemModal}
+        onHide={() => setShowAddItemModal(false)}
+        kitId={id}
+        onSuccess={() => {
+          dispatch(fetchKitById(id));
+          dispatch(fetchKitItems({ kitId: id }));
+        }}
+      />
+
       {/* Issuance Form Modal */}
       <KitIssuanceForm
         show={showIssuanceForm}
@@ -273,6 +309,25 @@ const KitDetailPage = () => {
         show={showTransferForm}
         onHide={() => setShowTransferForm(false)}
         sourceKitId={id}
+      />
+
+      {/* Request Reorder Modal */}
+      <RequestReorderModal
+        show={showReorderModal}
+        onHide={() => setShowReorderModal(false)}
+        kitId={id}
+        onSuccess={() => {
+          dispatch(fetchReorderRequests({ kitId: id }));
+          dispatch(fetchKitById(id));
+        }}
+      />
+
+      {/* Send Message Modal */}
+      <SendMessageModal
+        show={showMessageModal}
+        onHide={() => setShowMessageModal(false)}
+        kitId={id}
+        kitName={currentKit?.name}
       />
     </Container>
   );

@@ -80,6 +80,7 @@ import CalibrationDetailPage from './pages/CalibrationDetailPage';
 import KitsManagement from './pages/KitsManagement';
 import KitWizard from './components/kits/KitWizard';
 import KitDetailPage from './pages/KitDetailPage';
+import EditKitPage from './pages/EditKitPage';
 import KitReports from './pages/KitReports';
 import KitMobileInterface from './pages/KitMobileInterface';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
@@ -349,6 +350,14 @@ function App() {
           <ProtectedRoute>
             <MainLayout>
               <KitWizard />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/kits/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <EditKitPage />
             </MainLayout>
           </ProtectedRoute>
         } />

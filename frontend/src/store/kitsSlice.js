@@ -95,7 +95,7 @@ export const updateKit = createAsyncThunk(
   'kits/updateKit',
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/api/kits/${id}`, data);
+      const response = await api.put(`/kits/${id}`, data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to update kit' });
@@ -107,7 +107,7 @@ export const deleteKit = createAsyncThunk(
   'kits/deleteKit',
   async (id, { rejectWithValue }) => {
     try {
-      await api.delete(`/api/kits/${id}`);
+      await api.delete(`/kits/${id}`);
       return id;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to delete kit' });
@@ -119,7 +119,7 @@ export const duplicateKit = createAsyncThunk(
   'kits/duplicateKit',
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/kits/${id}/duplicate`, data);
+      const response = await api.post(`/kits/${id}/duplicate`, data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to duplicate kit' });
@@ -157,7 +157,7 @@ export const addKitBox = createAsyncThunk(
   'kits/addKitBox',
   async ({ kitId, data }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/kits/${kitId}/boxes`, data);
+      const response = await api.post(`/kits/${kitId}/boxes`, data);
       return { kitId, box: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to add box' });
@@ -182,7 +182,7 @@ export const addKitItem = createAsyncThunk(
   'kits/addKitItem',
   async ({ kitId, data }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/kits/${kitId}/items`, data);
+      const response = await api.post(`/kits/${kitId}/items`, data);
       return { kitId, item: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to add item' });
@@ -207,7 +207,7 @@ export const addKitExpendable = createAsyncThunk(
   'kits/addKitExpendable',
   async ({ kitId, data }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/kits/${kitId}/expendables`, data);
+      const response = await api.post(`/kits/${kitId}/expendables`, data);
       return { kitId, expendable: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to add expendable' });
@@ -220,7 +220,7 @@ export const issueFromKit = createAsyncThunk(
   'kits/issueFromKit',
   async ({ kitId, data }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/kits/${kitId}/issue`, data);
+      const response = await api.post(`/kits/${kitId}/issue`, data);
       return { kitId, issuance: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to issue item' });
@@ -336,7 +336,7 @@ export const fetchReorderRequests = createAsyncThunk(
       if (kitId) {
         params.kit_id = kitId;
       }
-      const response = await api.get('/kits/reorders', { params });
+      const response = await api.get('/reorder-requests', { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch reorder requests' });
@@ -348,7 +348,7 @@ export const approveReorderRequest = createAsyncThunk(
   'kits/approveReorderRequest',
   async (requestId, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/kits/reorders/${requestId}/approve`);
+      const response = await api.put(`/reorder-requests/${requestId}/approve`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to approve reorder request' });
@@ -356,11 +356,25 @@ export const approveReorderRequest = createAsyncThunk(
   }
 );
 
-export const fulfillReorderRequest = createAsyncThunk(
-  'kits/fulfillReorderRequest',
+export const markReorderAsOrdered = createAsyncThunk(
+  'kits/markReorderAsOrdered',
   async (requestId, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/kits/reorders/${requestId}/fulfill`);
+      const response = await api.put(`/reorder-requests/${requestId}/order`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to mark reorder as ordered' });
+    }
+  }
+);
+
+export const fulfillReorderRequest = createAsyncThunk(
+  'kits/fulfillReorderRequest',
+  async ({ requestId, boxId }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/reorder-requests/${requestId}/fulfill`, {
+        box_id: boxId
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fulfill reorder request' });
@@ -372,7 +386,7 @@ export const cancelReorderRequest = createAsyncThunk(
   'kits/cancelReorderRequest',
   async (requestId, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/kits/reorders/${requestId}/cancel`);
+      const response = await api.put(`/reorder-requests/${requestId}/cancel`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to cancel reorder request' });
@@ -494,11 +508,38 @@ const kitsSlice = createSlice({
         state.kits = state.kits.filter(k => k.id !== action.payload);
       })
       
+      // Kit Boxes
+      .addCase(fetchKitBoxes.fulfilled, (state, action) => {
+        state.kitBoxes[action.payload.kitId] = action.payload.boxes;
+      })
+
       // Kit Items
       .addCase(fetchKitItems.fulfilled, (state, action) => {
         state.kitItems[action.payload.kitId] = action.payload.items;
       })
-      
+      .addCase(addKitItem.fulfilled, (state, action) => {
+        const { kitId, item } = action.payload;
+        // Update the items list if it exists
+        if (state.kitItems[kitId]) {
+          state.kitItems[kitId].push(item);
+        }
+        // Update the current kit's item count
+        if (state.currentKit && state.currentKit.id === kitId) {
+          state.currentKit.item_count = (state.currentKit.item_count || 0) + 1;
+        }
+      })
+      .addCase(addKitExpendable.fulfilled, (state, action) => {
+        const { kitId, expendable } = action.payload;
+        // Update the items list if it exists (expendables are included in items)
+        if (state.kitItems[kitId]) {
+          state.kitItems[kitId].push(expendable);
+        }
+        // Update the current kit's item count
+        if (state.currentKit && state.currentKit.id === kitId) {
+          state.currentKit.item_count = (state.currentKit.item_count || 0) + 1;
+        }
+      })
+
       // Kit Alerts
       .addCase(fetchKitAlerts.fulfilled, (state, action) => {
         state.kitAlerts[action.payload.kitId] = action.payload.alerts;

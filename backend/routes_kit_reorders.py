@@ -157,30 +157,81 @@ def register_kit_reorder_routes(app):
     def fulfill_reorder_request(id):
         """Mark a reorder request as fulfilled"""
         reorder = KitReorderRequest.query.get_or_404(id)
-        
+
         if reorder.status != 'ordered':
             raise ValidationError('Can only fulfill ordered requests')
-        
+
+        # Get box_id from request body
+        data = request.get_json()
+        box_id = data.get('box_id')
+
+        if not box_id:
+            raise ValidationError('box_id is required to fulfill reorder')
+
+        # Verify box belongs to the kit
+        from models_kits import KitBox
+        box = KitBox.query.filter_by(id=box_id, kit_id=reorder.kit_id).first()
+        if not box:
+            raise ValidationError('Invalid box_id for this kit')
+
         reorder.status = 'fulfilled'
         reorder.fulfillment_date = datetime.now()
-        
-        # Update item quantity if item_id is provided
-        if reorder.item_id and reorder.item_type == 'expendable':
-            expendable = KitExpendable.query.get(reorder.item_id)
-            if expendable:
-                expendable.quantity += reorder.quantity_requested
-                expendable.status = 'available'
-        
+
+        # Update or create item based on type
+        if reorder.item_type == 'expendable':
+            if reorder.item_id:
+                # Update existing expendable
+                expendable = KitExpendable.query.get(reorder.item_id)
+                if expendable:
+                    expendable.quantity += reorder.quantity_requested
+                    expendable.status = 'available'
+                    expendable.box_id = box_id
+            else:
+                # Create new expendable
+                expendable = KitExpendable(
+                    kit_id=reorder.kit_id,
+                    box_id=box_id,
+                    part_number=reorder.part_number,
+                    description=reorder.description,
+                    quantity=reorder.quantity_requested,
+                    unit='ea',
+                    location=f'Box {box.box_number}',
+                    status='available'
+                )
+                db.session.add(expendable)
+
+        elif reorder.item_type in ['tool', 'chemical']:
+            if reorder.item_id:
+                # Update existing item
+                item = KitItem.query.get(reorder.item_id)
+                if item:
+                    item.quantity += int(reorder.quantity_requested)
+                    item.status = 'available'
+                    item.box_id = box_id
+            else:
+                # Create new item
+                item = KitItem(
+                    kit_id=reorder.kit_id,
+                    box_id=box_id,
+                    item_type=reorder.item_type,
+                    part_number=reorder.part_number,
+                    description=reorder.description,
+                    quantity=int(reorder.quantity_requested),
+                    location=f'Box {box.box_number}',
+                    status='available'
+                )
+                db.session.add(item)
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_reorder_fulfilled',
-            action_details=f'Reorder request fulfilled: ID {reorder.id}'
+            action_details=f'Reorder request fulfilled: ID {reorder.id}, added to box {box.box_number}'
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(reorder.to_dict()), 200
     
     @app.route('/api/reorder-requests/<int:id>/cancel', methods=['PUT'])

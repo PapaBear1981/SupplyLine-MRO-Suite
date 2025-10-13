@@ -6,7 +6,10 @@ This module provides API endpoints for managing kits, aircraft types, boxes, and
 
 from flask import request, jsonify
 from models import db, User, Tool, Chemical, AuditLog
-from models_kits import AircraftType, Kit, KitBox, KitItem, KitExpendable
+from models_kits import (
+    AircraftType, Kit, KitBox, KitItem, KitExpendable,
+    KitIssuance, KitTransfer, KitReorderRequest, KitMessage
+)
 from datetime import datetime, timedelta
 from auth import jwt_required, admin_required, department_required
 from utils.error_handler import handle_errors, ValidationError, log_security_event
@@ -1085,4 +1088,98 @@ def register_kit_routes(app):
             'alert_count': len(alerts),
             'alerts': alerts
         }), 200
+
+    # ==================== Recent Activity ====================
+
+    @app.route('/api/kits/recent-activity', methods=['GET'])
+    @jwt_required
+    @handle_errors
+    def get_recent_kit_activity():
+        """Get recent kit-related activities (issuances, transfers, reorders)"""
+        limit = request.args.get('limit', 10, type=int)
+
+        # Limit to reasonable range
+        limit = min(max(limit, 1), 50)
+
+        activities = []
+
+        # Get recent issuances
+        recent_issuances = KitIssuance.query.order_by(
+            KitIssuance.issued_date.desc()
+        ).limit(limit).all()
+
+        for issuance in recent_issuances:
+            activities.append({
+                'id': f'issuance-{issuance.id}',
+                'type': 'issuance',
+                'description': f'Issued {issuance.quantity} {issuance.item_type}(s)',
+                'kit_name': issuance.kit.name if issuance.kit else 'Unknown Kit',
+                'kit_id': issuance.kit_id,
+                'details': issuance.purpose or issuance.work_order or '',
+                'user_name': issuance.issuer.name if issuance.issuer else 'Unknown User',
+                'timestamp': issuance.issued_date.isoformat() if issuance.issued_date else None,
+                'created_at': issuance.issued_date.isoformat() if issuance.issued_date else None
+            })
+
+        # Get recent transfers
+        recent_transfers = KitTransfer.query.order_by(
+            KitTransfer.transfer_date.desc()
+        ).limit(limit).all()
+
+        for transfer in recent_transfers:
+            # Build description based on transfer type
+            from_loc = f"{transfer.from_location_type} {transfer.from_location_id}"
+            to_loc = f"{transfer.to_location_type} {transfer.to_location_id}"
+
+            # Try to get kit names if applicable
+            kit_name = None
+            if transfer.from_location_type == 'kit':
+                from_kit = Kit.query.get(transfer.from_location_id)
+                if from_kit:
+                    from_loc = f"Kit: {from_kit.name}"
+                    kit_name = from_kit.name
+            if transfer.to_location_type == 'kit':
+                to_kit = Kit.query.get(transfer.to_location_id)
+                if to_kit:
+                    to_loc = f"Kit: {to_kit.name}"
+                    if not kit_name:
+                        kit_name = to_kit.name
+
+            activities.append({
+                'id': f'transfer-{transfer.id}',
+                'type': 'transfer',
+                'description': f'Transferred {transfer.quantity} {transfer.item_type}(s)',
+                'kit_name': kit_name or 'Warehouse',
+                'kit_id': transfer.from_location_id if transfer.from_location_type == 'kit' else transfer.to_location_id,
+                'details': f'From {from_loc} to {to_loc}',
+                'user_name': transfer.transferrer.name if transfer.transferrer else 'Unknown User',
+                'timestamp': transfer.transfer_date.isoformat() if transfer.transfer_date else None,
+                'created_at': transfer.transfer_date.isoformat() if transfer.transfer_date else None,
+                'status': transfer.status
+            })
+
+        # Get recent reorder requests
+        recent_reorders = KitReorderRequest.query.order_by(
+            KitReorderRequest.requested_date.desc()
+        ).limit(limit).all()
+
+        for reorder in recent_reorders:
+            activities.append({
+                'id': f'reorder-{reorder.id}',
+                'type': 'reorder',
+                'description': f'Reorder request for {reorder.item_type}',
+                'kit_name': reorder.kit.name if reorder.kit else 'Unknown Kit',
+                'kit_id': reorder.kit_id,
+                'details': f'Quantity: {reorder.quantity_requested}',
+                'user_name': reorder.requester.name if reorder.requester else 'Unknown User',
+                'timestamp': reorder.requested_date.isoformat() if reorder.requested_date else None,
+                'created_at': reorder.requested_date.isoformat() if reorder.requested_date else None,
+                'status': reorder.status
+            })
+
+        # Sort all activities by timestamp (most recent first)
+        activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+
+        # Return only the requested limit
+        return jsonify(activities[:limit]), 200
 

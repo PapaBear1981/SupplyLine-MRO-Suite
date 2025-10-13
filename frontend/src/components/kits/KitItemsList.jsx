@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Badge, Button, Form, Row, Col, ButtonGroup } from 'react-bootstrap';
-import { FaBox, FaFilter, FaExchangeAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaBox, FaFilter, FaExchangeAlt, FaShoppingCart, FaPlus } from 'react-icons/fa';
 import { fetchKitItems, fetchKitBoxes } from '../../store/kitsSlice';
 import KitIssuanceForm from './KitIssuanceForm';
+import AddKitItemModal from './AddKitItemModal';
 
 const KitItemsList = ({ kitId }) => {
   const dispatch = useDispatch();
   const { kitItems, kitBoxes } = useSelector((state) => state.kits);
-  
+
   const [filterBox, setFilterBox] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [selectedItemForIssue, setSelectedItemForIssue] = useState(null);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
 
   useEffect(() => {
     if (kitId) {
@@ -65,6 +67,11 @@ const KitItemsList = ({ kitId }) => {
     dispatch(fetchKitItems({ kitId }));
   };
 
+  const handleAddItemSuccess = () => {
+    // Refresh items after adding
+    dispatch(fetchKitItems({ kitId }));
+  };
+
   return (
     <Card>
       <Card.Header>
@@ -76,6 +83,15 @@ const KitItemsList = ({ kitId }) => {
             </h5>
           </Col>
           <Col xs="auto">
+            <Button
+              variant="success"
+              size="sm"
+              className="me-2"
+              onClick={() => setShowAddItemModal(true)}
+            >
+              <FaPlus className="me-1" />
+              Add Item
+            </Button>
             <Button
               variant="primary"
               size="sm"
@@ -217,6 +233,14 @@ const KitItemsList = ({ kitId }) => {
           </Table>
         )}
       </Card.Body>
+
+      {/* Add Item Modal */}
+      <AddKitItemModal
+        show={showAddItemModal}
+        onHide={() => setShowAddItemModal(false)}
+        kitId={kitId}
+        onSuccess={handleAddItemSuccess}
+      />
 
       {/* Issuance Form Modal */}
       <KitIssuanceForm
