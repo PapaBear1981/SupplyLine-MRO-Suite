@@ -4,6 +4,7 @@ import { Modal, Button, Form, Alert, Row, Col, Badge, Tabs, Tab } from 'react-bo
 import { FaPlus, FaBox, FaTools, FaFlask, FaCheckCircle } from 'react-icons/fa';
 import { fetchKitBoxes } from '../../store/kitsSlice';
 import api from '../../services/api';
+import LotNumberInput from '../common/LotNumberInput';
 
 const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const dispatch = useDispatch();
@@ -38,7 +39,10 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
     unit: 'EA',
     minimum_stock_level: 0,
     maximum_stock_level: 0,
-    location: ''
+    location: '',
+    tracking_type: 'lot',
+    lot_number: '',
+    serial_number: ''
   });
 
   useEffect(() => {
@@ -91,7 +95,10 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
       unit: 'EA',
       minimum_stock_level: 0,
       maximum_stock_level: 0,
-      location: ''
+      location: '',
+      tracking_type: 'lot',
+      lot_number: '',
+      serial_number: ''
     });
     setValidated(false);
     setError(null);
@@ -177,7 +184,10 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
         unit: expendableFormData.unit,
         minimum_stock_level: parseFloat(expendableFormData.minimum_stock_level),
         maximum_stock_level: parseFloat(expendableFormData.maximum_stock_level),
-        location: expendableFormData.location
+        location: expendableFormData.location,
+        tracking_type: expendableFormData.tracking_type,
+        lot_number: expendableFormData.lot_number || null,
+        serial_number: expendableFormData.serial_number || null
       });
 
       setSuccess(true);
@@ -413,6 +423,74 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
                   Please enter a description.
                 </Form.Control.Feedback>
               </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Tracking Type *</Form.Label>
+                <div className="d-flex gap-3">
+                  <Form.Check
+                    type="radio"
+                    id="tracking-lot"
+                    label="Lot Number"
+                    name="tracking_type"
+                    value="lot"
+                    checked={expendableFormData.tracking_type === 'lot'}
+                    onChange={handleExpendableFormChange}
+                  />
+                  <Form.Check
+                    type="radio"
+                    id="tracking-serial"
+                    label="Serial Number"
+                    name="tracking_type"
+                    value="serial"
+                    checked={expendableFormData.tracking_type === 'serial'}
+                    onChange={handleExpendableFormChange}
+                  />
+                  <Form.Check
+                    type="radio"
+                    id="tracking-both"
+                    label="Both"
+                    name="tracking_type"
+                    value="both"
+                    checked={expendableFormData.tracking_type === 'both'}
+                    onChange={handleExpendableFormChange}
+                  />
+                </div>
+                <Form.Text className="text-muted">
+                  Choose how to track this expendable item
+                </Form.Text>
+              </Form.Group>
+
+              {(expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both') && (
+                <LotNumberInput
+                  value={expendableFormData.lot_number}
+                  onChange={(value) => setExpendableFormData(prev => ({ ...prev, lot_number: value }))}
+                  disabled={loading}
+                  required={expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both'}
+                  label="Lot Number"
+                  helpText="Auto-generate or enter manually"
+                  showAutoGenerate={true}
+                />
+              )}
+
+              {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && (
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Serial Number
+                    {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && <span className="text-danger ms-1">*</span>}
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="serial_number"
+                    value={expendableFormData.serial_number}
+                    onChange={handleExpendableFormChange}
+                    required={expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both'}
+                    placeholder="Enter serial number"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    Serial number is required for this tracking type.
+                  </Form.Control.Feedback>
+                </Form.Group>
+              )}
 
               <Row>
                 <Col md={4}>

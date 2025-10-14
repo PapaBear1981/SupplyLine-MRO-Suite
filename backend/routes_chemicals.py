@@ -165,6 +165,21 @@ def register_chemical_routes(app):
         )
 
         db.session.add(chemical)
+        db.session.flush()  # Flush to get the chemical ID
+
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='chemical',
+                item_id=chemical.id,
+                user_id=request.current_user['user_id'],
+                quantity=validated_data['quantity'],
+                location=validated_data.get('location', 'Unknown'),
+                notes='Initial chemical creation'
+            )
+        except Exception as e:
+            logger.error(f"Error recording chemical creation transaction: {str(e)}")
 
         # Log the action
         log = AuditLog(
@@ -265,6 +280,20 @@ def register_chemical_routes(app):
             chemical.update_reorder_status()
 
         db.session.add(issuance)
+
+        # Record transaction
+        from utils.transaction_helper import record_chemical_issuance
+        try:
+            record_chemical_issuance(
+                chemical_id=chemical.id,
+                user_id=validated_data['user_id'],
+                quantity=quantity,
+                hangar=validated_data['hangar'],
+                purpose=validated_data.get('purpose'),
+                work_order=validated_data.get('work_order')
+            )
+        except Exception as e:
+            logger.error(f"Error recording chemical issuance transaction: {str(e)}")
 
         # Log the action
         log = AuditLog(

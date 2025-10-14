@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
 import { createTool, clearError, clearSuccessMessage } from '../../store/toolsSlice';
+import LotNumberInput from '../common/LotNumberInput';
 
 const NewToolForm = () => {
   const dispatch = useDispatch();
@@ -16,6 +17,7 @@ const NewToolForm = () => {
   const [toolData, setToolData] = useState({
     tool_number: '',
     serial_number: '',
+    lot_number: '',
     description: '',
     condition: 'New',
     location: '',
@@ -136,6 +138,16 @@ const NewToolForm = () => {
               Serial number must be unique for tools with the same tool number.
             </Form.Text>
           </Form.Group>
+
+          <LotNumberInput
+            value={toolData.lot_number}
+            onChange={(value) => setToolData(prev => ({ ...prev, lot_number: value }))}
+            disabled={loading || isSubmitting}
+            required={false}
+            label="Lot Number (Optional)"
+            helpText="For consumable tools, you can track by lot number instead of serial number. Leave blank for standard tools."
+            showAutoGenerate={true}
+          />
 
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>

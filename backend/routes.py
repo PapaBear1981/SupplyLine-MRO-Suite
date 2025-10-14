@@ -23,6 +23,7 @@ from routes_kits import register_kit_routes
 from routes_kit_transfers import register_kit_transfer_routes
 from routes_kit_reorders import register_kit_reorder_routes
 from routes_kit_messages import register_kit_message_routes
+from routes_inventory import register_inventory_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
@@ -201,6 +202,9 @@ def register_routes(app):
     register_kit_transfer_routes(app)
     register_kit_reorder_routes(app)
     register_kit_message_routes(app)
+
+    # Register inventory tracking routes (lot/serial numbers, transactions)
+    register_inventory_routes(app)
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
@@ -880,6 +884,7 @@ def register_routes(app):
         t = Tool(
             tool_number=data.get('tool_number'),
             serial_number=data.get('serial_number'),
+            lot_number=data.get('lot_number'),  # Support for consumable tools
             description=data.get('description'),
             condition=data.get('condition'),
             location=data.get('location'),
@@ -896,6 +901,22 @@ def register_routes(app):
         db.session.add(t)
         db.session.commit()
 
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='tool',
+                item_id=t.id,
+                user_id=user_payload['user_id'],
+                quantity=1.0,
+                location=t.location or 'Unknown',
+                notes='Initial tool creation'
+            )
+            db.session.commit()
+        except Exception as e:
+            logger.error(f"Error recording tool creation transaction: {str(e)}")
+            # Don't fail the tool creation if transaction recording fails
+
         # Log the action
         log = AuditLog(
             action_type='create_tool',
@@ -909,6 +930,7 @@ def register_routes(app):
             'id': t.id,
             'tool_number': t.tool_number,
             'serial_number': t.serial_number,
+            'lot_number': t.lot_number,
             'description': t.description,
             'condition': t.condition,
             'location': t.location,
@@ -1493,6 +1515,18 @@ def register_routes(app):
                 db.session.commit()
                 logger.debug("Checkout created", extra={'checkout_id': c.id})
 
+                # Record transaction
+                from utils.transaction_helper import record_tool_checkout
+                try:
+                    record_tool_checkout(
+                        tool_id=tool_id,
+                        user_id=user_id,
+                        expected_return_date=parsed_date,
+                        notes=f'Checked out to {user.name}'
+                    )
+                except Exception as e:
+                    logger.error(f"Error recording checkout transaction: {str(e)}")
+
                 # Log the action
                 log = AuditLog(
                     action_type='checkout_tool',
@@ -1587,6 +1621,18 @@ def register_routes(app):
                 c.return_notes = notes
 
                 db.session.commit()
+
+                # Record transaction
+                from utils.transaction_helper import record_tool_return
+                try:
+                    record_tool_return(
+                        tool_id=c.tool_id,
+                        user_id=user_payload['user_id'],
+                        condition=condition,
+                        notes=notes
+                    )
+                except Exception as e:
+                    logger.error(f"Error recording return transaction: {str(e)}")
 
                 # Prepare action details for logging
                 action_details = f'User {user.name if user else "Unknown"} (ID: {c.user_id}) returned tool {tool.tool_number if tool else "Unknown"} (ID: {c.tool_id})'

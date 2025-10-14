@@ -717,6 +717,7 @@ def register_kit_routes(app):
             part_number=data['part_number'],
             serial_number=data.get('serial_number'),
             lot_number=data.get('lot_number'),
+            tracking_type=data.get('tracking_type', 'lot'),  # Default to lot tracking
             description=data['description'],
             quantity=data.get('quantity', 0),
             unit=data.get('unit', 'each'),
@@ -725,7 +726,40 @@ def register_kit_routes(app):
             minimum_stock_level=data.get('minimum_stock_level')
         )
 
+        # Validate tracking requirements
+        is_valid, error_msg = expendable.validate_tracking()
+        if not is_valid:
+            raise ValidationError(error_msg)
+
+        # Validate serial number uniqueness if serial tracking
+        if expendable.tracking_type in ['serial', 'both'] and expendable.serial_number:
+            from utils.transaction_helper import validate_serial_number_uniqueness
+            is_unique, error_msg = validate_serial_number_uniqueness(
+                'expendable',
+                expendable.part_number,
+                expendable.serial_number,
+                exclude_id=None
+            )
+            if not is_unique:
+                raise ValidationError(error_msg)
+
         db.session.add(expendable)
+        db.session.flush()  # Flush to get the expendable ID
+
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='expendable',
+                item_id=expendable.id,
+                user_id=request.current_user['user_id'],
+                quantity=expendable.quantity,
+                location=expendable.location or 'Unknown',
+                notes=f'Added to kit {kit.name}'
+            )
+        except Exception as e:
+            logger.error(f"Error recording expendable creation transaction: {str(e)}")
+
         db.session.commit()
 
         # Log action

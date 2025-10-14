@@ -40,6 +40,7 @@ class Tool(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tool_number = db.Column(db.String, nullable=False)
     serial_number = db.Column(db.String, nullable=False)
+    lot_number = db.Column(db.String(100), nullable=True)  # For consumable tools tracked by lot
     description = db.Column(db.String)
     condition = db.Column(db.String)
     location = db.Column(db.String)
@@ -60,6 +61,7 @@ class Tool(db.Model):
             'id': self.id,
             'tool_number': self.tool_number,
             'serial_number': self.serial_number,
+            'lot_number': self.lot_number,
             'description': self.description,
             'condition': self.condition,
             'location': self.location,
@@ -768,3 +770,130 @@ class AnnouncementRead(db.Model):
             'user_name': self.user.name if self.user else 'Unknown',
             'read_at': self.read_at.isoformat()
         }
+
+
+class InventoryTransaction(db.Model):
+    """
+    InventoryTransaction model for tracking all inventory movements.
+    Provides complete audit trail from receipt through disposal.
+    """
+    __tablename__ = 'inventory_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    item_type = db.Column(db.String(20), nullable=False, index=True)  # tool, chemical, expendable
+    item_id = db.Column(db.Integer, nullable=False, index=True)  # FK to respective table
+    transaction_type = db.Column(db.String(50), nullable=False)  # receipt, issuance, transfer, adjustment, checkout, return, etc.
+    timestamp = db.Column(db.DateTime, default=get_current_time, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    quantity_change = db.Column(db.Float)  # Positive for additions, negative for removals
+    location_from = db.Column(db.String(200))
+    location_to = db.Column(db.String(200))
+    reference_number = db.Column(db.String(100))  # Work order, PO number, etc.
+    notes = db.Column(db.String(1000))
+    lot_number = db.Column(db.String(100))  # Lot number at time of transaction
+    serial_number = db.Column(db.String(100))  # Serial number at time of transaction
+
+    # Relationships
+    user = db.relationship('User')
+
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': self.id,
+            'item_type': self.item_type,
+            'item_id': self.item_id,
+            'transaction_type': self.transaction_type,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'quantity_change': self.quantity_change,
+            'location_from': self.location_from,
+            'location_to': self.location_to,
+            'reference_number': self.reference_number,
+            'notes': self.notes,
+            'lot_number': self.lot_number,
+            'serial_number': self.serial_number
+        }
+
+    @staticmethod
+    def create_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
+        """
+        Helper method to create a transaction record.
+
+        Args:
+            item_type: Type of item (tool, chemical, expendable)
+            item_id: ID of the item
+            transaction_type: Type of transaction
+            user_id: ID of user performing transaction
+            **kwargs: Additional fields (quantity_change, location_from, location_to, etc.)
+
+        Returns:
+            InventoryTransaction instance
+        """
+        transaction = InventoryTransaction(
+            item_type=item_type,
+            item_id=item_id,
+            transaction_type=transaction_type,
+            user_id=user_id,
+            quantity_change=kwargs.get('quantity_change'),
+            location_from=kwargs.get('location_from'),
+            location_to=kwargs.get('location_to'),
+            reference_number=kwargs.get('reference_number'),
+            notes=kwargs.get('notes'),
+            lot_number=kwargs.get('lot_number'),
+            serial_number=kwargs.get('serial_number')
+        )
+        return transaction
+
+
+class LotNumberSequence(db.Model):
+    """
+    LotNumberSequence model for auto-generating unique lot numbers.
+    Format: LOT-YYMMDD-XXXX where XXXX is a daily sequential counter.
+    """
+    __tablename__ = 'lot_number_sequences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(8), nullable=False, unique=True, index=True)  # YYYYMMDD
+    sequence_counter = db.Column(db.Integer, nullable=False, default=0)
+    last_generated_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
+
+    @staticmethod
+    def generate_lot_number():
+        """
+        Generate a unique lot number in format LOT-YYMMDD-XXXX.
+        Uses atomic increment to ensure uniqueness.
+
+        Returns:
+            str: Generated lot number (e.g., LOT-251014-0001)
+        """
+        from sqlalchemy import func
+
+        # Get current date in YYYYMMDD format
+        current_date = datetime.now().strftime('%Y%m%d')
+
+        # Get or create sequence for today
+        sequence = LotNumberSequence.query.filter_by(date=current_date).first()
+
+        if not sequence:
+            # Create new sequence for today
+            sequence = LotNumberSequence(
+                date=current_date,
+                sequence_counter=1
+            )
+            db.session.add(sequence)
+        else:
+            # Increment existing sequence
+            sequence.sequence_counter += 1
+            sequence.last_generated_at = get_current_time()
+
+        db.session.flush()  # Ensure counter is updated
+
+        # Format: LOT-YYMMDD-XXXX
+        year_short = current_date[2:4]  # YY
+        month_day = current_date[4:8]   # MMDD
+        counter = str(sequence.sequence_counter).zfill(4)  # XXXX
+
+        lot_number = f"LOT-{year_short}{month_day}-{counter}"
+
+        return lot_number

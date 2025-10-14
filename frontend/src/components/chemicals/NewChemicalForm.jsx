@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Card, Alert, Row, Col, Toast, ToastContainer } from 'react-bootstrap';
 import { createChemical } from '../../store/chemicalsSlice';
+import LotNumberInput from '../common/LotNumberInput';
 
 const NewChemicalForm = () => {
   const dispatch = useDispatch();
@@ -110,19 +111,15 @@ const NewChemicalForm = () => {
               </Form.Group>
             </Col>
             <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Lot Number*</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="lot_number"
-                  value={chemicalData.lot_number}
-                  onChange={handleChange}
-                  required
-                />
-                <Form.Control.Feedback type="invalid">
-                  Lot number is required
-                </Form.Control.Feedback>
-              </Form.Group>
+              <LotNumberInput
+                value={chemicalData.lot_number}
+                onChange={(value) => setChemicalData(prev => ({ ...prev, lot_number: value }))}
+                disabled={loading}
+                required={true}
+                label="Lot Number"
+                helpText="Auto-generate a unique lot number or enter manually"
+                showAutoGenerate={true}
+              />
             </Col>
           </Row>
 

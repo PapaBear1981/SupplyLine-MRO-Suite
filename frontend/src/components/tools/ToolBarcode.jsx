@@ -235,7 +235,9 @@ const ToolBarcode = ({ show, onHide, tool }) => {
           <Tabs defaultActiveKey="barcode" id="tool-code-tabs" className="mb-3">
             <Tab eventKey="barcode" title="Barcode">
               <Card className="text-center p-3" ref={barcodeContainerRef}>
-                <Card.Title>{tool.tool_number} - {tool.serial_number}</Card.Title>
+                <Card.Title>
+                  {tool.tool_number} - {barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}
+                </Card.Title>
                 <div className="d-flex justify-content-center my-3">
                   <svg ref={barcodeRef}></svg>
                 </div>
@@ -243,6 +245,18 @@ const ToolBarcode = ({ show, onHide, tool }) => {
                   <strong>Description:</strong> {tool.description || 'N/A'}<br />
                   <strong>Category:</strong> {tool.category || 'N/A'}<br />
                   <strong>Location:</strong> {tool.location || 'N/A'}
+                  {barcodeData.lot_number && (
+                    <>
+                      <br />
+                      <strong>Lot Number:</strong> <span style={{ fontFamily: 'monospace', color: '#f57c00' }}>LOT: {barcodeData.lot_number}</span>
+                    </>
+                  )}
+                  {!barcodeData.lot_number && tool.serial_number && (
+                    <>
+                      <br />
+                      <strong>Serial Number:</strong> <span style={{ fontFamily: 'monospace', color: '#1976d2' }}>S/N: {tool.serial_number}</span>
+                    </>
+                  )}
                 </Card.Text>
 
                 {barcodeData.requires_calibration && barcodeData.calibration && (
@@ -274,7 +288,9 @@ const ToolBarcode = ({ show, onHide, tool }) => {
 
             <Tab eventKey="qrcode" title="QR Code">
               <Card className="text-center p-3" ref={qrCodeContainerRef}>
-                <Card.Title>{tool.tool_number} - {tool.serial_number}</Card.Title>
+                <Card.Title>
+                  {tool.tool_number} - {barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}
+                </Card.Title>
                 <div className="d-flex justify-content-center my-3">
                   <QRCodeSVG value={barcodeData.qr_url} size={256} />
                 </div>
@@ -285,6 +301,18 @@ const ToolBarcode = ({ show, onHide, tool }) => {
                   <strong>Description:</strong> {tool.description || 'N/A'}<br />
                   <strong>Category:</strong> {tool.category || 'N/A'}<br />
                   <strong>Location:</strong> {tool.location || 'N/A'}
+                  {barcodeData.lot_number && (
+                    <>
+                      <br />
+                      <strong>Lot Number:</strong> <span style={{ fontFamily: 'monospace', color: '#f57c00' }}>LOT: {barcodeData.lot_number}</span>
+                    </>
+                  )}
+                  {!barcodeData.lot_number && tool.serial_number && (
+                    <>
+                      <br />
+                      <strong>Serial Number:</strong> <span style={{ fontFamily: 'monospace', color: '#1976d2' }}>S/N: {tool.serial_number}</span>
+                    </>
+                  )}
                 </Card.Text>
 
                 {barcodeData.requires_calibration && barcodeData.calibration && (
