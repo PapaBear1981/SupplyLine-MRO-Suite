@@ -167,6 +167,17 @@ const ItemDetailModal = ({ show, onHide, itemType, itemId }) => {
   const handleExport = () => {
     if (!itemDetail?.transactions) return;
 
+    // RFC 4180 compliant CSV escaping
+    const escapeCsvValue = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringified = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+      if (/[",\n]/.test(stringified)) {
+        return `"${stringified.replace(/"/g, '""')}"`;
+      }
+      return stringified;
+    };
+
     const headers = ['Timestamp', 'Type', 'User', 'Quantity', 'From', 'To', 'Notes'];
     const rows = getSortedAndFilteredTransactions().map(t => [
       new Date(t.timestamp).toLocaleString(),
@@ -178,7 +189,10 @@ const ItemDetailModal = ({ show, onHide, itemType, itemId }) => {
       t.notes || ''
     ]);
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csv = [headers, ...rows]
+      .map(row => row.map(escapeCsvValue).join(','))
+      .join('\n');
+
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

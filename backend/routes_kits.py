@@ -782,9 +782,9 @@ def register_kit_routes(app):
         if expendable.tracking_type in ['serial', 'both'] and expendable.serial_number:
             from utils.transaction_helper import validate_serial_number_uniqueness
             is_unique, error_msg = validate_serial_number_uniqueness(
-                'expendable',
                 expendable.part_number,
                 expendable.serial_number,
+                'expendable',
                 exclude_id=None
             )
             if not is_unique:

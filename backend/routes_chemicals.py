@@ -292,19 +292,20 @@ def register_chemical_routes(app):
 
         db.session.add(issuance)
 
-        # Record transaction
+        # Record transaction (use authenticated user as actor, not recipient)
         from utils.transaction_helper import record_chemical_issuance
         try:
             record_chemical_issuance(
                 chemical_id=chemical.id,
-                user_id=validated_data['user_id'],
+                user_id=request.current_user.get('user_id'),  # Authenticated user performing the issuance
                 quantity=quantity,
                 hangar=validated_data['hangar'],
                 purpose=validated_data.get('purpose'),
-                work_order=validated_data.get('work_order')
+                work_order=validated_data.get('work_order'),
+                recipient_id=validated_data['user_id']  # Actual recipient of the chemical
             )
         except Exception as e:
-            logger.error(f"Error recording chemical issuance transaction: {str(e)}")
+            logger.exception(f"Error recording chemical issuance transaction: {e}")
 
         # Log the action
         log = AuditLog(

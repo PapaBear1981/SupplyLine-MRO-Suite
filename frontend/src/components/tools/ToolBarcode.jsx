@@ -66,6 +66,18 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  // HTML escape function to prevent XSS in print templates
+  const escapeHtml = (str) => {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]));
+  };
+
   // Generic print function to handle both barcode and QR code printing
   const handlePrint = (type, containerRef) => {
     if (containerRef.current && barcodeData) {
@@ -185,11 +197,13 @@ const ToolBarcode = ({ show, onHide, tool }) => {
                 ${containerRef.current.innerHTML}
               </div>
               <div class="tool-info">
-                <p><strong>Tool Number:</strong> ${tool.tool_number}</p>
-                <p><strong>Serial Number:</strong> ${tool.serial_number}</p>
-                <p><strong>Description:</strong> ${tool.description || 'N/A'}</p>
-                <p><strong>Category:</strong> ${tool.category || 'N/A'}</p>
-                <p><strong>Location:</strong> ${tool.location || 'N/A'}</p>
+                <p><strong>Tool Number:</strong> ${escapeHtml(tool.tool_number)}</p>
+                ${barcodeData.lot_number
+                  ? `<p><strong>Lot Number:</strong> ${escapeHtml(barcodeData.lot_number)}</p>`
+                  : `<p><strong>Serial Number:</strong> ${escapeHtml(tool.serial_number)}</p>`}
+                <p><strong>Description:</strong> ${escapeHtml(tool.description || 'N/A')}</p>
+                <p><strong>Category:</strong> ${escapeHtml(tool.category || 'N/A')}</p>
+                <p><strong>Location:</strong> ${escapeHtml(tool.location || 'N/A')}</p>
               </div>
               ${calibrationInfoHTML}
             </div>

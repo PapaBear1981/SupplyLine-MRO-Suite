@@ -122,12 +122,31 @@ def record_tool_return(tool_id, user_id, condition=None, notes=None):
     )
 
 
-def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpose=None, work_order=None):
-    """Record a chemical issuance transaction"""
+def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpose=None, work_order=None, recipient_id=None):
+    """
+    Record a chemical issuance transaction.
+
+    Args:
+        chemical_id: ID of the chemical
+        user_id: ID of the user performing the issuance (authenticated user)
+        quantity: Quantity issued
+        hangar: Destination hangar
+        purpose: Purpose of issuance
+        work_order: Work order number
+        recipient_id: ID of the user receiving the chemical (optional, for audit trail)
+    """
     chemical = Chemical.query.get(chemical_id)
     if not chemical:
         raise ValueError(f"Chemical {chemical_id} not found")
-    
+
+    # Build notes with purpose and recipient info
+    notes_parts = []
+    if purpose:
+        notes_parts.append(f"Purpose: {purpose}")
+    if recipient_id and recipient_id != user_id:
+        notes_parts.append(f"Recipient User ID: {recipient_id}")
+    notes = ". ".join(notes_parts) if notes_parts else None
+
     return record_transaction(
         item_type='chemical',
         item_id=chemical_id,
@@ -137,7 +156,7 @@ def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpos
         location_from=chemical.location,
         location_to=hangar,
         reference_number=work_order,
-        notes=f"Purpose: {purpose}" if purpose else None
+        notes=notes
     )
 
 

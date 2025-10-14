@@ -874,32 +874,54 @@ class LotNumberSequence(db.Model):
     def generate_lot_number():
         """
         Generate a unique lot number in format LOT-YYMMDD-XXXX.
-        Uses atomic increment to ensure uniqueness.
+        Uses atomic increment with row-level locking to ensure uniqueness.
 
         Returns:
             str: Generated lot number (e.g., LOT-251014-0001)
         """
         from sqlalchemy import func
+        from sqlalchemy.exc import IntegrityError
 
         # Get current date in YYYYMMDD format
         current_date = datetime.now().strftime('%Y%m%d')
 
-        # Get or create sequence for today
-        sequence = LotNumberSequence.query.filter_by(date=current_date).first()
+        # Get or create sequence for today with row-level locking
+        sequence = (
+            db.session.query(LotNumberSequence)
+            .filter_by(date=current_date)
+            .with_for_update()
+            .first()
+        )
 
         if not sequence:
             # Create new sequence for today
-            sequence = LotNumberSequence(
-                date=current_date,
-                sequence_counter=1
-            )
-            db.session.add(sequence)
+            try:
+                sequence = LotNumberSequence(
+                    date=current_date,
+                    sequence_counter=1
+                )
+                db.session.add(sequence)
+                db.session.flush()
+            except IntegrityError:
+                # Another transaction created the sequence, retry with lock
+                db.session.rollback()
+                sequence = (
+                    db.session.query(LotNumberSequence)
+                    .filter_by(date=current_date)
+                    .with_for_update()
+                    .first()
+                )
+                if sequence:
+                    sequence.sequence_counter += 1
+                    sequence.last_generated_at = get_current_time()
+                    db.session.flush()
+                else:
+                    raise ValueError("Failed to create or retrieve lot number sequence")
         else:
             # Increment existing sequence
             sequence.sequence_counter += 1
             sequence.last_generated_at = get_current_time()
-
-        db.session.flush()  # Ensure counter is updated
+            db.session.flush()
 
         # Format: LOT-YYMMDD-XXXX
         year_short = current_date[2:4]  # YY
