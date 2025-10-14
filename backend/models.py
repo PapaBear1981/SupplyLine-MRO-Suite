@@ -47,6 +47,7 @@ class Tool(db.Model):
     category = db.Column(db.String, nullable=True, default='General')
     status = db.Column(db.String, nullable=True, default='available')  # available, checked_out, maintenance, retired
     status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=get_current_time)
 
     # Calibration fields
@@ -55,6 +56,9 @@ class Tool(db.Model):
     last_calibration_date = db.Column(db.DateTime, nullable=True)
     next_calibration_date = db.Column(db.DateTime, nullable=True)
     calibration_status = db.Column(db.String, nullable=True)  # current, due_soon, overdue, not_applicable
+
+    # Relationships
+    warehouse = db.relationship('Warehouse', back_populates='tools')
 
     def to_dict(self):
         return {
@@ -68,6 +72,8 @@ class Tool(db.Model):
             'category': self.category,
             'status': self.status,
             'status_reason': self.status_reason,
+            'warehouse_id': self.warehouse_id,
+            'warehouse_name': self.warehouse.name if self.warehouse else None,
             'created_at': self.created_at.isoformat(),
             'requires_calibration': self.requires_calibration,
             'calibration_frequency_days': self.calibration_frequency_days,
@@ -389,6 +395,7 @@ class Chemical(db.Model):
     location = db.Column(db.String)
     category = db.Column(db.String, nullable=True, default='General')  # Sealant, Paint, Adhesive, etc.
     status = db.Column(db.String, nullable=False, default='available')  # available, low_stock, out_of_stock, expired
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
     date_added = db.Column(db.DateTime, default=get_current_time)
     expiration_date = db.Column(db.DateTime, nullable=True)
     minimum_stock_level = db.Column(db.Float, nullable=True)  # Threshold for low stock alert
@@ -409,6 +416,9 @@ class Chemical(db.Model):
         # If the columns don't exist, we'll create them later with a migration
         pass
 
+    # Relationships
+    warehouse = db.relationship('Warehouse', back_populates='chemicals')
+
     def to_dict(self):
         result = {
             'id': self.id,
@@ -421,6 +431,8 @@ class Chemical(db.Model):
             'location': self.location,
             'category': self.category,
             'status': self.status,
+            'warehouse_id': self.warehouse_id,
+            'warehouse_name': self.warehouse.name if self.warehouse else None,
             'date_added': self.date_added.isoformat(),
             'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
             'minimum_stock_level': self.minimum_stock_level,
@@ -897,3 +909,105 @@ class LotNumberSequence(db.Model):
         lot_number = f"LOT-{year_short}{month_day}-{counter}"
 
         return lot_number
+
+
+
+class Warehouse(db.Model):
+    """
+    Warehouse model for managing physical warehouse locations.
+    Warehouses store tools and chemicals before they are transferred to kits.
+    """
+    __tablename__ = 'warehouses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False, unique=True, index=True)
+    address = db.Column(db.String(500), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    state = db.Column(db.String(50), nullable=True)
+    zip_code = db.Column(db.String(20), nullable=True)
+    country = db.Column(db.String(100), nullable=True, default='USA')
+    warehouse_type = db.Column(db.String(50), nullable=False, default='satellite')  # main, satellite
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
+    updated_at = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Relationships
+    tools = db.relationship('Tool', back_populates='warehouse', lazy='dynamic')
+    chemicals = db.relationship('Chemical', back_populates='warehouse', lazy='dynamic')
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+
+    def to_dict(self, include_counts=False):
+        """Convert warehouse to dictionary representation."""
+        result = {
+            'id': self.id,
+            'name': self.name,
+            'address': self.address,
+            'city': self.city,
+            'state': self.state,
+            'zip_code': self.zip_code,
+            'country': self.country,
+            'warehouse_type': self.warehouse_type,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+        # Only include counts if explicitly requested to avoid N+1 queries
+        if include_counts:
+            try:
+                result['created_by'] = self.created_by.username if self.created_by else None
+                result['tools_count'] = self.tools.count() if self.tools else 0
+                result['chemicals_count'] = self.chemicals.count() if self.chemicals else 0
+            except Exception:
+                # If relationships aren't loaded, skip counts
+                result['created_by'] = None
+                result['tools_count'] = 0
+                result['chemicals_count'] = 0
+
+        return result
+
+
+class WarehouseTransfer(db.Model):
+    """
+    WarehouseTransfer model for tracking item movements between warehouses and kits.
+    Provides complete audit trail for inventory transfers.
+    """
+    __tablename__ = 'warehouse_transfers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    from_warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
+    to_warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
+    to_kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True, index=True)
+    from_kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True, index=True)
+    item_type = db.Column(db.String(50), nullable=False, index=True)  # tool, chemical
+    item_id = db.Column(db.Integer, nullable=False, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    transfer_date = db.Column(db.DateTime, default=get_current_time, nullable=False, index=True)
+    transferred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='completed', index=True)  # pending, completed, cancelled
+
+    # Relationships
+    from_warehouse = db.relationship('Warehouse', foreign_keys=[from_warehouse_id])
+    to_warehouse = db.relationship('Warehouse', foreign_keys=[to_warehouse_id])
+    to_kit = db.relationship('Kit', foreign_keys=[to_kit_id])
+    from_kit = db.relationship('Kit', foreign_keys=[from_kit_id])
+    transferred_by = db.relationship('User', foreign_keys=[transferred_by_id])
+
+    def to_dict(self):
+        """Convert transfer to dictionary representation."""
+        return {
+            'id': self.id,
+            'from_warehouse': self.from_warehouse.name if self.from_warehouse else None,
+            'to_warehouse': self.to_warehouse.name if self.to_warehouse else None,
+            'to_kit': self.to_kit.name if self.to_kit else None,
+            'from_kit': self.from_kit.name if self.from_kit else None,
+            'item_type': self.item_type,
+            'item_id': self.item_id,
+            'quantity': self.quantity,
+            'transfer_date': self.transfer_date.isoformat() if self.transfer_date else None,
+            'transferred_by': self.transferred_by.username if self.transferred_by else None,
+            'notes': self.notes,
+            'status': self.status
+        }

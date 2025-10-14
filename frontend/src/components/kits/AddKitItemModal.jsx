@@ -15,7 +15,12 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [validated, setValidated] = useState(false);
-  
+
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
   // Available items from warehouse
   const [availableTools, setAvailableTools] = useState([]);
   const [availableChemicals, setAvailableChemicals] = useState([]);
@@ -26,6 +31,7 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
     box_id: '',
     item_type: 'tool',
     item_id: '',
+    warehouse_id: '',  // Required for tools/chemicals
     quantity: 1,
     location: ''
   });
@@ -48,30 +54,52 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   useEffect(() => {
     if (show && kitId) {
       dispatch(fetchKitBoxes(kitId));
-      loadAvailableItems();
+      loadWarehouses();
     }
   }, [show, kitId, dispatch]);
 
-  const loadAvailableItems = async () => {
+  // Load items when warehouse is selected
+  useEffect(() => {
+    if (selectedWarehouse) {
+      loadAvailableItems(selectedWarehouse);
+    }
+  }, [selectedWarehouse]);
+
+  const loadWarehouses = async () => {
+    setLoadingWarehouses(true);
+    try {
+      const response = await api.get('/warehouses');
+      // Backend returns array directly, not wrapped in {warehouses: [...]}
+      setWarehouses(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+      setError('Failed to load warehouses. Please try again.');
+    } finally {
+      setLoadingWarehouses(false);
+    }
+  };
+
+  const loadAvailableItems = async (warehouseId) => {
+    if (!warehouseId) {
+      setAvailableTools([]);
+      setAvailableChemicals([]);
+      return;
+    }
+
     setLoadingItems(true);
     try {
-      // Load available tools
-      const toolsResponse = await api.get('/tools', {
-        params: { status: 'available', limit: 100 }
-      });
-      // Handle both array and object responses
+      // Load available tools from warehouse
+      const toolsResponse = await api.get(`/warehouses/${warehouseId}/tools`);
       const tools = Array.isArray(toolsResponse.data) ? toolsResponse.data : (toolsResponse.data.tools || []);
       setAvailableTools(tools);
 
-      // Load available chemicals
-      const chemicalsResponse = await api.get('/chemicals', {
-        params: { status: 'available', limit: 100 }
-      });
-      // Handle both array and object responses
+      // Load available chemicals from warehouse
+      const chemicalsResponse = await api.get(`/warehouses/${warehouseId}/chemicals`);
       const chemicals = Array.isArray(chemicalsResponse.data) ? chemicalsResponse.data : (chemicalsResponse.data.chemicals || []);
       setAvailableChemicals(chemicals);
     } catch (err) {
       console.error('Failed to load available items:', err);
+      setError('Failed to load items from warehouse. Please try again.');
     } finally {
       setLoadingItems(false);
     }
@@ -80,10 +108,12 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const boxes = kitBoxes[kitId] || [];
 
   const resetForm = () => {
+    setSelectedWarehouse('');
     setItemFormData({
       box_id: '',
       item_type: 'tool',
       item_id: '',
+      warehouse_id: '',
       quantity: 1,
       location: ''
     });
@@ -145,6 +175,7 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
         box_id: parseInt(itemFormData.box_id),
         item_type: itemFormData.item_type,
         item_id: parseInt(itemFormData.item_id),
+        warehouse_id: parseInt(selectedWarehouse),  // Required for transfer tracking
         quantity: parseFloat(itemFormData.quantity),
         location: itemFormData.location
       });
@@ -275,21 +306,50 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
               </Form.Group>
 
               <Form.Group className="mb-3">
+                <Form.Label>Source Warehouse *</Form.Label>
+                <Form.Select
+                  value={selectedWarehouse}
+                  onChange={(e) => {
+                    setSelectedWarehouse(e.target.value);
+                    setItemFormData(prev => ({ ...prev, item_id: '', warehouse_id: e.target.value }));
+                  }}
+                  required
+                  disabled={loadingWarehouses}
+                >
+                  <option value="">
+                    {loadingWarehouses ? 'Loading warehouses...' : 'Select warehouse to transfer from...'}
+                  </option>
+                  {warehouses.map(warehouse => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} - {warehouse.city}, {warehouse.state}
+                    </option>
+                  ))}
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Please select a warehouse.
+                </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  Tools and chemicals must be transferred from a warehouse
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
                 <Form.Label>Select Item *</Form.Label>
                 <Form.Select
                   name="item_id"
                   value={itemFormData.item_id}
                   onChange={handleItemFormChange}
                   required
-                  disabled={loadingItems}
+                  disabled={!selectedWarehouse || loadingItems}
                 >
                   <option value="">
-                    {loadingItems ? 'Loading items...' : 'Choose an item...'}
+                    {!selectedWarehouse ? 'Select a warehouse first...' : loadingItems ? 'Loading items...' : 'Choose an item...'}
                   </option>
                   {getAvailableItems().map(item => (
                     <option key={item.id} value={item.id}>
                       {item.tool_number || item.part_number} - {item.description}
-                      {item.serial_number && ` (S/N: ${item.serial_number})`}
+                      {item.serial_number && ` | S/N: ${item.serial_number}`}
+                      {item.lot_number && ` | Lot: ${item.lot_number}`}
                     </option>
                   ))}
                 </Form.Select>
@@ -297,7 +357,9 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
                   Please select an item.
                 </Form.Control.Feedback>
                 <Form.Text className="text-muted">
-                  Only available items from warehouse are shown
+                  {selectedWarehouse
+                    ? `Showing items from selected warehouse (${getAvailableItems().length} available)`
+                    : 'Select a warehouse to see available items'}
                 </Form.Text>
               </Form.Group>
 

@@ -33,6 +33,9 @@ const MainLayout = ({ children }) => {
                       <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
                       <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
                       <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                      {user.is_admin && (
+                        <Nav.Link as={Link} to="/warehouses">Warehouses</Nav.Link>
+                      )}
                       {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
                       {/* ============================================== */}
                       {/* The "Cycle Counts" navigation menu item has been disabled due to GitHub Issue #366 */}

@@ -12,6 +12,7 @@ import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
 import { useHelp } from '../../context/HelpContext';
+import api from '../../services/api';
 import './ToolList.css';
 
 const ToolList = () => {
@@ -33,10 +34,12 @@ const ToolList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState('');
 
   // Available categories and locations for filtering
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
 
   useEffect(() => {
     console.log("ToolList: Fetching tools...");
@@ -47,6 +50,17 @@ const ToolList = () => {
       .catch(error => {
         console.error("ToolList: Error fetching tools:", error);
       });
+
+    // Fetch warehouses for filtering
+    const fetchWarehouses = async () => {
+      try {
+        const response = await api.get('/warehouses');
+        setWarehouses(response.data.warehouses || []);
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err);
+      }
+    };
+    fetchWarehouses();
   }, [dispatch]);
 
   // Extract available categories and locations for filtering
@@ -91,6 +105,11 @@ const ToolList = () => {
     // Apply location filter
     if (locationFilter) {
       toolsToDisplay = toolsToDisplay.filter(tool => tool.location === locationFilter);
+    }
+
+    // Apply warehouse filter
+    if (warehouseFilter) {
+      toolsToDisplay = toolsToDisplay.filter(tool => tool.warehouse_id === parseInt(warehouseFilter));
     }
 
     // Hide retired tools if the option is selected
@@ -240,12 +259,13 @@ const ToolList = () => {
                     className="ms-2"
                   >
                     <i className={`bi bi-funnel${showFilters ? '-fill' : ''}`}></i> Filters
-                    {(statusFilter || categoryFilter || locationFilter || !hideRetired) && (
+                    {(statusFilter || categoryFilter || locationFilter || warehouseFilter || !hideRetired) && (
                       <Badge bg="primary" className="ms-1">
                         {[
                           statusFilter && 1,
                           categoryFilter && 1,
                           locationFilter && 1,
+                          warehouseFilter && 1,
                           !hideRetired && 1
                         ].filter(Boolean).reduce((a, b) => a + b, 0)}
                       </Badge>
@@ -305,7 +325,24 @@ const ToolList = () => {
                   </Form.Group>
                 </Col>
 
-                <Col xs={12} md={3} className="d-flex align-items-end">
+                <Col xs={12} md={3}>
+                  <Form.Group>
+                    <Form.Label>Warehouse</Form.Label>
+                    <Form.Select
+                      value={warehouseFilter}
+                      onChange={(e) => setWarehouseFilter(e.target.value)}
+                    >
+                      <option value="">All Warehouses</option>
+                      {warehouses.map(warehouse => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col xs={12} md={12} className="d-flex align-items-end">
                   <div className="d-flex gap-3 w-100">
                     <Form.Group className="mb-0 flex-grow-1">
                       <Form.Check
@@ -358,6 +395,7 @@ const ToolList = () => {
                   <th onClick={() => handleSort('location')} className="cursor-pointer">
                     Location {getSortIcon('location')}
                   </th>
+                  <th>Warehouse</th>
                   <th onClick={() => handleSort('status')} className="cursor-pointer">
                     Status {getSortIcon('status')}
                   </th>
@@ -374,6 +412,15 @@ const ToolList = () => {
                       <td>{tool.description || 'N/A'}</td>
                       <td>{tool.category || 'General'}</td>
                       <td>{tool.location || 'N/A'}</td>
+                      <td>
+                        {tool.warehouse_id ? (
+                          <Badge bg="info">
+                            {warehouses.find(w => w.id === tool.warehouse_id)?.name || `Warehouse ${tool.warehouse_id}`}
+                          </Badge>
+                        ) : (
+                          <Badge bg="secondary">In Kit</Badge>
+                        )}
+                      </td>
                       <td>
                         <span
                           className={`status-badge ${

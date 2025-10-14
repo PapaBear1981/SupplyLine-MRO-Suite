@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Card, Alert, Row, Col, Toast, ToastContainer } from 'react-bootstrap';
 import { createChemical } from '../../store/chemicalsSlice';
 import LotNumberInput from '../common/LotNumberInput';
+import api from '../../services/api';
 
 const NewChemicalForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.chemicals);
+
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [warehouseError, setWarehouseError] = useState(null);
 
   const [chemicalData, setChemicalData] = useState({
     part_number: '',
@@ -19,12 +25,32 @@ const NewChemicalForm = () => {
     unit: 'each',
     location: '',
     category: 'General',
+    warehouse_id: '',  // Required field
     expiration_date: '',
     minimum_stock_level: '',
     notes: ''
   });
   const [validated, setValidated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Fetch warehouses on mount
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      setLoadingWarehouses(true);
+      try {
+        const response = await api.get('/warehouses');
+        // Backend returns array directly, not wrapped in {warehouses: [...]}
+        setWarehouses(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err);
+        setWarehouseError('Failed to load warehouses. Please refresh the page.');
+      } finally {
+        setLoadingWarehouses(false);
+      }
+    };
+
+    fetchWarehouses();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,6 +118,7 @@ const NewChemicalForm = () => {
         </Card.Header>
         <Card.Body>
           {error && <Alert variant="danger">{error.message}</Alert>}
+          {warehouseError && <Alert variant="danger">{warehouseError}</Alert>}
 
         <Form noValidate validated={validated} onSubmit={handleSubmit}>
           <Row>
@@ -122,6 +149,32 @@ const NewChemicalForm = () => {
               />
             </Col>
           </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Warehouse*</Form.Label>
+            <Form.Select
+              name="warehouse_id"
+              value={chemicalData.warehouse_id}
+              onChange={handleChange}
+              required
+              disabled={loadingWarehouses}
+            >
+              <option value="">
+                {loadingWarehouses ? 'Loading warehouses...' : 'Select a warehouse...'}
+              </option>
+              {warehouses.map(warehouse => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name} - {warehouse.city}, {warehouse.state}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control.Feedback type="invalid">
+              Warehouse is required
+            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              All chemicals must be created in a warehouse before they can be transferred to kits.
+            </Form.Text>
+          </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>
