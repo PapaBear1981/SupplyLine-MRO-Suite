@@ -117,7 +117,7 @@ const NewChemicalForm = () => {
           <h4>Add New Chemical</h4>
         </Card.Header>
         <Card.Body>
-          {error && <Alert variant="danger">{error.message}</Alert>}
+          {error && <Alert variant="danger">{error.error || error.message || 'An error occurred'}</Alert>}
           {warehouseError && <Alert variant="danger">{warehouseError}</Alert>}
 
         <Form noValidate validated={validated} onSubmit={handleSubmit}>

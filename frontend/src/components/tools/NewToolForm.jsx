@@ -114,7 +114,9 @@ const NewToolForm = () => {
       })
       .catch((err) => {
         console.error('Failed to create tool:', err);
-        setLocalError(err.message || 'Failed to create tool. Please try again.');
+        // Extract error message from various possible formats
+        const errorMessage = err.error || err.message || 'Failed to create tool. Please try again.';
+        setLocalError(errorMessage);
         setIsSubmitting(false);
       });
   };
@@ -125,7 +127,7 @@ const NewToolForm = () => {
         <h4>Add New Tool</h4>
       </Card.Header>
       <Card.Body>
-        {error && <Alert variant="danger">{error.message}</Alert>}
+        {error && <Alert variant="danger">{error.error || error.message || 'An error occurred'}</Alert>}
         {localError && <Alert variant="danger">{localError}</Alert>}
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
