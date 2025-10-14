@@ -55,7 +55,8 @@ const ToolList = () => {
     const fetchWarehouses = async () => {
       try {
         const response = await api.get('/warehouses');
-        setWarehouses(response.data.warehouses || []);
+        // Backend returns array directly, not wrapped in {warehouses: [...]}
+        setWarehouses(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
       }

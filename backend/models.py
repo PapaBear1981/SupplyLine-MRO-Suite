@@ -978,11 +978,14 @@ class Warehouse(db.Model):
         # Only include counts if explicitly requested to avoid N+1 queries
         if include_counts:
             try:
-                result['created_by'] = self.created_by.username if self.created_by else None
-                result['tools_count'] = self.tools.count() if self.tools else 0
-                result['chemicals_count'] = self.chemicals.count() if self.chemicals else 0
-            except Exception:
-                # If relationships aren't loaded, skip counts
+                result['created_by'] = self.created_by.name if self.created_by else None
+                # Use direct queries instead of relationships to ensure accurate counts
+                from models import Tool, Chemical
+                result['tools_count'] = Tool.query.filter_by(warehouse_id=self.id).count()
+                result['chemicals_count'] = Chemical.query.filter_by(warehouse_id=self.id).count()
+            except Exception as e:
+                # If queries fail, skip counts
+                print(f"Error getting counts for warehouse {self.id}: {e}")
                 result['created_by'] = None
                 result['tools_count'] = 0
                 result['chemicals_count'] = 0
