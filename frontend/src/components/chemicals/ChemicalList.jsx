@@ -9,6 +9,7 @@ import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
 import { useHelp } from '../../context/HelpContext';
+import api from '../../services/api';
 
 const ChemicalList = () => {
   const dispatch = useDispatch();
@@ -18,12 +19,24 @@ const ChemicalList = () => {
   const [filteredChemicals, setFilteredChemicals] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState('');
+  const [warehouses, setWarehouses] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [selectedChemical, setSelectedChemical] = useState(null);
 
-  // Fetch chemicals on component mount
+  // Fetch chemicals and warehouses on component mount
   useEffect(() => {
     dispatch(fetchChemicals());
+
+    const fetchWarehouses = async () => {
+      try {
+        const response = await api.get('/warehouses');
+        setWarehouses(response.data.warehouses || []);
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err);
+      }
+    };
+    fetchWarehouses();
   }, [dispatch]);
 
   // Update filtered chemicals when chemicals, search term, or filters change
@@ -54,8 +67,13 @@ const ChemicalList = () => {
       filtered = filtered.filter((chemical) => chemical.status === statusFilter);
     }
 
+    // Apply warehouse filter
+    if (warehouseFilter) {
+      filtered = filtered.filter((chemical) => chemical.warehouse_id === parseInt(warehouseFilter));
+    }
+
     setFilteredChemicals(filtered);
-  }, [chemicals, searchTerm, categoryFilter, statusFilter]);
+  }, [chemicals, searchTerm, categoryFilter, statusFilter, warehouseFilter]);
 
   // Get unique categories for filter dropdown
   const categories = chemicals
@@ -87,6 +105,7 @@ const ChemicalList = () => {
     setSearchTerm('');
     setCategoryFilter('');
     setStatusFilter('');
+    setWarehouseFilter('');
   };
 
   // Get status badge variant
@@ -179,7 +198,7 @@ const ChemicalList = () => {
 
           <div className="mb-4">
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <Tooltip text="Search by part number, lot number, description, or manufacturer" placement="top" show={showTooltips}>
                   <InputGroup>
                     <InputGroup.Text>
@@ -193,7 +212,7 @@ const ChemicalList = () => {
                   </InputGroup>
                 </Tooltip>
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
                 <Tooltip text="Filter by chemical category" placement="top" show={showTooltips}>
                   <Form.Select value={categoryFilter} onChange={handleCategoryChange}>
                     <option value="">All Categories</option>
@@ -205,7 +224,7 @@ const ChemicalList = () => {
                   </Form.Select>
                 </Tooltip>
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
                 <Tooltip text="Filter by chemical status" placement="top" show={showTooltips}>
                   <Form.Select value={statusFilter} onChange={handleStatusChange}>
                     <option value="">All Statuses</option>
@@ -217,12 +236,24 @@ const ChemicalList = () => {
                   </Form.Select>
                 </Tooltip>
               </div>
+              <div className="col-md-2">
+                <Tooltip text="Filter by warehouse" placement="top" show={showTooltips}>
+                  <Form.Select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
+                    <option value="">All Warehouses</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Tooltip>
+              </div>
             </div>
           </div>
 
           {filteredChemicals.length === 0 ? (
             <Alert variant="info">
-              No chemicals found. {searchTerm || categoryFilter || statusFilter ? 'Try adjusting your filters.' : ''}
+              No chemicals found. {searchTerm || categoryFilter || statusFilter || warehouseFilter ? 'Try adjusting your filters.' : ''}
             </Alert>
           ) : (
             <div className="table-responsive">
@@ -234,6 +265,7 @@ const ChemicalList = () => {
                     <th>Description</th>
                     <th>Manufacturer</th>
                     <th>Quantity</th>
+                    <th>Warehouse</th>
                     <th>Expiration Date</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -248,6 +280,15 @@ const ChemicalList = () => {
                       <td>{chemical.manufacturer}</td>
                       <td>
                         {chemical.quantity} {chemical.unit}
+                      </td>
+                      <td>
+                        {chemical.warehouse_id ? (
+                          <Badge bg="info">
+                            {warehouses.find(w => w.id === chemical.warehouse_id)?.name || `Warehouse ${chemical.warehouse_id}`}
+                          </Badge>
+                        ) : (
+                          <Badge bg="secondary">In Kit</Badge>
+                        )}
                       </td>
                       <td>
                         {chemical.expiration_date

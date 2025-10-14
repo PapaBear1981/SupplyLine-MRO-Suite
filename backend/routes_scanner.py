@@ -20,32 +20,56 @@ def register_scanner_routes(app):
             code = data['code']
             
             # Parse the code to determine if it's a tool or chemical
-            # Format for tools: tool_number-serial_number
+            # Format for tools: tool_number-serial_number OR tool_number-LOT-lot_number
             # Format for chemicals: part_number-lot_number-expiration_date
             parts = code.split('-')
-            
+
             # Try to find a tool first
             if len(parts) >= 2:
-                # Check if it's a tool
-                tool = Tool.query.filter_by(
-                    tool_number=parts[0],
-                    serial_number=parts[1]
-                ).first()
-                
-                if tool:
-                    return jsonify({
-                        'item_type': 'tool',
-                        'item_id': tool.id,
-                        'item_data': {
-                            'id': tool.id,
-                            'tool_number': tool.tool_number,
-                            'serial_number': tool.serial_number,
-                            'description': tool.description,
-                            'category': tool.category,
-                            'location': tool.location,
-                            'status': tool.status
-                        }
-                    })
+                # Check if it's a lot-tracked tool (format: tool_number-LOT-lot_number)
+                if len(parts) >= 3 and parts[1] == 'LOT':
+                    tool = Tool.query.filter_by(
+                        tool_number=parts[0],
+                        lot_number=parts[2]
+                    ).first()
+
+                    if tool:
+                        return jsonify({
+                            'item_type': 'tool',
+                            'item_id': tool.id,
+                            'item_data': {
+                                'id': tool.id,
+                                'tool_number': tool.tool_number,
+                                'lot_number': tool.lot_number,
+                                'serial_number': tool.serial_number,
+                                'description': tool.description,
+                                'category': tool.category,
+                                'location': tool.location,
+                                'status': tool.status
+                            }
+                        })
+                else:
+                    # Check if it's a serial-tracked tool (format: tool_number-serial_number)
+                    tool = Tool.query.filter_by(
+                        tool_number=parts[0],
+                        serial_number=parts[1]
+                    ).first()
+
+                    if tool:
+                        return jsonify({
+                            'item_type': 'tool',
+                            'item_id': tool.id,
+                            'item_data': {
+                                'id': tool.id,
+                                'tool_number': tool.tool_number,
+                                'serial_number': tool.serial_number,
+                                'lot_number': tool.lot_number,
+                                'description': tool.description,
+                                'category': tool.category,
+                                'location': tool.location,
+                                'status': tool.status
+                            }
+                        })
             
             # If not a tool or if tool not found, check if it's a chemical
             if len(parts) >= 3:
@@ -119,8 +143,11 @@ def register_scanner_routes(app):
                     tool_id=tool.id
                 ).order_by(ToolCalibration.calibration_date.desc()).first()
 
-            # Create barcode data
-            barcode_data = f"{tool.tool_number}-{tool.serial_number}"
+            # Create barcode data - use lot_number for consumables, serial_number for tooling
+            if tool.lot_number:
+                barcode_data = f"{tool.tool_number}-LOT-{tool.lot_number}"
+            else:
+                barcode_data = f"{tool.tool_number}-{tool.serial_number}"
 
             # Get the base URL for QR code (use request host or configured URL)
             base_url = request.host_url.rstrip('/')
@@ -143,6 +170,7 @@ def register_scanner_routes(app):
                 'tool_id': tool.id,
                 'tool_number': tool.tool_number,
                 'serial_number': tool.serial_number,
+                'lot_number': tool.lot_number,
                 'barcode_data': barcode_data,
                 'qr_url': qr_url,
                 'calibration': calibration_data,

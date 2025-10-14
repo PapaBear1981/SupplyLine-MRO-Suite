@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Table, Badge, Button, Form, Row, Col, ButtonGroup } from 'react-bootstrap';
-import { FaBox, FaFilter, FaExchangeAlt, FaShoppingCart, FaPlus } from 'react-icons/fa';
+import { Card, Table, Badge, Button, Form, Row, Col, ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { FaBox, FaFilter, FaExchangeAlt, FaShoppingCart, FaPlus, FaBarcode, FaHashtag, FaLayerGroup } from 'react-icons/fa';
 import { fetchKitItems, fetchKitBoxes } from '../../store/kitsSlice';
 import KitIssuanceForm from './KitIssuanceForm';
 import AddKitItemModal from './AddKitItemModal';
+import ItemDetailModal from '../common/ItemDetailModal';
+import './KitItemsList.css';
 
 const KitItemsList = ({ kitId }) => {
   const dispatch = useDispatch();
@@ -16,6 +18,8 @@ const KitItemsList = ({ kitId }) => {
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [selectedItemForIssue, setSelectedItemForIssue] = useState(null);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedItemForDetail, setSelectedItemForDetail] = useState(null);
 
   useEffect(() => {
     if (kitId) {
@@ -55,6 +59,52 @@ const KitItemsList = ({ kitId }) => {
     return box ? box.box_number : 'Unknown';
   };
 
+  const getTrackingIcon = (item) => {
+    // Determine tracking type based on what fields are present
+    const hasLot = !!item.lot_number;
+    const hasSerial = !!item.serial_number;
+    const trackingType = item.tracking_type;
+
+    if (trackingType === 'both' || (hasLot && hasSerial)) {
+      return (
+        <OverlayTrigger
+          placement="top"
+          overlay={<Tooltip>Tracked by both Lot and Serial Number</Tooltip>}
+        >
+          <Badge bg="info" className="ms-2">
+            <FaLayerGroup className="me-1" />
+            Both
+          </Badge>
+        </OverlayTrigger>
+      );
+    } else if (trackingType === 'lot' || hasLot) {
+      return (
+        <OverlayTrigger
+          placement="top"
+          overlay={<Tooltip>Tracked by Lot Number</Tooltip>}
+        >
+          <Badge bg="warning" className="ms-2">
+            <FaHashtag className="me-1" />
+            Lot
+          </Badge>
+        </OverlayTrigger>
+      );
+    } else if (trackingType === 'serial' || hasSerial) {
+      return (
+        <OverlayTrigger
+          placement="top"
+          overlay={<Tooltip>Tracked by Serial Number</Tooltip>}
+        >
+          <Badge bg="primary" className="ms-2">
+            <FaBarcode className="me-1" />
+            Serial
+          </Badge>
+        </OverlayTrigger>
+      );
+    }
+    return null;
+  };
+
   const handleIssueItem = (item) => {
     setSelectedItemForIssue(item);
     setShowIssuanceForm(true);
@@ -70,6 +120,28 @@ const KitItemsList = ({ kitId }) => {
   const handleAddItemSuccess = () => {
     // Refresh items after adding
     dispatch(fetchKitItems({ kitId }));
+  };
+
+  const handleRowClick = (item) => {
+    // Determine item type and ID for the detail modal
+    let itemType, itemId;
+
+    if (item.source === 'expendable') {
+      itemType = 'expendable';
+      itemId = item.id;
+    } else if (item.item_type === 'tool') {
+      itemType = 'tool';
+      itemId = item.item_id || item.id;
+    } else if (item.item_type === 'chemical') {
+      itemType = 'chemical';
+      itemId = item.item_id || item.id;
+    } else {
+      itemType = 'kit_item';
+      itemId = item.id;
+    }
+
+    setSelectedItemForDetail({ itemType, itemId });
+    setShowDetailModal(true);
   };
 
   return (
@@ -187,16 +259,26 @@ const KitItemsList = ({ kitId }) => {
             </thead>
             <tbody>
               {filteredItems.map((item, index) => (
-                <tr key={`${item.source}-${item.id}-${index}`}>
+                <tr
+                  key={`${item.source}-${item.id}-${index}`}
+                  className="clickable-row"
+                  onClick={() => handleRowClick(item)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td>{getBoxName(item.box_id)}</td>
                   <td>
-                    <code>{item.part_number}</code>
-                    {item.serial_number && (
-                      <div className="small text-muted">S/N: {item.serial_number}</div>
-                    )}
-                    {item.lot_number && (
-                      <div className="small text-muted">Lot: {item.lot_number}</div>
-                    )}
+                    <div className="d-flex align-items-center">
+                      <div>
+                        <code>{item.part_number}</code>
+                        {item.serial_number && (
+                          <div className="small text-muted">S/N: {item.serial_number}</div>
+                        )}
+                        {item.lot_number && (
+                          <div className="small text-muted">LOT: {item.lot_number}</div>
+                        )}
+                      </div>
+                      {getTrackingIcon(item)}
+                    </div>
                   </td>
                   <td>{item.description}</td>
                   <td>
@@ -213,7 +295,7 @@ const KitItemsList = ({ kitId }) => {
                   </td>
                   <td>{item.location || '-'}</td>
                   <td>{getStatusBadge(item.status)}</td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <ButtonGroup size="sm">
                       <Button
                         variant="outline-primary"
@@ -249,6 +331,19 @@ const KitItemsList = ({ kitId }) => {
         kitId={kitId}
         preSelectedItem={selectedItemForIssue}
       />
+
+      {/* Item Detail Modal */}
+      {selectedItemForDetail && (
+        <ItemDetailModal
+          show={showDetailModal}
+          onHide={() => {
+            setShowDetailModal(false);
+            setSelectedItemForDetail(null);
+          }}
+          itemType={selectedItemForDetail.itemType}
+          itemId={selectedItemForDetail.itemId}
+        />
+      )}
     </Card>
   );
 };

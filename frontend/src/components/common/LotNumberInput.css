@@ -1,0 +1,86 @@
+/* LotNumberInput.css */
+
+.lot-number-input-group {
+  margin-bottom: 1rem;
+}
+
+.lot-number-input-group .input-group {
+  position: relative;
+}
+
+.lot-number-input-group .form-control {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.lot-number-input-group .form-control.generated-value {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+  color: #f57c00;
+  font-weight: 600;
+}
+
+.lot-number-input-group .form-control.generated-value:focus {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+  box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
+
+.lot-number-input-group .auto-generate-btn {
+  white-space: nowrap;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.lot-number-input-group .auto-generate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lot-number-input-group .auto-generate-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.lot-number-input-group .auto-generate-btn.btn-success {
+  animation: successPulse 0.5s ease-out;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.lot-number-input-group .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+  .lot-number-input-group .input-group {
+    flex-direction: column;
+  }
+  
+  .lot-number-input-group .auto-generate-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    border-top-left-radius: 0.25rem !important;
+    border-bottom-left-radius: 0.25rem !important;
+  }
+  
+  .lot-number-input-group .form-control {
+    border-top-right-radius: 0.25rem !important;
+    border-bottom-right-radius: 0.25rem !important;
+  }
+}
+

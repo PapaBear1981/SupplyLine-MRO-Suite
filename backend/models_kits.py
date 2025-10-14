@@ -176,15 +176,17 @@ class KitExpendable(db.Model):
     """
     KitExpendable model for manually added expendable items.
     These are not linked to existing inventory records.
+    Expendables can be tracked by lot number, serial number, or both.
     """
     __tablename__ = 'kit_expendables'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=False)
     box_id = db.Column(db.Integer, db.ForeignKey('kit_boxes.id'), nullable=False)
     part_number = db.Column(db.String(100), nullable=False)
     serial_number = db.Column(db.String(100))
     lot_number = db.Column(db.String(100))
+    tracking_type = db.Column(db.String(20), nullable=False, default='lot')  # lot, serial, both
     description = db.Column(db.String(500), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     unit = db.Column(db.String(20), nullable=False, default='each')  # each, oz, ml, etc.
@@ -193,11 +195,11 @@ class KitExpendable(db.Model):
     minimum_stock_level = db.Column(db.Float)
     added_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
     last_updated = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
-    
+
     # Relationships
     kit = db.relationship('Kit', back_populates='expendables')
     box = db.relationship('KitBox', back_populates='expendables')
-    
+
     def to_dict(self):
         """Convert model to dictionary"""
         return {
@@ -208,6 +210,7 @@ class KitExpendable(db.Model):
             'part_number': self.part_number,
             'serial_number': self.serial_number,
             'lot_number': self.lot_number,
+            'tracking_type': self.tracking_type,
             'description': self.description,
             'quantity': self.quantity,
             'unit': self.unit,
@@ -218,12 +221,33 @@ class KitExpendable(db.Model):
             'added_date': self.added_date.isoformat() if self.added_date else None,
             'last_updated': self.last_updated.isoformat() if self.last_updated else None
         }
-    
+
     def is_low_stock(self):
         """Check if expendable is at or below minimum stock level"""
         if self.minimum_stock_level is None:
             return False
         return self.quantity <= self.minimum_stock_level
+
+    def validate_tracking(self):
+        """
+        Validate that appropriate tracking identifiers are present based on tracking_type.
+
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        if self.tracking_type == 'lot':
+            if not self.lot_number:
+                return False, "Lot number is required for lot-tracked expendables"
+        elif self.tracking_type == 'serial':
+            if not self.serial_number:
+                return False, "Serial number is required for serial-tracked expendables"
+        elif self.tracking_type == 'both':
+            if not self.lot_number or not self.serial_number:
+                return False, "Both lot number and serial number are required for dual-tracked expendables"
+        else:
+            return False, f"Invalid tracking_type: {self.tracking_type}"
+
+        return True, None
 
 
 class KitIssuance(db.Model):

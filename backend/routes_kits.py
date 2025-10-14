@@ -5,7 +5,7 @@ This module provides API endpoints for managing kits, aircraft types, boxes, and
 """
 
 from flask import request, jsonify
-from models import db, User, Tool, Chemical, AuditLog
+from models import db, User, Tool, Chemical, AuditLog, Warehouse, WarehouseTransfer
 from models_kits import (
     AircraftType, Kit, KitBox, KitItem, KitExpendable,
     KitIssuance, KitTransfer, KitReorderRequest, KitMessage
@@ -592,20 +592,48 @@ def register_kit_routes(app):
         if not data.get('item_id'):
             raise ValidationError('Item ID is required')
 
+        # For tools and chemicals, warehouse_id is required (not for expendables)
+        if data['item_type'] in ['tool', 'chemical']:
+            if not data.get('warehouse_id'):
+                raise ValidationError(f'{data["item_type"].capitalize()}s must be transferred from a warehouse. Please provide warehouse_id.')
+
         # Verify box belongs to this kit
         box = KitBox.query.filter_by(id=data['box_id'], kit_id=kit_id).first()
         if not box:
             raise ValidationError('Invalid box ID for this kit')
 
-        # Verify item exists
+        # Verify item exists and belongs to the specified warehouse
         if data['item_type'] == 'tool':
             item = Tool.query.get(data['item_id'])
             if not item:
                 raise ValidationError('Tool not found')
+
+            # Verify tool is in the specified warehouse
+            if item.warehouse_id != data['warehouse_id']:
+                raise ValidationError(f'Tool is not in the specified warehouse. Tool is in warehouse ID: {item.warehouse_id}')
+
+            # Verify warehouse exists and is active
+            warehouse = Warehouse.query.get(data['warehouse_id'])
+            if not warehouse:
+                raise ValidationError('Warehouse not found')
+            if not warehouse.is_active:
+                raise ValidationError('Cannot transfer from inactive warehouse')
+
         elif data['item_type'] == 'chemical':
             item = Chemical.query.get(data['item_id'])
             if not item:
                 raise ValidationError('Chemical not found')
+
+            # Verify chemical is in the specified warehouse
+            if item.warehouse_id != data['warehouse_id']:
+                raise ValidationError(f'Chemical is not in the specified warehouse. Chemical is in warehouse ID: {item.warehouse_id}')
+
+            # Verify warehouse exists and is active
+            warehouse = Warehouse.query.get(data['warehouse_id'])
+            if not warehouse:
+                raise ValidationError('Warehouse not found')
+            if not warehouse.is_active:
+                raise ValidationError('Cannot transfer from inactive warehouse')
         else:
             raise ValidationError('Invalid item type')
 
@@ -625,12 +653,31 @@ def register_kit_routes(app):
         )
 
         db.session.add(kit_item)
+        db.session.flush()  # Flush to get kit_item ID
+
+        # Create warehouse transfer record for audit trail
+        transfer = WarehouseTransfer(
+            from_warehouse_id=data['warehouse_id'],
+            to_kit_id=kit_id,
+            item_type=data['item_type'],
+            item_id=data['item_id'],
+            quantity=data.get('quantity', 1.0),
+            transferred_by_id=request.current_user['user_id'],
+            notes=data.get('notes', f'Transferred to kit {kit.name}'),
+            status='completed'
+        )
+
+        db.session.add(transfer)
+
+        # Update item's warehouse_id to None (it's now in a kit)
+        item.warehouse_id = None
+
         db.session.commit()
 
         # Log action
         log = AuditLog(
             action_type='kit_item_added',
-            action_details=f'Added {data["item_type"]} to kit {kit.name}'
+            action_details=f'Transferred {data["item_type"]} from warehouse {warehouse.name} to kit {kit.name}'
         )
         db.session.add(log)
         db.session.commit()
@@ -717,6 +764,7 @@ def register_kit_routes(app):
             part_number=data['part_number'],
             serial_number=data.get('serial_number'),
             lot_number=data.get('lot_number'),
+            tracking_type=data.get('tracking_type', 'lot'),  # Default to lot tracking
             description=data['description'],
             quantity=data.get('quantity', 0),
             unit=data.get('unit', 'each'),
@@ -725,7 +773,40 @@ def register_kit_routes(app):
             minimum_stock_level=data.get('minimum_stock_level')
         )
 
+        # Validate tracking requirements
+        is_valid, error_msg = expendable.validate_tracking()
+        if not is_valid:
+            raise ValidationError(error_msg)
+
+        # Validate serial number uniqueness if serial tracking
+        if expendable.tracking_type in ['serial', 'both'] and expendable.serial_number:
+            from utils.transaction_helper import validate_serial_number_uniqueness
+            is_unique, error_msg = validate_serial_number_uniqueness(
+                expendable.part_number,
+                expendable.serial_number,
+                'expendable',
+                exclude_id=None
+            )
+            if not is_unique:
+                raise ValidationError(error_msg)
+
         db.session.add(expendable)
+        db.session.flush()  # Flush to get the expendable ID
+
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='expendable',
+                item_id=expendable.id,
+                user_id=request.current_user['user_id'],
+                quantity=expendable.quantity,
+                location=expendable.location or 'Unknown',
+                notes=f'Added to kit {kit.name}'
+            )
+        except Exception as e:
+            logger.error(f"Error recording expendable creation transaction: {str(e)}")
+
         db.session.commit()
 
         # Log action

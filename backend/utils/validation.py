@@ -417,3 +417,104 @@ def validate_cycle_count_batch_cross_fields(data):
         # Validate location for location selection
         if data.get('item_selection') == 'location' and ('location' not in data or not data['location']):
             raise ValidationError("location is required when item_selection is 'location'")
+
+
+def validate_serial_number_format(serial_number):
+    """
+    Validate serial number format.
+
+    Serial numbers should:
+    - Be 3-100 characters long
+    - Contain only alphanumeric characters, hyphens, underscores, and periods
+    - Not be empty or just whitespace
+
+    Args:
+        serial_number: Serial number string to validate
+
+    Returns:
+        bool: True if valid
+
+    Raises:
+        ValidationError: If serial number format is invalid
+    """
+    if not serial_number or not serial_number.strip():
+        raise ValidationError("Serial number cannot be empty")
+
+    serial_number = serial_number.strip()
+
+    if len(serial_number) < 3:
+        raise ValidationError("Serial number must be at least 3 characters long")
+
+    if len(serial_number) > 100:
+        raise ValidationError("Serial number cannot exceed 100 characters")
+
+    # Allow alphanumeric, hyphens, underscores, periods
+    if not re.match(r'^[A-Za-z0-9\-_.]+$', serial_number):
+        raise ValidationError("Serial number can only contain letters, numbers, hyphens, underscores, and periods")
+
+    return True
+
+
+def validate_lot_number_format(lot_number):
+    """
+    Validate lot number format.
+
+    Lot numbers should:
+    - Be 3-100 characters long
+    - Contain only alphanumeric characters, hyphens, underscores, and periods
+    - Not be empty or just whitespace
+    - Follow format LOT-YYMMDD-XXXX for auto-generated lots (optional)
+
+    Args:
+        lot_number: Lot number string to validate
+
+    Returns:
+        bool: True if valid
+
+    Raises:
+        ValidationError: If lot number format is invalid
+    """
+    if not lot_number or not lot_number.strip():
+        raise ValidationError("Lot number cannot be empty")
+
+    lot_number = lot_number.strip()
+
+    if len(lot_number) < 3:
+        raise ValidationError("Lot number must be at least 3 characters long")
+
+    if len(lot_number) > 100:
+        raise ValidationError("Lot number cannot exceed 100 characters")
+
+    # Allow alphanumeric, hyphens, underscores, periods
+    if not re.match(r'^[A-Za-z0-9\-_.]+$', lot_number):
+        raise ValidationError("Lot number can only contain letters, numbers, hyphens, underscores, and periods")
+
+    return True
+
+
+def validate_warehouse_id(warehouse_id):
+    """
+    Validate warehouse ID exists and is active.
+
+    Args:
+        warehouse_id: Warehouse ID to validate
+
+    Returns:
+        Warehouse: The validated warehouse object
+
+    Raises:
+        ValidationError: If warehouse is invalid or inactive
+    """
+    from models import Warehouse
+
+    if not warehouse_id:
+        raise ValidationError("Warehouse ID is required")
+
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse:
+        raise ValidationError(f"Warehouse with ID {warehouse_id} not found")
+
+    if not warehouse.is_active:
+        raise ValidationError(f"Warehouse '{warehouse.name}' is inactive and cannot be used")
+
+    return warehouse

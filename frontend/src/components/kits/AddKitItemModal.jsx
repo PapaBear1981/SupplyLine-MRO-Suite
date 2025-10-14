@@ -4,6 +4,7 @@ import { Modal, Button, Form, Alert, Row, Col, Badge, Tabs, Tab } from 'react-bo
 import { FaPlus, FaBox, FaTools, FaFlask, FaCheckCircle } from 'react-icons/fa';
 import { fetchKitBoxes } from '../../store/kitsSlice';
 import api from '../../services/api';
+import LotNumberInput from '../common/LotNumberInput';
 
 const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const dispatch = useDispatch();
@@ -14,7 +15,12 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [validated, setValidated] = useState(false);
-  
+
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
   // Available items from warehouse
   const [availableTools, setAvailableTools] = useState([]);
   const [availableChemicals, setAvailableChemicals] = useState([]);
@@ -25,6 +31,7 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
     box_id: '',
     item_type: 'tool',
     item_id: '',
+    warehouse_id: '',  // Required for tools/chemicals
     quantity: 1,
     location: ''
   });
@@ -38,36 +45,61 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
     unit: 'EA',
     minimum_stock_level: 0,
     maximum_stock_level: 0,
-    location: ''
+    location: '',
+    tracking_type: 'lot',
+    lot_number: '',
+    serial_number: ''
   });
 
   useEffect(() => {
     if (show && kitId) {
       dispatch(fetchKitBoxes(kitId));
-      loadAvailableItems();
+      loadWarehouses();
     }
   }, [show, kitId, dispatch]);
 
-  const loadAvailableItems = async () => {
+  // Load items when warehouse is selected
+  useEffect(() => {
+    if (selectedWarehouse) {
+      loadAvailableItems(selectedWarehouse);
+    }
+  }, [selectedWarehouse]);
+
+  const loadWarehouses = async () => {
+    setLoadingWarehouses(true);
+    try {
+      const response = await api.get('/warehouses');
+      // Backend returns array directly, not wrapped in {warehouses: [...]}
+      setWarehouses(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+      setError('Failed to load warehouses. Please try again.');
+    } finally {
+      setLoadingWarehouses(false);
+    }
+  };
+
+  const loadAvailableItems = async (warehouseId) => {
+    if (!warehouseId) {
+      setAvailableTools([]);
+      setAvailableChemicals([]);
+      return;
+    }
+
     setLoadingItems(true);
     try {
-      // Load available tools
-      const toolsResponse = await api.get('/tools', {
-        params: { status: 'available', limit: 100 }
-      });
-      // Handle both array and object responses
+      // Load available tools from warehouse
+      const toolsResponse = await api.get(`/warehouses/${warehouseId}/tools`);
       const tools = Array.isArray(toolsResponse.data) ? toolsResponse.data : (toolsResponse.data.tools || []);
       setAvailableTools(tools);
 
-      // Load available chemicals
-      const chemicalsResponse = await api.get('/chemicals', {
-        params: { status: 'available', limit: 100 }
-      });
-      // Handle both array and object responses
+      // Load available chemicals from warehouse
+      const chemicalsResponse = await api.get(`/warehouses/${warehouseId}/chemicals`);
       const chemicals = Array.isArray(chemicalsResponse.data) ? chemicalsResponse.data : (chemicalsResponse.data.chemicals || []);
       setAvailableChemicals(chemicals);
     } catch (err) {
       console.error('Failed to load available items:', err);
+      setError('Failed to load items from warehouse. Please try again.');
     } finally {
       setLoadingItems(false);
     }
@@ -76,10 +108,12 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
   const boxes = kitBoxes[kitId] || [];
 
   const resetForm = () => {
+    setSelectedWarehouse('');
     setItemFormData({
       box_id: '',
       item_type: 'tool',
       item_id: '',
+      warehouse_id: '',
       quantity: 1,
       location: ''
     });
@@ -91,7 +125,10 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
       unit: 'EA',
       minimum_stock_level: 0,
       maximum_stock_level: 0,
-      location: ''
+      location: '',
+      tracking_type: 'lot',
+      lot_number: '',
+      serial_number: ''
     });
     setValidated(false);
     setError(null);
@@ -138,6 +175,7 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
         box_id: parseInt(itemFormData.box_id),
         item_type: itemFormData.item_type,
         item_id: parseInt(itemFormData.item_id),
+        warehouse_id: parseInt(selectedWarehouse),  // Required for transfer tracking
         quantity: parseFloat(itemFormData.quantity),
         location: itemFormData.location
       });
@@ -177,7 +215,10 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
         unit: expendableFormData.unit,
         minimum_stock_level: parseFloat(expendableFormData.minimum_stock_level),
         maximum_stock_level: parseFloat(expendableFormData.maximum_stock_level),
-        location: expendableFormData.location
+        location: expendableFormData.location,
+        tracking_type: expendableFormData.tracking_type,
+        lot_number: expendableFormData.lot_number || null,
+        serial_number: expendableFormData.serial_number || null
       });
 
       setSuccess(true);
@@ -265,21 +306,50 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
               </Form.Group>
 
               <Form.Group className="mb-3">
+                <Form.Label>Source Warehouse *</Form.Label>
+                <Form.Select
+                  value={selectedWarehouse}
+                  onChange={(e) => {
+                    setSelectedWarehouse(e.target.value);
+                    setItemFormData(prev => ({ ...prev, item_id: '', warehouse_id: e.target.value }));
+                  }}
+                  required
+                  disabled={loadingWarehouses}
+                >
+                  <option value="">
+                    {loadingWarehouses ? 'Loading warehouses...' : 'Select warehouse to transfer from...'}
+                  </option>
+                  {warehouses.map(warehouse => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} - {warehouse.city}, {warehouse.state}
+                    </option>
+                  ))}
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Please select a warehouse.
+                </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  Tools and chemicals must be transferred from a warehouse
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
                 <Form.Label>Select Item *</Form.Label>
                 <Form.Select
                   name="item_id"
                   value={itemFormData.item_id}
                   onChange={handleItemFormChange}
                   required
-                  disabled={loadingItems}
+                  disabled={!selectedWarehouse || loadingItems}
                 >
                   <option value="">
-                    {loadingItems ? 'Loading items...' : 'Choose an item...'}
+                    {!selectedWarehouse ? 'Select a warehouse first...' : loadingItems ? 'Loading items...' : 'Choose an item...'}
                   </option>
                   {getAvailableItems().map(item => (
                     <option key={item.id} value={item.id}>
                       {item.tool_number || item.part_number} - {item.description}
-                      {item.serial_number && ` (S/N: ${item.serial_number})`}
+                      {item.serial_number && ` | S/N: ${item.serial_number}`}
+                      {item.lot_number && ` | Lot: ${item.lot_number}`}
                     </option>
                   ))}
                 </Form.Select>
@@ -287,7 +357,9 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
                   Please select an item.
                 </Form.Control.Feedback>
                 <Form.Text className="text-muted">
-                  Only available items from warehouse are shown
+                  {selectedWarehouse
+                    ? `Showing items from selected warehouse (${getAvailableItems().length} available)`
+                    : 'Select a warehouse to see available items'}
                 </Form.Text>
               </Form.Group>
 
@@ -413,6 +485,74 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
                   Please enter a description.
                 </Form.Control.Feedback>
               </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Tracking Type *</Form.Label>
+                <div className="d-flex gap-3">
+                  <Form.Check
+                    type="radio"
+                    id="tracking-lot"
+                    label="Lot Number"
+                    name="tracking_type"
+                    value="lot"
+                    checked={expendableFormData.tracking_type === 'lot'}
+                    onChange={handleExpendableFormChange}
+                  />
+                  <Form.Check
+                    type="radio"
+                    id="tracking-serial"
+                    label="Serial Number"
+                    name="tracking_type"
+                    value="serial"
+                    checked={expendableFormData.tracking_type === 'serial'}
+                    onChange={handleExpendableFormChange}
+                  />
+                  <Form.Check
+                    type="radio"
+                    id="tracking-both"
+                    label="Both"
+                    name="tracking_type"
+                    value="both"
+                    checked={expendableFormData.tracking_type === 'both'}
+                    onChange={handleExpendableFormChange}
+                  />
+                </div>
+                <Form.Text className="text-muted">
+                  Choose how to track this expendable item
+                </Form.Text>
+              </Form.Group>
+
+              {(expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both') && (
+                <LotNumberInput
+                  value={expendableFormData.lot_number}
+                  onChange={(value) => setExpendableFormData(prev => ({ ...prev, lot_number: value }))}
+                  disabled={loading}
+                  required={expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both'}
+                  label="Lot Number"
+                  helpText="Auto-generate or enter manually"
+                  showAutoGenerate={true}
+                />
+              )}
+
+              {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && (
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Serial Number
+                    {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && <span className="text-danger ms-1">*</span>}
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="serial_number"
+                    value={expendableFormData.serial_number}
+                    onChange={handleExpendableFormChange}
+                    required={expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both'}
+                    placeholder="Enter serial number"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    Serial number is required for this tracking type.
+                  </Form.Control.Feedback>
+                </Form.Group>
+              )}
 
               <Row>
                 <Col md={4}>

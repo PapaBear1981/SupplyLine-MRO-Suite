@@ -40,12 +40,14 @@ class Tool(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tool_number = db.Column(db.String, nullable=False)
     serial_number = db.Column(db.String, nullable=False)
+    lot_number = db.Column(db.String(100), nullable=True)  # For consumable tools tracked by lot
     description = db.Column(db.String)
     condition = db.Column(db.String)
     location = db.Column(db.String)
     category = db.Column(db.String, nullable=True, default='General')
     status = db.Column(db.String, nullable=True, default='available')  # available, checked_out, maintenance, retired
     status_reason = db.Column(db.String, nullable=True)  # Reason for maintenance or retirement
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=get_current_time)
 
     # Calibration fields
@@ -55,17 +57,23 @@ class Tool(db.Model):
     next_calibration_date = db.Column(db.DateTime, nullable=True)
     calibration_status = db.Column(db.String, nullable=True)  # current, due_soon, overdue, not_applicable
 
+    # Relationships
+    warehouse = db.relationship('Warehouse', back_populates='tools')
+
     def to_dict(self):
         return {
             'id': self.id,
             'tool_number': self.tool_number,
             'serial_number': self.serial_number,
+            'lot_number': self.lot_number,
             'description': self.description,
             'condition': self.condition,
             'location': self.location,
             'category': self.category,
             'status': self.status,
             'status_reason': self.status_reason,
+            'warehouse_id': self.warehouse_id,
+            'warehouse_name': self.warehouse.name if self.warehouse else None,
             'created_at': self.created_at.isoformat(),
             'requires_calibration': self.requires_calibration,
             'calibration_frequency_days': self.calibration_frequency_days,
@@ -387,6 +395,7 @@ class Chemical(db.Model):
     location = db.Column(db.String)
     category = db.Column(db.String, nullable=True, default='General')  # Sealant, Paint, Adhesive, etc.
     status = db.Column(db.String, nullable=False, default='available')  # available, low_stock, out_of_stock, expired
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
     date_added = db.Column(db.DateTime, default=get_current_time)
     expiration_date = db.Column(db.DateTime, nullable=True)
     minimum_stock_level = db.Column(db.Float, nullable=True)  # Threshold for low stock alert
@@ -407,6 +416,9 @@ class Chemical(db.Model):
         # If the columns don't exist, we'll create them later with a migration
         pass
 
+    # Relationships
+    warehouse = db.relationship('Warehouse', back_populates='chemicals')
+
     def to_dict(self):
         result = {
             'id': self.id,
@@ -419,6 +431,8 @@ class Chemical(db.Model):
             'location': self.location,
             'category': self.category,
             'status': self.status,
+            'warehouse_id': self.warehouse_id,
+            'warehouse_name': self.warehouse.name if self.warehouse else None,
             'date_added': self.date_added.isoformat(),
             'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
             'minimum_stock_level': self.minimum_stock_level,
@@ -767,4 +781,255 @@ class AnnouncementRead(db.Model):
             'user_id': self.user_id,
             'user_name': self.user.name if self.user else 'Unknown',
             'read_at': self.read_at.isoformat()
+        }
+
+
+class InventoryTransaction(db.Model):
+    """
+    InventoryTransaction model for tracking all inventory movements.
+    Provides complete audit trail from receipt through disposal.
+    """
+    __tablename__ = 'inventory_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    item_type = db.Column(db.String(20), nullable=False, index=True)  # tool, chemical, expendable
+    item_id = db.Column(db.Integer, nullable=False, index=True)  # FK to respective table
+    transaction_type = db.Column(db.String(50), nullable=False)  # receipt, issuance, transfer, adjustment, checkout, return, etc.
+    timestamp = db.Column(db.DateTime, default=get_current_time, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    quantity_change = db.Column(db.Float)  # Positive for additions, negative for removals
+    location_from = db.Column(db.String(200))
+    location_to = db.Column(db.String(200))
+    reference_number = db.Column(db.String(100))  # Work order, PO number, etc.
+    notes = db.Column(db.String(1000))
+    lot_number = db.Column(db.String(100))  # Lot number at time of transaction
+    serial_number = db.Column(db.String(100))  # Serial number at time of transaction
+
+    # Relationships
+    user = db.relationship('User')
+
+    def to_dict(self):
+        """Convert model to dictionary"""
+        return {
+            'id': self.id,
+            'item_type': self.item_type,
+            'item_id': self.item_id,
+            'transaction_type': self.transaction_type,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else 'Unknown',
+            'quantity_change': self.quantity_change,
+            'location_from': self.location_from,
+            'location_to': self.location_to,
+            'reference_number': self.reference_number,
+            'notes': self.notes,
+            'lot_number': self.lot_number,
+            'serial_number': self.serial_number
+        }
+
+    @staticmethod
+    def create_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
+        """
+        Helper method to create a transaction record.
+
+        Args:
+            item_type: Type of item (tool, chemical, expendable)
+            item_id: ID of the item
+            transaction_type: Type of transaction
+            user_id: ID of user performing transaction
+            **kwargs: Additional fields (quantity_change, location_from, location_to, etc.)
+
+        Returns:
+            InventoryTransaction instance
+        """
+        transaction = InventoryTransaction(
+            item_type=item_type,
+            item_id=item_id,
+            transaction_type=transaction_type,
+            user_id=user_id,
+            quantity_change=kwargs.get('quantity_change'),
+            location_from=kwargs.get('location_from'),
+            location_to=kwargs.get('location_to'),
+            reference_number=kwargs.get('reference_number'),
+            notes=kwargs.get('notes'),
+            lot_number=kwargs.get('lot_number'),
+            serial_number=kwargs.get('serial_number')
+        )
+        return transaction
+
+
+class LotNumberSequence(db.Model):
+    """
+    LotNumberSequence model for auto-generating unique lot numbers.
+    Format: LOT-YYMMDD-XXXX where XXXX is a daily sequential counter.
+    """
+    __tablename__ = 'lot_number_sequences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(8), nullable=False, unique=True, index=True)  # YYYYMMDD
+    sequence_counter = db.Column(db.Integer, nullable=False, default=0)
+    last_generated_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
+
+    @staticmethod
+    def generate_lot_number():
+        """
+        Generate a unique lot number in format LOT-YYMMDD-XXXX.
+        Uses atomic increment with row-level locking to ensure uniqueness.
+
+        Returns:
+            str: Generated lot number (e.g., LOT-251014-0001)
+        """
+        from sqlalchemy import func
+        from sqlalchemy.exc import IntegrityError
+
+        # Get current date in YYYYMMDD format
+        current_date = datetime.now().strftime('%Y%m%d')
+
+        # Get or create sequence for today with row-level locking
+        sequence = (
+            db.session.query(LotNumberSequence)
+            .filter_by(date=current_date)
+            .with_for_update()
+            .first()
+        )
+
+        if not sequence:
+            # Create new sequence for today
+            try:
+                sequence = LotNumberSequence(
+                    date=current_date,
+                    sequence_counter=1
+                )
+                db.session.add(sequence)
+                db.session.flush()
+            except IntegrityError:
+                # Another transaction created the sequence, retry with lock
+                db.session.rollback()
+                sequence = (
+                    db.session.query(LotNumberSequence)
+                    .filter_by(date=current_date)
+                    .with_for_update()
+                    .first()
+                )
+                if sequence:
+                    sequence.sequence_counter += 1
+                    sequence.last_generated_at = get_current_time()
+                    db.session.flush()
+                else:
+                    raise ValueError("Failed to create or retrieve lot number sequence")
+        else:
+            # Increment existing sequence
+            sequence.sequence_counter += 1
+            sequence.last_generated_at = get_current_time()
+            db.session.flush()
+
+        # Format: LOT-YYMMDD-XXXX
+        year_short = current_date[2:4]  # YY
+        month_day = current_date[4:8]   # MMDD
+        counter = str(sequence.sequence_counter).zfill(4)  # XXXX
+
+        lot_number = f"LOT-{year_short}{month_day}-{counter}"
+
+        return lot_number
+
+
+
+class Warehouse(db.Model):
+    """
+    Warehouse model for managing physical warehouse locations.
+    Warehouses store tools and chemicals before they are transferred to kits.
+    """
+    __tablename__ = 'warehouses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False, unique=True, index=True)
+    address = db.Column(db.String(500), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    state = db.Column(db.String(50), nullable=True)
+    zip_code = db.Column(db.String(20), nullable=True)
+    country = db.Column(db.String(100), nullable=True, default='USA')
+    warehouse_type = db.Column(db.String(50), nullable=False, default='satellite')  # main, satellite
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
+    updated_at = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Relationships
+    tools = db.relationship('Tool', back_populates='warehouse', lazy='dynamic')
+    chemicals = db.relationship('Chemical', back_populates='warehouse', lazy='dynamic')
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+
+    def to_dict(self, include_counts=False):
+        """Convert warehouse to dictionary representation."""
+        result = {
+            'id': self.id,
+            'name': self.name,
+            'address': self.address,
+            'city': self.city,
+            'state': self.state,
+            'zip_code': self.zip_code,
+            'country': self.country,
+            'warehouse_type': self.warehouse_type,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+        # Only include counts if explicitly requested to avoid N+1 queries
+        if include_counts:
+            try:
+                result['created_by'] = self.created_by.username if self.created_by else None
+                result['tools_count'] = self.tools.count() if self.tools else 0
+                result['chemicals_count'] = self.chemicals.count() if self.chemicals else 0
+            except Exception:
+                # If relationships aren't loaded, skip counts
+                result['created_by'] = None
+                result['tools_count'] = 0
+                result['chemicals_count'] = 0
+
+        return result
+
+
+class WarehouseTransfer(db.Model):
+    """
+    WarehouseTransfer model for tracking item movements between warehouses and kits.
+    Provides complete audit trail for inventory transfers.
+    """
+    __tablename__ = 'warehouse_transfers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    from_warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
+    to_warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
+    to_kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True, index=True)
+    from_kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=True, index=True)
+    item_type = db.Column(db.String(50), nullable=False, index=True)  # tool, chemical
+    item_id = db.Column(db.Integer, nullable=False, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    transfer_date = db.Column(db.DateTime, default=get_current_time, nullable=False, index=True)
+    transferred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='completed', index=True)  # pending, completed, cancelled
+
+    # Relationships
+    from_warehouse = db.relationship('Warehouse', foreign_keys=[from_warehouse_id])
+    to_warehouse = db.relationship('Warehouse', foreign_keys=[to_warehouse_id])
+    to_kit = db.relationship('Kit', foreign_keys=[to_kit_id])
+    from_kit = db.relationship('Kit', foreign_keys=[from_kit_id])
+    transferred_by = db.relationship('User', foreign_keys=[transferred_by_id])
+
+    def to_dict(self):
+        """Convert transfer to dictionary representation."""
+        return {
+            'id': self.id,
+            'from_warehouse': self.from_warehouse.name if self.from_warehouse else None,
+            'to_warehouse': self.to_warehouse.name if self.to_warehouse else None,
+            'to_kit': self.to_kit.name if self.to_kit else None,
+            'from_kit': self.from_kit.name if self.from_kit else None,
+            'item_type': self.item_type,
+            'item_id': self.item_id,
+            'quantity': self.quantity,
+            'transfer_date': self.transfer_date.isoformat() if self.transfer_date else None,
+            'transferred_by': self.transferred_by.username if self.transferred_by else None,
+            'notes': self.notes,
+            'status': self.status
         }

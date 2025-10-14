@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
 import { createTool, clearError, clearSuccessMessage } from '../../store/toolsSlice';
+import LotNumberInput from '../common/LotNumberInput';
+import api from '../../services/api';
 
 const NewToolForm = () => {
   const dispatch = useDispatch();
@@ -13,17 +15,42 @@ const NewToolForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState(null);
 
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
   const [toolData, setToolData] = useState({
     tool_number: '',
     serial_number: '',
+    lot_number: '',
     description: '',
     condition: 'New',
     location: '',
     category: 'General',
+    warehouse_id: '',  // Required field
     requires_calibration: false,
     calibration_frequency_days: ''
   });
   const [validated, setValidated] = useState(false);
+
+  // Fetch warehouses on mount
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      setLoadingWarehouses(true);
+      try {
+        const response = await api.get('/warehouses');
+        // Backend returns array directly, not wrapped in {warehouses: [...]}
+        setWarehouses(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err);
+        setLocalError('Failed to load warehouses. Please refresh the page.');
+      } finally {
+        setLoadingWarehouses(false);
+      }
+    };
+
+    fetchWarehouses();
+  }, []);
 
   // Clear error and success messages when component unmounts
   useEffect(() => {
@@ -57,6 +84,7 @@ const NewToolForm = () => {
     e.preventDefault();
     const form = e.currentTarget;
     setLocalError(null);
+    dispatch(clearError()); // Clear any previous Redux errors
 
     if (form.checkValidity() === false) {
       e.stopPropagation();
@@ -87,7 +115,10 @@ const NewToolForm = () => {
       })
       .catch((err) => {
         console.error('Failed to create tool:', err);
-        setLocalError(err.message || 'Failed to create tool. Please try again.');
+        // Extract error message from various possible formats
+        const errorMessage = err.error || err.message || 'Failed to create tool. Please try again.';
+        setLocalError(errorMessage);
+        dispatch(clearError()); // Clear Redux error to avoid duplicate display
         setIsSubmitting(false);
       });
   };
@@ -98,7 +129,7 @@ const NewToolForm = () => {
         <h4>Add New Tool</h4>
       </Card.Header>
       <Card.Body>
-        {error && <Alert variant="danger">{error.message}</Alert>}
+        {error && <Alert variant="danger">{error.error || error.message || 'An error occurred'}</Alert>}
         {localError && <Alert variant="danger">{localError}</Alert>}
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
@@ -136,6 +167,42 @@ const NewToolForm = () => {
               Serial number must be unique for tools with the same tool number.
             </Form.Text>
           </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Warehouse*</Form.Label>
+            <Form.Select
+              name="warehouse_id"
+              value={toolData.warehouse_id}
+              onChange={handleChange}
+              required
+              disabled={loadingWarehouses}
+            >
+              <option value="">
+                {loadingWarehouses ? 'Loading warehouses...' : 'Select a warehouse...'}
+              </option>
+              {warehouses.map(warehouse => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name} - {warehouse.city}, {warehouse.state}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control.Feedback type="invalid">
+              Warehouse is required
+            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              All tools must be created in a warehouse before they can be transferred to kits.
+            </Form.Text>
+          </Form.Group>
+
+          <LotNumberInput
+            value={toolData.lot_number}
+            onChange={(value) => setToolData(prev => ({ ...prev, lot_number: value }))}
+            disabled={loading || isSubmitting}
+            required={false}
+            label="Lot Number (Optional)"
+            helpText="For consumable tools, you can track by lot number instead of serial number. Leave blank for standard tools."
+            showAutoGenerate={true}
+          />
 
           <Form.Group className="mb-3">
             <Form.Label>Description</Form.Label>

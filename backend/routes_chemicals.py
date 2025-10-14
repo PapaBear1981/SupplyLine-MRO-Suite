@@ -1,9 +1,9 @@
 from flask import request, jsonify
-from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
+from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity, Warehouse
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
-from utils.validation import validate_schema, validate_types, validate_constraints
+from utils.validation import validate_schema, validate_types, validate_constraints, validate_lot_number_format, validate_warehouse_id
 from auth import jwt_required, department_required
 from sqlalchemy.orm import joinedload
 import logging
@@ -134,10 +134,20 @@ def register_chemical_routes(app):
     def create_chemical_route():
         data = request.get_json() or {}
 
+        # Validate warehouse_id is required
+        if not data.get('warehouse_id'):
+            raise ValidationError('warehouse_id is required for all chemicals')
+
+        # Validate warehouse exists and is active using validation function
+        warehouse = validate_warehouse_id(data['warehouse_id'])
+
         # Validate and sanitize input using schema
         validated_data = validate_schema(data, 'chemical')
 
-        logger.info(f"Creating chemical with part number: {validated_data.get('part_number')}")
+        # Validate lot number format
+        validate_lot_number_format(validated_data['lot_number'])
+
+        logger.info(f"Creating chemical with part number: {validated_data.get('part_number')} in warehouse {warehouse.name}")
 
         # Check if chemical with same part number and lot number already exists
         existing_chemical = Chemical.query.filter_by(
@@ -148,7 +158,7 @@ def register_chemical_routes(app):
         if existing_chemical:
             raise ValidationError('Chemical with this part number and lot number already exists')
 
-        # Create new chemical
+        # Create new chemical - warehouse_id is required
         chemical = Chemical(
             part_number=validated_data['part_number'],
             lot_number=validated_data['lot_number'],
@@ -159,12 +169,28 @@ def register_chemical_routes(app):
             location=validated_data.get('location', ''),
             category=validated_data.get('category', 'General'),
             status=validated_data.get('status', 'available'),
+            warehouse_id=data['warehouse_id'],  # Required field
             expiration_date=validated_data.get('expiration_date'),
             minimum_stock_level=validated_data.get('minimum_stock_level'),
             notes=validated_data.get('notes', '')
         )
 
         db.session.add(chemical)
+        db.session.flush()  # Flush to get the chemical ID
+
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='chemical',
+                item_id=chemical.id,
+                user_id=request.current_user['user_id'],
+                quantity=validated_data['quantity'],
+                location=validated_data.get('location', 'Unknown'),
+                notes='Initial chemical creation'
+            )
+        except Exception as e:
+            logger.error(f"Error recording chemical creation transaction: {str(e)}")
 
         # Log the action
         log = AuditLog(
@@ -265,6 +291,21 @@ def register_chemical_routes(app):
             chemical.update_reorder_status()
 
         db.session.add(issuance)
+
+        # Record transaction (use authenticated user as actor, not recipient)
+        from utils.transaction_helper import record_chemical_issuance
+        try:
+            record_chemical_issuance(
+                chemical_id=chemical.id,
+                user_id=request.current_user.get('user_id'),  # Authenticated user performing the issuance
+                quantity=quantity,
+                hangar=validated_data['hangar'],
+                purpose=validated_data.get('purpose'),
+                work_order=validated_data.get('work_order'),
+                recipient_id=validated_data['user_id']  # Actual recipient of the chemical
+            )
+        except Exception as e:
+            logger.exception(f"Error recording chemical issuance transaction: {e}")
 
         # Log the action
         log = AuditLog(

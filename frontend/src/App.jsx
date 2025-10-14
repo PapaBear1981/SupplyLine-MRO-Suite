@@ -84,6 +84,7 @@ import EditKitPage from './pages/EditKitPage';
 import KitReports from './pages/KitReports';
 import KitMobileInterface from './pages/KitMobileInterface';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
+import WarehousesManagement from './pages/WarehousesManagement';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
 const RootRoute = () => {
@@ -220,6 +221,14 @@ function App() {
           <AdminRoute>
             <MainLayout>
               <AircraftTypeManagement />
+            </MainLayout>
+          </AdminRoute>
+        } />
+
+        <Route path="/warehouses" element={
+          <AdminRoute>
+            <MainLayout>
+              <WarehousesManagement />
             </MainLayout>
           </AdminRoute>
         } />

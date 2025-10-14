@@ -23,6 +23,9 @@ from routes_kits import register_kit_routes
 from routes_kit_transfers import register_kit_transfer_routes
 from routes_kit_reorders import register_kit_reorder_routes
 from routes_kit_messages import register_kit_message_routes
+from routes_inventory import register_inventory_routes
+from routes_warehouses import warehouses_bp
+from routes_transfers import transfers_bp
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 # CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
@@ -60,6 +63,7 @@ from utils.session_manager import SessionManager
 from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
 from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
 from utils.file_validation import FileValidationError, validate_image_upload
+from utils.validation import validate_serial_number_format, validate_lot_number_format, validate_warehouse_id
 import logging
 
 logger = logging.getLogger(__name__)
@@ -201,6 +205,15 @@ def register_routes(app):
     register_kit_transfer_routes(app)
     register_kit_reorder_routes(app)
     register_kit_message_routes(app)
+
+    # Register inventory tracking routes (lot/serial numbers, transactions)
+    register_inventory_routes(app)
+
+    # Register warehouse management routes
+    app.register_blueprint(warehouses_bp, url_prefix='/api')
+
+    # Register warehouse transfer routes
+    app.register_blueprint(transfers_bp, url_prefix='/api')
 
     # Register cycle count routes
     # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
@@ -866,24 +879,38 @@ def register_routes(app):
 
         data = request.get_json() or {}
 
-        # Validate required fields
-        required_fields = ['tool_number', 'serial_number']
+        # Validate required fields - warehouse_id is now required for all tools
+        required_fields = ['tool_number', 'serial_number', 'warehouse_id']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate serial number format
+        try:
+            validate_serial_number_format(data['serial_number'])
+        except ValidationError as e:
+            return jsonify({'error': str(e)}), 400
+
+        # Validate warehouse exists and is active
+        try:
+            warehouse = validate_warehouse_id(data['warehouse_id'])
+        except ValidationError as e:
+            return jsonify({'error': str(e)}), 400
 
         # Check if tool with same tool number AND serial number already exists
         if Tool.query.filter_by(tool_number=data['tool_number'], serial_number=data['serial_number']).first():
             return jsonify({'error': 'A tool with this tool number and serial number combination already exists'}), 400
 
-        # Create new tool
+        # Create new tool - warehouse_id is required
         t = Tool(
             tool_number=data.get('tool_number'),
             serial_number=data.get('serial_number'),
+            lot_number=data.get('lot_number'),  # Support for consumable tools
             description=data.get('description'),
             condition=data.get('condition'),
             location=data.get('location'),
             category=data.get('category', 'General'),
+            warehouse_id=data['warehouse_id'],  # Required field
             requires_calibration=data.get('requires_calibration', False),
             calibration_frequency_days=data.get('calibration_frequency_days')
         )
@@ -895,6 +922,22 @@ def register_routes(app):
             t.calibration_status = 'not_applicable'
         db.session.add(t)
         db.session.commit()
+
+        # Record transaction
+        from utils.transaction_helper import record_item_receipt
+        try:
+            record_item_receipt(
+                item_type='tool',
+                item_id=t.id,
+                user_id=user_payload['user_id'],
+                quantity=1.0,
+                location=t.location or 'Unknown',
+                notes='Initial tool creation'
+            )
+            db.session.commit()
+        except Exception as e:
+            logger.error(f"Error recording tool creation transaction: {str(e)}")
+            # Don't fail the tool creation if transaction recording fails
 
         # Log the action
         log = AuditLog(
@@ -909,19 +952,22 @@ def register_routes(app):
             'id': t.id,
             'tool_number': t.tool_number,
             'serial_number': t.serial_number,
+            'lot_number': t.lot_number,
             'description': t.description,
             'condition': t.condition,
             'location': t.location,
             'category': t.category,
             'status': getattr(t, 'status', 'available'),
             'status_reason': getattr(t, 'status_reason', None),
+            'warehouse_id': t.warehouse_id,
+            'warehouse_name': warehouse.name,
             'created_at': t.created_at.isoformat(),
             'requires_calibration': getattr(t, 'requires_calibration', False),
             'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
             'last_calibration_date': t.last_calibration_date.isoformat() if hasattr(t, 'last_calibration_date') and t.last_calibration_date else None,
             'next_calibration_date': t.next_calibration_date.isoformat() if hasattr(t, 'next_calibration_date') and t.next_calibration_date else None,
             'calibration_status': getattr(t, 'calibration_status', 'not_applicable'),
-            'message': 'Tool created successfully'
+            'message': 'Tool created successfully in warehouse'
         }), 201
 
     @app.route('/api/tools/<int:id>', methods=['GET', 'PUT', 'DELETE'])
@@ -1493,6 +1539,18 @@ def register_routes(app):
                 db.session.commit()
                 logger.debug("Checkout created", extra={'checkout_id': c.id})
 
+                # Record transaction
+                from utils.transaction_helper import record_tool_checkout
+                try:
+                    record_tool_checkout(
+                        tool_id=tool_id,
+                        user_id=user_id,
+                        expected_return_date=parsed_date,
+                        notes=f'Checked out to {user.name}'
+                    )
+                except Exception as e:
+                    logger.error(f"Error recording checkout transaction: {str(e)}")
+
                 # Log the action
                 log = AuditLog(
                     action_type='checkout_tool',
@@ -1587,6 +1645,18 @@ def register_routes(app):
                 c.return_notes = notes
 
                 db.session.commit()
+
+                # Record transaction
+                from utils.transaction_helper import record_tool_return
+                try:
+                    record_tool_return(
+                        tool_id=c.tool_id,
+                        user_id=user_payload['user_id'],
+                        condition=condition,
+                        notes=notes
+                    )
+                except Exception as e:
+                    logger.error(f"Error recording return transaction: {str(e)}")
 
                 # Prepare action details for logging
                 action_details = f'User {user.name if user else "Unknown"} (ID: {c.user_id}) returned tool {tool.tool_number if tool else "Unknown"} (ID: {c.tool_id})'
