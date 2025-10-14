@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Badge, Button, Form, Row, Col, ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { FaBox, FaFilter, FaExchangeAlt, FaShoppingCart, FaPlus, FaBarcode, FaHashtag, FaLayerGroup } from 'react-icons/fa';
+import { FaBox, FaFilter, FaBarcode, FaHashtag, FaLayerGroup } from 'react-icons/fa';
 import { fetchKitItems, fetchKitBoxes } from '../../store/kitsSlice';
 import KitIssuanceForm from './KitIssuanceForm';
-import AddKitItemModal from './AddKitItemModal';
+import KitTransferForm from './KitTransferForm';
 import ItemDetailModal from '../common/ItemDetailModal';
 import './KitItemsList.css';
 
@@ -17,7 +17,8 @@ const KitItemsList = ({ kitId }) => {
   const [filterStatus, setFilterStatus] = useState('');
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [selectedItemForIssue, setSelectedItemForIssue] = useState(null);
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [selectedItemForTransfer, setSelectedItemForTransfer] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedItemForDetail, setSelectedItemForDetail] = useState(null);
 
@@ -117,8 +118,15 @@ const KitItemsList = ({ kitId }) => {
     dispatch(fetchKitItems({ kitId }));
   };
 
-  const handleAddItemSuccess = () => {
-    // Refresh items after adding
+  const handleTransferItem = (item) => {
+    setSelectedItemForTransfer(item);
+    setShowTransferForm(true);
+  };
+
+  const handleTransferFormClose = () => {
+    setShowTransferForm(false);
+    setSelectedItemForTransfer(null);
+    // Refresh items after transfer
     dispatch(fetchKitItems({ kitId }));
   };
 
@@ -147,38 +155,10 @@ const KitItemsList = ({ kitId }) => {
   return (
     <Card>
       <Card.Header>
-        <Row className="align-items-center">
-          <Col>
-            <h5 className="mb-0">
-              <FaBox className="me-2" />
-              Kit Items ({filteredItems.length})
-            </h5>
-          </Col>
-          <Col xs="auto">
-            <Button
-              variant="success"
-              size="sm"
-              className="me-2"
-              onClick={() => setShowAddItemModal(true)}
-            >
-              <FaPlus className="me-1" />
-              Add Item
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              className="me-2"
-              onClick={() => setShowIssuanceForm(true)}
-            >
-              <FaShoppingCart className="me-1" />
-              Issue Items
-            </Button>
-            <Button variant="info" size="sm">
-              <FaExchangeAlt className="me-1" />
-              Transfer
-            </Button>
-          </Col>
-        </Row>
+        <h5 className="mb-0">
+          <FaBox className="me-2" />
+          Kit Items ({filteredItems.length})
+        </h5>
       </Card.Header>
       
       <Card.Body>
@@ -304,7 +284,11 @@ const KitItemsList = ({ kitId }) => {
                       >
                         Issue
                       </Button>
-                      <Button variant="outline-info" title="Transfer">
+                      <Button
+                        variant="outline-info"
+                        title="Transfer"
+                        onClick={() => handleTransferItem(item)}
+                      >
                         Transfer
                       </Button>
                     </ButtonGroup>
@@ -316,20 +300,20 @@ const KitItemsList = ({ kitId }) => {
         )}
       </Card.Body>
 
-      {/* Add Item Modal */}
-      <AddKitItemModal
-        show={showAddItemModal}
-        onHide={() => setShowAddItemModal(false)}
-        kitId={kitId}
-        onSuccess={handleAddItemSuccess}
-      />
-
       {/* Issuance Form Modal */}
       <KitIssuanceForm
         show={showIssuanceForm}
         onHide={handleIssuanceFormClose}
         kitId={kitId}
         preSelectedItem={selectedItemForIssue}
+      />
+
+      {/* Transfer Form Modal */}
+      <KitTransferForm
+        show={showTransferForm}
+        onHide={handleTransferFormClose}
+        sourceKitId={kitId}
+        preSelectedItem={selectedItemForTransfer}
       />
 
       {/* Item Detail Modal */}

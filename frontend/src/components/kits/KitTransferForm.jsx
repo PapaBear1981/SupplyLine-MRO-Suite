@@ -4,12 +4,13 @@ import { Modal, Button, Form, Alert, Row, Col, Badge, Card } from 'react-bootstr
 import { FaExchangeAlt, FaCheckCircle, FaWarehouse, FaBox } from 'react-icons/fa';
 import { createTransfer } from '../../store/kitTransfersSlice';
 import { fetchKits, fetchKitItems } from '../../store/kitsSlice';
+import api from '../../services/api';
 
 const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = null }) => {
   const dispatch = useDispatch();
   const { kits, kitItems } = useSelector((state) => state.kits);
   const { loading, error } = useSelector((state) => state.kitTransfers);
-  
+
   const [formData, setFormData] = useState({
     from_location_type: sourceKitId ? 'kit' : '',
     from_location_id: sourceKitId || '',
@@ -20,18 +21,65 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     quantity: '',
     notes: ''
   });
-  
+
   const [validated, setValidated] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [quantityError, setQuantityError] = useState('');
 
-  // Load kits when modal opens
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
+  // Source kit state (when sourceKitId is provided)
+  const [sourceKit, setSourceKit] = useState(null);
+  const [loadingSourceKit, setLoadingSourceKit] = useState(false);
+
+  // Load source kit information when sourceKitId is provided
+  useEffect(() => {
+    const loadSourceKit = async () => {
+      if (sourceKitId && show) {
+        setLoadingSourceKit(true);
+        try {
+          const response = await api.get(`/kits/${sourceKitId}`);
+          setSourceKit(response.data);
+        } catch (err) {
+          console.error('Failed to load source kit:', err);
+        } finally {
+          setLoadingSourceKit(false);
+        }
+      }
+    };
+    loadSourceKit();
+  }, [sourceKitId, show]);
+
+  // Load kits and warehouses when modal opens
   useEffect(() => {
     if (show) {
       dispatch(fetchKits());
+      loadWarehouses();
+      // Reset form data with sourceKitId when modal opens
+      if (sourceKitId) {
+        setFormData(prev => ({
+          ...prev,
+          from_location_type: 'kit',
+          from_location_id: sourceKitId
+        }));
+      }
     }
-  }, [show, dispatch]);
+  }, [show, dispatch, sourceKitId]);
+
+  const loadWarehouses = async () => {
+    setLoadingWarehouses(true);
+    try {
+      const response = await api.get('/warehouses');
+      setWarehouses(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+    } finally {
+      setLoadingWarehouses(false);
+    }
+  };
 
   // Load items when source is selected
   useEffect(() => {
@@ -43,10 +91,13 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
   // Pre-select item if provided
   useEffect(() => {
     if (preSelectedItem) {
+      const availableQty = preSelectedItem.available_quantity || preSelectedItem.quantity || 0;
       setFormData(prev => ({
         ...prev,
         item_type: preSelectedItem.source === 'item' ? preSelectedItem.item_type : 'expendable',
-        item_id: preSelectedItem.id
+        item_id: preSelectedItem.id,
+        // Auto-populate quantity with 1 if there's only 1 available
+        quantity: availableQty === 1 ? '1' : prev.quantity
       }));
       setSelectedItem(preSelectedItem);
     }
@@ -222,29 +273,49 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
                       {formData.from_location_type === 'kit' ? 'Kit' : 'Warehouse'} *
                     </Form.Label>
                     {formData.from_location_type === 'kit' ? (
+                      sourceKitId && sourceKit ? (
+                        // Display kit name as text when sourceKitId is provided
+                        <Form.Control
+                          type="text"
+                          value={`${sourceKit.name}${sourceKit.aircraft_type ? ` (${sourceKit.aircraft_type.name})` : ''}`}
+                          disabled
+                          readOnly
+                        />
+                      ) : (
+                        <Form.Select
+                          name="from_location_id"
+                          value={formData.from_location_id}
+                          onChange={handleChange}
+                          required
+                          disabled={loadingSourceKit}
+                        >
+                          <option value="">
+                            {loadingSourceKit ? 'Loading kit...' : '-- Select kit --'}
+                          </option>
+                          {kits?.map(kit => (
+                            <option key={kit.id} value={kit.id}>
+                              {kit.name}{kit.aircraft_type?.name ? ` (${kit.aircraft_type.name})` : ''}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )
+                    ) : (
                       <Form.Select
                         name="from_location_id"
                         value={formData.from_location_id}
                         onChange={handleChange}
                         required
-                        disabled={!!sourceKitId}
+                        disabled={loadingWarehouses}
                       >
-                        <option value="">-- Select kit --</option>
-                        {kits.kits?.map(kit => (
-                          <option key={kit.id} value={kit.id}>
-                            {kit.name} ({kit.aircraft_type?.name})
+                        <option value="">
+                          {loadingWarehouses ? 'Loading warehouses...' : '-- Select warehouse --'}
+                        </option>
+                        {warehouses.map(warehouse => (
+                          <option key={warehouse.id} value={warehouse.id}>
+                            {warehouse.name} - {warehouse.city}, {warehouse.state}
                           </option>
                         ))}
                       </Form.Select>
-                    ) : (
-                      <Form.Control
-                        type="number"
-                        name="from_location_id"
-                        value={formData.from_location_id}
-                        onChange={handleChange}
-                        placeholder="Warehouse ID"
-                        required
-                      />
                     )}
                   </Form.Group>
                 </Col>
@@ -287,21 +358,29 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
                         required
                       >
                         <option value="">-- Select kit --</option>
-                        {kits.kits?.map(kit => (
+                        {kits?.map(kit => (
                           <option key={kit.id} value={kit.id}>
-                            {kit.name} ({kit.aircraft_type?.name})
+                            {kit.name}{kit.aircraft_type?.name ? ` (${kit.aircraft_type.name})` : ''}
                           </option>
                         ))}
                       </Form.Select>
                     ) : (
-                      <Form.Control
-                        type="number"
+                      <Form.Select
                         name="to_location_id"
                         value={formData.to_location_id}
                         onChange={handleChange}
-                        placeholder="Warehouse ID"
                         required
-                      />
+                        disabled={loadingWarehouses}
+                      >
+                        <option value="">
+                          {loadingWarehouses ? 'Loading warehouses...' : '-- Select warehouse --'}
+                        </option>
+                        {warehouses.map(warehouse => (
+                          <option key={warehouse.id} value={warehouse.id}>
+                            {warehouse.name} - {warehouse.city}, {warehouse.state}
+                          </option>
+                        ))}
+                      </Form.Select>
                     )}
                   </Form.Group>
                 </Col>
