@@ -26,7 +26,7 @@ def calculate_date_range(timeframe):
         return datetime(1970, 1, 1)  # Beginning of time for database purposes
     else:
         return now - timedelta(days=30)  # Default to month
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 from auth import department_required
 
 tool_manager_required = department_required('Materials')
@@ -104,20 +104,21 @@ def register_report_routes(app):
                 query = query.filter(Tool.category == category)
 
             if status:
-                # For 'available' status, we need to check both the tool status and active checkouts
+                active_checkout_exists = (
+                    db.session.query(Checkout.id)
+                    .filter(
+                        Checkout.tool_id == Tool.id,
+                        Checkout.return_date.is_(None)
+                    )
+                    .exists()
+                )
+
                 if status == 'available':
-                    # Get IDs of tools that are checked out
-                    checked_out_tool_ids = [c.tool_id for c in Checkout.query.filter(Checkout.return_date.is_(None)).all()]
-                    # Filter for tools that are not in the checked out list and have status 'available'
-                    query = query.filter(~Tool.id.in_(checked_out_tool_ids))
-                    query = query.filter(Tool.status.in_(['available', None]))
+                    query = query.filter(~active_checkout_exists)
+                    query = query.filter(or_(Tool.status == 'available', Tool.status.is_(None)))
                 elif status == 'checked_out':
-                    # Get IDs of tools that are checked out
-                    checked_out_tool_ids = [c.tool_id for c in Checkout.query.filter(Checkout.return_date.is_(None)).all()]
-                    # Filter for tools that are in the checked out list
-                    query = query.filter(Tool.id.in_(checked_out_tool_ids))
+                    query = query.filter(active_checkout_exists)
                 else:
-                    # For maintenance and retired, just check the tool status
                     query = query.filter(Tool.status == status)
 
             if location:
@@ -126,26 +127,40 @@ def register_report_routes(app):
             # Execute query
             tools = query.all()
 
-            # Get checkout status for each tool
-            tool_status = {}
-            active_checkouts = Checkout.query.filter(Checkout.return_date.is_(None)).all()
-
-            for checkout in active_checkouts:
-                tool_status[checkout.tool_id] = 'checked_out'
+            tool_ids = [tool.id for tool in tools]
+            active_tool_ids = set()
+            if tool_ids:
+                active_tool_ids = {
+                    tool_id
+                    for (tool_id,) in (
+                        db.session.query(Checkout.tool_id)
+                        .filter(
+                            Checkout.return_date.is_(None),
+                            Checkout.tool_id.in_(tool_ids)
+                        )
+                        .distinct()
+                        .all()
+                    )
+                }
 
             # Format response
-            result = [{
-                'id': t.id,
-                'tool_number': t.tool_number,
-                'serial_number': t.serial_number,
-                'description': t.description,
-                'condition': t.condition,
-                'location': t.location,
-                'category': getattr(t, 'category', 'General'),
-                'status': tool_status.get(t.id, getattr(t, 'status', 'available')),
-                'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
-                'created_at': t.created_at.isoformat()
-            } for t in tools]
+            result = []
+            for tool in tools:
+                computed_status = 'checked_out' if tool.id in active_tool_ids else (tool.status or 'available')
+                status_reason = tool.status_reason if computed_status in {'maintenance', 'retired'} else None
+
+                result.append({
+                    'id': tool.id,
+                    'tool_number': tool.tool_number,
+                    'serial_number': tool.serial_number,
+                    'description': tool.description,
+                    'condition': tool.condition,
+                    'location': tool.location,
+                    'category': getattr(tool, 'category', 'General'),
+                    'status': computed_status,
+                    'status_reason': status_reason,
+                    'created_at': tool.created_at.isoformat()
+                })
 
             return jsonify(result), 200
 

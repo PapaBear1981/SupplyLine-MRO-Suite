@@ -149,14 +149,15 @@ class User(db.Model):
         session.add(history_entry)
 
         # Maintain only the most recent 5 password history records
-        history_records = (
+        stale_history_records = (
             session.query(PasswordHistory)
             .filter_by(user_id=self.id)
             .order_by(PasswordHistory.created_at.desc(), PasswordHistory.id.desc())
+            .offset(5)
             .all()
         )
 
-        for stale_record in history_records[5:]:
+        for stale_record in stale_history_records:
             session.delete(stale_record)
 
     def check_password(self, password):
