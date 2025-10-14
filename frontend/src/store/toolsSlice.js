@@ -33,7 +33,8 @@ export const createTool = createAsyncThunk(
       const data = await ToolService.createTool(toolData);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to create tool' });
+      // ToolService already extracts error.response?.data, so error is the data object
+      return rejectWithValue(error || { message: 'Failed to create tool' });
     }
   }
 );

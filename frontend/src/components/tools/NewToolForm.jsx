@@ -84,6 +84,7 @@ const NewToolForm = () => {
     e.preventDefault();
     const form = e.currentTarget;
     setLocalError(null);
+    dispatch(clearError()); // Clear any previous Redux errors
 
     if (form.checkValidity() === false) {
       e.stopPropagation();
@@ -117,6 +118,7 @@ const NewToolForm = () => {
         // Extract error message from various possible formats
         const errorMessage = err.error || err.message || 'Failed to create tool. Please try again.';
         setLocalError(errorMessage);
+        dispatch(clearError()); // Clear Redux error to avoid duplicate display
         setIsSubmitting(false);
       });
   };
