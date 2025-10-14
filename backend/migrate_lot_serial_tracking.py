@@ -94,40 +94,18 @@ def migrate_database():
             # Step 4: Create inventory_transactions table
             print("\nStep 4: Creating inventory_transactions table...")
             if not check_table_exists('inventory_transactions'):
-                db.session.execute(text("""
-                    CREATE TABLE inventory_transactions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        item_type VARCHAR(20) NOT NULL,
-                        item_id INTEGER NOT NULL,
-                        transaction_type VARCHAR(50) NOT NULL,
-                        timestamp DATETIME NOT NULL,
-                        user_id INTEGER NOT NULL,
-                        quantity_change FLOAT,
-                        location_from VARCHAR(200),
-                        location_to VARCHAR(200),
-                        reference_number VARCHAR(100),
-                        notes VARCHAR(1000),
-                        lot_number VARCHAR(100),
-                        serial_number VARCHAR(100),
-                        FOREIGN KEY (user_id) REFERENCES users(id)
-                    )
-                """))
+                # Use SQLAlchemy model to create table for database portability
+                InventoryTransaction.__table__.create(bind=db.engine, checkfirst=True)
                 db.session.commit()
                 print("✅ Created inventory_transactions table")
             else:
                 print("⏭️  inventory_transactions table already exists")
-            
+
             # Step 5: Create lot_number_sequences table
             print("\nStep 5: Creating lot_number_sequences table...")
             if not check_table_exists('lot_number_sequences'):
-                db.session.execute(text("""
-                    CREATE TABLE lot_number_sequences (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        date VARCHAR(8) NOT NULL UNIQUE,
-                        sequence_counter INTEGER NOT NULL DEFAULT 0,
-                        last_generated_at DATETIME NOT NULL
-                    )
-                """))
+                # Use SQLAlchemy model to create table for database portability
+                LotNumberSequence.__table__.create(bind=db.engine, checkfirst=True)
                 db.session.commit()
                 print("✅ Created lot_number_sequences table")
             else:
