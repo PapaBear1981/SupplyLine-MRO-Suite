@@ -332,54 +332,71 @@ While Chromium tests pass 100%, other browsers (Firefox, Webkit, Mobile Chrome, 
 
 The project has a fully functional GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that provides:
 
-#### 1. **Backend Testing Job**
+#### 1. **Linting and Code Quality Job** (runs first, in parallel)
+- **Backend Linting**:
+  - flake8 with syntax error detection (E9, F63, F7, F82)
+  - Code complexity and style checks (max-complexity=10, max-line-length=127)
+  - bandit security scanning for common vulnerabilities
+- **Frontend Linting**:
+  - ESLint validation with project-specific rules
+  - npm audit for dependency vulnerability scanning
+- **Benefits**: Fast feedback on code quality before expensive test suites run
+
+#### 2. **Backend Testing Job** (depends on lint)
 - Automated Python 3.11 environment setup
 - PostgreSQL 15 service container with health checks
 - Dependency caching for faster builds
+- Backend linting with flake8 (syntax errors and code quality)
 - Full pytest suite execution with coverage reporting
 - Codecov integration for coverage tracking
 - Environment: `DATABASE_URL`, `FLASK_ENV=testing`, secure test keys
 
-#### 2. **Frontend Testing Job**
-- Node.js 18 environment with npm caching
+#### 3. **Frontend Testing Job** (depends on lint)
+- Node.js 20 environment with npm caching (updated from 18 to match README requirements)
 - ESLint validation (`npm run lint`)
 - Production build verification (`npm run build`)
 - Build artifact upload for deployment
 
-#### 3. **E2E Testing Job**
+#### 4. **E2E Testing Job** (depends on backend-test and frontend-test)
 - Runs after backend and frontend tests pass
 - Full stack testing with PostgreSQL service
+- Node.js 20 and Python 3.11 environments
 - Playwright browser installation with dependencies
 - Database initialization and seeding
 - Comprehensive E2E test suite execution
 - Test results artifact upload (always, even on failure)
 
-#### 4. **Security Scanning Job**
+#### 5. **Security Scanning Job** (depends on lint)
 - Trivy vulnerability scanner for filesystem scanning
 - SARIF format output for GitHub Security tab integration
 - Automated security findings reporting
+- Runs in parallel with test jobs for faster feedback
 
-#### 5. **Build and Deploy Job** (main/master branches only)
+#### 6. **Build and Deploy Job** (main/master branches only, depends on backend-test and frontend-test)
 - AWS credentials configuration
 - Amazon ECR login and Docker image build
 - Backend container image push to ECR
+- Node.js 20 environment for frontend build
 - Frontend production build with environment variables
 - S3 deployment for frontend assets
 - CloudFront cache invalidation
 - ECS service update with health check waiting
 
-#### 6. **Notification Job**
+#### 7. **Notification Job** (depends on build-and-deploy, always runs)
 - Slack integration for deployment status
 - Conditional execution based on webhook configuration
 - Comprehensive deployment metadata reporting
 
 **Key Features**:
-- ✅ Dependency caching for pip and npm
-- ✅ Parallel job execution where possible
-- ✅ Conditional deployment (only on main/master)
-- ✅ Comprehensive error handling and artifact preservation
-- ✅ Security-first approach with secret management
-- ✅ Production-ready with AWS integration
+- ✅ **Linting-first approach**: All jobs depend on passing lint checks
+- ✅ **Parallel execution**: Lint job runs first, then tests and security scans run in parallel
+- ✅ **Comprehensive linting**: flake8, bandit, ESLint, npm audit
+- ✅ **Dependency caching**: pip and npm caching for faster builds
+- ✅ **Node.js 20**: Updated from 18 to match project requirements (React 19)
+- ✅ **Conditional deployment**: Only on main/master branches
+- ✅ **Error handling**: Artifact preservation even on failure
+- ✅ **Security-first**: Multiple security scanning layers (bandit, npm audit, Trivy)
+- ✅ **Production-ready**: Full AWS integration with ECS, ECR, S3, CloudFront
 
 ---
 
