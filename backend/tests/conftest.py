@@ -27,6 +27,8 @@ JWTManager = None
 @pytest.fixture(scope='session')
 def app():
     """Create application for testing"""
+    # B108 Mitigation: Use mkstemp for secure temporary file creation (avoids mktemp race condition).
+    # File descriptor (db_fd) is closed and file (db_path) is unlinked in the 'finally' block.
     db_fd, db_path = tempfile.mkstemp()
 
     original_db_url = os.environ.get('DATABASE_URL')
@@ -108,12 +110,12 @@ def db_session(app, _db):
     with app.app_context():
         connection = _db.engine.connect()
         transaction = connection.begin()
-        
+
         # Configure session to use the connection
         _db.session.configure(bind=connection)
-        
+
         yield _db.session
-        
+
         # Rollback transaction and close connection
         transaction.rollback()
         connection.close()
@@ -169,7 +171,24 @@ def regular_user(db_session):
     return user
 
 @pytest.fixture
-def sample_tool(db_session, admin_user):
+def test_warehouse(db_session):
+    """Create test warehouse for testing"""
+    from models import Warehouse
+    existing = Warehouse.query.filter_by(name='Test Warehouse').first()
+    if existing:
+        return existing
+
+    warehouse = Warehouse(
+        name='Test Warehouse',
+        address='123 Test St',
+        is_active=True
+    )
+    db_session.add(warehouse)
+    db_session.commit()
+    return warehouse
+
+@pytest.fixture
+def sample_tool(db_session, admin_user, test_warehouse):
     """Create sample tool for testing"""
     tool = Tool(
         tool_number='T001',
@@ -178,6 +197,7 @@ def sample_tool(db_session, admin_user):
         condition='Good',
         location='Test Location',
         category='Testing',
+        warehouse_id=test_warehouse.id,
         status='available'
     )
     db_session.add(tool)
@@ -185,7 +205,7 @@ def sample_tool(db_session, admin_user):
     return tool
 
 @pytest.fixture
-def sample_chemical(db_session, admin_user):
+def sample_chemical(db_session, admin_user, test_warehouse):
     """Create sample chemical for testing"""
     chemical = Chemical(
         part_number='C001',
@@ -197,6 +217,7 @@ def sample_chemical(db_session, admin_user):
         location='Test Location',
         category='Testing',
         status='available',
+        warehouse_id=test_warehouse.id,
         created_by=admin_user.id,
         created_at=datetime.utcnow()
     )
@@ -239,7 +260,7 @@ def sample_data(db_session, admin_user, regular_user):
         )
         tools.append(tool)
         db_session.add(tool)
-    
+
     # Create additional chemicals
     chemicals = []
     for i in range(3):
@@ -258,7 +279,7 @@ def sample_data(db_session, admin_user, regular_user):
         )
         chemicals.append(chemical)
         db_session.add(chemical)
-    
+
     # Create some user activities
     activities = []
     for i, tool in enumerate(tools[:2]):
@@ -270,9 +291,9 @@ def sample_data(db_session, admin_user, regular_user):
         )
         activities.append(activity)
         db_session.add(activity)
-    
+
     db_session.commit()
-    
+
     return {
         'tools': tools,
         'chemicals': chemicals,
@@ -280,16 +301,18 @@ def sample_data(db_session, admin_user, regular_user):
     }
 
 # Test utilities
+
+
 class TestUtils:
     """Utility functions for testing"""
-    
+
     @staticmethod
     def assert_json_response(response, expected_status=200):
         """Assert that response is JSON with expected status"""
         assert response.status_code == expected_status
         assert response.content_type == 'application/json'
         return response.get_json()
-    
+
     @staticmethod
     def assert_error_response(response, expected_status=400):
         """Assert that response is an error with expected status"""
@@ -297,7 +320,7 @@ class TestUtils:
         data = response.get_json()
         assert 'error' in data
         return data
-    
+
     @staticmethod
     def create_test_user(db_session, employee_number, name="Test User", is_admin=False):
         """Create a test user"""

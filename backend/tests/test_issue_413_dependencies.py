@@ -4,7 +4,6 @@ Ensures that updated dependencies can be imported and have correct versions
 """
 
 import pytest
-import sys
 
 
 def test_flask_version():
@@ -37,7 +36,7 @@ def test_pyjwt_version():
     version_parts = version_str.split('.')
     major = int(version_parts[0])
     minor = int(version_parts[1])
-    
+
     assert major >= 2, f"PyJWT major version should be 2 or higher, got {version_str}"
     if major == 2:
         assert minor >= 10, f"PyJWT minor version should be 10 or higher for v2.x, got {version_str}"
@@ -74,7 +73,7 @@ def test_reportlab_version():
     version_parts = version_str.split('.')
     major = int(version_parts[0])
     minor = int(version_parts[1])
-    
+
     assert major >= 4, f"reportlab major version should be 4 or higher, got {version_str}"
     if major == 4:
         assert minor >= 2, f"reportlab minor version should be 2 or higher for v4.x, got {version_str}"
@@ -102,21 +101,21 @@ def test_all_dependencies_importable():
         'openpyxl',
         'pytest',
     ]
-    
+
     failed_imports = []
     for module_name in critical_imports:
         try:
             __import__(module_name)
         except ImportError as e:
             failed_imports.append((module_name, str(e)))
-    
+
     assert len(failed_imports) == 0, f"Failed to import: {failed_imports}"
 
 
 def test_flask_app_can_be_created():
     """Test that a Flask app can be created with updated dependencies"""
     from flask import Flask
-    
+
     app = Flask(__name__)
     assert app is not None
     assert hasattr(app, 'route')
@@ -141,14 +140,14 @@ def test_sqlalchemy_can_create_engine():
 def test_jwt_can_encode_decode():
     """Test that PyJWT can encode and decode tokens"""
     import jwt
-    
+
     payload = {'user_id': 123, 'username': 'test'}
     secret = 'test-secret-key'
-    
+
     # Encode
     token = jwt.encode(payload, secret, algorithm='HS256')
     assert token is not None
-    
+
     # Decode
     decoded = jwt.decode(token, secret, algorithms=['HS256'])
     assert decoded['user_id'] == 123
@@ -163,16 +162,15 @@ def test_no_known_vulnerabilities():
     import flask
     import werkzeug
     import jwt
-    
+
     # Flask 2.2.3 and earlier have known issues - we should be on 3.x
     assert flask.__version__.startswith('3.'), "Flask should be version 3.x"
-    
+
     # Werkzeug 2.2.3 has CVE-2023-25577 and CVE-2023-46136
     assert werkzeug.__version__.startswith('3.'), "Werkzeug should be version 3.x"
-    
+
     # PyJWT 2.8.0 and earlier have potential validation bypass issues
     version_parts = jwt.__version__.split('.')
     major = int(version_parts[0])
     minor = int(version_parts[1])
     assert major >= 2 and minor >= 10, "PyJWT should be 2.10.x or higher"
-

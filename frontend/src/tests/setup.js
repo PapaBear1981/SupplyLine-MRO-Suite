@@ -1,6 +1,7 @@
+/* eslint-env node */
 /**
  * Vitest Test Setup
- * 
+ *
  * Global test configuration and setup for all tests
  */
 

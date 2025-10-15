@@ -6,7 +6,7 @@ import { fetchCalibrationsDue, fetchOverdueCalibrations } from '../../store/cali
 
 const CalibrationNotifications = () => {
   const dispatch = useDispatch();
-  const { calibrationsDue, overdueCalibrations, loading } = useSelector((state) => state.calibration);
+  const { calibrationsDue, overdueCalibrations } = useSelector((state) => state.calibration);
   const { user } = useSelector((state) => state.auth);
 
   const [showDueNotification, setShowDueNotification] = useState(true);

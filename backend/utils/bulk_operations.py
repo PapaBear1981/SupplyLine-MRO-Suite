@@ -8,7 +8,7 @@ to improve performance and avoid N+1 query problems.
 import logging
 from datetime import datetime, timedelta
 from models import db, UserActivity, AuditLog, Tool, Chemical
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)

@@ -124,7 +124,7 @@ def _detect_image(file_bytes: bytes) -> Tuple[str, str]:
 def _detect_certificate(file_bytes: bytes) -> Tuple[str, str]:
     # Allow PDF certificates
     if file_bytes.startswith(b"%PDF"):
-        return ".pdf", "application/pdf"
+        return ".pd", "application/pd"
 
     # Fallback to image detection for image-based certificates
     try:

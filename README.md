@@ -152,7 +152,7 @@ Built with modern security practices and designed for enterprise-scale deploymen
 - **AWS Account** with appropriate permissions
 - **AWS CLI** installed and configured
 - **Docker** installed locally
-- **Node.js** (v18+) and **Python** (v3.11+)
+- **Node.js** (v20+) and **Python** (v3.11+)
 - **Git** for version control
 
 ### Quick AWS Deployment
@@ -193,7 +193,7 @@ After deployment, your application will be available at:
 ## Getting Started (Local Development)
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js (v20+)
 - Python (v3.11+)
 - npm or yarn
 - Docker and Docker Compose (for containerized deployment)

@@ -9,37 +9,37 @@ import os
 # Security Headers Configuration
 SECURITY_HEADERS = {
     # Prevent MIME type sniffing
-    'X-Content-Type-Options': 'nosniff',
-    
+    'X-Content-Type-Options': 'nosnif',
+
     # Prevent clickjacking
     'X-Frame-Options': 'DENY',
-    
+
     # Enable XSS protection
     'X-XSS-Protection': '1; mode=block',
-    
+
     # Strict Transport Security (HTTPS enforcement)
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-    
+
     # Content Security Policy
     'Content-Security-Policy': (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "font-src 'self' data:; "
-        "connect-src 'self'; "
+        "default-src 'sel'; "
+        "script-src 'sel' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'sel' 'unsafe-inline'; "
+        "img-src 'sel' data: https:; "
+        "font-src 'sel' data:; "
+        "connect-src 'sel'; "
         "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'; "
+        "base-uri 'sel'; "
+        "form-action 'sel'; "
         "object-src 'none'; "
-        "media-src 'self'; "
-        "worker-src 'self'; "
-        "manifest-src 'self'"
+        "media-src 'sel'; "
+        "worker-src 'sel'; "
+        "manifest-src 'sel'"
     ),
-    
+
     # Referrer Policy
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    
+
     # Permissions Policy (formerly Feature Policy)
     'Permissions-Policy': (
         'geolocation=(), '
@@ -51,7 +51,7 @@ SECURITY_HEADERS = {
         'gyroscope=(), '
         'speaker=()'
     ),
-    
+
     # Cache Control for sensitive pages
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Pragma': 'no-cache',
@@ -180,8 +180,8 @@ AUDIT_CONFIG = {
 # File Upload Security
 FILE_UPLOAD_CONFIG = {
     'max_file_size': 5 * 1024 * 1024,  # 5MB
-    'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.xls', '.xlsx'],
-    'forbidden_extensions': ['.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js'],
+    'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gi', '.pd', '.doc', '.docx', '.xls', '.xlsx'],
+    'forbidden_extensions': ['.exe', '.bat', '.cmd', '.com', '.pi', '.scr', '.vbs', '.js'],
     'scan_for_malware': True,
     'quarantine_suspicious': True,
     'upload_path': '/secure/uploads/',
@@ -239,13 +239,13 @@ if os.environ.get('FLASK_ENV') == 'development':
     CORS_CONFIG['origins'] = ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173']
     SESSION_CONFIG['cookie_secure'] = False
     API_CONFIG['require_https'] = False
-    
+
 elif os.environ.get('FLASK_ENV') == 'testing':
     # Minimal security for testing
     RATE_LIMITS = {}  # Disable rate limiting in tests
     SECURITY_HEADERS = {}  # Minimal headers for tests
     PASSWORD_POLICY['min_length'] = 4  # Shorter passwords for tests
-    
+
 elif os.environ.get('FLASK_ENV') == 'production':
     # Maximum security for production
     SECURITY_HEADERS['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'

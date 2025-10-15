@@ -1,6 +1,7 @@
+/* eslint-env node */
 import axios from 'axios';
 import errorService from './errorService';
-import { determineErrorType, createStandardError, ERROR_TYPES } from '../utils/errorMapping';
+import { determineErrorType, ERROR_TYPES } from '../utils/errorMapping';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -8,7 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // JWT auth doesn't rely on cookies
+  withCredentials: true, // Enable cookies for HttpOnly JWT authentication
   timeout: 30000, // 30 second timeout
 });
 
@@ -18,11 +19,8 @@ api.interceptors.request.use(
     // Add request timestamp for performance tracking
     config.metadata = { startTime: Date.now() };
 
-    // Add JWT token if available
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // JWT tokens are now handled via HttpOnly cookies by the backend
+    // No need to manually add Authorization header
     // Only log non-GET requests in development environment or when debugging is enabled
     if (config.method.toUpperCase() !== 'GET' &&
         (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true')) {
@@ -168,28 +166,18 @@ api.interceptors.response.use(
 
 // Handle unauthorized errors with token refresh logic
 const handleUnauthorizedError = async (error) => {
-  const refreshToken = localStorage.getItem('refresh_token');
-
-  if (refreshToken && !error.config._retry) {
+  if (!error.config._retry) {
     error.config._retry = true;
 
     try {
-      // Attempt to refresh the token
-      const response = await axios.post('/api/auth/refresh', {
-        refresh_token: refreshToken
-      });
+      // Attempt to refresh the token via HttpOnly cookies
+      await axios.post('/api/auth/refresh');
 
-      const newToken = response.data.access_token;
-      localStorage.setItem('access_token', newToken);
-
-      // Retry the original request with new token
-      error.config.headers.Authorization = `Bearer ${newToken}`;
+      // Retry the original request (cookies will be sent automatically)
       return api.request(error.config);
-    } catch (refreshError) {
+    // eslint-disable-next-line no-unused-vars -- Error intentionally ignored
+    } catch (_refreshError) {
       // Refresh failed, redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-
       errorService.logWarning(
         'Token refresh failed, redirecting to login',
         'AUTH_TOKEN_REFRESH_FAILED'
@@ -204,11 +192,7 @@ const handleUnauthorizedError = async (error) => {
       }
     }
   } else {
-    // No refresh token or retry already attempted
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-
-    // Only redirect if not already on login or register page
+    // Retry already attempted, redirect to login
     if (!window.location.pathname.match(/^\/(login|register)/)) {
       setTimeout(() => {
         window.location.href = '/login';

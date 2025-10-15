@@ -30,14 +30,15 @@ def get_cors_headers():
         'Access-Control-Allow-Credentials': 'true'
     }
 
+
 def lambda_handler(event, context):
     """
     AWS Lambda handler function
-    
+
     Args:
         event: API Gateway event
         context: Lambda context
-        
+
     Returns:
         API Gateway response format
     """
@@ -47,7 +48,7 @@ def lambda_handler(event, context):
             return handle_api_gateway_v2(event, context)
         else:
             return handle_api_gateway_v1(event, context)
-            
+
     except Exception as e:
         print(f"Lambda handler error: {str(e)}")
 
@@ -72,18 +73,18 @@ def lambda_handler(event, context):
 
 def handle_api_gateway_v1(event, context):
     """Handle API Gateway v1.0 format"""
-    
+
     # Extract request information
     http_method = event.get('httpMethod', 'GET')
     path = event.get('path', '/')
     query_string = event.get('queryStringParameters') or {}
     headers = event.get('headers') or {}
     body = event.get('body', '')
-    
+
     # Handle base64 encoded body
     if event.get('isBase64Encoded', False) and body:
         body = base64.b64decode(body).decode('utf-8')
-    
+
     # Create WSGI environ
     environ = create_wsgi_environ(
         method=http_method,
@@ -92,30 +93,30 @@ def handle_api_gateway_v1(event, context):
         headers=headers,
         body=body
     )
-    
+
     # Process request through Flask app
     response_data = []
     status_code = 200
     response_headers = {}
-    
+
     def start_response(status, headers):
         nonlocal status_code, response_headers
         status_code = int(status.split()[0])
         response_headers = dict(headers)
-    
+
     # Get response from Flask app
     app_response = app(environ, start_response)
-    
+
     # Collect response data
     for data in app_response:
         if isinstance(data, bytes):
             response_data.append(data.decode('utf-8'))
         else:
             response_data.append(data)
-    
+
     # Add CORS headers
     response_headers.update(get_cors_headers())
-    
+
     return {
         'statusCode': status_code,
         'headers': response_headers,
@@ -125,21 +126,21 @@ def handle_api_gateway_v1(event, context):
 
 def handle_api_gateway_v2(event, context):
     """Handle API Gateway v2.0 format"""
-    
+
     # Extract request information from v2.0 format
     request_context = event.get('requestContext', {})
     http = request_context.get('http', {})
-    
+
     http_method = http.get('method', 'GET')
     path = http.get('path', '/')
     query_string = event.get('queryStringParameters') or {}
     headers = event.get('headers') or {}
     body = event.get('body', '')
-    
+
     # Handle base64 encoded body
     if event.get('isBase64Encoded', False) and body:
         body = base64.b64decode(body).decode('utf-8')
-    
+
     # Create WSGI environ
     environ = create_wsgi_environ(
         method=http_method,
@@ -148,30 +149,30 @@ def handle_api_gateway_v2(event, context):
         headers=headers,
         body=body
     )
-    
+
     # Process request through Flask app
     response_data = []
     status_code = 200
     response_headers = {}
-    
+
     def start_response(status, headers):
         nonlocal status_code, response_headers
         status_code = int(status.split()[0])
         response_headers = dict(headers)
-    
+
     # Get response from Flask app
     app_response = app(environ, start_response)
-    
+
     # Collect response data
     for data in app_response:
         if isinstance(data, bytes):
             response_data.append(data.decode('utf-8'))
         else:
             response_data.append(data)
-    
+
     # Add CORS headers
     response_headers.update(get_cors_headers())
-    
+
     return {
         'statusCode': status_code,
         'headers': response_headers,
@@ -181,14 +182,14 @@ def handle_api_gateway_v2(event, context):
 
 def create_wsgi_environ(method, path, query_string, headers, body):
     """Create WSGI environ dict from API Gateway event"""
-    
+
     # Build query string
     query_string_parts = []
     for key, value in query_string.items():
         if value is not None:
             query_string_parts.append(f"{key}={value}")
     query_string_str = '&'.join(query_string_parts)
-    
+
     # Create environ
     environ = {
         'REQUEST_METHOD': method,
@@ -206,19 +207,19 @@ def create_wsgi_environ(method, path, query_string, headers, body):
         'wsgi.multiprocess': True,
         'wsgi.run_once': False
     }
-    
+
     # Add headers to environ
     for key, value in headers.items():
         key = key.upper().replace('-', '_')
         if key not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
             key = f'HTTP_{key}'
         environ[key] = value
-    
+
     # Add body as input stream
     if body:
         from io import StringIO
         environ['wsgi.input'] = StringIO(body)
-    
+
     return environ
 
 
@@ -234,8 +235,8 @@ if __name__ == '__main__':
         },
         'body': ''
     }
-    
+
     test_context = {}
-    
+
     response = lambda_handler(test_event, test_context)
     print(json.dumps(response, indent=2))

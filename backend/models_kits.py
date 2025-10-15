@@ -5,7 +5,6 @@ This module contains all database models related to the Mobile Warehouse (Kits) 
 including aircraft types, kits, boxes, items, transfers, reorders, and messaging.
 """
 
-from datetime import datetime
 from models import db, get_current_time
 
 
@@ -15,16 +14,16 @@ class AircraftType(db.Model):
     Examples: Q400, RJ85, CL415
     """
     __tablename__ = 'aircraft_types'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
-    
+
     # Relationships
     kits = db.relationship('Kit', back_populates='aircraft_type', lazy='dynamic')
-    
+
     def to_dict(self):
         """Convert model to dictionary"""
         return {
@@ -43,7 +42,7 @@ class Kit(db.Model):
     Each kit is associated with an aircraft type and contains boxes of items.
     """
     __tablename__ = 'kits'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     aircraft_type_id = db.Column(db.Integer, db.ForeignKey('aircraft_types.id'), nullable=False)
@@ -52,7 +51,7 @@ class Kit(db.Model):
     created_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
     updated_at = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+
     # Relationships
     aircraft_type = db.relationship('AircraftType', back_populates='kits')
     creator = db.relationship('User', foreign_keys=[created_by])
@@ -62,7 +61,7 @@ class Kit(db.Model):
     issuances = db.relationship('KitIssuance', back_populates='kit', lazy='dynamic', cascade='all, delete-orphan')
     reorder_requests = db.relationship('KitReorderRequest', back_populates='kit', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('KitMessage', back_populates='kit', lazy='dynamic', cascade='all, delete-orphan')
-    
+
     def to_dict(self, include_details=False):
         """Convert model to dictionary"""
         data = {
@@ -79,12 +78,12 @@ class Kit(db.Model):
             'box_count': self.boxes.count() if self.boxes else 0,
             'item_count': self.items.count() + self.expendables.count() if self.items and self.expendables else 0
         }
-        
+
         if include_details:
             data['boxes'] = [box.to_dict() for box in self.boxes.all()] if self.boxes else []
             data['pending_reorders'] = self.reorder_requests.filter_by(status='pending').count() if self.reorder_requests else 0
             data['unread_messages'] = self.messages.filter_by(is_read=False).count() if self.messages else 0
-        
+
         return data
 
 
@@ -94,24 +93,24 @@ class KitBox(db.Model):
     Each box has a type: expendable, tooling, consumable, loose, or floor.
     """
     __tablename__ = 'kit_boxes'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=False)
     box_number = db.Column(db.String(20), nullable=False)  # e.g., "Box1", "Box2", "Loose", "Floor"
     box_type = db.Column(db.String(20), nullable=False)  # expendable, tooling, consumable, loose, floor
     description = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=get_current_time, nullable=False)
-    
+
     # Relationships
     kit = db.relationship('Kit', back_populates='boxes')
     items = db.relationship('KitItem', back_populates='box', lazy='dynamic', cascade='all, delete-orphan')
     expendables = db.relationship('KitExpendable', back_populates='box', lazy='dynamic', cascade='all, delete-orphan')
-    
+
     # Unique constraint: kit_id + box_number must be unique
     __table_args__ = (
         db.UniqueConstraint('kit_id', 'box_number', name='uix_kit_box_number'),
     )
-    
+
     def to_dict(self):
         """Convert model to dictionary"""
         return {
@@ -131,7 +130,7 @@ class KitItem(db.Model):
     Links to existing Tool or Chemical records.
     """
     __tablename__ = 'kit_items'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     kit_id = db.Column(db.Integer, db.ForeignKey('kits.id'), nullable=False)
     box_id = db.Column(db.Integer, db.ForeignKey('kit_boxes.id'), nullable=False)
@@ -146,11 +145,11 @@ class KitItem(db.Model):
     status = db.Column(db.String(20), nullable=False, default='available')  # available, issued, maintenance
     added_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
     last_updated = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)
-    
+
     # Relationships
     kit = db.relationship('Kit', back_populates='items')
     box = db.relationship('KitBox', back_populates='items')
-    
+
     def to_dict(self):
         """Convert model to dictionary"""
         return {
@@ -454,4 +453,3 @@ class KitMessage(db.Model):
             data['replies'] = [reply.to_dict() for reply in self.replies]
 
         return data
-

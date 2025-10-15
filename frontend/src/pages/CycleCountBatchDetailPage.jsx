@@ -19,7 +19,6 @@ import {
   fetchCycleCountBatch,
   fetchCycleCountItems,
   updateCycleCountBatch,
-  updateCycleCountItem,
   deleteCycleCountBatch
 } from '../store/cycleCountSlice';
 import { useHelp } from '../context/HelpContext';

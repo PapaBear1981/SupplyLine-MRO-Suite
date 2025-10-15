@@ -13,12 +13,9 @@ Tests all kit-related models:
 - KitMessage
 """
 
-import pytest
-from datetime import datetime, timedelta
-from models import User
 from models_kits import (
-    AircraftType, Kit, KitBox, KitItem, KitExpendable,
-    KitIssuance, KitTransfer, KitReorderRequest, KitMessage
+    AircraftType, Kit, KitBox, KitExpendable, KitIssuance,
+    KitTransfer, KitReorderRequest, KitMessage
 )
 
 
@@ -34,7 +31,7 @@ def get_or_create_aircraft_type(db_session, name):
 
 class TestAircraftTypeModel:
     """Test AircraftType model functionality"""
-    
+
     def test_create_aircraft_type(self, db_session):
         """Test creating an aircraft type"""
         aircraft_type = AircraftType(
@@ -42,16 +39,16 @@ class TestAircraftTypeModel:
             description='Bombardier Q400 turboprop',
             is_active=True
         )
-        
+
         db_session.add(aircraft_type)
         db_session.commit()
-        
+
         assert aircraft_type.id is not None
         assert aircraft_type.name == 'Q400'
         assert aircraft_type.description == 'Bombardier Q400 turboprop'
         assert aircraft_type.is_active is True
         assert aircraft_type.created_at is not None
-    
+
     def test_aircraft_type_to_dict(self, db_session):
         """Test aircraft type to_dict method"""
         aircraft_type = AircraftType(
@@ -61,15 +58,15 @@ class TestAircraftTypeModel:
         )
         db_session.add(aircraft_type)
         db_session.commit()
-        
+
         data = aircraft_type.to_dict()
-        
+
         assert data['id'] == aircraft_type.id
         assert data['name'] == 'RJ85'
         assert data['description'] == 'British Aerospace RJ85'
         assert data['is_active'] is True
         assert 'created_at' in data
-    
+
     def test_aircraft_type_deactivation(self, db_session):
         """Test deactivating an aircraft type"""
         aircraft_type = AircraftType(
@@ -79,17 +76,17 @@ class TestAircraftTypeModel:
         )
         db_session.add(aircraft_type)
         db_session.commit()
-        
+
         # Deactivate
         aircraft_type.is_active = False
         db_session.commit()
-        
+
         assert aircraft_type.is_active is False
 
 
 class TestKitModel:
     """Test Kit model functionality"""
-    
+
     def test_create_kit(self, db_session, admin_user):
         """Test creating a kit"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -101,10 +98,10 @@ class TestKitModel:
             status='active',
             created_by=admin_user.id
         )
-        
+
         db_session.add(kit)
         db_session.commit()
-        
+
         assert kit.id is not None
         assert kit.name == 'Q400-Kit-Alpha'
         assert kit.aircraft_type_id == aircraft_type.id
@@ -112,7 +109,7 @@ class TestKitModel:
         assert kit.created_by == admin_user.id
         assert kit.created_at is not None
         assert kit.updated_at is not None
-    
+
     def test_kit_to_dict(self, db_session, admin_user):
         """Test kit to_dict method"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'RJ85')
@@ -126,16 +123,16 @@ class TestKitModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         data = kit.to_dict()
-        
+
         assert data['id'] == kit.id
         assert data['name'] == 'RJ85-Kit-Main'
         assert data['aircraft_type_id'] == aircraft_type.id
         assert data['status'] == 'active'
         assert 'created_at' in data
         assert 'updated_at' in data
-    
+
     def test_kit_status_values(self, db_session, admin_user):
         """Test kit status values"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -148,7 +145,7 @@ class TestKitModel:
             created_by=admin_user.id
         )
         db_session.add(kit_active)
-        
+
         # Test inactive status
         kit_inactive = Kit(
             name='Inactive Kit',
@@ -157,7 +154,7 @@ class TestKitModel:
             created_by=admin_user.id
         )
         db_session.add(kit_inactive)
-        
+
         # Test maintenance status
         kit_maintenance = Kit(
             name='Maintenance Kit',
@@ -166,13 +163,13 @@ class TestKitModel:
             created_by=admin_user.id
         )
         db_session.add(kit_maintenance)
-        
+
         db_session.commit()
-        
+
         assert kit_active.status == 'active'
         assert kit_inactive.status == 'inactive'
         assert kit_maintenance.status == 'maintenance'
-    
+
     def test_kit_aircraft_type_relationship(self, db_session, admin_user):
         """Test kit relationship with aircraft type"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'CL415')
@@ -185,7 +182,7 @@ class TestKitModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         # Test relationship
         assert kit.aircraft_type.name == 'CL415'
         assert aircraft_type.kits[0].name == 'CL415-Kit-Fire'
@@ -193,7 +190,7 @@ class TestKitModel:
 
 class TestKitBoxModel:
     """Test KitBox model functionality"""
-    
+
     def test_create_kit_box(self, db_session, admin_user):
         """Test creating a kit box"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -206,24 +203,24 @@ class TestKitBoxModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         box = KitBox(
             kit_id=kit.id,
             box_number=1,
             box_type='expendable',
             description='Expendable items box'
         )
-        
+
         db_session.add(box)
         db_session.commit()
-        
+
         assert box.id is not None
         assert box.kit_id == kit.id
         assert box.box_number == 1
         assert box.box_type == 'expendable'
         assert box.description == 'Expendable items box'
         assert box.created_at is not None
-    
+
     def test_kit_box_types(self, db_session, admin_user):
         """Test all kit box types"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -236,9 +233,9 @@ class TestKitBoxModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         box_types = ['expendable', 'tooling', 'consumable', 'loose', 'floor']
-        
+
         for i, box_type in enumerate(box_types, 1):
             box = KitBox(
                 kit_id=kit.id,
@@ -247,15 +244,15 @@ class TestKitBoxModel:
                 description=f'{box_type.capitalize()} box'
             )
             db_session.add(box)
-        
+
         db_session.commit()
-        
+
         boxes = KitBox.query.filter_by(kit_id=kit.id).all()
         assert len(boxes) == 5
-        
+
         box_type_names = [box.box_type for box in boxes]
         assert set(box_type_names) == set(box_types)
-    
+
     def test_kit_box_relationship(self, db_session, admin_user):
         """Test kit box relationship with kit"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -268,7 +265,7 @@ class TestKitBoxModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         box = KitBox(
             kit_id=kit.id,
             box_number=1,
@@ -277,7 +274,7 @@ class TestKitBoxModel:
         )
         db_session.add(box)
         db_session.commit()
-        
+
         # Test relationship
         assert box.kit.name == 'Test Kit'
         assert kit.boxes[0].box_type == 'tooling'
@@ -285,7 +282,7 @@ class TestKitBoxModel:
 
 class TestKitExpendableModel:
     """Test KitExpendable model functionality"""
-    
+
     def test_create_kit_expendable(self, db_session, admin_user):
         """Test creating a kit expendable"""
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
@@ -298,7 +295,7 @@ class TestKitExpendableModel:
         )
         db_session.add(kit)
         db_session.commit()
-        
+
         box = KitBox(
             kit_id=kit.id,
             box_number=1,
@@ -306,7 +303,7 @@ class TestKitExpendableModel:
         )
         db_session.add(box)
         db_session.commit()
-        
+
         expendable = KitExpendable(
             kit_id=kit.id,
             box_id=box.id,
@@ -318,10 +315,10 @@ class TestKitExpendableModel:
             status='available',
             minimum_stock_level=25
         )
-        
+
         db_session.add(expendable)
         db_session.commit()
-        
+
         assert expendable.id is not None
         assert expendable.part_number == 'EXP-001'
         assert expendable.quantity == 100
@@ -882,4 +879,3 @@ class TestKitMessageModel:
 
         assert reply_message.parent_message_id == original_message.id
         assert original_message.replies[0].id == reply_message.id
-

@@ -1,12 +1,13 @@
 /**
  * Authentication utilities for E2E tests
  */
+import { expect } from '@playwright/test';
 
 // Test user credentials
 export const TEST_USERS = {
   admin: {
     username: 'ADMIN001',
-    password: 'password123'
+    password: 'admin123'
   },
   user: {
     username: 'USER001',
@@ -18,90 +19,140 @@ export const TEST_USERS = {
   }
 };
 
-/**
- * Store auth tokens in localStorage
- * @param {import('@playwright/test').Page} page
- * @param {string} accessToken
- * @param {string} refreshToken
- */
-export async function setAuthTokens(page, accessToken, refreshToken) {
-  await page.evaluate(([a, r]) => {
-    localStorage.setItem('access_token', a);
-    localStorage.setItem('refresh_token', r);
-  }, [accessToken, refreshToken]);
-}
+const EMPLOYEE_NUMBER_SELECTOR = [
+  'input[name="employee_number"]',
+  'input[name="username"]',
+  'input[placeholder*="Employee"]',
+  'input[placeholder*="employee"]'
+].join(', ');
 
-/**
- * Login with specified user credentials
- * @param {import('@playwright/test').Page} page
- * @param {Object} user - User credentials object
- */
-export async function login(page, user = TEST_USERS.admin) {
-  // Navigate to login page first to establish context
-  await page.goto('/login');
+const PASSWORD_SELECTOR = [
+  'input[type="password"]',
+  'input[name="password"]',
+  'input[placeholder*="Password"]',
+  'input[placeholder*="password"]'
+].join(', ');
 
-  const response = await page.request.post('/api/auth/login', {
-    data: {
-      employee_number: user.username,
-      password: user.password
-    }
-  });
+const LOGIN_BUTTON_SELECTOR = 'button[type="submit"], button:has-text("Sign In"), button:has-text("Login")';
 
-  if (!response.ok()) {
-    throw new Error(`Login failed: ${response.status()}`);
+async function waitForAuthStatus(page) {
+  const statusResponse = await page.request.get('/api/auth/status');
+  if (!statusResponse.ok()) {
+    throw new Error(`Auth status request failed: ${statusResponse.status()}`);
   }
 
-  const data = await response.json();
-  await setAuthTokens(page, data.access_token, data.refresh_token);
+  const status = await statusResponse.json();
+  if (!status.authenticated) {
+    throw new Error('Authentication status indicates unauthenticated session');
+  }
 
-  await page.goto('/dashboard');
+  return status;
+}
+
+async function fetchCurrentUser(page) {
+  const meResponse = await page.request.get('/api/auth/me');
+  if (!meResponse.ok()) {
+    throw new Error(`Failed to fetch current user: ${meResponse.status()}`);
+  }
+
+  return meResponse.json();
+}
+
+async function ensureOnDashboard(page) {
+  if (page.url().includes('/login')) {
+    await page.goto('/dashboard');
+  }
+  await page.waitForLoadState('networkidle').catch(() => {});
 }
 
 /**
- * Logout the current user
- * @param {import('@playwright/test').Page} page 
+ * Login with specified user credentials using the UI flow so HttpOnly cookies are issued.
+ * Returns the storage state so callers can persist or reuse it.
+ * @param {import('@playwright/test').Page} page
+ * @param {{ username: string, password: string }} user
+ * @param {{ storagePath?: string, navigateToDashboard?: boolean }} options
+ * @returns {Promise<import('@playwright/test').StorageState>}
+ */
+export async function login(page, user = TEST_USERS.admin, options = {}) {
+  const { storagePath, navigateToDashboard = true } = options;
+  const context = page.context();
+
+  await context.clearCookies().catch(() => {});
+  await page.goto('/login', { waitUntil: 'load' });
+
+  const employeeInput = page.locator(EMPLOYEE_NUMBER_SELECTOR).first();
+  const passwordInput = page.locator(PASSWORD_SELECTOR).first();
+  const submitButton = page.locator(LOGIN_BUTTON_SELECTOR).first();
+
+  await expect(employeeInput).toBeVisible({ timeout: 15000 });
+  await expect(passwordInput).toBeVisible();
+
+  await employeeInput.fill(user.username, { timeout: 5000 });
+  await passwordInput.fill(user.password, { timeout: 5000 });
+
+  // Click submit and wait for navigation - simpler and more reliable across browsers
+  await submitButton.click();
+
+  // Wait for navigation to complete (login redirects to dashboard or home)
+  await page.waitForURL(/\/$|\/dashboard/, { timeout: 60000, waitUntil: 'networkidle' });
+
+  // Verify authentication succeeded by checking auth status
+  await waitForAuthStatus(page);
+  await fetchCurrentUser(page);
+
+  if (navigateToDashboard) {
+    await ensureOnDashboard(page);
+  }
+
+  const storageState = await context.storageState({ path: storagePath });
+  return storageState;
+}
+
+/**
+ * Logout the current user via API and clear browser storage.
+ * @param {import('@playwright/test').Page} page
  */
 export async function logout(page) {
-  const token = await page.evaluate(() => localStorage.getItem('access_token'));
-
-  if (token) {
-    await page.request.post('/api/auth/logout', {
-      headers: { Authorization: `Bearer ${token}` }
-    }).catch(() => {});
-  }
-
+  await page.request.post('/api/auth/logout').catch(() => {});
   await clearAuthState(page);
 }
 
 /**
- * Check if user is authenticated by checking current URL
- * @param {import('@playwright/test').Page} page 
- * @returns {boolean}
+ * Check authenticated status using the backend status endpoint.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<boolean>}
  */
 export async function isAuthenticated(page) {
-  const url = page.url();
-  return !url.includes('/login');
+  try {
+    const status = await waitForAuthStatus(page);
+    return Boolean(status?.authenticated);
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Setup authentication state for tests that need to start authenticated
- * @param {import('@playwright/test').Page} page 
- * @param {Object} user - User credentials object
+ * Setup authentication state for tests that need to start authenticated.
+ * Returns storage state to allow reuse in new browser contexts.
+ * @param {import('@playwright/test').Page} page
+ * @param {{ username: string, password: string }} user
+ * @param {{ storagePath?: string, navigateToDashboard?: boolean }} options
+ * @returns {Promise<import('@playwright/test').StorageState>}
  */
-export async function setupAuthenticatedState(page, user = TEST_USERS.admin) {
-  await login(page, user);
+export async function setupAuthenticatedState(page, user = TEST_USERS.admin, options = {}) {
+  return login(page, user, options);
 }
 
 /**
- * Clear authentication state (logout and clear storage)
- * @param {import('@playwright/test').Page} page 
+ * Clear authentication state (cookies, storage) and ensure login page is loaded.
+ * @param {import('@playwright/test').Page} page
  */
 export async function clearAuthState(page) {
-  // Clear localStorage
+  const context = page.context();
+  await context.clearCookies().catch(() => {});
   await page.evaluate(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
-  
-  // Navigate to login to ensure clean state
-  await page.goto('/login');
+  await page.goto('/login', { waitUntil: 'load' });
 }

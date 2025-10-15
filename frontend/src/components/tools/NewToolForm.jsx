@@ -39,8 +39,9 @@ const NewToolForm = () => {
       setLoadingWarehouses(true);
       try {
         const response = await api.get('/warehouses');
-        // Backend returns array directly, not wrapped in {warehouses: [...]}
-        setWarehouses(Array.isArray(response.data) ? response.data : []);
+        // Backend returns { warehouses: [...], pagination: {...} }
+        const warehousesData = response.data.warehouses || response.data;
+        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
         setLocalError('Failed to load warehouses. Please refresh the page.');

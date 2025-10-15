@@ -7,8 +7,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const KitMobileInterface = () => {
   const dispatch = useDispatch();
-  const { kits, kitItems, loading, error } = useSelector((state) => state.kits);
-  const { user } = useSelector((state) => state.auth);
+  const { kits, kitItems, loading } = useSelector((state) => state.kits);
 
   // State
   const [selectedKit, setSelectedKit] = useState(null);

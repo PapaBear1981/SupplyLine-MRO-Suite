@@ -15,29 +15,30 @@ from .logging_utils import get_request_context, log_security_event
 logger = logging.getLogger(__name__)
 
 # Custom Exception Classes
+
+
 class SupplyLineError(Exception):
     """Base exception for SupplyLine application"""
-    pass
+
 
 class ValidationError(SupplyLineError):
     """Raised when input validation fails"""
-    pass
+
 
 class AuthenticationError(SupplyLineError):
     """Raised when authentication fails"""
-    pass
+
 
 class AuthorizationError(SupplyLineError):
     """Raised when user lacks required permissions"""
-    pass
+
 
 class DatabaseError(SupplyLineError):
     """Raised when database operations fail"""
-    pass
+
 
 class RateLimitError(SupplyLineError):
     """Raised when rate limit is exceeded"""
-    pass
 
 
 def handle_errors(f):

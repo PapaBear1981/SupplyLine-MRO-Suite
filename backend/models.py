@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import object_session
@@ -34,6 +34,7 @@ class PasswordHistory(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
 
     user = db.relationship('User', back_populates='password_histories')
+
 
 class Tool(db.Model):
     __tablename__ = 'tools'
@@ -103,6 +104,7 @@ class Tool(db.Model):
 
         # Calibration is current
         self.calibration_status = 'current'
+
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -321,6 +323,7 @@ class User(db.Model):
 
         return result
 
+
 class Checkout(db.Model):
     __tablename__ = 'checkouts'
     id = db.Column(db.Integer, primary_key=True)
@@ -332,12 +335,14 @@ class Checkout(db.Model):
     tool = db.relationship('Tool')
     user = db.relationship('User')
 
+
 class AuditLog(db.Model):
     __tablename__ = 'audit_log'
     id = db.Column(db.Integer, primary_key=True)
     action_type = db.Column(db.String, nullable=False)
     action_details = db.Column(db.String)
     timestamp = db.Column(db.DateTime, default=get_current_time)
+
 
 class UserActivity(db.Model):
     __tablename__ = 'user_activity'
@@ -358,6 +363,7 @@ class UserActivity(db.Model):
             'ip_address': self.ip_address,
             'timestamp': self.timestamp.isoformat()
         }
+
 
 class ToolServiceRecord(db.Model):
     __tablename__ = 'tool_service_records'
@@ -382,6 +388,7 @@ class ToolServiceRecord(db.Model):
             'comments': self.comments,
             'timestamp': self.timestamp.isoformat()
         }
+
 
 class Chemical(db.Model):
     __tablename__ = 'chemicals'
@@ -412,7 +419,7 @@ class Chemical(db.Model):
         reorder_status = db.Column(db.String, nullable=True, default='not_needed')  # not_needed, needed, ordered
         reorder_date = db.Column(db.DateTime, nullable=True)  # When the reorder was placed
         expected_delivery_date = db.Column(db.DateTime, nullable=True)  # Expected delivery date
-    except:
+    except Exception:
         # If the columns don't exist, we'll create them later with a migration
         pass
 
@@ -444,7 +451,7 @@ class Chemical(db.Model):
             result['is_archived'] = self.is_archived
             result['archived_reason'] = self.archived_reason
             result['archived_date'] = self.archived_date.isoformat() if self.archived_date else None
-        except:
+        except Exception:
             # If the columns don't exist, set default values
             result['is_archived'] = False
             result['archived_reason'] = None
@@ -456,7 +463,7 @@ class Chemical(db.Model):
             result['reorder_status'] = self.reorder_status
             result['reorder_date'] = self.reorder_date.isoformat() if self.reorder_date else None
             result['expected_delivery_date'] = self.expected_delivery_date.isoformat() if self.expected_delivery_date else None
-        except:
+        except Exception:
             # If the columns don't exist, set default values
             result['needs_reorder'] = False
             result['reorder_status'] = 'not_needed'
@@ -497,7 +504,7 @@ class Chemical(db.Model):
             if self.is_expired() or self.quantity <= 0 or self.is_low_stock():
                 self.needs_reorder = True
                 self.reorder_status = 'needed'
-        except:
+        except Exception:
             # If the columns don't exist, we can't update them
             pass
 
@@ -505,6 +512,7 @@ class Chemical(db.Model):
         if not self.minimum_stock_level:
             return False
         return self.quantity <= self.minimum_stock_level
+
 
 class ChemicalIssuance(db.Model):
     __tablename__ = 'chemical_issuances'
@@ -529,6 +537,7 @@ class ChemicalIssuance(db.Model):
             'purpose': self.purpose,
             'issue_date': self.issue_date.isoformat()
         }
+
 
 class RegistrationRequest(db.Model):
     __tablename__ = 'registration_requests'
@@ -562,6 +571,7 @@ class RegistrationRequest(db.Model):
             'admin_notes': self.admin_notes,
             'admin_name': self.admin.name if self.admin else None
         }
+
 
 class ToolCalibration(db.Model):
     __tablename__ = 'tool_calibrations'
@@ -597,6 +607,7 @@ class ToolCalibration(db.Model):
             'standards': [standard.to_dict() for standard in self.standards] if hasattr(self, 'standards') else []
         }
 
+
 class CalibrationStandard(db.Model):
     __tablename__ = 'calibration_standards'
     id = db.Column(db.Integer, primary_key=True)
@@ -626,6 +637,7 @@ class CalibrationStandard(db.Model):
         expiration_threshold = now + timedelta(days=days)
         return now < self.expiration_date <= expiration_threshold
 
+
 class ToolCalibrationStandard(db.Model):
     __tablename__ = 'tool_calibration_standards'
     id = db.Column(db.Integer, primary_key=True)
@@ -646,6 +658,7 @@ class ToolCalibrationStandard(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+
 class Permission(db.Model):
     __tablename__ = 'permissions'
     id = db.Column(db.Integer, primary_key=True)
@@ -665,6 +678,7 @@ class Permission(db.Model):
             'category': self.category,
             'created_at': self.created_at.isoformat()
         }
+
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -692,6 +706,7 @@ class Role(db.Model):
 
         return result
 
+
 class RolePermission(db.Model):
     __tablename__ = 'role_permissions'
     id = db.Column(db.Integer, primary_key=True)
@@ -706,6 +721,7 @@ class RolePermission(db.Model):
     # Ensure uniqueness of role-permission pairs
     __table_args__ = (db.UniqueConstraint('role_id', 'permission_id', name='_role_permission_uc'),)
 
+
 class UserRole(db.Model):
     __tablename__ = 'user_roles'
     id = db.Column(db.Integer, primary_key=True)
@@ -719,6 +735,7 @@ class UserRole(db.Model):
 
     # Ensure uniqueness of user-role pairs
     __table_args__ = (db.UniqueConstraint('user_id', 'role_id', name='_user_role_uc'),)
+
 
 class Announcement(db.Model):
     __tablename__ = 'announcements'
@@ -754,6 +771,7 @@ class Announcement(db.Model):
             data['read_count'] = self.reads.count()
 
         return data
+
 
 class AnnouncementRead(db.Model):
     __tablename__ = 'announcement_reads'
@@ -879,7 +897,6 @@ class LotNumberSequence(db.Model):
         Returns:
             str: Generated lot number (e.g., LOT-251014-0001)
         """
-        from sqlalchemy import func
         from sqlalchemy.exc import IntegrityError
 
         # Get current date in YYYYMMDD format
@@ -931,7 +948,6 @@ class LotNumberSequence(db.Model):
         lot_number = f"LOT-{year_short}{month_day}-{counter}"
 
         return lot_number
-
 
 
 class Warehouse(db.Model):

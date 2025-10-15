@@ -19,7 +19,7 @@ materials_required = department_required('Materials')
 
 def register_kit_reorder_routes(app):
     """Register all kit reorder routes"""
-    
+
     @app.route('/api/kits/<int:kit_id>/reorder', methods=['POST'])
     @jwt_required
     @handle_errors
@@ -27,7 +27,7 @@ def register_kit_reorder_routes(app):
         """Create a reorder request for a kit"""
         kit = Kit.query.get_or_404(kit_id)
         data = request.get_json() or {}
-        
+
         # Validate required fields
         if not data.get('part_number'):
             raise ValidationError('Part number is required')
@@ -35,7 +35,7 @@ def register_kit_reorder_routes(app):
             raise ValidationError('Description is required')
         if not data.get('quantity_requested'):
             raise ValidationError('Quantity requested is required')
-        
+
         # Create reorder request
         reorder = KitReorderRequest(
             kit_id=kit_id,
@@ -50,10 +50,10 @@ def register_kit_reorder_routes(app):
             notes=data.get('notes', ''),
             is_automatic=False
         )
-        
+
         db.session.add(reorder)
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_reorder_requested',
@@ -61,10 +61,10 @@ def register_kit_reorder_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         logger.info(f"Reorder request created: ID {reorder.id}")
         return jsonify(reorder.to_dict()), 201
-    
+
     @app.route('/api/reorder-requests', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -74,9 +74,9 @@ def register_kit_reorder_routes(app):
         status = request.args.get('status')
         priority = request.args.get('priority')
         is_automatic = request.args.get('is_automatic')
-        
+
         query = KitReorderRequest.query
-        
+
         if kit_id:
             query = query.filter_by(kit_id=kit_id)
         if status:
@@ -85,14 +85,14 @@ def register_kit_reorder_routes(app):
             query = query.filter_by(priority=priority)
         if is_automatic is not None:
             query = query.filter_by(is_automatic=is_automatic.lower() == 'true')
-        
+
         reorders = query.order_by(
             KitReorderRequest.priority.desc(),
             KitReorderRequest.requested_date.desc()
         ).all()
-        
+
         return jsonify([reorder.to_dict() for reorder in reorders]), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -100,23 +100,23 @@ def register_kit_reorder_routes(app):
         """Get reorder request details"""
         reorder = KitReorderRequest.query.get_or_404(id)
         return jsonify(reorder.to_dict()), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>/approve', methods=['PUT'])
     @materials_required
     @handle_errors
     def approve_reorder_request(id):
         """Approve a reorder request"""
         reorder = KitReorderRequest.query.get_or_404(id)
-        
+
         if reorder.status != 'pending':
             raise ValidationError('Can only approve pending requests')
-        
+
         reorder.status = 'approved'
         reorder.approved_by = request.current_user['user_id']
         reorder.approved_date = datetime.now()
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_reorder_approved',
@@ -124,23 +124,23 @@ def register_kit_reorder_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(reorder.to_dict()), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>/order', methods=['PUT'])
     @materials_required
     @handle_errors
     def mark_reorder_ordered(id):
         """Mark a reorder request as ordered"""
         reorder = KitReorderRequest.query.get_or_404(id)
-        
+
         if reorder.status not in ['pending', 'approved']:
             raise ValidationError('Can only mark pending or approved requests as ordered')
-        
+
         reorder.status = 'ordered'
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_reorder_ordered',
@@ -148,9 +148,9 @@ def register_kit_reorder_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(reorder.to_dict()), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>/fulfill', methods=['PUT'])
     @materials_required
     @handle_errors
@@ -235,29 +235,29 @@ def register_kit_reorder_routes(app):
         db.session.commit()
 
         return jsonify(reorder.to_dict()), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>/cancel', methods=['PUT'])
     @jwt_required
     @handle_errors
     def cancel_reorder_request(id):
         """Cancel a reorder request"""
         reorder = KitReorderRequest.query.get_or_404(id)
-        
+
         if reorder.status in ['fulfilled', 'cancelled']:
             raise ValidationError('Cannot cancel fulfilled or already cancelled requests')
-        
+
         # Check if user has permission to cancel
         user_id = request.current_user['user_id']
         is_admin = request.current_user.get('is_admin', False)
         is_materials = request.current_user.get('department') == 'Materials'
-        
+
         if not (is_admin or is_materials or reorder.requested_by == user_id):
             raise ValidationError('You do not have permission to cancel this request')
-        
+
         reorder.status = 'cancelled'
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_reorder_cancelled',
@@ -265,9 +265,9 @@ def register_kit_reorder_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(reorder.to_dict()), 200
-    
+
     @app.route('/api/reorder-requests/<int:id>', methods=['PUT'])
     @jwt_required
     @handle_errors
@@ -275,19 +275,19 @@ def register_kit_reorder_routes(app):
         """Update a reorder request"""
         reorder = KitReorderRequest.query.get_or_404(id)
         data = request.get_json() or {}
-        
+
         # Only allow updates to pending requests
         if reorder.status != 'pending':
             raise ValidationError('Can only update pending requests')
-        
+
         # Check if user has permission to update
         user_id = request.current_user['user_id']
         is_admin = request.current_user.get('is_admin', False)
         is_materials = request.current_user.get('department') == 'Materials'
-        
+
         if not (is_admin or is_materials or reorder.requested_by == user_id):
             raise ValidationError('You do not have permission to update this request')
-        
+
         # Update fields
         if 'quantity_requested' in data:
             reorder.quantity_requested = float(data['quantity_requested'])
@@ -295,8 +295,7 @@ def register_kit_reorder_routes(app):
             reorder.priority = data['priority']
         if 'notes' in data:
             reorder.notes = data['notes']
-        
-        db.session.commit()
-        
-        return jsonify(reorder.to_dict()), 200
 
+        db.session.commit()
+
+        return jsonify(reorder.to_dict()), 200

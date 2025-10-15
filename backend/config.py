@@ -1,5 +1,4 @@
 import os
-import logging.handlers
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -7,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
 
 class Config:
     # Security: Require SECRET_KEY and JWT_SECRET_KEY to be set via environment variables
@@ -20,7 +20,7 @@ class Config:
     # Database configuration - check for DATABASE_URL environment variable first
     DATABASE_URL = os.environ.get('DATABASE_URL')
     if DATABASE_URL:
-        print(f"Using PostgreSQL database from DATABASE_URL")
+        print("Using PostgreSQL database from DATABASE_URL")
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
         # Fallback to SQLite database path - using absolute path from project root
@@ -53,6 +53,12 @@ class Config:
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
+
+    # Cookie security settings
+    # SECURITY: Set to True in production to require HTTPS for cookies
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() in ('true', '1', 'yes')
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
 
     # Structured logging configuration
     LOGGING_CONFIG = {
@@ -107,14 +113,37 @@ class Config:
         'db_connections': 8  # 80% of pool size
     }
 
-    # CORS settings - more restrictive in production
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.122:5173,http://100.108.111.69:5173').split(',')
+    # PERFORMANCE & RESILIENCE: Request size and timeout limits
+    # Maximum request body size (16 MB default, configurable via environment)
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16 MB
+
+    # Bulk import specific limits
+    MAX_BULK_IMPORT_FILE_SIZE = int(os.environ.get('MAX_BULK_IMPORT_FILE_SIZE', 10 * 1024 * 1024))  # 10 MB
+    MAX_BULK_IMPORT_ROWS = int(os.environ.get('MAX_BULK_IMPORT_ROWS', 10000))  # Maximum rows per import
+    BULK_IMPORT_TIMEOUT = int(os.environ.get('BULK_IMPORT_TIMEOUT', 300))  # 5 minutes timeout
+
+    # Request timeout for long-running operations (seconds)
+    REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', 60))  # 60 seconds default
+
+    # CORS settings - SECURITY: Never use wildcard (*) origins in production
+    # Only allow specific, trusted origins. Update CORS_ORIGINS environment variable
+    # to include your production frontend URL(s)
+    cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
+    CORS_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip() and origin.strip() != '*']
+
+    # Validate that wildcard is not used
+    if '*' in CORS_ORIGINS or not CORS_ORIGINS:
+        raise ValueError(
+            'CORS_ORIGINS must not contain wildcard (*) and must have at least one valid origin. '
+            'Set specific origins via CORS_ORIGINS environment variable (comma-separated).'
+        )
+
     CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization', 'X-CSRF-Token']
     CORS_SUPPORTS_CREDENTIALS = False
 
     # Additional security headers
     SECURITY_HEADERS = {
-        'X-Content-Type-Options': 'nosniff',
+        'X-Content-Type-Options': 'nosnif',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'

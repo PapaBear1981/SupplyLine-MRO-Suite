@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Button, Form, InputGroup, Card, Row, Col, Collapse, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { fetchTools, searchTools } from '../../store/toolsSlice';
+import { fetchTools } from '../../store/toolsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CheckoutModal from '../checkouts/CheckoutModal';
 import ToolBarcode from './ToolBarcode';
@@ -18,9 +18,9 @@ import './ToolList.css';
 
 const ToolList = () => {
   const dispatch = useDispatch();
-  const { tools, loading, searchResults } = useSelector((state) => state.tools);
+  const { tools, loading } = useSelector((state) => state.tools);
   const { user } = useSelector((state) => state.auth);
-  const { showTooltips, showHelp, getHelpContent } = useHelp();
+  const { showTooltips, showHelp } = useHelp();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTools, setFilteredTools] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
@@ -57,8 +57,9 @@ const ToolList = () => {
     const fetchWarehouses = async () => {
       try {
         const response = await api.get('/warehouses');
-        // Backend returns array directly, not wrapped in {warehouses: [...]}
-        setWarehouses(Array.isArray(response.data) ? response.data : []);
+        // Backend returns { warehouses: [...], pagination: {...} }
+        const warehousesData = response.data.warehouses || response.data;
+        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
       }
@@ -134,11 +135,7 @@ const ToolList = () => {
     setFilteredTools(sortedTools);
   }, [tools, searchQuery, sortConfig, statusFilter, categoryFilter, locationFilter, hideRetired]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    // Search is now handled in the useEffect above
-    console.log(`Searching for: ${searchQuery}`);
-  };
+
 
   const handleSort = (key) => {
     setSortConfig({
@@ -183,16 +180,14 @@ const ToolList = () => {
   };
 
   // Handle tool deletion
-  const handleToolDelete = (toolId) => {
-    // Remove the tool from the local state immediately for better UX
-    const updatedTools = tools.filter(tool => tool.id !== toolId);
+  const handleToolDelete = (_toolId) => {
     // Note: In a real Redux implementation, we'd dispatch an action to remove the tool
     // For now, refresh the entire list to ensure data consistency
     dispatch(fetchTools());
   };
 
   // Handle tool retirement
-  const handleToolRetire = (updatedTool) => {
+  const handleToolRetire = (_updatedTool) => {
     // Update the tool in local state immediately for better UX
     // Note: In a real Redux implementation, we'd dispatch an action to update the tool
     // For now, refresh the entire list to ensure data consistency
@@ -222,7 +217,7 @@ const ToolList = () => {
         </HelpContent>
       )}
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm" data-testid="tools-list">
         <Card.Header className="bg-light">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div className="d-flex align-items-center">
@@ -294,6 +289,7 @@ const ToolList = () => {
                     <Form.Select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
+                      data-testid="status-filter"
                     >
                       <option value="">All Statuses</option>
                       <option value="available">Available</option>
@@ -310,6 +306,7 @@ const ToolList = () => {
                     <Form.Select
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
+                      data-testid="category-filter"
                     >
                       <option value="">All Categories</option>
                       {availableCategories.map(category => (
@@ -415,7 +412,7 @@ const ToolList = () => {
               <tbody>
                 {filteredTools.length > 0 ? (
                   filteredTools.map((tool) => (
-                    <tr key={tool.id}>
+                    <tr key={tool.id} data-testid="tool-item">
                       <td>{tool.tool_number}</td>
                       <td>{tool.serial_number}</td>
                       <td>{tool.description || 'N/A'}</td>
@@ -441,6 +438,7 @@ const ToolList = () => {
                               ? 'status-maintenance'
                               : 'status-retired'
                           }`}
+                          data-testid="tool-status"
                         >
                           {tool.status === 'available' && <i className="bi bi-check-circle-fill me-1"></i>}
                           {tool.status === 'checked_out' && <i className="bi bi-person-fill me-1"></i>}

@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 try:
     # Import from the main utils.py file (not the utils package)
-    import sys
     import os
     import importlib.util
 

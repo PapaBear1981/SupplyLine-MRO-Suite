@@ -3,12 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Container, Card, Form, Button, Row, Col, ProgressBar, Alert, ListGroup, Badge } from 'react-bootstrap';
 import { FaPlane, FaBox, FaCheck, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
-import { fetchAircraftTypes, kitWizardStep, createKit, setWizardData, clearWizardData } from '../../store/kitsSlice';
+import { fetchAircraftTypes, kitWizardStep, createKit, clearWizardData } from '../../store/kitsSlice';
 
 const KitWizard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { aircraftTypes, wizardData, loading, error } = useSelector((state) => state.kits);
+  const { aircraftTypes, loading, error } = useSelector((state) => state.kits);
   
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -262,7 +262,7 @@ const KitWizard = () => {
           </div>
         );
       
-      case 4:
+      case 4: {
         const selectedAircraftType = aircraftTypes.find(at => at.id === formData.aircraft_type_id);
         return (
           <div>
@@ -306,7 +306,8 @@ const KitWizard = () => {
             </Card>
           </div>
         );
-      
+      }
+
       default:
         return null;
     }

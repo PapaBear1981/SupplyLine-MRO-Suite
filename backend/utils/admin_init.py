@@ -11,6 +11,7 @@ from models import db, User
 
 logger = logging.getLogger(__name__)
 
+
 def create_secure_admin():
     """
     Create admin user with secure password handling

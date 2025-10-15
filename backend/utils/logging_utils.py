@@ -15,9 +15,12 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 # Sensitive fields that should be redacted in logs
+# SECURITY: PII and credential fields that must never appear in logs
 SENSITIVE_FIELDS = [
     'password', 'token', 'secret', 'key', 'auth', 'credential',
-    'pass', 'pwd', 'authorization', 'x-api-key', 'session_id'
+    'pass', 'pwd', 'authorization', 'x-api-key', 'session_id',
+    'reset_code', 'reset_token', 'employee_number', 'email',
+    'ssn', 'social_security', 'credit_card', 'card_number'
 ]
 
 

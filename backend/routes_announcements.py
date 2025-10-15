@@ -1,11 +1,11 @@
 from flask import request, jsonify
 from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
 from datetime import datetime, timezone
-from utils.error_handler import log_security_event
 from auth import JWTManager, jwt_required, admin_required
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def register_announcement_routes(app):
     # Get all announcements
@@ -284,7 +284,7 @@ def register_announcement_routes(app):
         try:
 
             # Get the announcement
-            announcement = Announcement.query.get_or_404(id)
+            Announcement.query.get_or_404(id)
 
             # Check if already read
             existing_read = AnnouncementRead.query.filter_by(

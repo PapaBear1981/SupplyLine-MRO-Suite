@@ -55,7 +55,7 @@ def second_user(db_session):
     """Create a second test user"""
     import uuid
     emp_number = f'USR{uuid.uuid4().hex[:6]}'
-    
+
     user = User(
         name='Second User',
         employee_number=emp_number,
@@ -724,4 +724,3 @@ class TestDeleteMessage:
         response = client.delete(f'/api/messages/{test_message.id}')
 
         assert response.status_code == 401
-

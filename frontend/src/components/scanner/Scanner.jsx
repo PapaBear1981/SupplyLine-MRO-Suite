@@ -109,7 +109,8 @@ const Scanner = () => {
         itemType = 'chemical';
         itemId = jsonData.id;
       }
-    } catch (e) {
+    // eslint-disable-next-line no-unused-vars -- Error intentionally ignored
+    } catch (_e) {
       // Not JSON, try to parse as barcode format
       const result = await parseBarcodeFormat(decodedText);
       itemType = result.itemType;

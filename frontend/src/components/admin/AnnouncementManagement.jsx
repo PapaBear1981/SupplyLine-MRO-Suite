@@ -6,9 +6,9 @@ import {
   InputGroup, FormControl, Dropdown
 } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faPlus, faEdit, faTrash, faTimes, 
-  faCheck, faExclamationTriangle, faSearch, 
+import {
+  faPlus, faEdit, faTrash,
+  faExclamationTriangle, faSearch,
   faFilter, faSort, faSortUp, faSortDown
 } from '@fortawesome/free-solid-svg-icons';
 import { 
@@ -44,7 +44,7 @@ const AnnouncementManagement = () => {
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const limit = 10;
   
   // Load announcements on component mount and when filters/pagination change
   useEffect(() => {

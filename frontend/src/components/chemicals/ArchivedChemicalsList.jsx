@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-bootstrap';
-import { fetchArchivedChemicals, unarchiveChemical } from '../../store/chemicalsSlice';
+import { unarchiveChemical } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ConfirmModal from '../common/ConfirmModal';
 
@@ -80,12 +80,7 @@ const ArchivedChemicalsList = () => {
   };
 
   // Format status for display
-  const formatStatus = (status) => {
-    return status
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+  // Removed unused formatStatus function
 
   // Format reason for display
   const formatReason = (reason) => {

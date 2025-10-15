@@ -114,6 +114,12 @@
 -->
 
 ### Measurable Outcomes
+### UX & Performance Outcomes (Principle VI)
+
+- **SC-UX1**: [Measurable metric, e.g., "First Contentful Paint (FCP) for primary routes is under 1.5 seconds"]
+- **SC-UX2**: [Measurable metric, e.g., "Time to Interactive (TTI) for primary routes is under 3.0 seconds"]
+- **SC-UX3**: [Measurable metric, e.g., "All user interactions provide visual confirmation within 100ms"]
+
 
 - **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]

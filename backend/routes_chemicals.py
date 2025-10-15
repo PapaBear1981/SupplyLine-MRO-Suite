@@ -1,9 +1,8 @@
 from flask import request, jsonify
-from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity, Warehouse
-from datetime import datetime, timedelta
-from functools import wraps
-from utils.error_handler import handle_errors, ValidationError, log_security_event, validate_input
-from utils.validation import validate_schema, validate_types, validate_constraints, validate_lot_number_format, validate_warehouse_id
+from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
+from datetime import datetime
+from utils.error_handler import handle_errors, ValidationError
+from utils.validation import validate_schema, validate_lot_number_format, validate_warehouse_id
 from auth import jwt_required, department_required
 from sqlalchemy.orm import joinedload
 import logging
@@ -13,16 +12,27 @@ logger = logging.getLogger(__name__)
 # Decorator to check if user is admin or in Materials department
 materials_manager_required = department_required('Materials')
 
+
 def register_chemical_routes(app):
-    # Get all chemicals
+    # Get all chemicals with pagination
     @app.route('/api/chemicals', methods=['GET'])
     @handle_errors
     def chemicals_route():
+        # PERFORMANCE: Add pagination to prevent unbounded dataset returns
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+
         # Get query parameters for filtering
         category = request.args.get('category')
         status = request.args.get('status')
         search = request.args.get('q')
         show_archived = request.args.get('archived', 'false').lower() == 'true'
+
+        # Validate pagination parameters
+        if page < 1:
+            return jsonify({'error': 'Page must be >= 1'}), 400
+        if per_page < 1 or per_page > 500:
+            return jsonify({'error': 'Per page must be between 1 and 500'}), 400
 
         # Start with base query
         query = Chemical.query
@@ -34,7 +44,6 @@ def register_chemical_routes(app):
         except AttributeError:
             # If the column doesn't exist, we can't filter by it
             logger.warning("is_archived column not found, skipping archived filter")
-            pass
 
         # Apply filters if provided
         if category:
@@ -51,8 +60,9 @@ def register_chemical_routes(app):
                 )
             )
 
-        # Execute query first
-        chemicals = query.all()
+        # Apply pagination
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        chemicals = pagination.items
 
         # Batch update status based on expiration and stock level to avoid N+1 queries
         chemicals_to_update = []
@@ -91,7 +101,6 @@ def register_chemical_routes(app):
                     except AttributeError as e:
                         # If the columns don't exist, just update the status
                         logger.debug(f"Archive columns not found for chemical {chemical.id}: {str(e)}")
-                        pass
                 elif chemical.quantity <= 0:
                     chemical.status = 'out_of_stock'
                     status_changed = True
@@ -120,12 +129,25 @@ def register_chemical_routes(app):
             db.session.commit()
 
         # Serialize after all mutations to ensure client gets updated data
-        result = [
+        chemicals_data = [
             {**c.to_dict(), **({'expiring_soon': True} if getattr(c, 'expiring_soon', False) else {})}
             for c in chemicals
         ]
 
-        return jsonify(result)
+        # Return paginated response
+        response = {
+            'chemicals': chemicals_data,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            }
+        }
+
+        return jsonify(response)
 
     # Create a new chemical
     @app.route('/api/chemicals', methods=['POST'])
@@ -338,7 +360,7 @@ def register_chemical_routes(app):
     @handle_errors
     def chemical_issuances_route(id):
         # Get the chemical
-        chemical = Chemical.query.get_or_404(id)
+        Chemical.query.get_or_404(id)
 
         # Get issuance records with eager loading to avoid N+1 queries
         issuances = ChemicalIssuance.query.options(
@@ -430,7 +452,7 @@ def register_chemical_routes(app):
             # Update status based on expiration and stock level
             try:
                 is_archived = chemical.is_archived
-            except:
+            except Exception:
                 is_archived = False
 
             if not is_archived:  # Only update non-archived chemicals
@@ -452,7 +474,7 @@ def register_chemical_routes(app):
 
                         # Update reorder status for expired chemicals
                         chemical.update_reorder_status()
-                    except:
+                    except Exception:
                         # If the columns don't exist, just update the status
                         pass
                 elif chemical.quantity <= 0:
@@ -574,7 +596,7 @@ def register_chemical_routes(app):
             try:
                 if chemical.is_archived:
                     return jsonify({'error': 'Chemical is already archived'}), 400
-            except:
+            except Exception:
                 return jsonify({'error': 'Archive functionality not available'}), 500
 
             # Get request data
@@ -634,7 +656,7 @@ def register_chemical_routes(app):
             try:
                 if not chemical.is_archived:
                     return jsonify({'error': 'Chemical is not archived'}), 400
-            except:
+            except Exception:
                 return jsonify({'error': 'Archive functionality not available'}), 500
 
             # Update chemical archive status

@@ -81,20 +81,7 @@ const ToastNotification = ({
     }
   };
 
-  const getToastVariant = (toastType) => {
-    switch (toastType) {
-      case TOAST_TYPES.SUCCESS:
-        return 'success';
-      case TOAST_TYPES.ERROR:
-        return 'danger';
-      case TOAST_TYPES.WARNING:
-        return 'warning';
-      case TOAST_TYPES.INFO:
-        return 'info';
-      default:
-        return 'light';
-    }
-  };
+  // Removed unused getToastVariant function - Bootstrap Toast doesn't use variant prop
 
   if (!visible) return null;
 

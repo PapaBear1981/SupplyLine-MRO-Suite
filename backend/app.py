@@ -1,17 +1,16 @@
-from flask import Flask, session, jsonify
+from flask import Flask
 from routes import register_routes
 from config import Config
 # from flask_session import Session  # Disabled due to Flask 3.x compatibility issues - using JWT instead
 from flask_cors import CORS
 from models import db
 import os
-import sys
 import time
 import datetime
 import logging.config
-from utils.session_cleanup import init_session_cleanup
 from utils.resource_monitor import init_resource_monitoring
 from utils.logging_utils import setup_request_logging
+
 
 def create_app():
     # Set the system timezone to UTC
@@ -203,4 +202,15 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    
+    # Determine host and debug settings based on environment variables (Bandit B104, B201 mitigation)
+    # Default to secure settings (127.0.0.1, debug=False) unless FLASK_ENV is 'development'
+    is_development = os.environ.get('FLASK_ENV') == 'development'
+    
+    # B104: Restrict host binding unless explicitly set or in development
+    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0' if is_development else '127.0.0.1')
+    port = int(os.environ.get('FLASK_RUN_PORT', 5000))
+    # B201: Disable debug unless explicitly set or in development
+    debug = os.environ.get('FLASK_DEBUG', 'True' if is_development else 'False').lower() in ('true', '1', 'yes')
+
+    app.run(host=host, port=port, debug=debug)

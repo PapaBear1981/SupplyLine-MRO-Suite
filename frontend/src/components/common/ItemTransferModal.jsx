@@ -43,7 +43,9 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
     setLoadingWarehouses(true);
     try {
       const response = await api.get('/warehouses');
-      setWarehouses(Array.isArray(response.data) ? response.data : []);
+      // Backend returns { warehouses: [...], pagination: {...} }
+      const warehousesData = response.data.warehouses || response.data;
+      setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
     } catch (err) {
       console.error('Failed to load warehouses:', err);
     } finally {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Card, Row, Col, Button, Badge, Spinner, Alert, Table } from 'react-bootstrap';
 import { fetchToolById } from '../store/toolsSlice';
@@ -8,7 +8,7 @@ import api from '../services/api';
 
 const CalibrationDetailPage = () => {
   const { id, calibrationId } = useParams();
-  const navigate = useNavigate();
+  // Removed unused navigate
   const dispatch = useDispatch();
 
   const { user } = useSelector((state) => state.auth);

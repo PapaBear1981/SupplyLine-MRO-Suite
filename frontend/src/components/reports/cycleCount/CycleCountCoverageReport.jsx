@@ -119,15 +119,6 @@ const CycleCountCoverageReport = ({ data }) => {
     return dateString ? new Date(dateString).toLocaleDateString() : 'Never';
   };
 
-  const getDaysSinceLastCount = (dateString) => {
-    if (!dateString) return 'Never';
-    const lastCount = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - lastCount);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return `${diffDays} days ago`;
-  };
-
   return (
     <div>
       {/* Summary Cards */}

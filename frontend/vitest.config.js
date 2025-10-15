@@ -1,6 +1,7 @@
+/* eslint-env node */
 /**
  * Vitest Configuration
- * 
+ *
  * Configuration for running component tests with Vitest
  */
 

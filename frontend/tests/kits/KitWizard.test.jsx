@@ -4,9 +4,8 @@
  * Tests the 4-step wizard for creating new kits
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect } from 'vitest';
+import { screen } from '@testing-library/react';
 import { renderWithProviders, mockAuthState, mockAircraftType } from './helpers/testUtils';
 import KitWizard from '../../src/components/kits/KitWizard';
 

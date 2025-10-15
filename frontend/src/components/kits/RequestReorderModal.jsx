@@ -6,7 +6,7 @@ import { createReorderRequest, fetchKitItems } from '../../store/kitsSlice';
 
 const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
   const dispatch = useDispatch();
-  const { kitItems, loading, error } = useSelector((state) => state.kits);
+  const { kitItems, loading } = useSelector((state) => state.kits);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [quantity, setQuantity] = useState(1);

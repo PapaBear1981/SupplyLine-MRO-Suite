@@ -214,7 +214,7 @@ const calibrationSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(addCalibration.fulfilled, (state, action) => {
+      .addCase(addCalibration.fulfilled, (state, _action) => {
         state.loading = false;
       })
       .addCase(addCalibration.rejected, (state, action) => {
@@ -256,7 +256,7 @@ const calibrationSlice = createSlice({
         state.standardsLoading = true;
         state.standardsError = null;
       })
-      .addCase(addCalibrationStandard.fulfilled, (state, action) => {
+      .addCase(addCalibrationStandard.fulfilled, (state, _action) => {
         state.standardsLoading = false;
       })
       .addCase(addCalibrationStandard.rejected, (state, action) => {

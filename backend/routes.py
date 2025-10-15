@@ -1,20 +1,16 @@
-from flask import request, jsonify, session, make_response, current_app
-from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical, ChemicalIssuance
-from models import ToolCalibration, CalibrationStandard, ToolCalibrationStandard
+from flask import request, jsonify, session, current_app
+from models import db, Tool, User, Checkout, AuditLog, UserActivity, ToolServiceRecord, Chemical
+from models import ToolCalibration, ToolCalibrationStandard
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-import secrets
-import string
 import os
 import time
-from sqlalchemy import func, extract
-from sqlalchemy.orm import joinedload
 from routes_reports import register_report_routes
 from routes_chemicals import register_chemical_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_calibration import register_calibration_routes
 from routes_bulk_import import register_bulk_import_routes
-from routes_rbac import register_rbac_routes, permission_required
+from routes_rbac import register_rbac_routes
 from routes_announcements import register_announcement_routes
 from routes_scanner import register_scanner_routes
 from routes_auth import register_auth_routes
@@ -28,47 +24,16 @@ from routes_warehouses import warehouses_bp
 from routes_transfers import transfers_bp
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
-# CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
-# =====================================
-# The cycle count system has been temporarily disabled due to production issues.
-#
-# REASON FOR DISABLING:
-# - GitHub Issue #366: Cycle count system was completely non-functional
-# - Missing database tables causing "Unable to Load Cycle Count System" errors
-# - Preventing users from accessing inventory cycle count operations
-# - Affecting user experience with error messages displayed to all users
-#
-# WHAT WAS DISABLED:
-# - All cycle count API routes and endpoints
-# - Frontend cycle count pages and navigation
-# - Cycle count reports and analytics
-# - Database operations for cycle counts
-#
-# TO RE-ENABLE IN THE FUTURE:
-# 1. Uncomment the import below
-# 2. Uncomment the register_cycle_count_routes(app) call in register_routes()
-# 3. Ensure cycle count database tables are properly created/migrated
-# 4. Test all cycle count functionality thoroughly
-# 5. Update frontend routes and navigation (see App.jsx and MainLayout.jsx)
-#
-# RELATED FILES TO UPDATE WHEN RE-ENABLING:
-# - frontend/src/App.jsx (uncomment cycle count routes)
-# - frontend/src/components/common/MainLayout.jsx (uncomment navigation item)
-# - frontend/src/pages/ReportingPage.jsx (uncomment cycle count reports)
-#
-# DISABLED: 2025-06-22 - Issue #366 Resolution
-# from routes_cycle_count import register_cycle_count_routes
 import utils as password_utils
-from utils.session_manager import SessionManager
-from utils.error_handler import log_security_event, handle_errors, ValidationError, DatabaseError, setup_global_error_handlers
-from utils.bulk_operations import get_dashboard_stats_optimized, bulk_log_activities
+from utils.error_handler import log_security_event, handle_errors, ValidationError
 from utils.file_validation import FileValidationError, validate_image_upload
-from utils.validation import validate_serial_number_format, validate_lot_number_format, validate_warehouse_id
+from utils.validation import validate_serial_number_format, validate_warehouse_id
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Removed duplicate materials_manager_required - using secure version below
+
 
 def login_required(f):
     @wraps(f)
@@ -85,6 +50,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -97,7 +63,7 @@ def admin_required(f):
 
         user_payload = JWTManager.get_current_user()
         if not user_payload:
-            logger.warning(f"Admin access denied - No valid JWT token")
+            logger.warning("Admin access denied - No valid JWT token")
             return jsonify({'error': 'Authentication required', 'reason': 'No valid JWT token'}), 401
 
         if not user_payload.get('is_admin', False):
@@ -109,6 +75,7 @@ def admin_required(f):
         request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
+
 
 def tool_manager_required(f):
     @wraps(f)
@@ -130,6 +97,7 @@ def tool_manager_required(f):
         return jsonify({'error': 'Tool management privileges required'}), 403
     return decorated_function
 
+
 def materials_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -149,6 +117,7 @@ def materials_manager_required(f):
         request.current_user = user_payload
         return f(*args, **kwargs)
     return decorated_function
+
 
 def register_routes(app):
     # db.init_app(app) is now called in app.py, not here
@@ -215,32 +184,6 @@ def register_routes(app):
     # Register warehouse transfer routes
     app.register_blueprint(transfers_bp, url_prefix='/api')
 
-    # Register cycle count routes
-    # CYCLE COUNT SYSTEM DISABLED - Issue #366 Resolution
-    # ===================================================
-    # The cycle count routes registration has been disabled due to production issues.
-    #
-    # ORIGINAL ISSUE:
-    # - Users experiencing "Unable to Load Cycle Count System" errors
-    # - Missing database tables causing system failures
-    # - Non-functional cycle count operations affecting inventory management
-    #
-    # SOLUTION IMPLEMENTED:
-    # - Temporarily disabled all cycle count functionality
-    # - Preserved code for future implementation
-    # - Eliminated user-facing errors and system instability
-    #
-    # TO RE-ENABLE:
-    # 1. Uncomment the line below
-    # 2. Ensure cycle count database tables exist and are properly structured
-    # 3. Test all cycle count endpoints thoroughly
-    # 4. Verify frontend integration works correctly
-    # 5. Update related frontend files (see comments in routes import section above)
-    #
-    # DISABLED DATE: 2025-06-22
-    # GITHUB ISSUE: #366
-    # register_cycle_count_routes(app)  # DISABLED - Cycle count system temporarily disabled
-
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
     @materials_manager_required
@@ -257,7 +200,7 @@ def register_routes(app):
             result = [c.to_dict() for c in chemicals]
 
             return jsonify(result)
-        except Exception as e:
+        except Exception:
             logger.exception("Error in chemicals reorder needed route")
             return jsonify({'error': 'An error occurred while fetching chemicals that need reordering'}), 500
 
@@ -296,7 +239,7 @@ def register_routes(app):
             result = [c.to_dict() for c in expiring_soon]
 
             return jsonify(result)
-        except Exception as e:
+        except Exception:
             logger.exception("Error in chemicals expiring soon route")
             return jsonify({'error': 'An error occurred while fetching chemicals expiring soon'}), 500
 
@@ -311,8 +254,8 @@ def register_routes(app):
 
             # Start with base query for archived chemicals
             try:
-                query = Chemical.query.filter(Chemical.is_archived == True)
-            except:
+                query = Chemical.query.filter(Chemical.is_archived is True)
+            except Exception:
                 # If the column doesn't exist, return an empty list
                 return jsonify([])
 
@@ -336,12 +279,13 @@ def register_routes(app):
             result = [c.to_dict() for c in chemicals]
 
             return jsonify(result)
-        except Exception as e:
+        except Exception:
             logger.exception("Error in archived chemicals route")
             return jsonify({'error': 'An error occurred while fetching archived chemicals'}), 500
 
     # Health check endpoint for Docker
     @app.route('/api/health', methods=['GET'])
+    @app.route('/health', methods=['GET'])
     def health_check():
         # Use standard datetime
         return jsonify({
@@ -414,7 +358,7 @@ def register_routes(app):
             }
             logger.debug("Time API endpoint executed successfully")
             return jsonify(result)
-        except ImportError as e:
+        except ImportError:
             logger.exception("time_utils import failed in time_api_endpoint")
             result = {
                 'status': 'ok',
@@ -446,7 +390,7 @@ def register_routes(app):
             }
             logger.debug("Time test endpoint executed successfully")
             return jsonify(result)
-        except ImportError as e:
+        except ImportError:
             logger.exception("time_utils import failed in time_test_endpoint")
             result = {
                 'status': 'ok',
@@ -665,7 +609,7 @@ def register_routes(app):
     #         # Rough estimate: 2KB per record on average
     #         total_records = user_count + tool_count + checkout_count + log_count
     #         db_size_mb = (total_records * 2) / 1024  # Convert KB to MB
-    #     except Exception as e:
+    #     except Exception:
     #         logger.error(f"Error estimating database size: {str(e)}")
     #         db_size_mb = 10  # Default fallback value
     #         total_records = 0  # Ensure it's defined in case of exception
@@ -730,7 +674,7 @@ def register_routes(app):
     #         memory_usage = round(float(memory_usage), 1)
     #         disk_usage = round(float(disk_usage), 1)
     #
-    #     except ImportError as e:
+    #     except ImportError:
     #         logger.warning(f"ImportError: {str(e)}")
     #         logger.warning("psutil module not available. Using mock data for system resources.")
     #         # Use mock data when psutil is not available
@@ -752,7 +696,7 @@ def register_routes(app):
     #         # Mock uptime (3 days, 7 hours, 22 minutes)
     #         uptime_str = "3d 7h 22m"
     #         logger.debug(f"Mock server uptime: {uptime_str}")
-    #     except Exception as e:
+    #     except Exception:
     #         logger.error(f"Unexpected error when using psutil: {str(e)}")
     #         logger.error(f"Error type: {type(e)}")
     #         logger.error(f"Error details: {repr(e)}")
@@ -814,31 +758,57 @@ def register_routes(app):
 
     @app.route('/api/tools', methods=['GET', 'POST'])
     def tools_route():
-        # GET - List all tools
+        # GET - List all tools with pagination
         if request.method == 'GET':
+            # PERFORMANCE: Add pagination to prevent unbounded dataset returns
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 50, type=int)
             search_query = request.args.get('q')
-            logger.debug("Tools list requested", extra={'has_search_query': bool(search_query)})
+
+            # Validate pagination parameters
+            if page < 1:
+                return jsonify({'error': 'Page must be >= 1'}), 400
+            if per_page < 1 or per_page > 500:
+                return jsonify({'error': 'Per page must be between 1 and 500'}), 400
+
+            logger.debug("Tools list requested", extra={
+                'has_search_query': bool(search_query),
+                'page': page,
+                'per_page': per_page
+            })
+
+            # Build query
+            query = Tool.query
 
             if search_query:
                 search_term = f'%{search_query.lower()}%'
-
                 try:
-                    tools = Tool.query.filter(
+                    query = query.filter(
                         db.or_(
                             db.func.lower(Tool.tool_number).like(search_term),
                             db.func.lower(Tool.serial_number).like(search_term),
                             db.func.lower(Tool.description).like(search_term),
                             db.func.lower(Tool.location).like(search_term)
                         )
-                    ).all()
-                    logger.debug("Tools search executed", extra={'result_count': len(tools)})
-                except Exception as e:
-                    logger.exception("Error during tools search")
-                    tools = Tool.query.all()
-                    logger.debug("Falling back to full tools list", extra={'result_count': len(tools)})
-            else:
-                tools = Tool.query.all()
-                logger.debug("Tools retrieved without search", extra={'result_count': len(tools)})
+                    )
+                    logger.debug("Tools search filter applied")
+                except Exception:
+                    logger.exception("Error during tools search filter")
+
+            # Apply pagination
+            try:
+                pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+                tools = pagination.items
+                total_count = pagination.total
+                logger.debug("Tools retrieved with pagination", extra={
+                    'result_count': len(tools),
+                    'total_count': total_count,
+                    'page': page,
+                    'pages': pagination.pages
+                })
+            except Exception:
+                logger.exception("Error during pagination")
+                return jsonify({'error': 'Failed to retrieve tools'}), 500
 
             # Get checkout status for each tool
             tool_status = {}
@@ -848,7 +818,7 @@ def register_routes(app):
             for checkout in active_checkouts:
                 tool_status[checkout.tool_id] = 'checked_out'
 
-            result = [{
+            tools_data = [{
                 'id': t.id,
                 'tool_number': t.tool_number,
                 'serial_number': t.serial_number,
@@ -867,8 +837,21 @@ def register_routes(app):
                 'calibration_status': getattr(t, 'calibration_status', 'not_applicable')
             } for t in tools]
 
-            logger.debug("Tools response ready", extra={'result_count': len(result)})
-            return jsonify(result)
+            # Return paginated response
+            response = {
+                'tools': tools_data,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total_count,
+                    'pages': pagination.pages,
+                    'has_next': pagination.has_next,
+                    'has_prev': pagination.has_prev
+                }
+            }
+
+            logger.debug("Tools response ready", extra={'result_count': len(tools_data)})
+            return jsonify(response)
 
         # POST - Create new tool (requires tool manager privileges)
         from auth.jwt_manager import JWTManager
@@ -1071,7 +1054,7 @@ def register_routes(app):
 
                 return jsonify({'message': 'Tool deleted successfully'}), 200
 
-            except Exception as e:
+            except Exception:
                 db.session.rollback()
                 logger.exception("Failed to delete tool", extra={'tool_id': id})
                 return jsonify({'error': 'Failed to delete tool'}), 500
@@ -1263,7 +1246,7 @@ def register_routes(app):
                 'due_soon_count': len([n for n in notifications if n['type'] == 'due_soon'])
             }), 200
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error getting calibration notifications")
             return jsonify({'error': 'Unable to fetch calibration notifications'}), 500
 
@@ -1522,7 +1505,7 @@ def register_routes(app):
                             parsed_date = datetime.strptime(expected_return_date, '%Y-%m-%d')
                     else:
                         parsed_date = expected_return_date
-                except Exception as e:
+                except Exception:
                     # Use a default date (7 days from now) if parsing fails
                     parsed_date = datetime.now() + timedelta(days=7)
             else:
@@ -1574,12 +1557,12 @@ def register_routes(app):
                     'id': c.id,
                     'message': f'Tool {tool.tool_number} checked out successfully'
                 }), 201
-            except Exception as e:
+            except Exception:
                 db.session.rollback()
                 logger.exception("Database error during checkout")
                 return jsonify({'error': 'Database error during checkout'}), 500
 
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error in checkouts route")
             return jsonify({'error': 'An unexpected error occurred while processing the checkout request'}), 500
 
@@ -1932,25 +1915,25 @@ def register_routes(app):
         if not user:
             # Don't reveal that the user doesn't exist - return same message
             app.logger.info(
-                f'Password reset requested for non-existent employee number. '
+                'Password reset requested for non-existent employee number. '
                 f'IP: {request.remote_addr}'
             )
             return jsonify({'message': generic_message}), 200
 
         # Generate reset token
-        reset_code = user.generate_reset_token()
+        user.generate_reset_token()
         db.session.commit()
 
         # TODO: Implement email/SMS delivery for password reset codes
-        # For now, log the reset code for admin retrieval
-        # SECURITY: Never return reset codes in API responses
-        app.logger.warning(
-            f'Password reset requested for user {user.employee_number}. '
-            f'Reset code: {reset_code} (expires in 15 minutes). '
+        # SECURITY: PII REDACTION - Never log reset codes, email addresses, or employee numbers
+        # These are sensitive credentials that could be used for account takeover
+        app.logger.info(
+            f'Password reset requested for user ID {user.id}. '
+            'Token expires in 15 minutes. '
             f'IP: {request.remote_addr}'
         )
 
-        # Log the password reset request
+        # Log the password reset request (without PII)
         activity = UserActivity(
             user_id=user.id,
             activity_type='password_reset_request',
@@ -2129,6 +2112,32 @@ def register_routes(app):
         user = User.query.get(request.current_user['user_id'])
         data = request.get_json() or {}
 
+        # SECURITY: Enforce current-session JWT validation (OWASP ASVS 3.1.4)
+        # Prevent password changes using old/stale JWT tokens issued before last password change
+        if hasattr(user, 'password_changed_at') and user.password_changed_at:
+            # Get JWT issued-at timestamp
+            jwt_iat = request.current_user.get('iat')
+            if jwt_iat:
+                from datetime import datetime, timezone
+                # Convert JWT iat (Unix timestamp) to datetime
+                jwt_issued_at = datetime.fromtimestamp(jwt_iat, tz=timezone.utc)
+
+                # Ensure password_changed_at is timezone-aware
+                password_changed_at = user.password_changed_at
+                if password_changed_at.tzinfo is None:
+                    password_changed_at = password_changed_at.replace(tzinfo=timezone.utc)
+
+                # Reject if JWT was issued before the last password change
+                if jwt_issued_at < password_changed_at:
+                    app.logger.warning(
+                        f"Password change attempt with stale JWT token for user {user.id}. "
+                        f"JWT issued: {jwt_issued_at}, Password changed: {password_changed_at}"
+                    )
+                    return jsonify({
+                        'error': 'Your session is outdated. Please log in again to change your password.',
+                        'code': 'STALE_SESSION'
+                    }), 401
+
         # Validate required fields
         required_fields = ['current_password', 'new_password']
         for field in required_fields:
@@ -2196,7 +2205,7 @@ def register_routes(app):
                 )
             ).all()
             logger.debug("Tools search results", extra={'result_count': len(tools)})
-        except Exception as e:
+        except Exception:
             logger.exception("Error during tools search endpoint")
             return jsonify({'error': 'Search error'}), 500
 
@@ -2352,7 +2361,7 @@ def register_routes(app):
                 } for dept in dept_checkouts]
 
                 response_data['checkoutsByDepartment'] = dept_data
-            except Exception as e:
+            except Exception:
                 logger.exception("Error getting department data")
                 # Continue with other queries even if this one fails
 
@@ -2416,7 +2425,7 @@ def register_routes(app):
                 daily_data = sorted(daily_data_dict.values(), key=lambda x: x['date'])
 
                 response_data['checkoutsByDay'] = daily_data
-            except Exception as e:
+            except Exception:
                 logger.exception("Error getting daily checkout data")
                 # Continue with other queries even if this one fails
 
@@ -2455,7 +2464,7 @@ def register_routes(app):
                 category_data.sort(key=lambda x: x['checkouts'], reverse=True)
 
                 response_data['toolUsageByCategory'] = category_data
-            except Exception as e:
+            except Exception:
                 logger.exception("Error getting tool usage by category")
                 # Continue with other queries even if this one fails
 
@@ -2484,7 +2493,7 @@ def register_routes(app):
                 } for tool in top_tools]
 
                 response_data['mostFrequentlyCheckedOut'] = top_tools_data
-            except Exception as e:
+            except Exception:
                 logger.exception("Error getting top tools data")
                 # Continue with other queries even if this one fails
 
@@ -2506,7 +2515,7 @@ def register_routes(app):
                 ).count()
 
                 # Average checkout duration (for returned items)
-                from sqlalchemy import func, extract
+                from sqlalchemy import func
 
                 avg_duration_query = db.session.query(
                     func.avg(
@@ -2532,13 +2541,13 @@ def register_routes(app):
                     'averageDuration': avg_duration,
                     'overdueCount': overdue_count
                 }
-            except Exception as e:
+            except Exception:
                 logger.exception("Error getting overall checkout stats")
                 # Continue even if this query fails
 
             return jsonify(response_data), 200
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error in analytics endpoint")
             return jsonify({
                 'error': 'An error occurred while generating analytics data'
@@ -2564,7 +2573,7 @@ def register_routes(app):
     @app.route('/api/tools/<int:id>/checkouts', methods=['GET'])
     def get_tool_checkouts(id):
         # Get checkout history for a specific tool
-        tool = Tool.query.get_or_404(id)
+        Tool.query.get_or_404(id)
         checkouts = Checkout.query.filter_by(tool_id=id).order_by(Checkout.checkout_date.desc()).all()
 
         return jsonify([{
@@ -2708,7 +2717,7 @@ def register_routes(app):
                 'message': f'Tool successfully removed from service with status: {tool.status}'
             }), 200
 
-        except Exception as e:
+        except Exception:
             db.session.rollback()
             logger.exception("Error removing tool from service", extra={'tool_id': id})
             return jsonify({'error': 'An error occurred while updating tool service status'}), 500
@@ -2773,7 +2782,7 @@ def register_routes(app):
                 'message': 'Tool successfully returned to service'
             }), 200
 
-        except Exception as e:
+        except Exception:
             db.session.rollback()
             logger.exception("Error returning tool to service", extra={'tool_id': id})
             return jsonify({'error': 'An error occurred while returning the tool to service'}), 500
@@ -2789,7 +2798,7 @@ def register_routes(app):
             offset = (page - 1) * limit
 
             # Get the tool
-            tool = Tool.query.get_or_404(id)
+            Tool.query.get_or_404(id)
 
             # Get service history
             service_records = ToolServiceRecord.query.filter_by(tool_id=id).order_by(
@@ -2798,6 +2807,6 @@ def register_routes(app):
 
             return jsonify([record.to_dict() for record in service_records]), 200
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error getting tool service history", extra={'tool_id': id})
             return jsonify({'error': 'An error occurred while retrieving tool service history'}), 500

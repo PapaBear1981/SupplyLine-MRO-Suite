@@ -103,7 +103,7 @@ const RecentActivity = () => {
   }
 
   return (
-    <Card className="shadow-sm mb-4">
+    <Card className="shadow-sm mb-4" data-testid="recent-activity">
       <Card.Header className="bg-light">
         <h4 className="mb-0">Recent Activity</h4>
       </Card.Header>
@@ -113,7 +113,7 @@ const RecentActivity = () => {
             No recent activity found.
           </Alert>
         ) : (
-          <ListGroup variant="flush">
+          <ListGroup variant="flush" data-testid="activity-list">
             {activities.slice(0, 10).map((activity) => (
               <ListGroup.Item key={activity.id} className="d-flex justify-content-between align-items-start">
                 <div className="ms-2 me-auto">

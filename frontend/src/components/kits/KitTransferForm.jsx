@@ -73,7 +73,9 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     setLoadingWarehouses(true);
     try {
       const response = await api.get('/warehouses');
-      setWarehouses(Array.isArray(response.data) ? response.data : []);
+      // Backend returns { warehouses: [...], pagination: {...} }
+      const warehousesData = response.data.warehouses || response.data;
+      setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
     } catch (err) {
       console.error('Failed to load warehouses:', err);
     } finally {
@@ -221,7 +223,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
   const availableItems = getAvailableItems();
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static">
+    <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="transfer-modal">
       <Modal.Header closeButton>
         <Modal.Title>
           <FaExchangeAlt className="me-2" />

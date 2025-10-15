@@ -23,7 +23,7 @@
 **Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Performance Goals**: [domain-specific, e.g., FCP <1.5s, TTI <3.0s, 1000 req/s or NEEDS CLARIFICATION]
 **Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
 **Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
@@ -36,6 +36,7 @@
 - Story independence validated: each user story delivers standalone value with tasks mapped to a single increment.
 - Change propagation outlined: impacted directories (`backend/`, `frontend/`, `migrations/`, `docs/`) and release artefacts (`CHANGELOG.md`, `RELEASE_NOTES.md`, `VERSION.md`) identified.
 - Observability updates planned: logging and telemetry adjustments reflected in runtime scripts (e.g., `start_dev_servers.sh`, `docker-compose.yml`).
+- UX/Performance goals defined: FCP/TTI targets documented and visual feedback mechanisms planned per Constitution Principle VI.
 
 ## Project Structure
 

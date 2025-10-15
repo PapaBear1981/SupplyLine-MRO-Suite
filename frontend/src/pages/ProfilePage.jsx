@@ -56,7 +56,7 @@ const ProfileInfoTab = ({ user, formData, handleInputChange, handleProfileSubmit
 );
 
 // Password Tab Component
-const PasswordTab = ({ passwordData, passwordError, handlePasswordChange, handlePasswordSubmit, loading, passwordValid, handlePasswordValidationChange }) => (
+const PasswordTab = ({ passwordData, passwordError, handlePasswordChange, handlePasswordSubmit, loading, _passwordValid, handlePasswordValidationChange }) => (
   <Form onSubmit={handlePasswordSubmit}>
     {passwordError && (
       <Alert variant="danger" className="mb-3">

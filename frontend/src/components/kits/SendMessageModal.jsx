@@ -6,7 +6,7 @@ import { sendMessage } from '../../store/kitMessagesSlice';
 
 const SendMessageModal = ({ show, onHide, kitId, kitName }) => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.kitMessages);
+  const { loading } = useSelector((state) => state.kitMessages);
 
   const [formData, setFormData] = useState({
     subject: '',

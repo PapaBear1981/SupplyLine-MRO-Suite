@@ -1,12 +1,10 @@
 <!--
 Sync Impact Report
-Version change: 0.0.0 → 1.0.0
+Version change: 1.1.0 → 1.2.0
 Modified principles:
-- [PRINCIPLE_1_NAME] → I. Zero-Trust Security Enforcement
-- [PRINCIPLE_2_NAME] → II. Test-Orchestrated Delivery
-- [PRINCIPLE_3_NAME] → III. Independently Shippable Stories
-- [PRINCIPLE_4_NAME] → IV. Observable and Auditable Operations
-- [PRINCIPLE_5_NAME] → V. Coordinated Change Propagation
+- None
+Added principles:
+- VI. High-Fidelity User Experience
 Added sections:
 - Security & Compliance Requirements
 - Workflow & Quality Gates
@@ -32,7 +30,7 @@ Follow-up TODOs:
 Rationale: The suite manages operational tooling data and must maintain the hardened security posture that underpins its AWS-ready deployment.
 
 ### II. Test-Orchestrated Delivery
-- MUST author and gate changes with failing tests first: backend `pytest`, frontend `npm run lint`, and UI `npx playwright test` align to the repository guidelines.
+- MUST author and gate changes with failing tests first: backend `pytest` and `flake8`, frontend `npm run lint`, and UI `npx playwright test` align to the repository guidelines.
 - MUST keep tests deterministic, seeded via `backend/create_mock_data.py`, and update fixtures instead of duplicating test scaffolding.
 - MUST verify security and regression coverage locally before requesting review and attach evidence when introducing new flows.
 
@@ -59,6 +57,13 @@ Rationale: The platform supports regulated operations and must remain diagnosabl
 
 Rationale: Ensuring every surface reflects the same contract prevents integration drift and field outages.
 
+### VI. High-Fidelity User Experience
+- MUST adhere to a maximum First Contentful Paint (FCP) of 1.5 seconds and Time to Interactive (TTI) of 3.0 seconds for all primary application routes.
+- MUST ensure all user interactions (clicks, form submissions) provide immediate visual feedback to prevent perceived latency.
+- MUST use the established React component library and design tokens defined in `frontend/src/styles/` to maintain visual consistency across the suite.
+
+Rationale: The MRO Suite is a mission-critical tool; performance and predictable UX are essential for operational efficiency.
+
 ## Security & Compliance Requirements
 
 - Environment setup MUST follow `SECURITY_SETUP.md`; changes that introduce new secrets MUST document defaults in `backend/config.py` and update deployment manifests, including `docker-compose.yml` and cloud task definitions referenced in `DEPLOYMENT.md`.
@@ -70,7 +75,7 @@ Rationale: Ensuring every surface reflects the same contract prevents integratio
 
 - `/speckit.plan` outputs MUST satisfy the Constitution Check by confirming security impact, test plan, and change propagation before implementation begins.
 - Research and specs MUST document independent user stories, acceptance criteria, and measurable success metrics per `.specify/templates/spec-template.md`.
-- Before opening a PR, contributors MUST run `pytest`, `npm run lint`, `npm run build`, and `npx playwright test`; record outcomes in the PR checklist or summary.
+- Before opening a PR, contributors MUST run `pytest`, `flake8`, `npm run lint`, `npm run build`, and `npx playwright test`; implementation is not complete until every test passes and the outcomes are recorded in the PR checklist or summary.
 - Release preparation MUST update `CHANGELOG.md`, `RELEASE_NOTES.md`, and any affected `docs/` quickstarts in the same change set.
 
 ## Governance
@@ -80,4 +85,4 @@ Rationale: Ensuring every surface reflects the same contract prevents integratio
 - Versioning follows semantic rules: MAJOR for rewritten principles or removals, MINOR for new enforceable sections, PATCH for clarifications.
 - Compliance reviews occur quarterly; release managers MUST confirm `SECURITY_AUDIT_REPORT.md` and operational guides remain accurate prior to tagging a release.
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-12 | **Last Amended**: 2025-10-12
+**Version**: 1.2.0 | **Ratified**: 2025-10-12 | **Last Amended**: 2025-10-15

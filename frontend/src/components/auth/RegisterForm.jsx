@@ -41,6 +41,7 @@ const RegisterForm = () => {
     setValidated(true);
 
     // Remove confirmPassword before sending to API
+    // eslint-disable-next-line no-unused-vars -- Intentionally extracted to exclude from API payload
     const { confirmPassword, ...userData } = formData;
     dispatch(register(userData));
   };

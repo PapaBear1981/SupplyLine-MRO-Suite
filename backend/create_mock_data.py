@@ -23,16 +23,10 @@ import logging
 from datetime import datetime, timedelta, timezone
 from flask import Flask
 from models import (
-    db, User, Tool, Chemical, Checkout, AuditLog, UserActivity,
-    ToolCalibration, CalibrationStandard, ToolCalibrationStandard,
-    ToolServiceRecord, ChemicalIssuance
-)
-from models_cycle_count import (
-    CycleCountSchedule, CycleCountBatch, CycleCountItem,
-    CycleCountResult, CycleCountAdjustment
+    db, User, Tool, Chemical, Checkout, UserActivity, ToolCalibration,
+    CalibrationStandard
 )
 from config import Config
-from werkzeug.security import generate_password_hash
 import random
 
 # Setup logging
@@ -48,7 +42,7 @@ def get_current_time():
 def create_mock_users():
     """Create mock users for different departments and roles"""
     logger.info("Creating mock users...")
-    
+
     users_data = [
         {
             'name': 'John Smith',
@@ -93,7 +87,7 @@ def create_mock_users():
             'is_admin': True
         }
     ]
-    
+
     created_users = []
     for user_data in users_data:
         # Check if user already exists
@@ -102,7 +96,7 @@ def create_mock_users():
             logger.info(f"User {user_data['employee_number']} already exists, skipping...")
             created_users.append(existing_user)
             continue
-            
+
         user = User(
             name=user_data['name'],
             employee_number=user_data['employee_number'],
@@ -112,11 +106,11 @@ def create_mock_users():
             created_at=get_current_time()
         )
         user.set_password(user_data['password'])
-        
+
         db.session.add(user)
         created_users.append(user)
         logger.info(f"Created user: {user.name} ({user.employee_number})")
-    
+
     db.session.commit()
     return created_users
 
@@ -124,13 +118,13 @@ def create_mock_users():
 def create_mock_tools():
     """Create mock tools with various categories and conditions"""
     logger.info("Creating mock tools...")
-    
+
     # Get admin user for created_by field
     admin = User.query.filter_by(is_admin=True).first()
     if not admin:
         logger.error("No admin user found. Please run db_init.py first.")
         return []
-    
+
     tools_data = [
         {
             'tool_number': 'DMM001',
@@ -187,7 +181,7 @@ def create_mock_tools():
             'calibration_frequency_days': 365
         }
     ]
-    
+
     created_tools = []
     for tool_data in tools_data:
         # Check if tool already exists
@@ -196,7 +190,7 @@ def create_mock_tools():
             logger.info(f"Tool {tool_data['tool_number']} already exists, skipping...")
             created_tools.append(existing_tool)
             continue
-            
+
         tool = Tool(
             tool_number=tool_data['tool_number'],
             serial_number=tool_data['serial_number'],
@@ -209,11 +203,11 @@ def create_mock_tools():
             calibration_frequency_days=tool_data.get('calibration_frequency_days'),
             created_at=get_current_time()
         )
-        
+
         db.session.add(tool)
         created_tools.append(tool)
         logger.info(f"Created tool: {tool.tool_number} - {tool.description}")
-    
+
     db.session.commit()
     return created_tools
 
@@ -221,10 +215,10 @@ def create_mock_tools():
 def create_mock_chemicals():
     """Create mock chemicals with various categories and quantities"""
     logger.info("Creating mock chemicals...")
-    
+
     # Get admin user for created_by field
     admin = User.query.filter_by(is_admin=True).first()
-    
+
     chemicals_data = [
         {
             'part_number': 'SEAL001',
@@ -275,7 +269,7 @@ def create_mock_chemicals():
             'minimum_stock_level': 3.0
         }
     ]
-    
+
     created_chemicals = []
     for chem_data in chemicals_data:
         # Check if chemical already exists
@@ -287,7 +281,7 @@ def create_mock_chemicals():
             logger.info(f"Chemical {chem_data['part_number']} already exists, skipping...")
             created_chemicals.append(existing_chem)
             continue
-            
+
         chemical = Chemical(
             part_number=chem_data['part_number'],
             lot_number=chem_data['lot_number'],
@@ -301,11 +295,11 @@ def create_mock_chemicals():
             minimum_stock_level=chem_data.get('minimum_stock_level'),
             date_added=get_current_time()
         )
-        
+
         db.session.add(chemical)
         created_chemicals.append(chemical)
         logger.info(f"Created chemical: {chemical.part_number} - {chemical.description}")
-    
+
     db.session.commit()
     return created_chemicals
 
@@ -467,7 +461,7 @@ def create_mock_calibration_data(tools):
             next_calibration_date=get_current_time() + timedelta(days=random.randint(180, 365)),
             performed_by_user_id=admin.id,
             calibration_status='completed',
-            calibration_notes=f'Calibration performed according to manufacturer specifications',
+            calibration_notes='Calibration performed according to manufacturer specifications',
             created_at=get_current_time()
         )
 

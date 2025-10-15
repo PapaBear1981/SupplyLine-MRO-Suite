@@ -153,7 +153,7 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
   };
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static">
+    <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="issuance-modal">
       <Modal.Header closeButton>
         <Modal.Title>
           <FaBox className="me-2" />

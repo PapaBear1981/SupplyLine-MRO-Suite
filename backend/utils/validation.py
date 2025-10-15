@@ -265,31 +265,7 @@ CYCLE_COUNT_SCHEDULE_SCHEMA = {
     }
 }
 
-CYCLE_COUNT_BATCH_SCHEMA = {
-    'required': ['name'],
-    'optional': ['schedule_id', 'start_date', 'end_date', 'notes', 'generate_items', 'item_selection', 'item_count', 'category', 'location'],
-    'types': {
-        'name': str,
-        'schedule_id': int,
-        'start_date': str,
-        'end_date': str,
-        'notes': str,
-        'generate_items': bool,
-        'item_selection': str,
-        'item_count': int,
-        'category': str,
-        'location': str
-    },
-    'constraints': {
-        'name': {'max_length': 100, 'min_length': 1},
-        'notes': {'max_length': 1000},
-        'item_selection': {'choices': ['all', 'random', 'category', 'location']},
-        'item_count': {'min': 1, 'max': 10000},
-        'category': {'max_length': 50},
-        'location': {'max_length': 100}
-    },
-    'date_fields': ['start_date', 'end_date']
-}
+# Cycle count schemas removed - feature deprecated
 
 CYCLE_COUNT_RESULT_SCHEMA = {
     'required': ['actual_quantity'],

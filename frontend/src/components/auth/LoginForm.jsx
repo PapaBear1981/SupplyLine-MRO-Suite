@@ -6,6 +6,7 @@ import { login } from '../../store/authSlice';
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [validated, setValidated] = useState(false);
 
   const dispatch = useDispatch();
@@ -62,6 +63,15 @@ const LoginForm = () => {
         <Form.Control.Feedback type="invalid">
           Please provide a password.
         </Form.Control.Feedback>
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="formRememberMe">
+        <Form.Check
+          type="checkbox"
+          label="Remember me"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+        />
       </Form.Group>
 
       <Button variant="primary" type="submit" disabled={loading}>

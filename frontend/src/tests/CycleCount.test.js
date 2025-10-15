@@ -341,7 +341,7 @@ describe('MobileCycleCountBatch', () => {
 
   test('handles barcode scanning', async () => {
     const store = createTestStore();
-    const mockDispatch = jest.spyOn(store, 'dispatch');
+    jest.spyOn(store, 'dispatch');
 
     render(
       <TestWrapper store={store}>

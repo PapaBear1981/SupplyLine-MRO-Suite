@@ -162,7 +162,7 @@ const announcementSlice = createSlice({
         state.loading.createAnnouncement = true;
         state.error.createAnnouncement = null;
       })
-      .addCase(createAnnouncement.fulfilled, (state, action) => {
+      .addCase(createAnnouncement.fulfilled, (state, _action) => {
         state.loading.createAnnouncement = false;
         // Don't modify the list here - let the component refetch if needed
       })

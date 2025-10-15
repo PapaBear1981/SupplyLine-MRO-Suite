@@ -5,15 +5,14 @@ This module provides API endpoints for managing kits, aircraft types, boxes, and
 """
 
 from flask import request, jsonify
-from models import db, User, Tool, Chemical, AuditLog, Warehouse, WarehouseTransfer
+from models import db, Tool, Chemical, AuditLog, Warehouse, WarehouseTransfer
 from models_kits import (
     AircraftType, Kit, KitBox, KitItem, KitExpendable,
-    KitIssuance, KitTransfer, KitReorderRequest, KitMessage
+    KitIssuance, KitTransfer, KitReorderRequest
 )
 from datetime import datetime, timedelta
 from auth import jwt_required, admin_required, department_required
-from utils.error_handler import handle_errors, ValidationError, log_security_event
-from utils.validation import validate_schema
+from utils.error_handler import handle_errors, ValidationError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,50 +23,50 @@ materials_required = department_required('Materials')
 
 def register_kit_routes(app):
     """Register all kit-related routes"""
-    
+
     # ==================== Aircraft Type Management ====================
-    
+
     @app.route('/api/aircraft-types', methods=['GET'])
     @jwt_required
     @handle_errors
     def get_aircraft_types():
         """Get all aircraft types"""
         include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
-        
+
         query = AircraftType.query
         if not include_inactive:
             query = query.filter_by(is_active=True)
-        
+
         aircraft_types = query.order_by(AircraftType.name).all()
-        
+
         return jsonify([at.to_dict() for at in aircraft_types]), 200
-    
+
     @app.route('/api/aircraft-types', methods=['POST'])
     @admin_required
     @handle_errors
     def create_aircraft_type():
         """Create a new aircraft type (admin only)"""
         data = request.get_json() or {}
-        
+
         # Validate required fields
         if not data.get('name'):
             raise ValidationError('Aircraft type name is required')
-        
+
         # Check if already exists
         existing = AircraftType.query.filter_by(name=data['name']).first()
         if existing:
             raise ValidationError(f'Aircraft type "{data["name"]}" already exists')
-        
+
         # Create aircraft type
         aircraft_type = AircraftType(
             name=data['name'],
             description=data.get('description', ''),
             is_active=True
         )
-        
+
         db.session.add(aircraft_type)
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='aircraft_type_created',
@@ -75,10 +74,10 @@ def register_kit_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         logger.info(f"Aircraft type created: {aircraft_type.name}")
         return jsonify(aircraft_type.to_dict()), 201
-    
+
     @app.route('/api/aircraft-types/<int:id>', methods=['PUT'])
     @admin_required
     @handle_errors
@@ -86,7 +85,7 @@ def register_kit_routes(app):
         """Update an aircraft type (admin only)"""
         aircraft_type = AircraftType.query.get_or_404(id)
         data = request.get_json() or {}
-        
+
         # Update fields
         if 'name' in data and data['name'] != aircraft_type.name:
             # Check if new name already exists
@@ -94,15 +93,15 @@ def register_kit_routes(app):
             if existing:
                 raise ValidationError(f'Aircraft type "{data["name"]}" already exists')
             aircraft_type.name = data['name']
-        
+
         if 'description' in data:
             aircraft_type.description = data['description']
-        
+
         if 'is_active' in data:
             aircraft_type.is_active = data['is_active']
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='aircraft_type_updated',
@@ -110,21 +109,21 @@ def register_kit_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(aircraft_type.to_dict()), 200
-    
+
     @app.route('/api/aircraft-types/<int:id>', methods=['DELETE'])
     @admin_required
     @handle_errors
     def deactivate_aircraft_type(id):
         """Deactivate an aircraft type (admin only)"""
         aircraft_type = AircraftType.query.get_or_404(id)
-        
+
         # Check if any active kits use this type
         active_kits = Kit.query.filter_by(aircraft_type_id=id, status='active').count()
         if active_kits > 0:
             raise ValidationError(f'Cannot deactivate aircraft type with {active_kits} active kits')
-        
+
         aircraft_type.is_active = False
         db.session.commit()
 
@@ -139,9 +138,9 @@ def register_kit_routes(app):
         result = aircraft_type.to_dict()
         result['message'] = 'Aircraft type deactivated successfully'
         return jsonify(result), 200
-    
+
     # ==================== Kit Management ====================
-    
+
     @app.route('/api/kits', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -149,18 +148,18 @@ def register_kit_routes(app):
         """Get all kits with optional filtering"""
         status = request.args.get('status')
         aircraft_type_id = request.args.get('aircraft_type_id', type=int)
-        
+
         query = Kit.query
-        
+
         if status:
             query = query.filter_by(status=status)
         if aircraft_type_id:
             query = query.filter_by(aircraft_type_id=aircraft_type_id)
-        
+
         kits = query.order_by(Kit.name).all()
-        
+
         return jsonify([kit.to_dict() for kit in kits]), 200
-    
+
     @app.route('/api/kits/<int:id>', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -168,30 +167,30 @@ def register_kit_routes(app):
         """Get kit details"""
         kit = Kit.query.get_or_404(id)
         return jsonify(kit.to_dict(include_details=True)), 200
-    
+
     @app.route('/api/kits', methods=['POST'])
     @materials_required
     @handle_errors
     def create_kit():
         """Create a new kit"""
         data = request.get_json() or {}
-        
+
         # Validate required fields
         if not data.get('name'):
             raise ValidationError('Kit name is required')
         if not data.get('aircraft_type_id'):
             raise ValidationError('Aircraft type is required')
-        
+
         # Check if name already exists
         existing = Kit.query.filter_by(name=data['name']).first()
         if existing:
             raise ValidationError(f'Kit "{data["name"]}" already exists')
-        
+
         # Verify aircraft type exists
         aircraft_type = AircraftType.query.get(data['aircraft_type_id'])
         if not aircraft_type:
             raise ValidationError('Invalid aircraft type')
-        
+
         # Create kit
         kit = Kit(
             name=data['name'],
@@ -200,10 +199,10 @@ def register_kit_routes(app):
             status='active',
             created_by=request.current_user['user_id']
         )
-        
+
         db.session.add(kit)
         db.session.flush()  # Get kit ID
-        
+
         # Create required boxes if provided
         if 'boxes' in data:
             for box_data in data['boxes']:
@@ -214,9 +213,9 @@ def register_kit_routes(app):
                     description=box_data.get('description', '')
                 )
                 db.session.add(box)
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_created',
@@ -224,10 +223,10 @@ def register_kit_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         logger.info(f"Kit created: {kit.name}")
         return jsonify(kit.to_dict(include_details=True)), 201
-    
+
     @app.route('/api/kits/<int:id>', methods=['PUT'])
     @materials_required
     @handle_errors
@@ -235,7 +234,7 @@ def register_kit_routes(app):
         """Update a kit"""
         kit = Kit.query.get_or_404(id)
         data = request.get_json() or {}
-        
+
         # Update fields
         if 'name' in data and data['name'] != kit.name:
             # Check if new name already exists
@@ -243,15 +242,15 @@ def register_kit_routes(app):
             if existing:
                 raise ValidationError(f'Kit "{data["name"]}" already exists')
             kit.name = data['name']
-        
+
         if 'description' in data:
             kit.description = data['description']
-        
+
         if 'status' in data:
             kit.status = data['status']
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_updated',
@@ -259,7 +258,7 @@ def register_kit_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(kit.to_dict(include_details=True)), 200
 
     @app.route('/api/kits/<int:id>', methods=['DELETE'])
@@ -721,11 +720,20 @@ def register_kit_routes(app):
     @jwt_required
     @handle_errors
     def get_kit_expendables(kit_id):
-        """Get all expendables in a kit"""
+        """Get all expendables in a kit with pagination"""
         kit = Kit.query.get_or_404(kit_id)
 
+        # PERFORMANCE: Add pagination to prevent unbounded dataset returns
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 100, type=int)
         box_id = request.args.get('box_id', type=int)
         status = request.args.get('status')
+
+        # Validate pagination parameters
+        if page < 1:
+            raise ValidationError('Page must be >= 1')
+        if per_page < 1 or per_page > 500:
+            raise ValidationError('Per page must be between 1 and 500')
 
         query = kit.expendables
         if box_id:
@@ -733,8 +741,24 @@ def register_kit_routes(app):
         if status:
             query = query.filter_by(status=status)
 
-        expendables = query.all()
-        return jsonify([exp.to_dict() for exp in expendables]), 200
+        # Apply pagination
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        expendables = pagination.items
+
+        # Return paginated response
+        response = {
+            'expendables': [exp.to_dict() for exp in expendables],
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            }
+        }
+
+        return jsonify(response), 200
 
     @app.route('/api/kits/<int:kit_id>/expendables', methods=['POST'])
     @materials_required
@@ -969,7 +993,7 @@ def register_kit_routes(app):
         """Get issuance history for a kit"""
         from models_kits import KitIssuance
 
-        kit = Kit.query.get_or_404(kit_id)
+        Kit.query.get_or_404(kit_id)
 
         # Optional date filtering
         start_date = request.args.get('start_date')
@@ -1004,7 +1028,6 @@ def register_kit_routes(app):
     def get_kit_analytics(kit_id):
         """Get usage analytics for a kit"""
         from models_kits import KitIssuance, KitTransfer, KitReorderRequest
-        from sqlalchemy import func
 
         kit = Kit.query.get_or_404(kit_id)
 
@@ -1155,7 +1178,7 @@ def register_kit_routes(app):
         ).filter(
             db.or_(
                 KitMessage.recipient_id == request.current_user['user_id'],
-                KitMessage.recipient_id == None
+                KitMessage.recipient_id is None
             )
         ).count()
 
@@ -1271,4 +1294,3 @@ def register_kit_routes(app):
 
         # Return only the requested limit
         return jsonify(activities[:limit]), 200
-

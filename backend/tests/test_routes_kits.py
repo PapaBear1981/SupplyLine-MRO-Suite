@@ -15,7 +15,7 @@ Tests all kit-related API endpoints including:
 import pytest
 import json
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitItem, KitExpendable, KitIssuance
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
 
 
 @pytest.fixture
@@ -283,7 +283,6 @@ class TestKitCRUDEndpoints:
         assert response.status_code == 404
 
 
-
     def test_create_kit_materials_user(self, client, auth_headers_materials, aircraft_type, db_session):
         """Test creating kit as Materials user"""
         kit_data = {
@@ -443,7 +442,6 @@ class TestKitWizardEndpoint:
 
         assert data['step'] == 2
         assert data['valid'] is True
-
 
 
 class TestKitBoxEndpoints:
@@ -613,7 +611,6 @@ class TestKitExpendableEndpoints:
 
         assert data['part_number'] == 'EXP-001'
         assert data['quantity'] == 100
-
 
 
 class TestKitIssuanceEndpoints:

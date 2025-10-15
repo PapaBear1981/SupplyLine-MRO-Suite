@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-bootstrap';
-import { fetchChemicals, searchChemicals } from '../../store/chemicalsSlice';
+import { fetchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ChemicalBarcode from './ChemicalBarcode';
 import ItemTransferModal from '../common/ItemTransferModal';
@@ -33,8 +33,9 @@ const ChemicalList = () => {
     const fetchWarehouses = async () => {
       try {
         const response = await api.get('/warehouses');
-        // Backend returns array directly, not wrapped in {warehouses: [...]}
-        setWarehouses(Array.isArray(response.data) ? response.data : []);
+        // Backend returns { warehouses: [...], pagination: {...} }
+        const warehousesData = response.data.warehouses || response.data;
+        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
       }

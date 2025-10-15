@@ -111,4 +111,3 @@ def get_password_reset_tracker() -> PasswordResetSecurityTracker:
     """Expose the global password reset tracker for use in other modules."""
 
     return password_reset_security_tracker
-

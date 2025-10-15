@@ -27,7 +27,7 @@ const ToolDetail = () => {
   const { currentTool, loading: toolLoading } = useSelector((state) => state.tools);
   const { checkoutHistory, loading: historyLoading } = useSelector((state) => state.checkouts);
   const { user } = useSelector((state) => state.auth);
-  const { showTooltips, showHelp, getHelpContent } = useHelp();
+  const { showTooltips, showHelp } = useHelp();
 
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showRemoveFromServiceModal, setShowRemoveFromServiceModal] = useState(false);
@@ -137,11 +137,19 @@ const ToolDetail = () => {
 
         <Row>
           <Col md={6}>
-            <Card className="mb-4">
+            <Card className="mb-4" data-testid="tool-details">
               <Card.Header>
                 <h4>{currentTool.name}</h4>
               </Card.Header>
               <Card.Body>
+                <Row className="mb-3">
+                  <Col sm={4} className="fw-bold">Tool Number:</Col>
+                  <Col sm={8} data-testid="tool-number">{currentTool.tool_number}</Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={4} className="fw-bold">Serial Number:</Col>
+                  <Col sm={8}>{currentTool.serial_number}</Col>
+                </Row>
                 <Row className="mb-3">
                   <Col sm={4} className="fw-bold">ID:</Col>
                   <Col sm={8}>{currentTool.id}</Col>
@@ -185,7 +193,7 @@ const ToolDetail = () => {
                 {currentTool.description && (
                   <Row className="mb-3">
                     <Col sm={4} className="fw-bold">Description:</Col>
-                    <Col sm={8}>{currentTool.description}</Col>
+                    <Col sm={8} data-testid="tool-description">{currentTool.description}</Col>
                   </Row>
                 )}
 
