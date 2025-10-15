@@ -120,18 +120,22 @@ class JWTManager:
         Returns:
             New token pair or None if refresh token is invalid
         """
-        payload = JWTManager.verify_token(refresh_token, 'refresh')
-        if not payload:
-            return None
+        try:
+            payload = JWTManager.verify_token(refresh_token, 'refresh')
+            if not payload:
+                return None
 
-        # Get user from database
-        user = User.query.get(payload['user_id'])
-        if not user or not user.is_active:
-            logger.warning(f"User {payload['user_id']} not found or inactive")
-            return None
+            # Get user from database
+            user = User.query.get(payload['user_id'])
+            if not user or not user.is_active:
+                logger.warning(f"User {payload['user_id']} not found or inactive")
+                return None
 
-        # Generate new tokens
-        return JWTManager.generate_tokens(user)
+            # Generate new tokens
+            return JWTManager.generate_tokens(user)
+        except Exception as e:
+            logger.error(f"Error refreshing access token: {str(e)}")
+            return None
 
     @staticmethod
     def extract_token_from_header() -> Optional[str]:

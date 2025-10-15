@@ -166,38 +166,37 @@ api.interceptors.response.use(
 
 // Handle unauthorized errors with token refresh logic
 const handleUnauthorizedError = async (error) => {
-  if (!error.config._retry) {
-    error.config._retry = true;
+  // Don't attempt refresh on public pages or if already retried
+  const publicPaths = ['/login', '/register', '/'];
+  const isPublicPath = publicPaths.includes(window.location.pathname);
 
-    try {
-      // Attempt to refresh the token via HttpOnly cookies
-      await axios.post('/api/auth/refresh');
+  if (isPublicPath || error.config._retry) {
+    return Promise.reject(error);
+  }
 
-      // Retry the original request (cookies will be sent automatically)
-      return api.request(error.config);
-    // eslint-disable-next-line no-unused-vars -- Error intentionally ignored
-    } catch (_refreshError) {
-      // Refresh failed, redirect to login
-      errorService.logWarning(
-        'Token refresh failed, redirecting to login',
-        'AUTH_TOKEN_REFRESH_FAILED'
-      );
+  error.config._retry = true;
 
-      // Only redirect if not already on login or register page
-      if (!window.location.pathname.match(/^\/(login|register)/)) {
-        // Delay redirect to allow error message to be shown
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1000);
-      }
+  try {
+    // Attempt to refresh the token via HttpOnly cookies
+    await axios.post('/api/auth/refresh');
+
+    // Retry the original request (cookies will be sent automatically)
+    return api.request(error.config);
+  // eslint-disable-next-line no-unused-vars -- Error intentionally ignored
+  } catch (_refreshError) {
+    // Refresh failed, redirect to login
+    errorService.logWarning(
+      'Token refresh failed, redirecting to login',
+      'AUTH_TOKEN_REFRESH_FAILED'
+    );
+
+    // Only redirect if not already on login or register page
+    if (!isPublicPath) {
+      // Use navigate instead of window.location to avoid full page reload
+      window.location.href = '/login';
     }
-  } else {
-    // Retry already attempted, redirect to login
-    if (!window.location.pathname.match(/^\/(login|register)/)) {
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1000);
-    }
+
+    return Promise.reject(error);
   }
 };
 
