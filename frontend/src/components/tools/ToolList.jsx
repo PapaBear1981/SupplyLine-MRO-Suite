@@ -8,6 +8,7 @@ import CheckoutModal from '../checkouts/CheckoutModal';
 import ToolBarcode from './ToolBarcode';
 import DeleteToolModal from './DeleteToolModal';
 import CalibrationStatusIndicator from './CalibrationStatusIndicator';
+import ItemTransferModal from '../common/ItemTransferModal';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -26,6 +27,7 @@ const ToolList = () => {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedTool, setSelectedTool] = useState(null);
 
   // Filter states
@@ -55,7 +57,8 @@ const ToolList = () => {
     const fetchWarehouses = async () => {
       try {
         const response = await api.get('/warehouses');
-        setWarehouses(response.data.warehouses || []);
+        // Backend returns array directly, not wrapped in {warehouses: [...]}
+        setWarehouses(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
       }
@@ -165,6 +168,12 @@ const ToolList = () => {
   const handleBarcodeClick = (tool) => {
     setSelectedTool(tool);
     setShowBarcodeModal(true);
+  };
+
+  // Handle transfer button click
+  const handleTransferClick = (tool) => {
+    setSelectedTool(tool);
+    setShowTransferModal(true);
   };
 
   // Handle delete button click
@@ -486,6 +495,15 @@ const ToolList = () => {
                               )}
                             </>
                           )}
+                          <Tooltip text="Transfer this tool to another location" placement="top" show={showTooltips}>
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => handleTransferClick(tool)}
+                            >
+                              <i className="bi bi-arrow-left-right"></i>
+                            </Button>
+                          </Tooltip>
                           <Tooltip text="Generate barcode/QR code for this tool" placement="top" show={showTooltips}>
                             <Button
                               variant="info"
@@ -538,6 +556,19 @@ const ToolList = () => {
           show={showBarcodeModal}
           onHide={() => setShowBarcodeModal(false)}
           tool={selectedTool}
+        />
+      )}
+
+      {/* Transfer Modal */}
+      {selectedTool && (
+        <ItemTransferModal
+          show={showTransferModal}
+          onHide={() => setShowTransferModal(false)}
+          item={selectedTool}
+          itemType="tool"
+          onTransferComplete={() => {
+            dispatch(fetchTools());
+          }}
         />
       )}
 

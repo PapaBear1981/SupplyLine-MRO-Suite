@@ -931,12 +931,18 @@ def register_kit_routes(app):
             if item.quantity <= 0:
                 item.status = 'issued'
 
-        # Create issuance record
+        # Create issuance record with item details
+        # issued_to is the current user (who is issuing the item to themselves)
         issuance = KitIssuance(
             kit_id=kit_id,
             item_type=data['item_type'],
             item_id=data['item_id'],
             issued_by=request.current_user['user_id'],
+            issued_to=request.current_user['user_id'],  # Same as issued_by - user issuing to themselves
+            part_number=item.part_number,
+            serial_number=item.serial_number if hasattr(item, 'serial_number') else None,
+            lot_number=item.lot_number if hasattr(item, 'lot_number') else None,
+            description=item.description,
             quantity=quantity,
             purpose=data.get('purpose', ''),
             work_order=data.get('work_order', ''),

@@ -50,7 +50,7 @@ def get_warehouses():
             Warehouse.name
         ).all()
 
-        return jsonify([w.to_dict() for w in warehouses]), 200
+        return jsonify([w.to_dict(include_counts=True) for w in warehouses]), 200
 
     except Exception as e:
         import traceback
@@ -243,6 +243,11 @@ def get_warehouse_stats(warehouse_id):
         if not warehouse:
             return jsonify({'error': 'Warehouse not found'}), 404
 
+        # Debug: Check direct query
+        tools_count_direct = Tool.query.filter_by(warehouse_id=warehouse_id).count()
+        print(f"DEBUG: Warehouse {warehouse_id} - Direct query tools count: {tools_count_direct}")
+        print(f"DEBUG: Warehouse {warehouse_id} - Relationship tools count: {warehouse.tools.count()}")
+
         # Get counts by category
         tools_by_category = db.session.query(
             Tool.category,
@@ -276,7 +281,7 @@ def get_warehouse_stats(warehouse_id):
         return jsonify({
             'warehouse': warehouse.to_dict(),
             'tools': {
-                'total': warehouse.tools.count(),
+                'total': tools_count_direct,  # Use direct query instead of relationship
                 'by_category': {cat: count for cat, count in tools_by_category},
                 'by_status': {status: count for status, count in tools_by_status}
             },

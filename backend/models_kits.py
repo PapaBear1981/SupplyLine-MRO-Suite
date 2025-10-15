@@ -262,6 +262,11 @@ class KitIssuance(db.Model):
     item_type = db.Column(db.String(20), nullable=False)  # tool, chemical, expendable
     item_id = db.Column(db.Integer, nullable=False)  # FK to kit_items.id or kit_expendables.id
     issued_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    issued_to = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Who received the item
+    part_number = db.Column(db.String(100))  # Part number or tool number
+    serial_number = db.Column(db.String(100))  # Serial number (for tools)
+    lot_number = db.Column(db.String(100))  # Lot number (for chemicals/expendables)
+    description = db.Column(db.String(500))  # Item description
     quantity = db.Column(db.Float, nullable=False)
     purpose = db.Column(db.String(500))
     work_order = db.Column(db.String(100))
@@ -271,6 +276,7 @@ class KitIssuance(db.Model):
     # Relationships
     kit = db.relationship('Kit', back_populates='issuances')
     issuer = db.relationship('User', foreign_keys=[issued_by])
+    recipient = db.relationship('User', foreign_keys=[issued_to])
 
     def to_dict(self):
         """Convert model to dictionary"""
@@ -282,6 +288,12 @@ class KitIssuance(db.Model):
             'item_id': self.item_id,
             'issued_by': self.issued_by,
             'issuer_name': self.issuer.name if self.issuer else None,
+            'issued_to': self.issued_to,
+            'recipient_name': self.recipient.name if self.recipient else None,
+            'part_number': self.part_number,
+            'serial_number': self.serial_number,
+            'lot_number': self.lot_number,
+            'description': self.description,
             'quantity': self.quantity,
             'purpose': self.purpose,
             'work_order': self.work_order,

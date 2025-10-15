@@ -540,6 +540,11 @@ const kitsSlice = createSlice({
         }
       })
 
+      // Kit Issuances
+      .addCase(fetchKitIssuances.fulfilled, (state, action) => {
+        state.kitIssuances[action.payload.kitId] = action.payload.issuances;
+      })
+
       // Kit Alerts
       .addCase(fetchKitAlerts.fulfilled, (state, action) => {
         state.kitAlerts[action.payload.kitId] = action.payload.alerts;

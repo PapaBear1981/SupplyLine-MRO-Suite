@@ -5,6 +5,7 @@ import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-boots
 import { fetchChemicals, searchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ChemicalBarcode from './ChemicalBarcode';
+import ItemTransferModal from '../common/ItemTransferModal';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -22,6 +23,7 @@ const ChemicalList = () => {
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [warehouses, setWarehouses] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedChemical, setSelectedChemical] = useState(null);
 
   // Fetch chemicals and warehouses on component mount
@@ -31,7 +33,8 @@ const ChemicalList = () => {
     const fetchWarehouses = async () => {
       try {
         const response = await api.get('/warehouses');
-        setWarehouses(response.data.warehouses || []);
+        // Backend returns array directly, not wrapped in {warehouses: [...]}
+        setWarehouses(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Failed to fetch warehouses:', err);
       }
@@ -136,6 +139,12 @@ const ChemicalList = () => {
   const handleBarcodeClick = (chemical) => {
     setSelectedChemical(chemical);
     setShowBarcodeModal(true);
+  };
+
+  // Handle transfer button click
+  const handleTransferClick = (chemical) => {
+    setSelectedChemical(chemical);
+    setShowTransferModal(true);
   };
 
   if (loading && !chemicals.length) {
@@ -328,6 +337,15 @@ const ChemicalList = () => {
                               Issue
                             </Button>
                           </Tooltip>
+                          <Tooltip text="Transfer this chemical to another location" placement="top" show={showTooltips}>
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              onClick={() => handleTransferClick(chemical)}
+                            >
+                              <i className="bi bi-arrow-left-right"></i>
+                            </Button>
+                          </Tooltip>
                           <Tooltip text="Generate barcode for this chemical" placement="top" show={showTooltips}>
                             <Button
                               variant="info"
@@ -353,6 +371,19 @@ const ChemicalList = () => {
           show={showBarcodeModal}
           onHide={() => setShowBarcodeModal(false)}
           chemical={selectedChemical}
+        />
+      )}
+
+      {/* Transfer Modal */}
+      {selectedChemical && (
+        <ItemTransferModal
+          show={showTransferModal}
+          onHide={() => setShowTransferModal(false)}
+          item={selectedChemical}
+          itemType="chemical"
+          onTransferComplete={() => {
+            dispatch(fetchChemicals());
+          }}
         />
       )}
     </>

@@ -138,57 +138,8 @@ def create_app():
         'local_time': datetime.datetime.now().isoformat()
     })
 
-    # Run database migrations unless we're running tests
-    if not is_testing_env:
-        try:
-            # Import and run the reorder fields migration
-            from migrate_reorder_fields import migrate_database
-            logger.info("Running chemical reorder fields migration...")
-            migrate_database()
-            logger.info("Chemical reorder fields migration completed successfully")
-        except Exception as e:
-            logger.error("Error running chemical reorder fields migration", exc_info=True, extra={
-                'migration': 'reorder_fields',
-                'error_message': str(e)
-            })
-
-        try:
-            # Import and run the tool calibration migration
-            from migrate_tool_calibration import migrate_database as migrate_tool_calibration
-            logger.info("Running tool calibration migration...")
-            migrate_tool_calibration()
-            logger.info("Tool calibration migration completed successfully")
-        except Exception as e:
-            logger.error("Error running tool calibration migration", exc_info=True, extra={
-                'migration': 'tool_calibration',
-                'error_message': str(e)
-            })
-
-        try:
-            # Import and run the performance indexes migration
-            from migrate_performance_indexes import migrate_database as migrate_performance_indexes
-            logger.info("Running performance indexes migration...")
-            migrate_performance_indexes()
-            logger.info("Performance indexes migration completed successfully")
-        except Exception as e:
-            logger.error("Performance indexes migration failed - aborting startup", exc_info=True, extra={
-                'migration': 'performance_indexes',
-                'error_message': str(e)
-            })
-            raise
-
-        try:
-            # Import and run the database constraints migration
-            from migrate_database_constraints import migrate_database as migrate_database_constraints
-            logger.info("Running database constraints migration...")
-            migrate_database_constraints()
-            logger.info("Database constraints migration completed successfully")
-        except Exception as e:
-            logger.error("Database constraints migration failed", exc_info=True, extra={
-                'migration': 'database_constraints',
-                'error_message': str(e)
-            })
-            # Don't abort startup for constraints migration as it's not critical
+    # Database migrations have been applied and are managed through the migrations/ directory
+    # No inline migrations needed at startup
 
     # Setup global error handlers
     from utils.error_handler import setup_global_error_handlers

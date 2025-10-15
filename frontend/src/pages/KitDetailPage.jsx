@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import KitItemsList from '../components/kits/KitItemsList';
 import KitAlerts from '../components/kits/KitAlerts';
 import KitIssuanceForm from '../components/kits/KitIssuanceForm';
+import KitIssuanceHistory from '../components/kits/KitIssuanceHistory';
 import KitTransferForm from '../components/kits/KitTransferForm';
 import KitMessaging from '../components/kits/KitMessaging';
 import KitReorderManagement from '../components/kits/KitReorderManagement';
@@ -262,11 +263,7 @@ const KitDetailPage = () => {
         </Tab>
 
         <Tab eventKey="issuances" title="Issuances">
-          <Card>
-            <Card.Body>
-              <p className="text-muted">Issuance history will be displayed here</p>
-            </Card.Body>
-          </Card>
+          <KitIssuanceHistory kitId={id} />
         </Tab>
 
         <Tab eventKey="transfers" title="Transfers">

@@ -858,6 +858,7 @@ def register_routes(app):
                 'category': getattr(t, 'category', 'General'),  # Use 'General' if category attribute doesn't exist
                 'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
                 'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
+                'warehouse_id': t.warehouse_id,
                 'created_at': t.created_at.isoformat(),
                 'requires_calibration': getattr(t, 'requires_calibration', False),
                 'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),
