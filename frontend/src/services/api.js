@@ -178,7 +178,12 @@ const handleUnauthorizedError = async (error) => {
 
   try {
     // Attempt to refresh the token via HttpOnly cookies
-    await axios.post('/api/auth/refresh');
+    await axios.post('/api/auth/refresh', {}, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    });
 
     // Retry the original request (cookies will be sent automatically)
     return api.request(error.config);

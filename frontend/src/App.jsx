@@ -104,13 +104,11 @@ function App() {
   const { theme } = useSelector((state) => state.theme);
 
   useEffect(() => {
-    // Only try to fetch current user if we're not on a public page
-    const publicPaths = ['/login', '/register', '/'];
-    const isPublicPath = publicPaths.includes(window.location.pathname);
-
-    if (!isPublicPath) {
-      dispatch(fetchCurrentUser());
-    }
+    // Always try to fetch current user on app load to check for existing session
+    // This will silently fail if no valid session exists (user not logged in)
+    dispatch(fetchCurrentUser()).catch(() => {
+      // Silently ignore - user is not authenticated
+    });
   }, [dispatch]);
 
   // Apply theme to document

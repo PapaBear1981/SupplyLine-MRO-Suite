@@ -18,8 +18,8 @@ cursor = conn.cursor()
 
 # Update admin password
 cursor.execute("""
-    UPDATE user 
-    SET password_hash = ? 
+    UPDATE users
+    SET password_hash = ?
     WHERE employee_number = 'ADMIN001'
 """, (password_hash,))
 
@@ -32,26 +32,27 @@ if cursor.rowcount > 0:
     print(f"   Password Hash: {password_hash[:50]}...")
     
     # Verify the update
-    cursor.execute("SELECT employee_number, email, is_active FROM user WHERE employee_number = 'ADMIN001'")
+    cursor.execute("SELECT employee_number, name, is_active, is_admin FROM users WHERE employee_number = 'ADMIN001'")
     result = cursor.fetchone()
     if result:
         print(f"\n✅ Verified admin user exists:")
         print(f"   Employee Number: {result[0]}")
-        print(f"   Email: {result[1]}")
+        print(f"   Name: {result[1]}")
         print(f"   Active: {result[2]}")
+        print(f"   Admin: {result[3]}")
 else:
     print("❌ ERROR: Admin user not found!")
-    print("   Checking if user table exists...")
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user'")
+    print("   Checking if users table exists...")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
     if cursor.fetchone():
-        print("   ✅ User table exists")
-        cursor.execute("SELECT employee_number FROM user")
+        print("   ✅ Users table exists")
+        cursor.execute("SELECT employee_number FROM users")
         users = cursor.fetchall()
         print(f"   Found {len(users)} users in database:")
         for user in users:
             print(f"      - {user[0]}")
     else:
-        print("   ❌ User table does not exist!")
+        print("   ❌ Users table does not exist!")
 
 conn.close()
 

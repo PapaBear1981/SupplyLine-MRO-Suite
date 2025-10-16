@@ -202,7 +202,7 @@ def register_auth_routes(app):
 
             if not refresh_token_value:
                 # Fallback to request body for backward compatibility
-                data = request.get_json() or {}
+                data = request.get_json(silent=True) or {}
                 refresh_token_value = data.get('refresh_token')
 
             if not refresh_token_value:
