@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { fetchCurrentUser } from '../../store/authSlice';
 import { Spinner, Alert, Container } from 'react-bootstrap';
 
@@ -79,7 +79,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = nu
           </p>
         </Alert>
         <div className="mt-3">
-          <a href="/dashboard" className="btn btn-primary">Return to Dashboard</a>
+          <Link to="/dashboard" className="btn btn-primary">Return to Dashboard</Link>
         </div>
       </Container>
     );

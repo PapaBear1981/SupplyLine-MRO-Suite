@@ -16,11 +16,11 @@ The page access permission system has been successfully implemented and tested. 
 
 ## Test Environment
 
-- **Frontend:** http://localhost:5173 (Vite Dev Server)
-- **Backend:** http://localhost:5000 (Flask API)
-- **Database:** SQLite at `/home/chris/supplyline/SupplyLine-MRO-Suite/database/tools.db`
-- **Test User:** USER001 (Regular User) with Maintenance User role
-- **Test Password:** test123
+- **Frontend:** http://localhost:5173 (dev server)
+- **Backend:** http://localhost:5000 (API)
+- **Database:** SQLite at `<local path redacted>`
+- **Test User:** `<redacted>` with Maintenance User role
+- **Test Password:** `<redacted>`
 
 ---
 
@@ -220,8 +220,8 @@ Please contact your administrator if you believe you should have access to this 
 **Note:** During testing, we also tested the Password Reset functionality from the Admin Dashboard:
 
 1. ✅ Navigated to Admin Dashboard → Password Reset tab
-2. ✅ Found USER001 in the user list
-3. ✅ Successfully reset password to "test123" using Python script
+2. ✅ Found test user in the user list
+3. ✅ Successfully reset password using Python script
 4. ✅ Logged in with new password successfully
 
 **Password Reset Script Used:**
@@ -229,11 +229,11 @@ Please contact your administrator if you believe you should have access to this 
 from werkzeug.security import generate_password_hash
 import sqlite3
 
-conn = sqlite3.connect('/home/chris/supplyline/SupplyLine-MRO-Suite/database/tools.db')
+conn = sqlite3.connect('<database_path>')
 cursor = conn.cursor()
-new_password_hash = generate_password_hash('test123')
-cursor.execute('UPDATE users SET password_hash = ? WHERE employee_number = ?', 
-               (new_password_hash, 'USER001'))
+new_password_hash = generate_password_hash('<new_password>')
+cursor.execute('UPDATE users SET password_hash = ? WHERE employee_number = ?',
+               (new_password_hash, '<employee_number>'))
 conn.commit()
 conn.close()
 ```

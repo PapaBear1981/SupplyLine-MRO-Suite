@@ -63,6 +63,7 @@ def run_migration():
         
         # Create permissions
         created_permissions = []
+        new_count = 0
         for name, description, category in page_permissions:
             # Check if permission already exists
             existing = Permission.query.filter_by(name=name).first()
@@ -70,7 +71,7 @@ def run_migration():
                 print(f"  ⚠️  Permission '{name}' already exists, skipping...")
                 created_permissions.append(existing)
                 continue
-            
+
             permission = Permission(
                 name=name,
                 description=description,
@@ -78,10 +79,11 @@ def run_migration():
             )
             db.session.add(permission)
             created_permissions.append(permission)
+            new_count += 1
             print(f"  ✅ Created permission: {name}")
-        
+
         db.session.commit()
-        print(f"\n✅ Created {len([p for p in created_permissions if p.id is None or p.id > 26])} new page access permissions")
+        print(f"\n✅ Created {new_count} new page access permissions")
         
         # Assign page permissions to roles
         print("\nAssigning page permissions to roles...")
