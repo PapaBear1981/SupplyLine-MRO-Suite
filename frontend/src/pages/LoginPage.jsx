@@ -5,7 +5,7 @@ import { Container, Row, Col, Card } from 'react-bootstrap';
 import LoginForm from '../components/auth/LoginForm';
 
 const LoginPage = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -13,11 +13,12 @@ const LoginPage = () => {
   const from = location.state?.from?.pathname || '/';
 
   useEffect(() => {
-    // If user is already authenticated, redirect to the intended page
-    if (isAuthenticated) {
+    // Only redirect if user is authenticated AND we have user data
+    // This prevents redirect loops during initial auth check
+    if (isAuthenticated && user) {
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, user, navigate, from]);
 
   return (
     <Container fluid>

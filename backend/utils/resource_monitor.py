@@ -9,7 +9,6 @@ import psutil
 import threading
 import time
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 

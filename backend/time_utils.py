@@ -6,7 +6,7 @@ consistent time management across the application.
 """
 
 from datetime import datetime, timezone, timedelta, UTC
-import time
+
 
 def get_utc_now() -> datetime:
     """
@@ -16,6 +16,7 @@ def get_utc_now() -> datetime:
         datetime: Current UTC time with timezone information
     """
     return datetime.now(UTC)
+
 
 def get_utc_timestamp() -> datetime:
     """
@@ -29,6 +30,7 @@ def get_utc_timestamp() -> datetime:
     # we'll return the local time instead of UTC time
     return get_local_timestamp()
 
+
 def get_local_timestamp() -> datetime:
     """
     Get the current local time as a naive datetime object.
@@ -38,6 +40,7 @@ def get_local_timestamp() -> datetime:
         datetime: Current local time as a naive datetime object
     """
     return datetime.now()
+
 
 def format_datetime(dt: datetime | None) -> str | None:
     """
@@ -57,6 +60,7 @@ def format_datetime(dt: datetime | None) -> str | None:
         dt = dt.replace(tzinfo=timezone.utc)
 
     return dt.isoformat()
+
 
 def parse_iso_datetime(dt_str: str) -> datetime | None:
     """
@@ -100,6 +104,7 @@ def parse_iso_datetime(dt_str: str) -> datetime | None:
 
     return dt
 
+
 def add_days(dt: datetime | None, days: int) -> datetime | None:
     """
     Add a specified number of days to a datetime object.
@@ -115,6 +120,7 @@ def add_days(dt: datetime | None, days: int) -> datetime | None:
         return None
 
     return dt + timedelta(days=days)
+
 
 def days_between(dt1: datetime | None, dt2: datetime | None = None) -> int | None:
     """

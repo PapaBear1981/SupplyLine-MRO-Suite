@@ -11,6 +11,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize the database
 db.init_app(app)
 
+
 def seed_database():
     with app.app_context():
         # Clear existing data
@@ -88,7 +89,7 @@ def seed_database():
             db.session.add_all([checkout1, checkout2])
             db.session.commit()
 
-            print(f"Added 2 checkouts for admin user")
+            print("Added 2 checkouts for admin user")
         else:
             print("Admin user not found. No checkouts created.")
 

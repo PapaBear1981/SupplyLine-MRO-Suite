@@ -99,7 +99,7 @@ const CheckoutModal = ({ show, onHide, tool }) => {
   }
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} centered data-testid="checkout-modal">
       <Modal.Header closeButton>
         <Modal.Title>Checkout Tool to User</Modal.Title>
       </Modal.Header>

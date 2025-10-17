@@ -61,6 +61,8 @@ def _ensure_imports():
 def app():
     """Create application for testing"""
     # Create a temporary database file
+    # B108 Mitigation: Use mkstemp for secure temporary file creation (avoids mktemp race condition).
+    # File descriptor (db_fd) is closed and file (db_path) is unlinked in the 'finally' block.
     db_fd, db_path = tempfile.mkstemp()
 
     # Configure environment for testing before app creation so Config picks it up
@@ -269,30 +271,30 @@ def sample_roles_permissions(db_session):
         Permission(name='view_chemicals', description='View chemicals'),
         Permission(name='manage_chemicals', description='Manage chemicals'),
     ]
-    
+
     for perm in permissions:
         db_session.add(perm)
-    
+
     # Create roles
     admin_role = Role(name='admin', description='Administrator')
     user_role = Role(name='user', description='Regular User')
-    
+
     db_session.add(admin_role)
     db_session.add(user_role)
     db_session.flush()
-    
+
     # Assign permissions to roles
     for perm in permissions:
         role_perm = RolePermission(role_id=admin_role.id, permission_id=perm.id)
         db_session.add(role_perm)
-    
+
     # Give user role basic permissions
     view_tools_perm = next(p for p in permissions if p.name == 'view_tools')
     user_role_perm = RolePermission(role_id=user_role.id, permission_id=view_tools_perm.id)
     db_session.add(user_role_perm)
-    
+
     db_session.commit()
-    
+
     return {
         'admin_role': admin_role,
         'user_role': user_role,

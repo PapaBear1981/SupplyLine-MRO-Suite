@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Badge, ListGroup, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
@@ -66,7 +66,7 @@ const UserCheckoutStatus = () => {
   }
 
   return (
-    <Card className="shadow-sm mb-4">
+    <Card className="shadow-sm mb-4" data-testid="user-checkout-status">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">My Checked Out Tools</h4>
         <Badge bg={activeCheckouts.length > 0 ? "primary" : "success"} pill>

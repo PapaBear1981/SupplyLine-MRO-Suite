@@ -1,24 +1,24 @@
-from flask import request, jsonify, render_template_string, current_app
-from models import db, Tool, Chemical, ToolCalibration
+from flask import request, jsonify, render_template_string
+from models import Tool, Chemical, ToolCalibration
 from datetime import datetime
-import os
+
 
 def register_scanner_routes(app):
     """
     Register routes for barcode/QR code scanner functionality
     """
-    
+
     # Lookup item by barcode/QR code
     @app.route('/api/scanner/lookup', methods=['POST'])
     def scanner_lookup():
         try:
             data = request.get_json()
-            
+
             if not data or 'code' not in data:
                 return jsonify({'error': 'No code provided'}), 400
-                
+
             code = data['code']
-            
+
             # Parse the code to determine if it's a tool or chemical
             # Format for tools: tool_number-serial_number OR tool_number-LOT-lot_number
             # Format for chemicals: part_number-lot_number-expiration_date
@@ -70,7 +70,7 @@ def register_scanner_routes(app):
                                 'status': tool.status
                             }
                         })
-            
+
             # If not a tool or if tool not found, check if it's a chemical
             if len(parts) >= 3:
                 # Check if it's a chemical
@@ -78,14 +78,14 @@ def register_scanner_routes(app):
                     part_number=parts[0],
                     lot_number=parts[1]
                 ).first()
-                
+
                 if chemical:
                     # If expiration date is included, verify it
                     if len(parts) >= 3 and parts[2] != 'NOEXP':
                         try:
                             # Parse expiration date from YYYYMMDD format
                             exp_date = datetime.strptime(parts[2], '%Y%m%d').date()
-                            
+
                             # If chemical has expiration date, check if it matches
                             if chemical.expiration_date and chemical.expiration_date.date() != exp_date:
                                 # Still return the chemical, but with a warning
@@ -106,7 +106,7 @@ def register_scanner_routes(app):
                         except ValueError:
                             # Invalid date format, ignore and continue
                             pass
-                    
+
                     # Return chemical data
                     return jsonify({
                         'item_type': 'chemical',
@@ -121,14 +121,14 @@ def register_scanner_routes(app):
                             'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None
                         }
                     })
-            
+
             # If no matching item found
             return jsonify({'error': 'No matching item found for the provided code'}), 404
-            
+
         except Exception as e:
             print(f"Error in scanner lookup: {str(e)}")
             return jsonify({'error': 'An error occurred while processing the code'}), 500
-    
+
     # Get barcode data for a tool
     @app.route('/api/tools/<int:id>/barcode', methods=['GET'])
     def tool_barcode_route(id):
@@ -456,4 +456,4 @@ def register_scanner_routes(app):
 
         except Exception as e:
             print(f"Error in tool view page: {str(e)}")
-            return f"<html><body><h1>Error</h1><p>Tool not found or an error occurred.</p></body></html>", 404
+            return "<html><body><h1>Error</h1><p>Tool not found or an error occurred.</p></body></html>", 404

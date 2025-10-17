@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
     """
     Record an inventory transaction.
-    
+
     Args:
         item_type (str): Type of item ('tool', 'chemical', 'expendable', 'kit_item')
         item_id (int): ID of the item
@@ -29,7 +29,7 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
             - notes (str): Additional notes
             - lot_number (str): Lot number (if not auto-detected)
             - serial_number (str): Serial number (if not auto-detected)
-    
+
     Returns:
         InventoryTransaction: Created transaction record
     """
@@ -37,7 +37,7 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
         # Auto-detect lot/serial numbers if not provided
         lot_number = kwargs.get('lot_number')
         serial_number = kwargs.get('serial_number')
-        
+
         if not lot_number and not serial_number:
             # Try to get from the item itself
             if item_type == 'tool':
@@ -59,7 +59,7 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
                 if kit_item:
                     lot_number = kit_item.lot_number
                     serial_number = kit_item.serial_number
-        
+
         # Create transaction record
         transaction = InventoryTransaction.create_transaction(
             item_type=item_type,
@@ -74,12 +74,12 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
             lot_number=lot_number,
             serial_number=serial_number
         )
-        
+
         db.session.add(transaction)
         logger.info(f"Recorded {transaction_type} transaction for {item_type} {item_id}")
-        
+
         return transaction
-        
+
     except Exception as e:
         logger.error(f"Error recording transaction: {str(e)}")
         raise
@@ -90,7 +90,7 @@ def record_tool_checkout(tool_id, user_id, expected_return_date=None, notes=None
     tool = Tool.query.get(tool_id)
     if not tool:
         raise ValueError(f"Tool {tool_id} not found")
-    
+
     return record_transaction(
         item_type='tool',
         item_id=tool_id,
@@ -109,7 +109,7 @@ def record_tool_return(tool_id, user_id, condition=None, notes=None):
     tool = Tool.query.get(tool_id)
     if not tool:
         raise ValueError(f"Tool {tool_id} not found")
-    
+
     return record_transaction(
         item_type='tool',
         item_id=tool_id,
@@ -217,19 +217,19 @@ def record_item_receipt(item_type, item_id, user_id, quantity, location, po_numb
 def validate_serial_number_uniqueness(part_number, serial_number, item_type, exclude_id=None):
     """
     Validate that a serial number is unique for a given part number.
-    
+
     Args:
         part_number (str): Part number to check
         serial_number (str): Serial number to validate
         item_type (str): Type of item ('tool', 'expendable')
         exclude_id (int): ID to exclude from check (for updates)
-    
+
     Returns:
         tuple: (is_valid, error_message)
     """
     if not serial_number:
         return True, None
-    
+
     if item_type == 'tool':
         query = Tool.query.filter_by(
             tool_number=part_number,
@@ -237,10 +237,10 @@ def validate_serial_number_uniqueness(part_number, serial_number, item_type, exc
         )
         if exclude_id:
             query = query.filter(Tool.id != exclude_id)
-        
+
         if query.first():
             return False, f"Serial number {serial_number} already exists for tool number {part_number}"
-    
+
     elif item_type == 'expendable':
         query = KitExpendable.query.filter_by(
             part_number=part_number,
@@ -248,23 +248,23 @@ def validate_serial_number_uniqueness(part_number, serial_number, item_type, exc
         )
         if exclude_id:
             query = query.filter(KitExpendable.id != exclude_id)
-        
+
         if query.first():
             return False, f"Serial number {serial_number} already exists for part number {part_number}"
-    
+
     return True, None
 
 
 def get_item_transactions(item_type, item_id, limit=100, offset=0):
     """
     Get transaction history for an item.
-    
+
     Args:
         item_type (str): Type of item
         item_id (int): ID of item
         limit (int): Maximum number of transactions to return
         offset (int): Offset for pagination
-    
+
     Returns:
         list: List of transaction dictionaries
     """
@@ -274,23 +274,23 @@ def get_item_transactions(item_type, item_id, limit=100, offset=0):
     ).order_by(
         InventoryTransaction.timestamp.desc()
     ).limit(limit).offset(offset).all()
-    
+
     return [t.to_dict() for t in transactions]
 
 
 def get_item_detail_with_transactions(item_type, item_id):
     """
     Get comprehensive item detail including transaction history.
-    
+
     Args:
         item_type (str): Type of item
         item_id (int): ID of item
-    
+
     Returns:
         dict: Item details with transaction history
     """
     item_data = None
-    
+
     if item_type == 'tool':
         item = Tool.query.get(item_id)
         if item:
@@ -307,13 +307,12 @@ def get_item_detail_with_transactions(item_type, item_id):
         item = KitItem.query.get(item_id)
         if item:
             item_data = item.to_dict()
-    
+
     if not item_data:
         return None
-    
+
     # Add transaction history
     item_data['transactions'] = get_item_transactions(item_type, item_id)
     item_data['transaction_count'] = len(item_data['transactions'])
-    
-    return item_data
 
+    return item_data

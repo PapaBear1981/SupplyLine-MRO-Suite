@@ -9,7 +9,6 @@ import LoadingSpinner from '../common/LoadingSpinner';
 const MyKits = () => {
   const dispatch = useDispatch();
   const { kits, loading, error } = useSelector((state) => state.kits);
-  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchKits());

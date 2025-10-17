@@ -6,10 +6,10 @@ the backend from being overwhelmed by too many requests.
 """
 
 import time
-from collections import defaultdict
 from functools import wraps
 from threading import Lock
 from flask import request, jsonify
+
 
 class RateLimiter:
     """
@@ -141,6 +141,8 @@ class RateLimiter:
 rate_limiter = RateLimiter(rate=100, per=1, burst=200)
 
 # Decorator for rate-limited routes
+
+
 def rate_limit(f):
     """Decorator to apply rate limiting to a Flask route."""
     return rate_limiter.limit(f)

@@ -1,6 +1,7 @@
+/* eslint-env node */
 /**
  * ErrorBoundary Component
- * 
+ *
  * React Error Boundary to catch and handle component errors gracefully
  */
 
@@ -20,7 +21,7 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }

@@ -14,8 +14,8 @@ import pytest
 import json
 from models import User
 from models_kits import (
-    AircraftType, Kit, KitBox, KitExpendable, KitIssuance,
-    KitTransfer, KitReorderRequest, KitMessage
+    AircraftType, Kit, KitBox, KitExpendable, KitTransfer,
+    KitReorderRequest
 )
 
 
@@ -35,7 +35,7 @@ def materials_user(db_session):
     """Create a Materials department user"""
     import uuid
     emp_number = f'MAT{uuid.uuid4().hex[:6]}'
-    
+
     user = User(
         name='Materials User',
         employee_number=emp_number,
@@ -65,18 +65,18 @@ class TestCompleteKitCreationWorkflow:
 
     def test_complete_kit_creation_via_wizard(self, client, auth_headers_materials, aircraft_type, db_session):
         """Test creating a complete kit through the wizard workflow"""
-        
+
         # Step 1: Get aircraft types
         response = client.post('/api/kits/wizard',
                              json={'step': 1},
                              headers=auth_headers_materials)
-        
+
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['step'] == 1
         assert 'aircraft_types' in data
         assert len(data['aircraft_types']) > 0
-        
+
         # Step 2: Validate kit details (name and aircraft type)
         import uuid
         kit_name = f'Integration Test Kit {uuid.uuid4().hex[:8]}'
@@ -93,7 +93,7 @@ class TestCompleteKitCreationWorkflow:
         data = json.loads(response.data)
         assert data['step'] == 2
         assert data['valid'] is True
-        
+
         # Step 3: Get suggested boxes
         response = client.post('/api/kits/wizard',
                              json={'step': 3},
@@ -121,7 +121,7 @@ class TestCompleteKitCreationWorkflow:
                                  'boxes': boxes_data
                              },
                              headers=auth_headers_materials)
-        
+
         assert response.status_code == 201
         data = json.loads(response.data)
 
@@ -136,14 +136,14 @@ class TestCompleteKitCreationWorkflow:
         assert kit_data['aircraft_type_id'] == aircraft_type.id
         assert kit_data['status'] == 'active'
         kit_id = kit_data['id']
-        
+
         # Verify boxes were created
         boxes = KitBox.query.filter_by(kit_id=kit_id).all()
         assert len(boxes) == 3
-        
+
         # Add expendable items to the kit
         box = boxes[0]  # Expendables box
-        
+
         expendable_data = {
             'box_id': box.id,
             'part_number': 'EXP-001',
@@ -152,14 +152,14 @@ class TestCompleteKitCreationWorkflow:
             'unit': 'ft',
             'minimum_stock_level': 50.0
         }
-        
+
         response = client.post(f'/api/kits/{kit_id}/expendables',
                              json=expendable_data,
                              headers=auth_headers_materials)
-        
+
         assert response.status_code == 201
-        expendable = json.loads(response.data)
-        
+        json.loads(response.data)
+
         # Verify complete kit structure
         kit = Kit.query.get(kit_id)
         assert kit is not None
@@ -172,11 +172,11 @@ class TestIssuanceTriggeringReorder:
 
     def test_issuance_triggers_automatic_reorder(self, client, auth_headers_materials, auth_headers_admin, aircraft_type, db_session):
         """Test that issuing items below minimum stock triggers automatic reorder"""
-        
+
         # Create kit with expendable
         import uuid
         kit_name = f'Reorder Test Kit {uuid.uuid4().hex[:8]}'
-        
+
         kit = Kit(
             name=kit_name,
             aircraft_type_id=aircraft_type.id,
@@ -186,7 +186,7 @@ class TestIssuanceTriggeringReorder:
         )
         db_session.add(kit)
         db_session.flush()
-        
+
         box = KitBox(
             kit_id=kit.id,
             box_number='1',
@@ -195,7 +195,7 @@ class TestIssuanceTriggeringReorder:
         )
         db_session.add(box)
         db_session.flush()
-        
+
         expendable = KitExpendable(
             kit_id=kit.id,
             box_id=box.id,
@@ -208,7 +208,7 @@ class TestIssuanceTriggeringReorder:
         )
         db_session.add(expendable)
         db_session.commit()
-        
+
         # Issue items to bring quantity below minimum
         issuance_data = {
             'item_type': 'expendable',
@@ -217,30 +217,30 @@ class TestIssuanceTriggeringReorder:
             'purpose': 'Maintenance',
             'work_order': 'WO-12345'
         }
-        
+
         response = client.post(f'/api/kits/{kit.id}/issue',
                              json=issuance_data,
                              headers=auth_headers_admin)
-        
+
         assert response.status_code == 201
         issuance = json.loads(response.data)
-        
+
         # Verify issuance was created
         assert issuance['quantity'] == 15.0
         assert issuance['item_id'] == expendable.id
-        
+
         # Verify quantity was reduced
         db_session.refresh(expendable)
         assert expendable.quantity == 45.0
         assert expendable.status == 'low_stock'
-        
+
         # Verify automatic reorder was created
         reorder = KitReorderRequest.query.filter_by(
             kit_id=kit.id,
             item_id=expendable.id,
             is_automatic=True
         ).first()
-        
+
         assert reorder is not None
         assert reorder.status == 'pending'
         assert reorder.quantity_requested == 50.0  # Should request minimum_stock_level

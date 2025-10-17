@@ -13,6 +13,8 @@ services:
       - ./backend/migrate_tool_calibration.py:/app/migrate_tool_calibration.py
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_DEBUG=${FLASK_DEBUG:-False}
+      - FLASK_HOST=${FLASK_HOST:-0.0.0.0}
       - SECRET_KEY=${SECRET_KEY:-production-secret-key-change-me}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
       - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
@@ -21,6 +23,8 @@ services:
       - "5000:5000"
     networks:
       - app-network
+    # RESILIENCE: Health check ensures backend is responding before marking as healthy
+    # Frontend depends_on will wait for this health check to pass
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
@@ -29,11 +33,15 @@ services:
       start_period: 30s
     # Note: deploy.resources.limits are only applied in Swarm mode
     # For standalone Docker, these are informational only
+    # Use Docker Desktop resource limits or --memory/--cpus flags for standalone mode
     deploy:
       resources:
         limits:
           cpus: ${BACKEND_CPU_LIMIT:-0.5}
           memory: ${BACKEND_MEMORY_LIMIT:-512M}
+        reservations:
+          cpus: ${BACKEND_CPU_RESERVATION:-0.25}
+          memory: ${BACKEND_MEMORY_RESERVATION:-256M}
 
   frontend:
     build:
@@ -41,8 +49,10 @@ services:
       dockerfile: Dockerfile
     container_name: supplyline-mro-frontend
     restart: unless-stopped
+    # RESILIENCE: Wait for backend to be healthy before starting frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
     ports:
@@ -62,6 +72,9 @@ services:
         limits:
           cpus: ${FRONTEND_CPU_LIMIT:-0.3}
           memory: ${FRONTEND_MEMORY_LIMIT:-256M}
+        reservations:
+          cpus: ${FRONTEND_CPU_RESERVATION:-0.1}
+          memory: ${FRONTEND_MEMORY_RESERVATION:-128M}
 
 networks:
   app-network:

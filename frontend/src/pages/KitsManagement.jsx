@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Form, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaSearch, FaExclamationTriangle, FaBox, FaPlane, FaChartBar } from 'react-icons/fa';
-import { fetchKits, fetchAircraftTypes, fetchKitAlerts } from '../store/kitsSlice';
+import { fetchKits, fetchAircraftTypes } from '../store/kitsSlice';
 import { fetchUnreadCount } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -52,9 +52,9 @@ const KitsManagement = () => {
 
   const KitCard = ({ kit }) => {
     const aircraftType = aircraftTypes.find(at => at.id === kit.aircraft_type_id);
-    
+
     return (
-      <Card className="mb-3 shadow-sm hover-shadow" style={{ cursor: 'pointer' }}>
+      <Card className="mb-3 shadow-sm hover-shadow" style={{ cursor: 'pointer' }} data-testid="kit-card">
         <Card.Body onClick={() => navigate(`/kits/${kit.id}`)}>
           <div className="d-flex justify-content-between align-items-start mb-2">
             <div>
@@ -68,11 +68,11 @@ const KitsManagement = () => {
               {getStatusBadge(kit.status)}
             </div>
           </div>
-          
+
           {kit.description && (
             <p className="text-muted small mb-2">{kit.description}</p>
           )}
-          
+
           <Row className="mt-3">
             <Col xs={4} className="text-center">
               <div className="text-muted small">Boxes</div>
@@ -118,6 +118,7 @@ const KitsManagement = () => {
                 variant="success"
                 onClick={() => navigate('/kits/reports')}
                 className="me-2"
+                data-testid="reports-button"
               >
                 <FaChartBar className="me-2" />
                 Reports
@@ -126,6 +127,7 @@ const KitsManagement = () => {
                 variant="primary"
                 onClick={() => navigate('/kits/new')}
                 className="me-2"
+                data-testid="create-kit-button"
               >
                 <FaPlus className="me-2" />
                 Create Kit
@@ -134,6 +136,7 @@ const KitsManagement = () => {
                 <Button
                   variant="outline-primary"
                   onClick={() => navigate('/kits/messages')}
+                  data-testid="messages-button"
                 >
                   Messages
                   <Badge bg="danger" className="ms-2">{unreadCount}</Badge>
@@ -155,6 +158,7 @@ const KitsManagement = () => {
               placeholder="Search kits..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="search-kits-input"
             />
           </InputGroup>
         </Col>
@@ -162,6 +166,7 @@ const KitsManagement = () => {
           <Form.Select
             value={selectedAircraftType}
             onChange={(e) => setSelectedAircraftType(e.target.value)}
+            data-testid="aircraft-type-filter"
           >
             <option value="">All Aircraft Types</option>
             {aircraftTypes.map(at => (

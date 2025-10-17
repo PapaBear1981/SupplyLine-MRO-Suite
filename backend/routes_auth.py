@@ -11,9 +11,7 @@ This module provides JWT-based authentication endpoints including:
 
 from flask import request, jsonify, current_app
 from models import db, User, UserActivity, AuditLog
-from auth import JWTManager, jwt_required, csrf_required
-from security import validate_request_data, rate_limit, log_security_event
-from datetime import datetime
+from auth import JWTManager, jwt_required
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,36 +33,51 @@ def register_auth_routes(app):
 
             if not employee_number or not password:
                 return jsonify({'error': 'Missing employee_number or password'}), 400
-            
+
             # Find user
             user = User.query.filter_by(employee_number=employee_number).first()
+
+            # SECURITY: Use timing-safe authentication to prevent user enumeration
+            # Always perform password check even if user doesn't exist to prevent timing attacks
             if not user:
-                return jsonify({'error': 'Invalid credentials'}), 401
-            
+                # Perform a dummy password check to maintain consistent timing
+                from werkzeug.security import check_password_hash
+                check_password_hash('$2b$12$dummy.hash.to.prevent.timing.attacks', password)
+
+                # SECURITY: PII REDACTION - Don't log employee numbers (PII)
+                logger.warning(f"Login attempt for non-existent user from IP: {request.remote_addr}")
+                # Return generic error - don't reveal if user exists
+                return jsonify({
+                    'error': 'Invalid employee number or password',
+                    'code': 'INVALID_CREDENTIALS'
+                }), 401
+
             # Check if user is active
             if not user.is_active:
                 logger.warning(f"Login attempt for inactive user: {user.id}")
+                # Return generic error - don't reveal account status
                 return jsonify({
-                    'error': 'Account is inactive',
-                    'code': 'ACCOUNT_INACTIVE'
+                    'error': 'Invalid employee number or password',
+                    'code': 'INVALID_CREDENTIALS'
                 }), 401
-            
+
             # Check account lockout
             if user.is_locked():
                 logger.warning(f"Login attempt for locked account: {user.id}")
+                # Return specific error for locked accounts (user already knows account exists)
                 return jsonify({
-                    'error': 'Account is temporarily locked due to failed login attempts',
+                    'error': 'Account is temporarily locked due to multiple failed login attempts. Please try again later.',
                     'code': 'ACCOUNT_LOCKED'
                 }), 423
-            
+
             # Verify password
             if not user.check_password(password):
                 # Increment failed login attempts
                 user.increment_failed_login()
                 db.session.commit()
-                
+
                 logger.warning(f"Failed login attempt for user {user.id}: {user.failed_login_attempts} attempts")
-                
+
                 # Log failed attempt
                 activity = UserActivity(
                     user_id=user.id,
@@ -74,12 +87,13 @@ def register_auth_routes(app):
                 )
                 db.session.add(activity)
                 db.session.commit()
-                
+
+                # Return generic error - don't differentiate between bad password and bad username
                 return jsonify({
-                    'error': 'Invalid credentials',
+                    'error': 'Invalid employee number or password',
                     'code': 'INVALID_CREDENTIALS'
                 }), 401
-            
+
             # Successful login - reset failed attempts
             user.reset_failed_login_attempts()
 
@@ -121,7 +135,7 @@ def register_auth_routes(app):
 
             # Generate JWT tokens
             tokens = JWTManager.generate_tokens(user)
-            
+
             # Log successful login
             activity = UserActivity(
                 user_id=user.id,
@@ -130,64 +144,119 @@ def register_auth_routes(app):
                 ip_address=request.remote_addr
             )
             db.session.add(activity)
-            
+
             audit_log = AuditLog(
                 action_type='user_login',
                 action_details=f'User {user.id} ({user.name}) logged in with JWT'
             )
             db.session.add(audit_log)
             db.session.commit()
-            
+
             logger.info(f"Successful JWT login for user {user.id} ({user.name})")
-            
-            # Return tokens and user info
-            return jsonify({
+
+            # SECURITY: Set tokens in HttpOnly cookies to prevent XSS attacks
+            # Tokens are no longer accessible via JavaScript
+            response = jsonify({
                 'message': 'Login successful',
-                'user': user.to_dict(include_roles=True, include_permissions=True),
-                **tokens
-            }), 200
-            
+                'user': user.to_dict(include_roles=True, include_permissions=True)
+            })
+
+            # Set access token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'access_token',
+                value=tokens['access_token'],
+                max_age=900,  # 15 minutes
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            # Set refresh token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'refresh_token',
+                value=tokens['refresh_token'],
+                max_age=604800,  # 7 days
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            return response, 200
+
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
             return jsonify({
                 'error': 'Internal server error',
                 'code': 'SERVER_ERROR'
             }), 500
-    
+
     @app.route('/api/auth/refresh', methods=['POST'])
     def refresh_token():
-        """Refresh JWT access token using refresh token"""
+        """Refresh JWT access token using refresh token from HttpOnly cookie"""
         try:
-            data = request.get_json() or {}
-            refresh_token = data.get('refresh_token')
-            
-            if not refresh_token:
+            # SECURITY: Extract refresh token from HttpOnly cookie (preferred)
+            # or from request body (legacy support)
+            refresh_token_value = request.cookies.get('refresh_token')
+
+            if not refresh_token_value:
+                # Fallback to request body for backward compatibility
+                data = request.get_json(silent=True) or {}
+                refresh_token_value = data.get('refresh_token')
+
+            if not refresh_token_value:
                 return jsonify({
                     'error': 'Refresh token required',
                     'code': 'MISSING_REFRESH_TOKEN'
                 }), 400
-            
+
             # Generate new tokens
-            new_tokens = JWTManager.refresh_access_token(refresh_token)
+            new_tokens = JWTManager.refresh_access_token(refresh_token_value)
             if not new_tokens:
                 return jsonify({
                     'error': 'Invalid or expired refresh token',
                     'code': 'INVALID_REFRESH_TOKEN'
                 }), 401
-            
+
             logger.info("JWT tokens refreshed successfully")
-            return jsonify({
-                'message': 'Tokens refreshed successfully',
-                **new_tokens
-            }), 200
-            
+
+            # SECURITY: Set new tokens in HttpOnly cookies
+            response = jsonify({
+                'message': 'Tokens refreshed successfully'
+            })
+
+            # Set new access token cookie
+            response.set_cookie(
+                'access_token',
+                value=new_tokens['access_token'],
+                max_age=900,  # 15 minutes
+                httponly=True,
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),
+                samesite='Lax',
+                path='/'
+            )
+
+            # Set new refresh token cookie
+            response.set_cookie(
+                'refresh_token',
+                value=new_tokens['refresh_token'],
+                max_age=604800,  # 7 days
+                httponly=True,
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),
+                samesite='Lax',
+                path='/'
+            )
+
+            return response, 200
+
         except Exception as e:
             logger.error(f"Token refresh error: {str(e)}")
             return jsonify({
                 'error': 'Internal server error',
                 'code': 'SERVER_ERROR'
             }), 500
-    
+
     @app.route('/api/auth/logout', methods=['POST'])
     @jwt_required
     def logout():
@@ -195,7 +264,7 @@ def register_auth_routes(app):
         try:
             user_payload = request.current_user
             user_id = user_payload['user_id']
-            
+
             # Log logout activity
             activity = UserActivity(
                 user_id=user_id,
@@ -204,30 +273,54 @@ def register_auth_routes(app):
                 ip_address=request.remote_addr
             )
             db.session.add(activity)
-            
+
             audit_log = AuditLog(
                 action_type='user_logout',
                 action_details=f'User {user_id} ({user_payload["user_name"]}) logged out'
             )
             db.session.add(audit_log)
             db.session.commit()
-            
+
             logger.info(f"User {user_id} logged out successfully")
-            
+
+            # SECURITY: Clear HttpOnly cookies on logout
             # Note: In a production system, you might want to implement token blacklisting
-            # For now, we rely on short token expiration times
-            
-            return jsonify({
+            # For now, we rely on short token expiration times and cookie clearing
+            response = jsonify({
                 'message': 'Logged out successfully'
-            }), 200
-            
+            })
+
+            # Clear access token cookie
+            response.set_cookie(
+                'access_token',
+                value='',
+                max_age=0,
+                httponly=True,
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),
+                samesite='Lax',
+                path='/'
+            )
+
+            # Clear refresh token cookie
+            response.set_cookie(
+                'refresh_token',
+                value='',
+                max_age=0,
+                httponly=True,
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),
+                samesite='Lax',
+                path='/'
+            )
+
+            return response, 200
+
         except Exception as e:
             logger.error(f"Logout error: {str(e)}")
             return jsonify({
                 'error': 'Internal server error',
                 'code': 'SERVER_ERROR'
             }), 500
-    
+
     @app.route('/api/auth/me', methods=['GET'])
     @jwt_required
     def get_current_user():
@@ -235,7 +328,7 @@ def register_auth_routes(app):
         try:
             user_payload = request.current_user
             user_id = user_payload['user_id']
-            
+
             # Get fresh user data from database
             user = User.query.get(user_id)
             if not user or not user.is_active:
@@ -243,18 +336,18 @@ def register_auth_routes(app):
                     'error': 'User not found or inactive',
                     'code': 'USER_NOT_FOUND'
                 }), 404
-            
+
             return jsonify({
                 'user': user.to_dict(include_roles=True, include_permissions=True)
             }), 200
-            
+
         except Exception as e:
             logger.error(f"Get current user error: {str(e)}")
             return jsonify({
                 'error': 'Internal server error',
                 'code': 'SERVER_ERROR'
             }), 500
-    
+
     @app.route('/api/auth/status', methods=['GET'])
     def auth_status():
         """Check authentication status"""

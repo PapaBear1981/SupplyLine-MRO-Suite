@@ -175,6 +175,7 @@ const KitDetailPage = () => {
                 size="sm"
                 className="me-2 mb-2"
                 onClick={() => setShowAddItemModal(true)}
+                data-testid="add-items-button"
               >
                 <FaPlus className="me-1" />
                 Add Items
@@ -184,6 +185,7 @@ const KitDetailPage = () => {
                 size="sm"
                 className="me-2 mb-2"
                 onClick={() => setShowIssuanceForm(true)}
+                data-testid="issue-items-button"
               >
                 <FaBox className="me-1" />
                 Issue Items
@@ -193,6 +195,7 @@ const KitDetailPage = () => {
                 size="sm"
                 className="me-2 mb-2"
                 onClick={() => setShowTransferForm(true)}
+                data-testid="transfer-items-button"
               >
                 <FaExchangeAlt className="me-1" />
                 Transfer Items

@@ -56,6 +56,20 @@ const AdminDashboard = () => {
     }
   }, [dispatch, canViewDashboard]);
 
+  // Set the active tab to the first one the user has permission for
+  useEffect(() => {
+    if (activeTab === 'dashboard' && !canViewDashboard) {
+      if (canViewUsers) setActiveTab('users');
+      else if (canManageRoles) setActiveTab('roles');
+      else if (canViewAudit) setActiveTab('audit');
+      else if (canManageSettings) setActiveTab('settings');
+      else if (canManageHelp) setActiveTab('help');
+      else if (canViewRegistrations) setActiveTab('registrations');
+      else if (canManageAnnouncements) setActiveTab('announcements');
+      else if (canResetPasswords) setActiveTab('password-reset');
+    }
+  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, canResetPasswords, activeTab]);
+
   // Show loading indicator while fetching user data
   if (authLoading) {
     return (
@@ -75,20 +89,6 @@ const AdminDashboard = () => {
       </Alert>
     );
   }
-
-  // Set the active tab to the first one the user has permission for
-  useEffect(() => {
-    if (activeTab === 'dashboard' && !canViewDashboard) {
-      if (canViewUsers) setActiveTab('users');
-      else if (canManageRoles) setActiveTab('roles');
-      else if (canViewAudit) setActiveTab('audit');
-      else if (canManageSettings) setActiveTab('settings');
-      else if (canManageHelp) setActiveTab('help');
-      else if (canViewRegistrations) setActiveTab('registrations');
-      else if (canManageAnnouncements) setActiveTab('announcements');
-      else if (canResetPasswords) setActiveTab('password-reset');
-    }
-  }, [canViewDashboard, canViewUsers, canManageRoles, canViewAudit, canManageSettings, canManageHelp, canViewRegistrations, canManageAnnouncements, canResetPasswords, activeTab]);
 
   return (
     <div>

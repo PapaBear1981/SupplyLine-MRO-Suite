@@ -8,7 +8,7 @@ to prevent security vulnerabilities like SQL injection, XSS, and data corruption
 import re
 import html
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 from flask import request, jsonify
 from functools import wraps
 
@@ -48,6 +48,7 @@ ALLOWED_VALUES = {
     'audit_action': ['create', 'update', 'delete', 'login', 'logout', 'checkout', 'return'],
 }
 
+
 class ValidationError(Exception):
     """Custom exception for validation errors"""
     def __init__(self, field: str, message: str):
@@ -55,52 +56,53 @@ class ValidationError(Exception):
         self.message = message
         super().__init__(f"Validation error for field '{field}': {message}")
 
+
 class InputValidator:
     """Input validation and sanitization class"""
-    
+
     @staticmethod
     def sanitize_string(value: str, max_length: int = 255) -> str:
         """
         Sanitize string input by removing dangerous characters and limiting length
-        
+
         Args:
             value: Input string to sanitize
             max_length: Maximum allowed length
-            
+
         Returns:
             Sanitized string
         """
         if not isinstance(value, str):
             return str(value)
-        
+
         # Remove null bytes and control characters
         value = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', value)
-        
+
         # HTML escape to prevent XSS
         value = html.escape(value)
-        
+
         # Trim whitespace
         value = value.strip()
-        
+
         # Limit length
         if len(value) > max_length:
             value = value[:max_length]
-        
+
         return value
-    
+
     @staticmethod
     def validate_field(field_name: str, value: Any, required: bool = True) -> Any:
         """
         Validate a single field based on its name and type
-        
+
         Args:
             field_name: Name of the field to validate
             value: Value to validate
             required: Whether the field is required
-            
+
         Returns:
             Validated and sanitized value
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -109,27 +111,27 @@ class InputValidator:
             if required:
                 raise ValidationError(field_name, "This field is required")
             return None
-        
+
         # Convert to string for pattern matching
         str_value = str(value).strip()
-        
+
         # Check against patterns
         if field_name in PATTERNS:
             if not PATTERNS[field_name].match(str_value):
                 raise ValidationError(field_name, f"Invalid format for {field_name}")
-        
+
         # Check against allowed values
         if field_name in ALLOWED_VALUES:
             if str_value not in ALLOWED_VALUES[field_name]:
                 raise ValidationError(field_name, f"Value must be one of: {', '.join(ALLOWED_VALUES[field_name])}")
-        
+
         # Type-specific validation
         if field_name.endswith('_id') or field_name == 'id':
             try:
                 return int(value)
             except (ValueError, TypeError):
                 raise ValidationError(field_name, "Must be a valid integer")
-        
+
         if field_name in ['quantity', 'minimum_stock_level', 'reorder_point']:
             try:
                 float_value = float(value)
@@ -138,7 +140,7 @@ class InputValidator:
                 return float_value
             except (ValueError, TypeError):
                 raise ValidationError(field_name, "Must be a valid number")
-        
+
         if field_name in ['calibration_frequency_days', 'failed_login_attempts']:
             try:
                 int_value = int(value)
@@ -147,7 +149,7 @@ class InputValidator:
                 return int_value
             except (ValueError, TypeError):
                 raise ValidationError(field_name, "Must be a valid integer")
-        
+
         if field_name in ['is_admin', 'is_active', 'requires_calibration']:
             if isinstance(value, bool):
                 return value
@@ -156,31 +158,31 @@ class InputValidator:
             if str_value.lower() in ['false', '0', 'no']:
                 return False
             raise ValidationError(field_name, "Must be a boolean value")
-        
+
         # Default string sanitization
         return InputValidator.sanitize_string(str_value)
-    
+
     @staticmethod
     def validate_json_data(data: Dict[str, Any], schema: Dict[str, Dict]) -> Dict[str, Any]:
         """
         Validate JSON data against a schema
-        
+
         Args:
             data: Input data dictionary
             schema: Validation schema with field definitions
-            
+
         Returns:
             Validated and sanitized data dictionary
-            
+
         Raises:
             ValidationError: If validation fails
         """
         validated_data = {}
-        
+
         for field_name, field_config in schema.items():
             required = field_config.get('required', False)
             value = data.get(field_name)
-            
+
             try:
                 validated_value = InputValidator.validate_field(field_name, value, required)
                 if validated_value is not None:
@@ -188,7 +190,7 @@ class InputValidator:
             except ValidationError as e:
                 logger.warning(f"Validation error: {e}")
                 raise
-        
+
         return validated_data
 
 # Validation schemas for different endpoints
@@ -250,10 +252,11 @@ VALIDATION_SCHEMAS = {
     },
 }
 
+
 def validate_request_data(schema_name: str):
     """
     Decorator to validate request JSON data against a schema
-    
+
     Args:
         schema_name: Name of the validation schema to use
     """
@@ -263,22 +266,22 @@ def validate_request_data(schema_name: str):
             try:
                 # Get JSON data from request
                 data = request.get_json() or {}
-                
+
                 # Get validation schema
                 if schema_name not in VALIDATION_SCHEMAS:
                     logger.error(f"Unknown validation schema: {schema_name}")
                     return jsonify({'error': 'Internal validation error'}), 500
-                
+
                 schema = VALIDATION_SCHEMAS[schema_name]
-                
+
                 # Validate data
                 validated_data = InputValidator.validate_json_data(data, schema)
-                
+
                 # Add validated data to request context
                 request.validated_data = validated_data
-                
+
                 return f(*args, **kwargs)
-                
+
             except ValidationError as e:
                 logger.warning(f"Request validation failed: {e}")
                 return jsonify({
@@ -289,6 +292,6 @@ def validate_request_data(schema_name: str):
             except Exception as e:
                 logger.error(f"Unexpected validation error: {str(e)}")
                 return jsonify({'error': 'Internal validation error'}), 500
-        
+
         return decorated_function
     return decorator

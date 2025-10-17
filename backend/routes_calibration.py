@@ -1,16 +1,17 @@
 from flask import request, jsonify, current_app, send_from_directory
-from models import db, Tool, User, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
+from models import db, Tool, ToolCalibration, CalibrationStandard, ToolCalibrationStandard, AuditLog, UserActivity
 from datetime import datetime, timedelta
 import os
-from utils.error_handler import handle_errors, ValidationError, log_security_event
+from utils.error_handler import handle_errors, ValidationError
 from utils.file_validation import FileValidationError, validate_certificate_upload
 from utils.validation import validate_schema
-from auth import jwt_required, department_required
+from auth import department_required
 import logging
 
 logger = logging.getLogger(__name__)
 
 tool_manager_required = department_required('Materials')
+
 
 def register_calibration_routes(app):
     # Get all calibration records
@@ -73,7 +74,7 @@ def register_calibration_routes(app):
             # Find tools that require calibration and are due within the specified days
             # Use the calibration_status field to ensure consistency across the application
             tools = Tool.query.filter(
-                Tool.requires_calibration == True,
+                Tool.requires_calibration is True,
                 Tool.next_calibration_date.isnot(None),
                 Tool.calibration_status == 'due_soon' if days == 30 else
                     ((Tool.next_calibration_date <= threshold_date) & (Tool.next_calibration_date >= now))
@@ -116,7 +117,7 @@ def register_calibration_routes(app):
 
             # Find tools that require calibration and are overdue
             tools = Tool.query.filter(
-                Tool.requires_calibration == True,
+                Tool.requires_calibration is True,
                 Tool.next_calibration_date.isnot(None),
                 Tool.next_calibration_date < now
             ).all()
@@ -140,7 +141,7 @@ def register_calibration_routes(app):
             offset = (page - 1) * limit
 
             # Get the tool
-            tool = Tool.query.get_or_404(id)
+            Tool.query.get_or_404(id)
 
             # Get calibration history
             calibrations = ToolCalibration.query.filter_by(tool_id=id).order_by(

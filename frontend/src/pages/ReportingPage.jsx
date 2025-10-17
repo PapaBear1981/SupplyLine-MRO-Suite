@@ -17,10 +17,6 @@ import {
   fetchToolInventoryReport,
   fetchCheckoutHistoryReport,
   fetchDepartmentUsageReport,
-  fetchCycleCountAccuracyReport,
-  fetchCycleCountDiscrepancyReport,
-  fetchCycleCountPerformanceReport,
-  fetchCycleCountCoverageReport,
   setReportType,
   setTimeframe,
   setFilters
@@ -43,7 +39,6 @@ const ReportingPage = () => {
   const [exportError, setExportError] = useState(null);
   const [activeTab, setActiveTab] = useState('standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
-  const [calibrationReportsTab, setCalibrationReportsTab] = useState('due');
   const { showTooltips, showHelp } = useHelp();
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';

@@ -5,7 +5,7 @@ This module provides API endpoints for managing transfers between kits and wareh
 """
 
 from flask import request, jsonify
-from models import db, Tool, Chemical, AuditLog
+from models import db, AuditLog
 from models_kits import Kit, KitItem, KitExpendable, KitTransfer
 from datetime import datetime
 from auth import jwt_required, department_required
@@ -19,7 +19,7 @@ materials_required = department_required('Materials')
 
 def register_kit_transfer_routes(app):
     """Register all kit transfer routes"""
-    
+
     @app.route('/api/transfers', methods=['POST'])
     @materials_required
     @handle_errors
@@ -151,7 +151,7 @@ def register_kit_transfer_routes(app):
 
         logger.info(f"Transfer created and completed: ID {transfer.id}")
         return jsonify(transfer.to_dict()), 201
-    
+
     @app.route('/api/transfers', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -160,22 +160,22 @@ def register_kit_transfer_routes(app):
         status = request.args.get('status')
         from_kit_id = request.args.get('from_kit_id', type=int)
         to_kit_id = request.args.get('to_kit_id', type=int)
-        
+
         query = KitTransfer.query
-        
+
         if status:
             query = query.filter_by(status=status)
-        
+
         if from_kit_id:
             query = query.filter_by(from_location_type='kit', from_location_id=from_kit_id)
-        
+
         if to_kit_id:
             query = query.filter_by(to_location_type='kit', to_location_id=to_kit_id)
-        
+
         transfers = query.order_by(KitTransfer.transfer_date.desc()).all()
-        
+
         return jsonify([transfer.to_dict() for transfer in transfers]), 200
-    
+
     @app.route('/api/transfers/<int:id>', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -183,29 +183,29 @@ def register_kit_transfer_routes(app):
         """Get transfer details"""
         transfer = KitTransfer.query.get_or_404(id)
         return jsonify(transfer.to_dict()), 200
-    
+
     @app.route('/api/transfers/<int:id>/complete', methods=['PUT'])
     @materials_required
     @handle_errors
     def complete_transfer(id):
         """Complete a transfer"""
         transfer = KitTransfer.query.get_or_404(id)
-        
+
         if transfer.status != 'pending':
             raise ValidationError('Transfer is not in pending status')
-        
+
         # Update source location
         if transfer.from_location_type == 'kit':
             if transfer.item_type == 'expendable':
                 source_item = KitExpendable.query.get(transfer.item_id)
             else:
                 source_item = KitItem.query.get(transfer.item_id)
-            
+
             if source_item:
                 source_item.quantity -= transfer.quantity
                 if source_item.quantity <= 0:
                     source_item.status = 'transferred'
-        
+
         # Update destination location
         if transfer.to_location_type == 'kit':
             # Check if item already exists in destination kit
@@ -214,7 +214,7 @@ def register_kit_transfer_routes(app):
                     kit_id=transfer.to_location_id,
                     part_number=source_item.part_number if source_item else None
                 ).first()
-                
+
                 if dest_item:
                     dest_item.quantity += transfer.quantity
                 else:
@@ -227,19 +227,19 @@ def register_kit_transfer_routes(app):
                     item_id=transfer.item_id,
                     item_type=transfer.item_type
                 ).first()
-                
+
                 if dest_item:
                     dest_item.quantity += transfer.quantity
                 else:
                     # Create new item in destination kit
                     pass
-        
+
         # Update transfer status
         transfer.status = 'completed'
         transfer.completed_date = datetime.now()
-        
+
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_transfer_completed',
@@ -247,22 +247,22 @@ def register_kit_transfer_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
+
         return jsonify(transfer.to_dict()), 200
-    
+
     @app.route('/api/transfers/<int:id>/cancel', methods=['PUT'])
     @materials_required
     @handle_errors
     def cancel_transfer(id):
         """Cancel a transfer"""
         transfer = KitTransfer.query.get_or_404(id)
-        
+
         if transfer.status != 'pending':
             raise ValidationError('Can only cancel pending transfers')
-        
+
         transfer.status = 'cancelled'
         db.session.commit()
-        
+
         # Log action
         log = AuditLog(
             action_type='kit_transfer_cancelled',
@@ -270,6 +270,5 @@ def register_kit_transfer_routes(app):
         )
         db.session.add(log)
         db.session.commit()
-        
-        return jsonify(transfer.to_dict()), 200
 
+        return jsonify(transfer.to_dict()), 200

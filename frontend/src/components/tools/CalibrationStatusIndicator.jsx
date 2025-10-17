@@ -29,7 +29,7 @@ const CalibrationStatusIndicator = ({ tool, showText = true, size = 'sm' }) => {
   const getStatusInfo = () => {
     const now = new Date();
     const nextCalDate = tool.next_calibration_date ? new Date(tool.next_calibration_date) : null;
-    const lastCalDate = tool.last_calibration_date ? new Date(tool.last_calibration_date) : null;
+    // Removed unused lastCalDate variable
 
     switch (tool.calibration_status) {
       case 'current':

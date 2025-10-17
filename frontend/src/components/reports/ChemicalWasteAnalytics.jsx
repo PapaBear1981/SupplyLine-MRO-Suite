@@ -36,8 +36,7 @@ const ChemicalWasteAnalytics = () => {
     wasteLoading,
     wasteError,
     uniquePartNumbers,
-    uniquePartNumbersLoading,
-    uniquePartNumbersError
+    uniquePartNumbersLoading
   } = useSelector((state) => state.chemicals);
 
   const [timeframe, setTimeframe] = useState('month');

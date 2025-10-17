@@ -12,9 +12,13 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      if (token && !user) {
-        await dispatch(fetchCurrentUser());
+      // Check authentication status via API since tokens are in HttpOnly cookies
+      if (!user) {
+        try {
+          await dispatch(fetchCurrentUser());
+        } catch (error) {
+          // User is not authenticated, will be handled by auth state
+        }
       }
       setIsChecking(false);
     };

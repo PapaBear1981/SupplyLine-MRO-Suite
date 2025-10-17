@@ -14,7 +14,7 @@ Tests all transfer-related API endpoints including:
 import pytest
 import json
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitItem, KitTransfer
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitTransfer
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def materials_user(db_session):
     """Create a Materials department user"""
     import uuid
     emp_number = f'MAT{uuid.uuid4().hex[:6]}'
-    
+
     user = User(
         name='Materials User',
         employee_number=emp_number,
@@ -523,4 +523,3 @@ class TestCancelTransfer:
         response = client.put(f'/api/transfers/{pending_transfer.id}/cancel')
 
         assert response.status_code == 401
-

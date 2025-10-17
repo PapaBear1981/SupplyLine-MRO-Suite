@@ -1,6 +1,7 @@
+/* eslint-env node */
 /**
  * Error Service
- * 
+ *
  * Centralized error logging, reporting, and handling service
  */
 

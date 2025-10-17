@@ -4,10 +4,10 @@ Handles CRUD operations for warehouses and warehouse inventory.
 """
 
 from flask import Blueprint, request, jsonify
-from auth.jwt_manager import jwt_required, admin_required
+from auth.jwt_manager import jwt_required
 from models import db, Warehouse, Tool, Chemical, User
 from datetime import datetime
-from sqlalchemy import or_, and_
+from sqlalchemy import or_
 
 warehouses_bp = Blueprint('warehouses', __name__)
 
@@ -25,14 +25,26 @@ def require_admin():
 @jwt_required
 def get_warehouses():
     """
-    Get list of all warehouses.
+    Get list of all warehouses with pagination.
     Query params:
         - include_inactive: Include inactive warehouses (default: false)
         - warehouse_type: Filter by type (main/satellite)
+        - page: Page number (default: 1)
+        - per_page: Items per page (default: 50, max: 200)
     """
     try:
+        # PERFORMANCE: Add pagination to prevent unbounded dataset returns
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+
         include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
         warehouse_type = request.args.get('warehouse_type')
+
+        # Validate pagination parameters
+        if page < 1:
+            return jsonify({'error': 'Page must be >= 1'}), 400
+        if per_page < 1 or per_page > 200:
+            return jsonify({'error': 'Per page must be between 1 and 200'}), 400
 
         query = Warehouse.query
 
@@ -45,12 +57,29 @@ def get_warehouses():
             query = query.filter_by(warehouse_type=warehouse_type)
 
         # Order by type (main first) then name
-        warehouses = query.order_by(
+        query = query.order_by(
             Warehouse.warehouse_type.desc(),  # main before satellite
             Warehouse.name
-        ).all()
+        )
 
-        return jsonify([w.to_dict(include_counts=True) for w in warehouses]), 200
+        # Apply pagination
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        warehouses = pagination.items
+
+        # Return paginated response
+        response = {
+            'warehouses': [w.to_dict(include_counts=True) for w in warehouses],
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            }
+        }
+
+        return jsonify(response), 200
 
     except Exception as e:
         import traceback
@@ -294,9 +323,6 @@ def get_warehouse_stats(warehouse_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-
 
 
 @warehouses_bp.route('/warehouses/<int:warehouse_id>/tools', methods=['GET'])

@@ -9,7 +9,7 @@ import TourGuide from './TourGuide';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const { showHelp, showTooltips, setShowHelp, setShowTooltips } = useHelp();
+  const { showHelp, showTooltips, setShowHelp } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
 
@@ -18,8 +18,8 @@ const MainLayout = ({ children }) => {
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
         <Container fluid>
           <Navbar.Brand as={Link} to="/">SupplyLine MRO Suite</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav">
+          <Navbar.Toggle aria-controls="basic-navbar-nav" data-testid="mobile-menu-toggle" />
+          <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-menu">
             <Nav className="me-auto">
               <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
               <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
@@ -117,6 +117,7 @@ const MainLayout = ({ children }) => {
                   variant="outline-light"
                   className="d-flex align-items-center"
                   onClick={() => setShowProfileModal(true)}
+                  data-testid="user-menu"
                 >
                   <span className="me-2">{user?.name || 'User'}</span>
                   {user?.avatar ? (

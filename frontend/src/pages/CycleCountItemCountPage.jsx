@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+
 import {
   Card,
   Row,
@@ -16,7 +16,7 @@ import CycleCountItemForm from '../components/cycleCount/CycleCountItemForm';
 
 const CycleCountItemCountPage = () => {
   const { id } = useParams();
-  const dispatch = useDispatch();
+  // Removed unused dispatch
   const navigate = useNavigate();
   const { showHelp } = useHelp();
 

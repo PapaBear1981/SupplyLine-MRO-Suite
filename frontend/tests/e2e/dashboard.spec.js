@@ -13,9 +13,12 @@ test.describe('Dashboard', () => {
     await page.fill('input[placeholder="Enter employee number"]', TEST_USER.username);
     await page.fill('input[placeholder="Password"]', TEST_USER.password);
     await page.click('button[type="submit"]');
-    
-    // Wait for dashboard to load
-    await expect(page).toHaveURL('/dashboard');
+
+    // Wait for dashboard to load (redirects to root '/')
+    await expect(page).toHaveURL('/');
+
+    // Wait for dashboard content to be visible
+    await expect(page.locator('[data-testid="dashboard-content"]')).toBeVisible();
   });
 
   test('should display dashboard title and main sections', async ({ page }) => {
@@ -29,19 +32,23 @@ test.describe('Dashboard', () => {
   });
 
   test('should display quick action buttons', async ({ page }) => {
-    // Check for quick action buttons
-    await expect(page.locator('text=Check Out Tool')).toBeVisible();
-    await expect(page.locator('text=View Tools')).toBeVisible();
+    // Check for quick action buttons (admin user has different buttons)
+    await expect(page.locator('text=Checkout Tool')).toBeVisible();
     await expect(page.locator('text=My Checkouts')).toBeVisible();
+    await expect(page.locator('text=View Kits')).toBeVisible();
+
+    // Admin-specific buttons - use .first() to avoid strict mode violations
+    await expect(page.locator('a[href="/admin/dashboard"]:has-text("Admin Dashboard")').first()).toBeVisible();
+    await expect(page.locator('text=Add New Tool').first()).toBeVisible();
   });
 
   test('should navigate to tools page from quick actions', async ({ page }) => {
-    // Click on View Tools quick action
-    await page.click('text=View Tools');
-    
+    // Click on Checkout Tool quick action (which links to /tools)
+    await page.click('text=Checkout Tool');
+
     // Should navigate to tools page
     await expect(page).toHaveURL('/tools');
-    await expect(page.locator('h1')).toContainText('Tools');
+    await expect(page.locator('h1')).toContainText('Tool Inventory');
   });
 
   test('should navigate to checkouts page from quick actions', async ({ page }) => {
@@ -55,12 +62,15 @@ test.describe('Dashboard', () => {
   test('should display user information in navbar', async ({ page }) => {
     // Check that user menu is visible
     await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
-    
+
     // Click user menu to see user info
     await page.click('[data-testid="user-menu"]');
-    
-    // Should show user name or employee number
-    await expect(page.locator('text=ADMIN001')).toBeVisible();
+
+    // Should show user name (John Engineer) in the profile modal - use first occurrence
+    await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
+
+    // Should show Administrator role
+    await expect(page.locator('text=Administrator')).toBeVisible();
   });
 
   test('should display announcements section', async ({ page }) => {
@@ -103,16 +113,13 @@ test.describe('Dashboard', () => {
   });
 
   test('should refresh data when page is refreshed', async ({ page }) => {
-    // Get initial content
-    const initialContent = await page.locator('[data-testid="dashboard-content"]').textContent();
-    
     // Refresh page
     await page.reload();
-    
-    // Should still show dashboard
-    await expect(page).toHaveURL('/dashboard');
+
+    // Should still show dashboard (at root URL)
+    await expect(page).toHaveURL('/');
     await expect(page.locator('h1')).toContainText('Dashboard');
-    
+
     // Content should be loaded (might be same or different)
     await expect(page.locator('[data-testid="dashboard-content"]')).toBeVisible();
   });

@@ -118,7 +118,7 @@ def test_calibration_certificate_upload_and_download(
 
     pdf_bytes = b'%PDF-1.4\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF'
     upload_data = {
-        'certificate': (BytesIO(pdf_bytes), 'calibration.pdf', 'application/pdf')
+        'certificate': (BytesIO(pdf_bytes), 'calibration.pd', 'application/pdf')
     }
 
     upload_response = client.post(
@@ -166,7 +166,7 @@ def test_calibration_certificate_rejects_invalid_file(
     db_session.commit()
 
     upload_data = {
-        'certificate': (BytesIO(b'<script>alert(1)</script>'), 'calibration.pdf', 'application/pdf')
+        'certificate': (BytesIO(b'<script>alert(1)</script>'), 'calibration.pd', 'application/pdf')
     }
 
     response = client.post(

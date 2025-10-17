@@ -88,18 +88,14 @@ import WarehousesManagement from './pages/WarehousesManagement';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
 const RootRoute = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  if (isAuthenticated) {
-    return (
-      <ProtectedRoute>
-        <MainLayout>
-          <UserDashboardPage />
-        </MainLayout>
-      </ProtectedRoute>
-    );
+  // If authenticated and we have user data, redirect to dashboard
+  if (isAuthenticated && user) {
+    return <Navigate to="/dashboard" replace />;
   }
 
+  // Otherwise show landing page
   return <LandingPage />;
 };
 
@@ -108,8 +104,11 @@ function App() {
   const { theme } = useSelector((state) => state.theme);
 
   useEffect(() => {
-    // Try to fetch current user on app load
-    dispatch(fetchCurrentUser());
+    // Always try to fetch current user on app load to check for existing session
+    // This will silently fail if no valid session exists (user not logged in)
+    dispatch(fetchCurrentUser()).catch(() => {
+      // Silently ignore - user is not authenticated
+    });
   }, [dispatch]);
 
   // Apply theme to document

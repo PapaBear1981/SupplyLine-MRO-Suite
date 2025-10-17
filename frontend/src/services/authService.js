@@ -12,11 +12,10 @@ const AuthService = {
         password,
       });
 
-      const { access_token, refresh_token, user } = response.data;
-      localStorage.setItem(TOKEN_KEY, access_token);
-      localStorage.setItem(REFRESH_KEY, refresh_token);
+      const { user } = response.data;
+      // Tokens are now stored in HttpOnly cookies by the backend
 
-      return { user, access_token, refresh_token };
+      return { user };
     } catch (error) {
       throw error;
     }
@@ -40,23 +39,17 @@ const AuthService = {
     } catch (error) {
       throw error;
     } finally {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
+      // Tokens are now cleared via HttpOnly cookies by the backend
     }
   },
 
   // Refresh access token using refresh token
   refreshToken: async () => {
     try {
-      const refresh_token = localStorage.getItem(REFRESH_KEY);
-      if (!refresh_token) {
-        throw new Error('No refresh token available');
-      }
-      const response = await api.post('/auth/refresh', { refresh_token });
-      const { access_token, refresh_token: new_refresh } = response.data;
-      localStorage.setItem(TOKEN_KEY, access_token);
-      localStorage.setItem(REFRESH_KEY, new_refresh);
-      return { access_token, refresh_token: new_refresh };
+      // Refresh tokens are now handled via HttpOnly cookies by the backend
+      const response = await api.post('/auth/refresh');
+      // Backend sets new cookies automatically
+      return response.data;
     } catch (error) {
       throw error;
     }

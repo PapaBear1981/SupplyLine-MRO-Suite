@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, ListGroup, Badge, Alert, Button, Spinner } from 'react-bootstrap';
 import { fetchAnnouncements, markAnnouncementAsRead } from '../../store/announcementSlice';
@@ -91,7 +91,7 @@ const Announcements = () => {
   });
 
   return (
-    <Card className="shadow-sm mb-4">
+    <Card className="shadow-sm mb-4" data-testid="announcements">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Announcements</h4>
         <Badge bg="primary" pill>

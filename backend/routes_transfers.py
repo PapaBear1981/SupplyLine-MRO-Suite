@@ -5,7 +5,7 @@ Handles transfers between warehouses and kits.
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Warehouse, WarehouseTransfer, Tool, Chemical, User
+from models import db, Warehouse, WarehouseTransfer, Tool, Chemical
 from models_kits import Kit, KitItem, KitBox
 from datetime import datetime
 from utils.transaction_helper import record_transaction
@@ -420,4 +420,3 @@ def get_transfers():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-

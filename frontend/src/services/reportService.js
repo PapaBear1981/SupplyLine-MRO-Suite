@@ -1,6 +1,6 @@
 import api from './api';
 // Removed legacy client-side export libraries - now using server-side export
-import { formatDate, formatISODate } from '../utils/dateUtils';
+import { formatISODate } from '../utils/dateUtils';
 
 const ReportService = {
   // Fetch tool inventory report

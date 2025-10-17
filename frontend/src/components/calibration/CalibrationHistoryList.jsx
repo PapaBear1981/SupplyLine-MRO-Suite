@@ -11,7 +11,7 @@ const CalibrationHistoryList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [toolId, setToolId] = useState('');
+  const [toolId, _setToolId] = useState(''); // toolId used in useEffect, setter planned for UI filter
   const [status, setStatus] = useState('');
 
   useEffect(() => {

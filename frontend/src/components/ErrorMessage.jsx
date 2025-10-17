@@ -1,6 +1,7 @@
+/* eslint-env node */
 /**
  * ErrorMessage Component
- * 
+ *
  * Reusable error message component with user-friendly messages,
  * recovery actions, and dismiss functionality
  */

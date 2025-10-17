@@ -28,7 +28,7 @@ const MobileCycleCountBatch = ({ batchId, onItemCounted }) => {
   const [submissionError, setSubmissionError] = useState('');
   const [scanError, setScanError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [scannerInitialized, setScannerInitialized] = useState(false);
+  const [_scannerInitialized, setScannerInitialized] = useState(false); // Tracked but not currently used
   const scannerRef = useRef(null);
   const html5QrcodeScannerRef = useRef(null);
 

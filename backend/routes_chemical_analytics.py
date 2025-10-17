@@ -1,12 +1,13 @@
 from flask import request, jsonify
-from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
+from models import db, Chemical, ChemicalIssuance, User
 from datetime import datetime, timedelta
 from auth import department_required
 import traceback
-from sqlalchemy import func
 
 
 # Helper functions for part number analytics
+
+
 def calculate_inventory_stats(chemicals):
     """Calculate inventory statistics for the given chemicals."""
     active_count = 0
@@ -208,6 +209,7 @@ def calculate_shelf_life_stats(chemicals):
 
 # Decorator to check if user is admin or in Materials department
 materials_manager_required = department_required('Materials')
+
 
 def register_chemical_analytics_routes(app):
     # Get waste analytics

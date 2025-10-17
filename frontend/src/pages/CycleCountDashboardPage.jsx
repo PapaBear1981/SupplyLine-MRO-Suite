@@ -13,7 +13,7 @@ import { useHelp } from '../context/HelpContext';
 const CycleCountDashboardPage = () => {
   const dispatch = useDispatch();
   const { showHelp } = useHelp();
-  const { stats, schedules, batches, discrepancies } = useSelector((state) => state.cycleCount);
+  const { stats } = useSelector((state) => state.cycleCount);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {

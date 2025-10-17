@@ -163,7 +163,8 @@ const toolsSlice = createSlice({
       })
       .addCase(fetchTools.fulfilled, (state, action) => {
         state.loading = false;
-        state.tools = action.payload;
+        // The API returns { tools: [...], pagination: {...} }, so extract the tools array
+        state.tools = Array.isArray(action.payload) ? action.payload : (action.payload.tools || []);
       })
       .addCase(fetchTools.rejected, (state, action) => {
         state.loading = false;

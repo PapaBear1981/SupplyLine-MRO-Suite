@@ -86,7 +86,7 @@ def materials_user(db_session):
     """Create a Materials department user"""
     import uuid
     emp_number = f'MAT{uuid.uuid4().hex[:6]}'
-    
+
     user = User(
         name='Materials User',
         employee_number=emp_number,
@@ -686,4 +686,3 @@ class TestUpdateReorderRequest:
         response = client.put(f'/api/reorder-requests/{pending_reorder.id}', json=update_data)
 
         assert response.status_code == 401
-

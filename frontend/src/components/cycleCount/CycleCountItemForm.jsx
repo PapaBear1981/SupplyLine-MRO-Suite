@@ -31,6 +31,18 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
     }
   }, [item]);
 
+  // Handle success callback after submission
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        if (onSuccess) onSuccess();
+      }, 1500);
+
+      // Prevent state updates after unmount
+      return () => clearTimeout(timer);
+    }
+  }, [success, onSuccess]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -66,18 +78,6 @@ const CycleCountItemForm = ({ item, onSuccess }) => {
       })).unwrap();
 
       setSuccess(true);
-
-      // Use useEffect for cleanup to prevent memory leaks
-      useEffect(() => {
-        if (success) {
-          const timer = setTimeout(() => {
-            if (onSuccess) onSuccess();
-          }, 1500);
-
-          // Prevent state updates after unmount
-          return () => clearTimeout(timer);
-        }
-      }, [success, onSuccess]);
     } catch (err) {
       setError(err.error || 'An error occurred while submitting the count result');
     } finally {

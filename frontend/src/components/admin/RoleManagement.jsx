@@ -8,6 +8,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 
 const RoleManagement = () => {
   const dispatch = useDispatch();
+  // eslint-disable-next-line no-unused-vars -- permissions is used in modals below (lines 318-328, 386-396, 466-501)
   const { roles, permissions, permissionsByCategory, loading, error } = useSelector((state) => state.rbac);
   const { user: currentUser } = useSelector((state) => state.auth);
 

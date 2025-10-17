@@ -121,14 +121,13 @@ export const fetchUserActivity = createAsyncThunk(
 );
 
 // Initial state
-const accessToken = localStorage.getItem('access_token');
-const refreshToken = localStorage.getItem('refresh_token');
-
+// NOTE: Tokens are now stored in HttpOnly cookies, not localStorage
+// Authentication state will be determined by fetching current user
 const initialState = {
   user: null,
-  accessToken,
-  refreshToken,
-  isAuthenticated: !!accessToken,
+  accessToken: null,
+  refreshToken: null,
+  isAuthenticated: false,
   loading: false,
   error: null,
   registrationSuccess: null,
@@ -154,8 +153,7 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
-        state.accessToken = action.payload.access_token;
-        state.refreshToken = action.payload.refresh_token;
+        // Tokens are stored in HttpOnly cookies by the backend
         state.isAuthenticated = true;
       })
       .addCase(login.rejected, (state, action) => {
@@ -169,8 +167,7 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.loading = false;
         state.user = null;
-        state.accessToken = null;
-        state.refreshToken = null;
+        // Tokens are cleared via HttpOnly cookies by the backend
         state.isAuthenticated = false;
       })
       .addCase(logout.rejected, (state, action) => {
@@ -178,14 +175,12 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
       // Refresh access token
-      .addCase(refreshAccessToken.fulfilled, (state, action) => {
-        state.accessToken = action.payload.access_token;
-        state.refreshToken = action.payload.refresh_token;
+      .addCase(refreshAccessToken.fulfilled, (state) => {
+        // Tokens are refreshed via HttpOnly cookies by the backend
         state.isAuthenticated = true;
       })
       .addCase(refreshAccessToken.rejected, (state) => {
-        state.accessToken = null;
-        state.refreshToken = null;
+        // Token refresh failed, user needs to log in again
         state.isAuthenticated = false;
       })
       // Fetch current user
@@ -197,7 +192,7 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
       })
-      .addCase(fetchCurrentUser.rejected, (state, action) => {
+      .addCase(fetchCurrentUser.rejected, (state, _action) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
