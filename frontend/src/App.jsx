@@ -11,7 +11,7 @@ import { HelpProvider } from './context/HelpContext';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
-import ProtectedRoute, { AdminRoute } from './components/auth/ProtectedRoute';
+import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/ProtectedRoute';
 
 // Import pages
 import LandingPage from './pages/LandingPage';
@@ -136,260 +136,260 @@ function App() {
         } />
 
         <Route path="/tools" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.tools">
             <MainLayout>
               <ToolsManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/tools/new" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.tools">
             <MainLayout>
               <NewToolPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/tools/:id" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.tools">
             <MainLayout>
               <ToolDetailPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/tools/:id/edit" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.tools">
             <MainLayout>
               <EditToolPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/checkout/:id" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.checkouts">
             <MainLayout>
               <CheckoutPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/checkouts" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.checkouts">
             <MainLayout>
               <CheckoutsPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/my-checkouts" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.my_checkouts">
             <MainLayout>
               <UserCheckoutsPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/checkouts/all" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.checkouts">
             <MainLayout>
               <AllCheckoutsPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
 
         <Route path="/reports" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.reports">
             <MainLayout>
               <ReportingPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/admin/dashboard" element={
-          <AdminRoute>
+          <PermissionRoute permission="page.admin_dashboard">
             <MainLayout>
               <AdminDashboardPage />
             </MainLayout>
-          </AdminRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/admin/aircraft-types" element={
-          <AdminRoute>
+          <PermissionRoute permission="page.aircraft_types">
             <MainLayout>
               <AircraftTypeManagement />
             </MainLayout>
-          </AdminRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/warehouses" element={
-          <AdminRoute>
+          <PermissionRoute permission="page.warehouses">
             <MainLayout>
               <WarehousesManagement />
             </MainLayout>
-          </AdminRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/profile" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.profile">
             <ProfilePageNew />
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         {/* Chemical routes */}
         <Route path="/chemicals" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <ChemicalsManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/chemicals/new" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <NewChemicalPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/chemicals/:id" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <ChemicalDetailPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/chemicals/:id/edit" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <EditChemicalPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/chemicals/:id/issue" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <ChemicalIssuePage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         {/* Calibration routes */}
         <Route path="/calibrations" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/tools/:id/calibrations/new" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <ToolCalibrationForm />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/tools/:id/calibrations/:calibrationId" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationDetailPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/calibration-standards" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/calibration-standards/new" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationStandardForm />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/calibration-standards/:id" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/calibration-standards/:id/edit" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.calibrations">
             <MainLayout>
               <CalibrationStandardForm />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         {/* Scanner route */}
         <Route path="/scanner" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.scanner">
             <MainLayout>
               <ScannerPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         {/* Kit routes */}
         <Route path="/kits" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <MainLayout>
               <KitsManagement />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/kits/new" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <MainLayout>
               <KitWizard />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/kits/:id/edit" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <MainLayout>
               <EditKitPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/kits/:id" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <MainLayout>
               <KitDetailPage />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/kits/reports" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <MainLayout>
               <KitReports />
             </MainLayout>
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         <Route path="/kits/mobile" element={
-          <ProtectedRoute>
+          <PermissionRoute permission="page.kits">
             <KitMobileInterface />
-          </ProtectedRoute>
+          </PermissionRoute>
         } />
 
         {/* CYCLE COUNT ROUTES - TEMPORARILY DISABLED */}

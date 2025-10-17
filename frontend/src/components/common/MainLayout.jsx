@@ -6,6 +6,7 @@ import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
 import TourGuide from './TourGuide';
+import { hasPermission } from '../auth/ProtectedRoute';
 
 const MainLayout = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -21,58 +22,74 @@ const MainLayout = ({ children }) => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" data-testid="mobile-menu-toggle" />
           <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-menu">
             <Nav className="me-auto">
+              {/* Dashboard is always visible to authenticated users */}
               <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-              <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
-              <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
-              <Nav.Link as={Link} to="/kits">Kits</Nav.Link>
+
+              {/* Show navigation links based on page permissions */}
               {user && (
                 <>
-                  {/* Show these links to admins and Materials department users */}
-                  {(user.is_admin || user.department === 'Materials') && (
-                    <>
-                      <Nav.Link as={Link} to="/checkouts/all">All Checkouts</Nav.Link>
-                      <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
-                      <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
-                      {user.is_admin && (
-                        <Nav.Link as={Link} to="/warehouses">Warehouses</Nav.Link>
-                      )}
-                      {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
-                      {/* ============================================== */}
-                      {/* The "Cycle Counts" navigation menu item has been disabled due to GitHub Issue #366 */}
-                      {/* */}
-                      {/* REASON FOR DISABLING: */}
-                      {/* - Cycle count system is completely non-functional */}
-                      {/* - Backend API endpoints return "Resource not found" errors */}
-                      {/* - Clicking this link leads to error pages that confuse users */}
-                      {/* - Production stability requires hiding broken functionality */}
-                      {/* */}
-                      {/* WHAT THIS NAVIGATION ITEM DID: */}
-                      {/* - Linked to /cycle-counts route (main cycle count dashboard) */}
-                      {/* - Provided access to inventory cycle counting operations */}
-                      {/* - Allowed users to schedule, execute, and review cycle counts */}
-                      {/* */}
-                      {/* TO RE-ENABLE: */}
-                      {/* 1. Uncomment the Nav.Link below */}
-                      {/* 2. Ensure cycle count routes are enabled in App.jsx */}
-                      {/* 3. Verify backend cycle count routes work (backend/routes.py) */}
-                      {/* 4. Test that all cycle count functionality works end-to-end */}
-                      {/* */}
-                      {/* DISABLED DATE: 2025-06-22 */}
-                      {/* GITHUB ISSUE: #366 */}
-                      {/* <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link> */}
-                      <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
-                    </>
+                  {hasPermission(user, 'page.tools') && (
+                    <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
                   )}
 
-                  {/* Only show Admin Dashboard to admin users */}
-                  {user.is_admin === true && (
+                  {hasPermission(user, 'page.checkouts') && (
+                    <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+                  )}
+
+                  {hasPermission(user, 'page.kits') && (
+                    <Nav.Link as={Link} to="/kits">Kits</Nav.Link>
+                  )}
+
+                  {hasPermission(user, 'page.chemicals') && (
+                    <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
+                  )}
+
+                  {hasPermission(user, 'page.calibrations') && (
+                    <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                  )}
+
+                  {hasPermission(user, 'page.warehouses') && (
+                    <Nav.Link as={Link} to="/warehouses">Warehouses</Nav.Link>
+                  )}
+
+                  {hasPermission(user, 'page.reports') && (
+                    <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
+                  )}
+
+                  {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
+                  {/* ============================================== */}
+                  {/* The "Cycle Counts" navigation menu item has been disabled due to GitHub Issue #366 */}
+                  {/* */}
+                  {/* REASON FOR DISABLING: */}
+                  {/* - Cycle count system is completely non-functional */}
+                  {/* - Backend API endpoints return "Resource not found" errors */}
+                  {/* - Clicking this link leads to error pages that confuse users */}
+                  {/* - Production stability requires hiding broken functionality */}
+                  {/* */}
+                  {/* WHAT THIS NAVIGATION ITEM DID: */}
+                  {/* - Linked to /cycle-counts route (main cycle count dashboard) */}
+                  {/* - Provided access to inventory cycle counting operations */}
+                  {/* - Allowed users to schedule, execute, and review cycle counts */}
+                  {/* */}
+                  {/* TO RE-ENABLE: */}
+                  {/* 1. Uncomment the Nav.Link below */}
+                  {/* 2. Ensure cycle count routes are enabled in App.jsx */}
+                  {/* 3. Verify backend cycle count routes work (backend/routes.py) */}
+                  {/* 4. Test that all cycle count functionality works end-to-end */}
+                  {/* */}
+                  {/* DISABLED DATE: 2025-06-22 */}
+                  {/* GITHUB ISSUE: #366 */}
+                  {/* <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link> */}
+
+                  {/* Only show Admin Dashboard to users with permission */}
+                  {hasPermission(user, 'page.admin_dashboard') && (
                     <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
                   )}
                 </>
               )}
 
-              {/* Scanner button - available to all authenticated users */}
-              {user && (
+              {/* Scanner button - available to users with scanner permission */}
+              {user && hasPermission(user, 'page.scanner') && (
                 <Nav.Link as={Link} to="/scanner" className="ms-2 btn btn-outline-light btn-sm">
                   <i className="bi bi-upc-scan me-1"></i> Scanner
                 </Nav.Link>

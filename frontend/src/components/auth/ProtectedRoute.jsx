@@ -2,9 +2,24 @@ import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { fetchCurrentUser } from '../../store/authSlice';
-import { Spinner } from 'react-bootstrap';
+import { Spinner, Alert, Container } from 'react-bootstrap';
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
+/**
+ * Check if user has a specific permission
+ * Admins automatically have all permissions
+ */
+const hasPermission = (user, permissionName) => {
+  if (!user) return false;
+
+  // Admins have all permissions
+  if (user.is_admin) return true;
+
+  // Check if user has the specific permission
+  const permissions = user.permissions || [];
+  return permissions.includes(permissionName);
+};
+
+const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = null }) => {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -43,8 +58,31 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   // Check if admin access is required but user is not an admin
   if (requireAdmin && !user?.is_admin) {
-    // Redirect to tools page with an unauthorized message
-    return <Navigate to="/tools" state={{ unauthorized: true }} replace />;
+    // Redirect to dashboard with an unauthorized message
+    return <Navigate to="/dashboard" state={{ unauthorized: true, message: 'Admin privileges required' }} replace />;
+  }
+
+  // Check if specific permission is required
+  if (requirePermission && !hasPermission(user, requirePermission)) {
+    // Show access denied page
+    return (
+      <Container className="mt-5">
+        <Alert variant="danger">
+          <Alert.Heading>Access Denied</Alert.Heading>
+          <p>
+            You do not have permission to access this page.
+            {requirePermission && ` Required permission: ${requirePermission}`}
+          </p>
+          <hr />
+          <p className="mb-0">
+            Please contact your administrator if you believe you should have access to this page.
+          </p>
+        </Alert>
+        <div className="mt-3">
+          <a href="/dashboard" className="btn btn-primary">Return to Dashboard</a>
+        </div>
+      </Container>
+    );
   }
 
   return children;
@@ -54,5 +92,13 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 export const AdminRoute = ({ children }) => {
   return <ProtectedRoute requireAdmin={true}>{children}</ProtectedRoute>;
 };
+
+// Specialized component for permission-based routes
+export const PermissionRoute = ({ children, permission }) => {
+  return <ProtectedRoute requirePermission={permission}>{children}</ProtectedRoute>;
+};
+
+// Helper function to check permissions (can be used in components)
+export { hasPermission };
 
 export default ProtectedRoute;
