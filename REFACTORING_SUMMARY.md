@@ -225,8 +225,10 @@ All management operations require the `user.manage` permission (for departments)
 
 ## Notes
 
-- System roles (Administrator, Materials Manager, Maintenance User) cannot be deleted or have their names/descriptions changed, but their permissions can be modified
+- **System Role**: Only the **Administrator** role is a system role and cannot be deleted or have its name/description changed, but its permissions can be modified
+- **Regular Roles**: Materials Manager and Maintenance User are regular roles that administrators can edit or delete
 - Departments use soft delete by default (is_active flag), with hard delete available as a separate action
+- Hard delete of departments checks for referential integrity (users assigned to the department) before allowing deletion
 - All operations are logged in the audit log
 - The permission tree selector is reusable and can be used in other parts of the application
 

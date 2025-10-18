@@ -25,7 +25,7 @@ import './RolesManagementModal.css';
 
 const RolesManagementModal = ({ show, onHide }) => {
   const dispatch = useDispatch();
-  const { roles, permissionsByCategory, loading, error } = useSelector(state => state.rbac);
+  const { roles = [], permissionsByCategory = {}, loading, error } = useSelector(state => state.rbac);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);

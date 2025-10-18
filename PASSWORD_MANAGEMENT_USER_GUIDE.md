@@ -213,10 +213,11 @@ Your password must meet ALL of the following criteria:
 If you continue to experience issues:
 
 1. **Contact IT Support**
-   - Email: support@yourcompany.com
-   - Phone: (555) 123-4567
-   - Include your employee number
-   - Describe the specific error message
+   - Email: it-support@supplyline-mro.com
+   - Phone: Contact your local IT department
+   - Hours: Monday-Friday, 8:00 AM - 5:00 PM
+   - Include your employee number when contacting support
+   - Describe the specific error message you're seeing
 
 2. **Contact Your Administrator**
    - They can reset your password if needed
@@ -309,9 +310,9 @@ A: After 5 failed attempts, your account will be temporarily locked for 15 minut
 
 For additional assistance:
 
-- **IT Support**: support@yourcompany.com
-- **Security Team**: security@yourcompany.com
-- **Help Desk**: (555) 123-4567
+- **IT Support**: it-support@supplyline-mro.com
+- **Security Team**: security@supplyline-mro.com
+- **Help Desk**: Contact your local IT department
 
 ---
 
