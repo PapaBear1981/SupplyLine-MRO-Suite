@@ -13,6 +13,7 @@ from flask import request, jsonify, current_app
 from models import db, User, UserActivity, AuditLog
 from auth import JWTManager, jwt_required
 import logging
+import utils as password_utils
 
 logger = logging.getLogger(__name__)
 
@@ -431,10 +432,15 @@ def register_auth_routes(app):
             if not (hasattr(user, 'force_password_change') and user.force_password_change):
                 return jsonify({'error': 'Password change not required'}), 400
 
-            # Validate new password (basic validation)
-            if len(new_password) < 8:
-                return jsonify({'error': 'New password must be at least 8 characters long'}), 400
+            # Validate password strength using comprehensive validation
+            is_valid, errors = password_utils.validate_password_strength(new_password)
+            if not is_valid:
+                return jsonify({
+                    'error': 'Password does not meet security requirements',
+                    'details': errors
+                }), 400
 
+            # Check password reuse
             if hasattr(user, 'is_password_reused') and user.is_password_reused(new_password):
                 return jsonify({'error': 'New password cannot match any of your last 5 passwords'}), 400
 
@@ -464,11 +470,36 @@ def register_auth_routes(app):
             # Generate JWT tokens for the user
             tokens = JWTManager.generate_tokens(user)
 
-            return jsonify({
+            # SECURITY: Set tokens in HttpOnly cookies to prevent XSS attacks
+            # This ensures the user is properly authenticated after password change
+            response = jsonify({
                 'message': 'Password changed successfully',
-                'user': user.to_dict(include_roles=True, include_permissions=True),
-                **tokens
-            }), 200
+                'user': user.to_dict(include_roles=True, include_permissions=True)
+            })
+
+            # Set access token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'access_token',
+                value=tokens['access_token'],
+                max_age=900,  # 15 minutes
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            # Set refresh token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'refresh_token',
+                value=tokens['refresh_token'],
+                max_age=604800,  # 7 days
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            return response, 200
 
         except Exception as e:
             logger.error(f"Password change error: {str(e)}")

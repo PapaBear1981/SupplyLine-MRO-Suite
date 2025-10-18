@@ -74,13 +74,14 @@ def run_migration():
         # Create default roles
         cursor.execute("SELECT COUNT(*) FROM roles")
         role_count = cursor.fetchone()[0]
-        
+
         if role_count == 0:
             # Insert default roles
+            # Only Administrator is a system role - others are regular roles that can be edited/deleted
             default_roles = [
                 (1, 'Administrator', 'Full system access with all permissions', 1),
-                (2, 'Materials Manager', 'Can manage tools, chemicals, and users', 1),
-                (3, 'Maintenance User', 'Basic access to view and checkout tools', 1)
+                (2, 'Materials Manager', 'Can manage tools, chemicals, and users', 0),
+                (3, 'Maintenance User', 'Basic access to view and checkout tools', 0)
             ]
             cursor.executemany("INSERT INTO roles (id, name, description, is_system_role) VALUES (?, ?, ?, ?)", default_roles)
             print("Created default roles")

@@ -176,7 +176,8 @@ const RoleManagement = () => {
   };
 
   // Check if user has permission to manage roles
-  const hasPermission = currentUser?.permissions?.includes('role.manage');
+  // Admins (is_admin: true) have FULL access to role management
+  const hasPermission = currentUser?.is_admin || currentUser?.permissions?.includes('role.manage');
 
   if (!hasPermission) {
     return (

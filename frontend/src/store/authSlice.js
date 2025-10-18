@@ -132,6 +132,8 @@ const initialState = {
   error: null,
   registrationSuccess: null,
   activityLogs: [],
+  passwordChangeRequired: false,
+  passwordChangeData: null, // Stores employee_number and temporary password
 };
 
 // Slice
@@ -141,6 +143,10 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearPasswordChangeRequired: (state) => {
+      state.passwordChangeRequired = false;
+      state.passwordChangeData = null;
     },
   },
   extraReducers: (builder) => {
@@ -152,9 +158,23 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        // Tokens are stored in HttpOnly cookies by the backend
-        state.isAuthenticated = true;
+
+        // Check if password change is required
+        if (action.payload.passwordChangeRequired) {
+          state.passwordChangeRequired = true;
+          state.passwordChangeData = {
+            employeeNumber: action.payload.employeeNumber,
+            password: action.payload.password,
+            userId: action.payload.userId,
+          };
+          state.isAuthenticated = false;
+        } else {
+          state.user = action.payload.user;
+          // Tokens are stored in HttpOnly cookies by the backend
+          state.isAuthenticated = true;
+          state.passwordChangeRequired = false;
+          state.passwordChangeData = null;
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -271,5 +291,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, clearPasswordChangeRequired } = authSlice.actions;
 export default authSlice.reducer;

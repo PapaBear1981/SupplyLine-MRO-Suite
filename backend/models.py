@@ -106,6 +106,26 @@ class Tool(db.Model):
         self.calibration_status = 'current'
 
 
+class Department(db.Model):
+    __tablename__ = 'departments'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=True, nullable=False)
+    description = db.Column(db.String)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=get_current_time)
+    updated_at = db.Column(db.DateTime, default=get_current_time, onupdate=get_current_time)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -676,7 +696,7 @@ class Permission(db.Model):
             'name': self.name,
             'description': self.description,
             'category': self.category,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -698,7 +718,7 @@ class Role(db.Model):
             'name': self.name,
             'description': self.description,
             'is_system_role': self.is_system_role,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
         if include_permissions:

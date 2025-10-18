@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   } = useSelector((state) => state.admin);
 
   // Memoize permission checks to prevent unnecessary recalculations
+  // Admins (is_admin: true) have FULL access to all features
   const {
     canViewDashboard,
     canViewUsers,
@@ -37,11 +38,11 @@ const AdminDashboard = () => {
     canManageAircraftTypes
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
-    canViewUsers: currentUser?.permissions?.includes('user.view'),
-    canManageRoles: currentUser?.permissions?.includes('role.manage'),
-    canViewAudit: currentUser?.permissions?.includes('system.audit'),
-    canManageSettings: currentUser?.permissions?.includes('system.settings'),
-    canManageHelp: currentUser?.permissions?.includes('system.settings') || currentUser?.is_admin,
+    canViewUsers: currentUser?.is_admin || currentUser?.permissions?.includes('user.view'),
+    canManageRoles: currentUser?.is_admin || currentUser?.permissions?.includes('role.manage'),
+    canViewAudit: currentUser?.is_admin || currentUser?.permissions?.includes('system.audit'),
+    canManageSettings: currentUser?.is_admin || currentUser?.permissions?.includes('system.settings'),
+    canManageHelp: currentUser?.is_admin || currentUser?.permissions?.includes('system.settings'),
     canViewRegistrations: currentUser?.is_admin,
     canManageAnnouncements: currentUser?.is_admin,
     canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage'),

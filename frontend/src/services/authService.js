@@ -12,6 +12,17 @@ const AuthService = {
         password,
       });
 
+      // Check if password change is required
+      if (response.data.code === 'PASSWORD_CHANGE_REQUIRED') {
+        // Return special response indicating password change is needed
+        return {
+          passwordChangeRequired: true,
+          employeeNumber: response.data.employee_number,
+          userId: response.data.user_id,
+          password: password, // Temporary password needed for the change
+        };
+      }
+
       const { user } = response.data;
       // Tokens are now stored in HttpOnly cookies by the backend
 

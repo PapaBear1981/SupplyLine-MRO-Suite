@@ -102,7 +102,8 @@ const AuditLogViewer = () => {
   };
 
   // Check if user has permission to view audit logs
-  const hasPermission = currentUser?.permissions?.includes('system.audit');
+  // Admins (is_admin: true) have FULL access to audit logs
+  const hasPermission = currentUser?.is_admin || currentUser?.permissions?.includes('system.audit');
 
   if (!hasPermission) {
     return (
