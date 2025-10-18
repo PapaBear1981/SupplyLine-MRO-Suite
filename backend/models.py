@@ -417,7 +417,7 @@ class Chemical(db.Model):
     lot_number = db.Column(db.String, nullable=False)
     description = db.Column(db.String)
     manufacturer = db.Column(db.String)
-    quantity = db.Column(db.Float, nullable=False, default=0)
+    quantity = db.Column(db.Integer, nullable=False, default=0)  # Integer only - no decimal quantities
     unit = db.Column(db.String, nullable=False, default='each')  # each, oz, ml, etc.
     location = db.Column(db.String)
     category = db.Column(db.String, nullable=True, default='General')  # Sealant, Paint, Adhesive, etc.
@@ -425,8 +425,12 @@ class Chemical(db.Model):
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True, index=True)
     date_added = db.Column(db.DateTime, default=get_current_time)
     expiration_date = db.Column(db.DateTime, nullable=True)
-    minimum_stock_level = db.Column(db.Float, nullable=True)  # Threshold for low stock alert
+    minimum_stock_level = db.Column(db.Integer, nullable=True)  # Threshold for low stock alert - Integer only
     notes = db.Column(db.String)
+
+    # Lot lineage tracking for partial transfers
+    parent_lot_number = db.Column(db.String, nullable=True)  # Parent lot number if this is a split lot
+    lot_sequence = db.Column(db.Integer, nullable=True, default=0)  # Number of child lots created from this lot
 
     # These columns might not exist in older databases, so we'll handle them in the to_dict method
     try:
@@ -463,7 +467,9 @@ class Chemical(db.Model):
             'date_added': self.date_added.isoformat(),
             'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
             'minimum_stock_level': self.minimum_stock_level,
-            'notes': self.notes
+            'notes': self.notes,
+            'parent_lot_number': self.parent_lot_number,
+            'lot_sequence': self.lot_sequence or 0
         }
 
         # Add archive fields if they exist
@@ -539,7 +545,7 @@ class ChemicalIssuance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     chemical_id = db.Column(db.Integer, db.ForeignKey('chemicals.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)  # Integer only - no decimal quantities
     hangar = db.Column(db.String, nullable=False)  # Location where chemical is being used
     purpose = db.Column(db.String)  # What the chemical is being used for
     issue_date = db.Column(db.DateTime, default=get_current_time)

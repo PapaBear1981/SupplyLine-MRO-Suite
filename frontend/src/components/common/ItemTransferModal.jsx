@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert, Row, Col, Badge, Card } from 'react-bootstrap';
 import { FaExchangeAlt, FaCheckCircle, FaWarehouse, FaBox } from 'react-icons/fa';
 import api from '../../services/api';
+import TransferBarcodeModal from '../chemicals/TransferBarcodeModal';
 
 const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete }) => {
   const [formData, setFormData] = useState({
@@ -21,6 +22,10 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // State for barcode modal
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [transferResult, setTransferResult] = useState(null);
 
   // Load warehouses and kits when modal opens
   useEffect(() => {
@@ -96,16 +101,57 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
         to_location_id: parseInt(formData.to_location_id),
         item_type: itemType,
         item_id: item.id,
-        quantity: parseFloat(formData.quantity),
+        quantity: parseInt(formData.quantity),  // Integer only - no decimal quantities
         notes: formData.notes
       };
 
-      await api.post('/transfers', transferData);
-      
+      const response = await api.post('/transfers', transferData);
+
+      console.log('Transfer response:', response.data);
+      console.log('Lot split?', response.data.lot_split);
+      console.log('Child chemical?', response.data.child_chemical);
+      console.log('Item type:', itemType);
+
       setShowSuccess(true);
+
+      // Check if this was a partial transfer that created a child lot
+      if (response.data.lot_split && response.data.child_chemical && itemType === 'chemical') {
+        console.log('✅ Showing barcode modal for partial transfer');
+
+        // Get destination name
+        const destName = formData.to_location_type === 'warehouse'
+          ? warehouses.find(w => w.id === parseInt(formData.to_location_id))?.name || 'Unknown'
+          : kits.find(k => k.id === parseInt(formData.to_location_id))?.name || 'Unknown';
+
+        console.log('Destination name:', destName);
+
+        // Store transfer result for barcode modal
+        setTransferResult({
+          childChemical: response.data.child_chemical,
+          parentLotNumber: response.data.parent_lot_number,
+          destinationName: destName,
+          transferDate: new Date().toISOString()
+        });
+
+        // Show barcode modal after a brief delay
+        setTimeout(() => {
+          console.log('Opening barcode modal now...');
+          setShowBarcodeModal(true);
+        }, 1000);
+      } else {
+        console.log('❌ Not showing barcode modal:', {
+          lot_split: response.data.lot_split,
+          has_child: !!response.data.child_chemical,
+          itemType
+        });
+      }
+
       setTimeout(() => {
         resetForm();
-        onHide();
+        if (!response.data.lot_split) {
+          // Only close if not showing barcode modal
+          onHide();
+        }
         if (onTransferComplete) {
           onTransferComplete();
         }
@@ -142,6 +188,7 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
   const sourceWarehouse = warehouses.find(w => w.id === item.warehouse_id);
 
   return (
+    <>
     <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static">
       <Modal.Header closeButton>
         <Modal.Title>
@@ -322,6 +369,42 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
             </Card.Body>
           </Card>
 
+          {/* Quantity - Only show for chemicals */}
+          {itemType === 'chemical' && (
+            <Card className="mb-3">
+              <Card.Header className="bg-warning text-dark">
+                <strong>Transfer Quantity</strong>
+              </Card.Header>
+              <Card.Body>
+                <Form.Group className="mb-3">
+                  <Form.Label>Quantity to Transfer *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    min="1"
+                    max={item?.quantity || 1}
+                    step="1"
+                    required
+                    placeholder="Enter quantity"
+                  />
+                  <Form.Text className="text-muted">
+                    Available: {item?.quantity || 0} {item?.unit || 'units'}
+                    {parseInt(formData.quantity) < (item?.quantity || 0) && (
+                      <span className="text-info ms-2">
+                        ⚠️ Partial transfer will create a new child lot number
+                      </span>
+                    )}
+                  </Form.Text>
+                  <Form.Control.Feedback type="invalid">
+                    Please enter a valid quantity (1 to {item?.quantity || 1})
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Card.Body>
+            </Card>
+          )}
+
           {/* Notes */}
           <Form.Group className="mb-3">
             <Form.Label>Notes (Optional)</Form.Label>
@@ -346,6 +429,23 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
         </Modal.Footer>
       </Form>
     </Modal>
+
+    {/* Barcode Modal for partial transfers */}
+    {transferResult && (
+      <TransferBarcodeModal
+        show={showBarcodeModal}
+        onHide={() => {
+          setShowBarcodeModal(false);
+          setTransferResult(null);
+          onHide(); // Close the main transfer modal too
+        }}
+        chemical={transferResult.childChemical}
+        parentLotNumber={transferResult.parentLotNumber}
+        destinationName={transferResult.destinationName}
+        transferDate={transferResult.transferDate}
+      />
+    )}
+    </>
   );
 };
 
