@@ -99,15 +99,15 @@ export const LABEL_SIZES = {
   '2x2': {
     name: '2" × 2" (Compact Label)',
     dimensions: { width: 2, height: 2 },
-    maxFields: 3, // Show only 3 most critical fields
+    maxFields: 2, // Show only 2 most critical fields
     priorityFields: [
       'Part Number',
       'Tool Number',
       'Lot Number',
       'Serial Number'
     ],
-    barcodeHeight: 40,
-    qrSize: 100,
+    barcodeHeight: 35,
+    qrSize: 140, // Larger QR code for better scanning on small labels
     fontSize: {
       logo: '9px',
       title: '8px',
@@ -118,12 +118,12 @@ export const LABEL_SIZES = {
     },
     margins: {
       page: '0.05in',
-      content: '4px'
+      content: '3px'
     },
     labelWidth: '2in',
     labelHeight: '2in',
-    hideTitle: true, // Hide title on smallest labels to save space
-    hideLogo: false // Keep logo but make it smaller
+    hideTitle: false, // Show title for identification
+    hideLogo: true // Hide logo to save space for QR code
   }
 };
 

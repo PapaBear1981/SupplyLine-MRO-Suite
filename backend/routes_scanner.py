@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template_string
+from flask import request, jsonify, render_template_string, current_app
 from models import Tool, Chemical, ToolCalibration
 from datetime import datetime
 
@@ -149,8 +149,13 @@ def register_scanner_routes(app):
             else:
                 barcode_data = f"{tool.tool_number}-{tool.serial_number}"
 
-            # Get the base URL for QR code (use request host or configured URL)
-            base_url = request.host_url.rstrip('/')
+            # Get the base URL for QR code
+            # Use PUBLIC_URL from config if set (for external access), otherwise use request host
+            base_url = current_app.config.get('PUBLIC_URL')
+            if not base_url:
+                base_url = request.host_url.rstrip('/')
+            else:
+                base_url = base_url.rstrip('/')
 
             # Create QR code URL that points to the tool view page
             qr_url = f"{base_url}/tool-view/{tool.id}"
@@ -463,3 +468,218 @@ def register_scanner_routes(app):
         except Exception as e:
             print(f"Error in tool view page: {str(e)}")
             return "<html><body><h1>Error</h1><p>Tool not found or an error occurred.</p></body></html>", 404
+
+    # Public chemical view page (accessible via QR code scan)
+    @app.route('/chemical-view/<int:id>', methods=['GET'])
+    def chemical_view_page(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Format dates for display
+            def format_date(dt):
+                if dt:
+                    return dt.strftime('%B %d, %Y')
+                return 'N/A'
+
+            # Create HTML template for the chemical view page
+            html_template = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{{ chemical.part_number }} - Chemical Information</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                        min-height: 100vh;
+                        padding: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .container {
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        max-width: 600px;
+                        width: 100%;
+                        overflow: hidden;
+                        animation: slideIn 0.5s ease-out;
+                    }
+                    @keyframes slideIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(30px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                        color: white;
+                        padding: 30px;
+                        text-align: center;
+                    }
+                    .header h1 {
+                        font-size: 28px;
+                        margin-bottom: 10px;
+                        font-weight: 600;
+                    }
+                    .header p {
+                        font-size: 16px;
+                        opacity: 0.9;
+                    }
+                    .content {
+                        padding: 30px;
+                    }
+                    .info-section {
+                        margin-bottom: 25px;
+                    }
+                    .info-section h2 {
+                        font-size: 18px;
+                        color: #333;
+                        margin-bottom: 15px;
+                        padding-bottom: 10px;
+                        border-bottom: 2px solid #f093fb;
+                        font-weight: 600;
+                    }
+                    .info-row {
+                        display: flex;
+                        padding: 12px 0;
+                        border-bottom: 1px solid #f0f0f0;
+                    }
+                    .info-row:last-child {
+                        border-bottom: none;
+                    }
+                    .info-label {
+                        font-weight: 600;
+                        color: #666;
+                        min-width: 140px;
+                        font-size: 14px;
+                    }
+                    .info-value {
+                        color: #333;
+                        flex: 1;
+                        font-size: 14px;
+                    }
+                    .status-badge {
+                        display: inline-block;
+                        padding: 4px 12px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+                    .status-available {
+                        background: #d4edda;
+                        color: #155724;
+                    }
+                    .status-checked-out {
+                        background: #fff3cd;
+                        color: #856404;
+                    }
+                    .status-depleted {
+                        background: #f8d7da;
+                        color: #721c24;
+                    }
+                    .expiration-alert {
+                        background: #fff3cd;
+                        border-left: 4px solid #ffc107;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 4px;
+                    }
+                    .expiration-alert.expired {
+                        background: #f8d7da;
+                        border-left-color: #dc3545;
+                    }
+                    .expiration-alert.current {
+                        background: #d4edda;
+                        border-left-color: #28a745;
+                    }
+                    .footer {
+                        background: #f8f9fa;
+                        padding: 20px;
+                        text-align: center;
+                        color: #666;
+                        font-size: 12px;
+                    }
+                    @media (max-width: 600px) {
+                        .container {
+                            border-radius: 0;
+                        }
+                        .info-row {
+                            flex-direction: column;
+                        }
+                        .info-label {
+                            margin-bottom: 5px;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>{{ chemical.part_number }}</h1>
+                        <p>{{ chemical.description or 'Chemical Information' }}</p>
+                    </div>
+
+                    <div class="content">
+                        <div class="info-section">
+                            <h2>Chemical Details</h2>
+                            <div class="info-row">
+                                <div class="info-label">Lot Number:</div>
+                                <div class="info-value">{{ chemical.lot_number }}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Manufacturer:</div>
+                                <div class="info-value">{{ chemical.manufacturer or 'N/A' }}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Location:</div>
+                                <div class="info-value">{{ chemical.location or 'N/A' }}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Quantity:</div>
+                                <div class="info-value">{{ chemical.quantity }} {{ chemical.unit }}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Status:</div>
+                                <div class="info-value">
+                                    <span class="status-badge status-{{ chemical.status }}">{{ chemical.status }}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Expiration Date:</div>
+                                <div class="info-value">{{ format_date(chemical.expiration_date) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        SupplyLine MRO Suite - Chemical Management System
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            return render_template_string(
+                html_template,
+                chemical=chemical,
+                format_date=format_date
+            )
+
+        except Exception as e:
+            print(f"Error in chemical view page: {str(e)}")
+            return "<html><body><h1>Error</h1><p>Chemical not found or an error occurred.</p></body></html>", 404

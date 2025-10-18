@@ -125,6 +125,11 @@ class Config:
     # Request timeout for long-running operations (seconds)
     REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', 60))  # 60 seconds default
 
+    # Public URL for QR codes - should be accessible from external devices
+    # Set this to your server's network IP or domain name
+    # Example: http://192.168.1.100:5000 or https://yourdomain.com
+    PUBLIC_URL = os.environ.get('PUBLIC_URL', None)
+
     # CORS settings - SECURITY: Never use wildcard (*) origins in production
     # Only allow specific, trusted origins. Update CORS_ORIGINS environment variable
     # to include your production frontend URL(s)
@@ -139,7 +144,7 @@ class Config:
         )
 
     CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization', 'X-CSRF-Token']
-    CORS_SUPPORTS_CREDENTIALS = False
+    CORS_SUPPORTS_CREDENTIALS = True  # Required for HttpOnly cookies to work with CORS
 
     # Additional security headers
     SECURITY_HEADERS = {

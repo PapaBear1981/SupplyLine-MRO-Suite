@@ -99,21 +99,6 @@ const StandardBarcode = ({
           boxShadow: isWarning ? '0 0 10px rgba(255, 193, 7, 0.3)' : undefined
         }}
       >
-        {/* Logo Header */}
-        <div
-          className="d-flex align-items-center justify-content-center mb-2"
-          style={{
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            color: 'var(--bs-primary)',
-            paddingBottom: '10px',
-            borderBottom: '2px solid var(--bs-primary)'
-          }}
-        >
-          <FaTools className="me-2" />
-          <span>SupplyLine MRO Suite</span>
-        </div>
-
         {/* Warning Badge (for transfers or special cases) */}
         {isWarning && warningText && (
           <div

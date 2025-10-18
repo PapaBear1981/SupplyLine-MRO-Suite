@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
 from datetime import datetime
 from utils.error_handler import handle_errors, ValidationError
@@ -250,6 +250,17 @@ def register_chemical_routes(app):
             # Create barcode data
             barcode_data = f"{chemical.part_number}-{chemical.lot_number}-{expiration_date}"
 
+            # Get the base URL for QR code
+            # Use PUBLIC_URL from config if set (for external access), otherwise use request host
+            base_url = current_app.config.get('PUBLIC_URL')
+            if not base_url:
+                base_url = request.host_url.rstrip('/')
+            else:
+                base_url = base_url.rstrip('/')
+
+            # Create QR code URL that points to the chemical view page
+            qr_url = f"{base_url}/chemical-view/{chemical.id}"
+
             return jsonify({
                 'chemical_id': chemical.id,
                 'part_number': chemical.part_number,
@@ -260,7 +271,8 @@ def register_chemical_routes(app):
                 'status': chemical.status,
                 'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None,
                 'created_at': chemical.created_at.isoformat() if chemical.created_at else None,
-                'barcode_data': barcode_data
+                'barcode_data': barcode_data,
+                'qr_url': qr_url
             })
         except Exception as e:
             print(f"Error in chemical barcode route: {str(e)}")
