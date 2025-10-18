@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, Button, Card, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
 import JsBarcode from 'jsbarcode';
 import { QRCodeSVG } from 'qrcode.react';
+import { FaTools } from 'react-icons/fa';
 import api from '../../services/api';
 
 /**
@@ -127,6 +128,15 @@ const ToolBarcode = ({ show, onHide, tool }) => {
                 margin: 0 auto;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
               }
+              .logo-header {
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+                color: #0066ff;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #0066ff;
+              }
               .code-container {
                 text-align: center;
                 margin-bottom: 20px;
@@ -193,6 +203,7 @@ const ToolBarcode = ({ show, onHide, tool }) => {
           </head>
           <body>
             <div class="label-container">
+              <div class="logo-header">🔧 SupplyLine MRO Suite</div>
               <div class="code-container">
                 ${containerRef.current.innerHTML}
               </div>
@@ -249,6 +260,10 @@ const ToolBarcode = ({ show, onHide, tool }) => {
           <Tabs defaultActiveKey="barcode" id="tool-code-tabs" className="mb-3">
             <Tab eventKey="barcode" title="Barcode">
               <Card className="text-center p-3" ref={barcodeContainerRef}>
+                <div className="d-flex align-items-center justify-content-center mb-2" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#0066ff' }}>
+                  <FaTools className="me-2" />
+                  <span>SupplyLine MRO Suite</span>
+                </div>
                 <Card.Title>
                   {tool.tool_number} - {barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}
                 </Card.Title>
@@ -302,6 +317,10 @@ const ToolBarcode = ({ show, onHide, tool }) => {
 
             <Tab eventKey="qrcode" title="QR Code">
               <Card className="text-center p-3" ref={qrCodeContainerRef}>
+                <div className="d-flex align-items-center justify-content-center mb-2" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#0066ff' }}>
+                  <FaTools className="me-2" />
+                  <span>SupplyLine MRO Suite</span>
+                </div>
                 <Card.Title>
                   {tool.tool_number} - {barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}
                 </Card.Title>
