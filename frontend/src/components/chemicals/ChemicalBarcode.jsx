@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Modal, Button, Card } from 'react-bootstrap';
 import JsBarcode from 'jsbarcode';
+import { FaTools } from 'react-icons/fa';
 
 /**
  * Component for displaying and printing a chemical barcode
@@ -53,6 +54,15 @@ const ChemicalBarcode = ({ show, onHide, chemical }) => {
                 margin: 0;
                 padding: 20px;
               }
+              .logo-header {
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+                color: #0066ff;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #0066ff;
+              }
               .barcode-container {
                 text-align: center;
                 margin-bottom: 20px;
@@ -76,6 +86,7 @@ const ChemicalBarcode = ({ show, onHide, chemical }) => {
             </style>
           </head>
           <body>
+            <div class="logo-header">🔧 SupplyLine MRO Suite</div>
             <div class="barcode-container">
               ${barcodeContainerRef.current.innerHTML}
             </div>
@@ -104,6 +115,10 @@ const ChemicalBarcode = ({ show, onHide, chemical }) => {
       <Modal.Body>
         {chemical && (
           <Card className="text-center p-3" ref={barcodeContainerRef}>
+            <div className="d-flex align-items-center justify-content-center mb-2" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#0066ff' }}>
+              <FaTools className="me-2" />
+              <span>SupplyLine MRO Suite</span>
+            </div>
             <Card.Title>{chemical.part_number} - {chemical.lot_number}</Card.Title>
             <div className="d-flex justify-content-center my-3">
               <svg ref={barcodeRef}></svg>

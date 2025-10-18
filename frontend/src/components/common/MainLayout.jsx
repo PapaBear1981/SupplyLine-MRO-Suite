@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { FaTools } from 'react-icons/fa';
 import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
@@ -18,7 +19,10 @@ const MainLayout = ({ children }) => {
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
         <Container fluid>
-          <Navbar.Brand as={Link} to="/">SupplyLine MRO Suite</Navbar.Brand>
+          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+            <FaTools className="me-2" />
+            SupplyLine MRO Suite
+          </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" data-testid="mobile-menu-toggle" />
           <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-menu">
             <Nav className="me-auto">
