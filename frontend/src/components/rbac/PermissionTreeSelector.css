@@ -1,0 +1,155 @@
+.permission-tree-selector {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.permission-category-card {
+  border: 1px solid #495057;
+  transition: all 0.3s ease;
+}
+
+.permission-category-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.permission-category-header {
+  background-color: #2c3034;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.permission-category-header:hover {
+  background-color: #3a3f44;
+}
+
+.category-toggle {
+  color: #adb5bd;
+  transition: transform 0.2s ease;
+}
+
+.category-toggle:hover {
+  color: #f8f9fa;
+}
+
+.category-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  transition: transform 0.1s ease;
+}
+
+.category-checkbox-wrapper:hover {
+  transform: scale(1.1);
+}
+
+.permission-list {
+  padding: 0.5rem;
+  background-color: #1e2125;
+}
+
+.permission-item {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  background-color: #2c3034;
+}
+
+.permission-item:hover {
+  background-color: #3a3f44;
+  border-color: #495057;
+  transform: translateX(4px);
+}
+
+.permission-item.selected {
+  background-color: #1a3a52;
+  border-color: #0d6efd;
+}
+
+.permission-item.selected:hover {
+  background-color: #234d6e;
+}
+
+.permission-details {
+  margin-left: 0.5rem;
+}
+
+.permission-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.permission-name code {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #6ea8fe;
+}
+
+.permission-description {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Smooth scrollbar */
+.permission-tree-selector::-webkit-scrollbar {
+  width: 8px;
+}
+
+.permission-tree-selector::-webkit-scrollbar-track {
+  background: #2c3034;
+  border-radius: 4px;
+}
+
+.permission-tree-selector::-webkit-scrollbar-thumb {
+  background: #495057;
+  border-radius: 4px;
+}
+
+.permission-tree-selector::-webkit-scrollbar-thumb:hover {
+  background: #6c757d;
+}
+
+/* Animation for category expansion */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.permission-list {
+  animation: slideDown 0.3s ease;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .permission-tree-selector {
+    max-height: 500px;
+  }
+
+  .permission-item {
+    padding: 0.5rem;
+  }
+
+  .permission-name code {
+    font-size: 0.75rem;
+  }
+
+  .permission-description {
+    font-size: 0.8rem;
+  }
+}
+

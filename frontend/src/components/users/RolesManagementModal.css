@@ -1,0 +1,125 @@
+.roles-management-modal .modal-body {
+  min-height: 400px;
+}
+
+.roles-table-wrapper {
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 0.375rem;
+}
+
+.roles-table-wrapper table {
+  margin-bottom: 0;
+}
+
+.roles-table-wrapper thead {
+  position: sticky;
+  top: 0;
+  background-color: #2c3034;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.roles-table-wrapper tbody tr {
+  transition: all 0.2s ease;
+}
+
+.roles-table-wrapper tbody tr:hover {
+  background-color: #2c3034;
+  transform: translateX(2px);
+}
+
+.add-role-btn {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-role-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth scrollbar */
+.roles-table-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.roles-table-wrapper::-webkit-scrollbar-track {
+  background: #2c3034;
+  border-radius: 4px;
+}
+
+.roles-table-wrapper::-webkit-scrollbar-thumb {
+  background: #495057;
+  border-radius: 4px;
+}
+
+.roles-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #6c757d;
+}
+
+/* Button animations */
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.35rem 0.65rem;
+}
+
+/* Tab styling */
+.nav-tabs {
+  border-bottom: 2px solid #495057;
+}
+
+.nav-tabs .nav-link {
+  color: #adb5bd;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: transparent;
+  color: #6ea8fe;
+  background-color: #2c3034;
+}
+
+.nav-tabs .nav-link.active {
+  color: #6ea8fe;
+  background-color: transparent;
+  border-color: transparent transparent #0d6efd;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .roles-table-wrapper {
+    max-height: 400px;
+  }
+
+  .add-role-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .roles-table-wrapper td {
+    font-size: 0.875rem;
+  }
+
+  .roles-table-wrapper .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+

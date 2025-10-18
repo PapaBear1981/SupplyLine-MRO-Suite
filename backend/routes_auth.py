@@ -13,6 +13,7 @@ from flask import request, jsonify, current_app
 from models import db, User, UserActivity, AuditLog
 from auth import JWTManager, jwt_required
 import logging
+import utils as password_utils
 
 logger = logging.getLogger(__name__)
 
@@ -431,10 +432,15 @@ def register_auth_routes(app):
             if not (hasattr(user, 'force_password_change') and user.force_password_change):
                 return jsonify({'error': 'Password change not required'}), 400
 
-            # Validate new password (basic validation)
-            if len(new_password) < 8:
-                return jsonify({'error': 'New password must be at least 8 characters long'}), 400
+            # Validate password strength using comprehensive validation
+            is_valid, errors = password_utils.validate_password_strength(new_password)
+            if not is_valid:
+                return jsonify({
+                    'error': 'Password does not meet security requirements',
+                    'details': errors
+                }), 400
 
+            # Check password reuse
             if hasattr(user, 'is_password_reused') and user.is_password_reused(new_password):
                 return jsonify({'error': 'New password cannot match any of your last 5 passwords'}), 400
 

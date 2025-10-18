@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, ListGroup, OverlayTrigger, Tooltip
+  Card, Table, Button, Badge, Modal, Form, Alert, InputGroup, ListGroup, OverlayTrigger, Tooltip, ButtonGroup
 } from 'react-bootstrap';
 import { fetchUsers, createUser, updateUser, deactivateUser, unlockUserAccount } from '../../store/usersSlice';
 import { fetchRoles, fetchUserRoles, updateUserRoles } from '../../store/rbacSlice';
+import { fetchDepartments } from '../../store/departmentsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
+import RolesManagementModal from './RolesManagementModal';
+import DepartmentsManagementModal from './DepartmentsManagementModal';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
   const { users, loading, error } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
   const { roles, userRoles, loading: rbacLoading, error: rbacError } = useSelector((state) => state.rbac);
+  const { departments } = useSelector((state) => state.departments);
 
   // State for search and filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +28,8 @@ const UserManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRolesModal, setShowRolesModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showRolesManagementModal, setShowRolesManagementModal] = useState(false);
+  const [showDepartmentsManagementModal, setShowDepartmentsManagementModal] = useState(false);
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -45,10 +51,11 @@ const UserManagement = () => {
   const [validated, setValidated] = useState(false);
   const [passwordValid, setPasswordValid] = useState(false);
 
-  // Load users and roles on component mount and refresh every 30 seconds
+  // Load users, roles, and departments on component mount and refresh every 30 seconds
   useEffect(() => {
     dispatch(fetchUsers());
     dispatch(fetchRoles());
+    dispatch(fetchDepartments());
 
     // Set up periodic refresh of user list
     const refreshInterval = setInterval(() => {
@@ -248,11 +255,12 @@ const UserManagement = () => {
   };
 
   // Check if user has permission to manage users
-  const hasPermission = currentUser?.permissions?.includes('user.view');
-  const canEditUsers = currentUser?.permissions?.includes('user.edit');
-  const canCreateUsers = currentUser?.permissions?.includes('user.create');
-  const canDeleteUsers = currentUser?.permissions?.includes('user.delete');
-  const canManageRoles = currentUser?.permissions?.includes('role.manage');
+  // Admins (is_admin: true) have FULL access to all user management features
+  const hasPermission = currentUser?.is_admin || currentUser?.permissions?.includes('user.view');
+  const canEditUsers = currentUser?.is_admin || currentUser?.permissions?.includes('user.edit');
+  const canCreateUsers = currentUser?.is_admin || currentUser?.permissions?.includes('user.create');
+  const canDeleteUsers = currentUser?.is_admin || currentUser?.permissions?.includes('user.delete');
+  const canManageRoles = currentUser?.is_admin || currentUser?.permissions?.includes('role.manage');
 
   if (!hasPermission) {
     return (
@@ -271,9 +279,17 @@ const UserManagement = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>User Management</h2>
         {canCreateUsers && (
-          <Button variant="primary" onClick={() => setShowAddModal(true)}>
-            Add New User
-          </Button>
+          <ButtonGroup>
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
+              Add New User
+            </Button>
+            <Button variant="success" onClick={() => setShowRolesManagementModal(true)}>
+              Roles
+            </Button>
+            <Button variant="info" onClick={() => setShowDepartmentsManagementModal(true)}>
+              Departments
+            </Button>
+          </ButtonGroup>
         )}
       </div>
 
@@ -468,12 +484,9 @@ const UserManagement = () => {
                 required
               >
                 <option value="">Select Department</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Materials">Materials</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Quality">Quality</option>
-                <option value="Production">Production</option>
-                <option value="IT">IT</option>
+                {departments && departments.filter(dept => dept.is_active).map((dept) => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
               </Form.Select>
               <Form.Control.Feedback type="invalid">
                 Department is required.
@@ -562,12 +575,9 @@ const UserManagement = () => {
                 required
               >
                 <option value="">Select Department</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Materials">Materials</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Quality">Quality</option>
-                <option value="Production">Production</option>
-                <option value="IT">IT</option>
+                {departments && departments.filter(dept => dept.is_active).map((dept) => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
               </Form.Select>
               <Form.Control.Feedback type="invalid">
                 Department is required.
@@ -717,6 +727,18 @@ const UserManagement = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Roles Management Modal */}
+      <RolesManagementModal
+        show={showRolesManagementModal}
+        onHide={() => setShowRolesManagementModal(false)}
+      />
+
+      {/* Departments Management Modal */}
+      <DepartmentsManagementModal
+        show={showDepartmentsManagementModal}
+        onHide={() => setShowDepartmentsManagementModal(false)}
+      />
     </div>
   );
 };

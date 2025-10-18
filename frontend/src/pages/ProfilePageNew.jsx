@@ -232,30 +232,44 @@ const ProfilePageNew = () => {
   // Render password tab content
   const renderPasswordTab = () => (
     <Form onSubmit={handlePasswordSubmit}>
+      <Alert variant="info" className="mb-4">
+        <i className="bi bi-shield-lock me-2"></i>
+        <strong>Password Security:</strong> Choose a strong, unique password to protect your account.
+      </Alert>
+
       {passwordError && (
         <Alert variant="danger" className="mb-3">
+          <i className="bi bi-exclamation-triangle me-2"></i>
           {passwordError}
         </Alert>
       )}
 
       <Form.Group className="mb-3">
-        <Form.Label>Current Password</Form.Label>
+        <Form.Label>
+          <i className="bi bi-key me-2"></i>
+          Current Password
+        </Form.Label>
         <Form.Control
           type="password"
           name="currentPassword"
           value={passwordData.currentPassword}
           onChange={handlePasswordChange}
+          placeholder="Enter your current password"
           required
         />
       </Form.Group>
 
       <Form.Group className="mb-3">
-        <Form.Label>New Password</Form.Label>
+        <Form.Label>
+          <i className="bi bi-shield-check me-2"></i>
+          New Password
+        </Form.Label>
         <Form.Control
           type="password"
           name="newPassword"
           value={passwordData.newPassword}
           onChange={handlePasswordChange}
+          placeholder="Enter your new password"
           required
         />
         <PasswordStrengthMeter
@@ -264,24 +278,65 @@ const ProfilePageNew = () => {
         />
       </Form.Group>
 
-      <Form.Group className="mb-3">
-        <Form.Label>Confirm New Password</Form.Label>
+      <Form.Group className="mb-4">
+        <Form.Label>
+          <i className="bi bi-shield-check me-2"></i>
+          Confirm New Password
+        </Form.Label>
         <Form.Control
           type="password"
           name="confirmPassword"
           value={passwordData.confirmPassword}
           onChange={handlePasswordChange}
+          placeholder="Confirm your new password"
           required
         />
+        {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+          <Form.Text className="text-danger">
+            <i className="bi bi-x-circle me-1"></i>
+            Passwords do not match
+          </Form.Text>
+        )}
+        {passwordData.confirmPassword && passwordData.newPassword === passwordData.confirmPassword && passwordData.newPassword && (
+          <Form.Text className="text-success">
+            <i className="bi bi-check-circle me-1"></i>
+            Passwords match
+          </Form.Text>
+        )}
       </Form.Group>
+
+      <div className="bg-light p-3 rounded mb-4">
+        <h6 className="mb-2">
+          <i className="bi bi-info-circle me-2"></i>
+          Password Requirements:
+        </h6>
+        <ul className="mb-0 small">
+          <li>At least 8 characters long</li>
+          <li>Contains uppercase and lowercase letters</li>
+          <li>Contains at least one number</li>
+          <li>Contains at least one special character (!@#$%^&*(),.?":{}|&lt;&gt;)</li>
+          <li>Cannot match your last 5 passwords</li>
+        </ul>
+      </div>
 
       <div className="d-grid">
         <Button
           type="submit"
           variant="primary"
-          disabled={loading}
+          size="lg"
+          disabled={loading || !passwordValid || passwordData.newPassword !== passwordData.confirmPassword}
         >
-          {loading ? 'Changing...' : 'Change Password'}
+          {loading ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Changing Password...
+            </>
+          ) : (
+            <>
+              <i className="bi bi-shield-lock-fill me-2"></i>
+              Change Password
+            </>
+          )}
         </Button>
       </div>
     </Form>
@@ -380,12 +435,14 @@ const ProfilePageNew = () => {
                     className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
                     onClick={() => setActiveTab('profile')}
                   >
+                    <i className="bi bi-person me-2"></i>
                     Profile Information
                   </button>
                   <button
                     className={`nav-link ${activeTab === 'password' ? 'active' : ''}`}
                     onClick={() => setActiveTab('password')}
                   >
+                    <i className="bi bi-shield-lock me-2"></i>
                     Change Password
                   </button>
                 </div>
