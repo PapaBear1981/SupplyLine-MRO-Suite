@@ -185,7 +185,7 @@ const ChemicalsOnOrder = () => {
           ) : (
             <div className="table-responsive">
               <Table hover bordered className="align-middle">
-                <thead className="bg-light">
+                <thead>
                   <tr>
                     <th>Part Number</th>
                     <th>Lot Number</th>
