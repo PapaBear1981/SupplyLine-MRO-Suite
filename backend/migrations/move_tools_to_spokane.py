@@ -1,6 +1,7 @@
 """
 Migration script to move all tools to Main warehouse in Spokane, WA
 """
+import sys
 import sqlite3
 import os
 from datetime import datetime

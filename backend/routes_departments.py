@@ -158,7 +158,7 @@ def register_department_routes(app):
             department_name = department.name
 
             # Check for referential integrity - verify no users are assigned to this department
-            user_count = User.query.filter_by(department_id=id).count()
+            user_count = User.query.filter_by(department=department_name).count()
             if user_count > 0:
                 return jsonify({
                     'error': f'Cannot delete department. {user_count} user(s) are assigned to this department. Please reassign users before deleting.',

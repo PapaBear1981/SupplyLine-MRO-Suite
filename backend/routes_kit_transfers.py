@@ -185,6 +185,32 @@ def register_kit_transfer_routes(app):
                         status='available'
                     )
                     db.session.add(new_item)
+        elif data['to_location_type'] == 'warehouse':
+            # Handle transfer to warehouse
+            dest_warehouse = Warehouse.query.get(data['to_location_id'])
+            if not dest_warehouse:
+                raise ValidationError('Destination warehouse not found')
+
+            if data['item_type'] == 'chemical':
+                # For chemicals transferred from kit to warehouse
+                # If we have a child_chemical (from partial warehouse->kit->warehouse), use it
+                # Otherwise, we need to handle the chemical from the kit
+                if child_chemical:
+                    # Child chemical already has correct warehouse_id set
+                    pass
+                else:
+                    # Get the chemical being transferred from the kit
+                    if source_item and hasattr(source_item, 'item_id'):
+                        transferred_chemical = Chemical.query.get(source_item.item_id)
+                        if transferred_chemical:
+                            transferred_chemical.warehouse_id = data['to_location_id']
+            elif data['item_type'] == 'tool':
+                # For tools transferred from kit to warehouse
+                from models import Tool
+                if source_item and hasattr(source_item, 'item_id'):
+                    transferred_tool = Tool.query.get(source_item.item_id)
+                    if transferred_tool:
+                        transferred_tool.warehouse_id = data['to_location_id']
 
         db.session.add(transfer)
         db.session.commit()
