@@ -40,9 +40,15 @@ This directory contains E2E tests that verify the complete user workflows across
    - Tool checkout/checkin
    - Tool search and filtering
 
+6. **checkouts.spec.js** - Checkout workflows and access control
+   - My vs. all checkouts views
+   - Role-based permissions and redirects
+   - Return tool modal interactions
+   - Tool detail navigation from checkout tables
+
 ### Kit Management Tests
 
-6. **kits.spec.js** - Kit management core functionality
+7. **kits.spec.js** - Kit management core functionality
    - Kit listing and filtering
    - Kit creation wizard (4 steps)
    - Kit detail view
@@ -50,7 +56,7 @@ This directory contains E2E tests that verify the complete user workflows across
    - Kit reports
    - Mobile interface
 
-7. **kit-operations.spec.js** - Kit operations and workflows
+8. **kit-operations.spec.js** - Kit operations and workflows
    - Kit transfers
    - Kit reorder requests
    - Kit item issuance
