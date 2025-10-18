@@ -140,11 +140,11 @@ TOOL_SCHEMA = {
 
 CHEMICAL_SCHEMA = {
     'required': ['part_number', 'lot_number', 'quantity', 'unit'],
-    'optional': ['description', 'manufacturer', 'location', 'expiration_date', 'msds_url', 'category', 'status', 'minimum_stock_level', 'notes'],
+    'optional': ['description', 'manufacturer', 'location', 'expiration_date', 'msds_url', 'category', 'status', 'minimum_stock_level', 'notes', 'warehouse_id'],
     'types': {
         'part_number': str,
         'lot_number': str,
-        'quantity': (int, float),
+        'quantity': int,  # Integer only - no decimal quantities
         'unit': str,
         'description': str,
         'manufacturer': str,
@@ -152,8 +152,9 @@ CHEMICAL_SCHEMA = {
         'msds_url': str,
         'category': str,
         'status': str,
-        'minimum_stock_level': (int, float),
-        'notes': str
+        'minimum_stock_level': int,  # Integer only - no decimal quantities
+        'notes': str,
+        'warehouse_id': int
     },
     'constraints': {
         'part_number': {'max_length': 100},
@@ -197,13 +198,13 @@ CHEMICAL_ISSUANCE_SCHEMA = {
     'required': ['quantity', 'hangar', 'user_id'],
     'optional': ['purpose'],
     'types': {
-        'quantity': (int, float),
+        'quantity': int,  # Integer only - no decimal quantities
         'hangar': str,
         'user_id': int,
         'purpose': str
     },
     'constraints': {
-        'quantity': {'min': 0.01},
+        'quantity': {'min': 1},  # Minimum 1 whole unit
         'hangar': {'max_length': 100},
         'user_id': {'min': 1},
         'purpose': {'max_length': 500}
@@ -304,7 +305,6 @@ def validate_schema(data, schema_name):
         'calibration': CALIBRATION_SCHEMA,
         'checkout': CHECKOUT_SCHEMA,
         'cycle_count_schedule': CYCLE_COUNT_SCHEDULE_SCHEMA,
-        'cycle_count_batch': CYCLE_COUNT_BATCH_SCHEMA,
         'cycle_count_result': CYCLE_COUNT_RESULT_SCHEMA
     }
 

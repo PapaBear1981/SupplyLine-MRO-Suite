@@ -272,6 +272,7 @@ export const markChemicalAsDelivered = createAsyncThunk(
 // Initial state
 const initialState = {
   chemicals: [],
+  pagination: null,
   currentChemical: null,
   loading: false,
   error: null,
@@ -323,7 +324,11 @@ const chemicalsSlice = createSlice({
       })
       .addCase(fetchChemicals.fulfilled, (state, action) => {
         state.loading = false;
-        state.chemicals = action.payload;
+        // Handle both array and object responses (with pagination)
+        state.chemicals = Array.isArray(action.payload)
+          ? action.payload
+          : action.payload.chemicals || [];
+        state.pagination = action.payload.pagination || null;
       })
       .addCase(fetchChemicals.rejected, (state, action) => {
         state.loading = false;

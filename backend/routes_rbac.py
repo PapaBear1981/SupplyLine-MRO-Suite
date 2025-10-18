@@ -70,24 +70,25 @@ def register_rbac_routes(app):
     def update_role(id):
         role = Role.query.get_or_404(id)
 
-        # Don't allow modification of system roles
-        if role.is_system_role:
-            return jsonify({'error': 'System roles cannot be modified'}), 403
-
         data = request.get_json() or {}
 
-        # Update role properties
-        if 'name' in data:
-            # Check if new name already exists for another role
-            existing_role = Role.query.filter_by(name=data['name']).first()
-            if existing_role and existing_role.id != role.id:
-                return jsonify({'error': 'Role name already exists'}), 400
-            role.name = data['name']
+        # For system roles, only allow permission updates, not name/description changes
+        if role.is_system_role:
+            if 'name' in data or 'description' in data:
+                return jsonify({'error': 'System role name and description cannot be modified'}), 403
+        else:
+            # Update role properties for non-system roles
+            if 'name' in data:
+                # Check if new name already exists for another role
+                existing_role = Role.query.filter_by(name=data['name']).first()
+                if existing_role and existing_role.id != role.id:
+                    return jsonify({'error': 'Role name already exists'}), 400
+                role.name = data['name']
 
-        if 'description' in data:
-            role.description = data['description']
+            if 'description' in data:
+                role.description = data['description']
 
-        # Update permissions if provided
+        # Update permissions if provided (allowed for both system and non-system roles)
         if 'permissions' in data and isinstance(data['permissions'], list):
             # Remove all existing permissions
             RolePermission.query.filter_by(role_id=role.id).delete()

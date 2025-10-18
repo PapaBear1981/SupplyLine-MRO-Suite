@@ -34,7 +34,7 @@ const ReorderManagement = () => {
 
   return (
     <Card className="shadow-sm">
-      <Card.Header className="bg-white">
+      <Card.Header>
         <h5 className="mb-0">Chemical Reorder Management</h5>
       </Card.Header>
       <Card.Body>

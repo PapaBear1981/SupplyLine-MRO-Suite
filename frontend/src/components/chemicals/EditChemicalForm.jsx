@@ -83,11 +83,11 @@ const EditChemicalForm = () => {
 
     setValidated(true);
 
-    // Convert quantity and minimum_stock_level to numbers
+    // Convert quantity and minimum_stock_level to integers
     const formattedData = {
       ...chemicalData,
-      quantity: parseFloat(chemicalData.quantity),
-      minimum_stock_level: chemicalData.minimum_stock_level ? parseFloat(chemicalData.minimum_stock_level) : null
+      quantity: parseInt(chemicalData.quantity),
+      minimum_stock_level: chemicalData.minimum_stock_level ? parseInt(chemicalData.minimum_stock_level) : null
     };
 
     dispatch(updateChemical({ id, chemicalData: formattedData }))
@@ -173,16 +173,19 @@ const EditChemicalForm = () => {
                 <Form.Label>Quantity*</Form.Label>
                 <Form.Control
                   type="number"
-                  step="0.01"
-                  min="0"
+                  step="1"
+                  min="1"
                   name="quantity"
                   value={chemicalData.quantity}
                   onChange={handleChange}
                   required
                 />
                 <Form.Control.Feedback type="invalid">
-                  Quantity is required and must be a positive number
+                  Quantity is required and must be a whole number (no decimals)
                 </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  Only whole numbers allowed (e.g., 1, 5, 10)
+                </Form.Text>
               </Form.Group>
             </Col>
             <Col md={6}>
@@ -273,14 +276,14 @@ const EditChemicalForm = () => {
             <Form.Label>Minimum Stock Level</Form.Label>
             <Form.Control
               type="number"
-              step="0.01"
-              min="0"
+              step="1"
+              min="1"
               name="minimum_stock_level"
               value={chemicalData.minimum_stock_level}
               onChange={handleChange}
             />
             <Form.Text className="text-muted">
-              Set a threshold for low stock alerts
+              Set a threshold for low stock alerts (whole numbers only)
             </Form.Text>
           </Form.Group>
 

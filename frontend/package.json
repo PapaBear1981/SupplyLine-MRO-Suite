@@ -34,6 +34,7 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
+    "react-bootstrap-icons": "^1.11.6",
     "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^19.0.0",

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Eye, EyeSlash } from 'react-bootstrap-icons';
 import { login } from '../../store/authSlice';
 
 const LoginForm = () => {
@@ -8,6 +9,7 @@ const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [validated, setValidated] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
@@ -35,61 +37,94 @@ const LoginForm = () => {
 
   return (
     <Form noValidate validated={validated} onSubmit={handleSubmit}>
-      {error && <Alert variant="danger">{error.message || error.error || JSON.stringify(error)}</Alert>}
+      {error && (
+        <div className="login-alert login-alert-danger">
+          {error.message || error.error || 'Login failed. Please try again.'}
+        </div>
+      )}
 
-      <Form.Group className="mb-3" controlId="formUsername">
-        <Form.Label>Employee Number</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Enter employee number"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <Form.Control.Feedback type="invalid">
-          Please provide your employee number.
-        </Form.Control.Feedback>
-      </Form.Group>
+      <div className="login-form-group">
+        <label htmlFor="formUsername" className="login-form-label">
+          Employee Number
+        </label>
+        <div className="login-input-wrapper">
+          <input
+            id="formUsername"
+            type="text"
+            className={`login-form-control ${validated && !username ? 'is-invalid' : ''}`}
+            placeholder="Enter your employee number"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            autoComplete="username"
+          />
+        </div>
+        {validated && !username && (
+          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            Please provide your employee number.
+          </div>
+        )}
+      </div>
 
-      <Form.Group className="mb-3" controlId="formPassword">
-        <Form.Label>Password</Form.Label>
-        <Form.Control
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Form.Control.Feedback type="invalid">
-          Please provide a password.
-        </Form.Control.Feedback>
-      </Form.Group>
+      <div className="login-form-group">
+        <label htmlFor="formPassword" className="login-form-label">
+          Password
+        </label>
+        <div className="login-input-wrapper">
+          <input
+            id="formPassword"
+            type={showPassword ? 'text' : 'password'}
+            className={`login-form-control ${validated && !password ? 'is-invalid' : ''}`}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            style={{ paddingRight: '3rem' }}
+          />
+          <button
+            type="button"
+            className="password-toggle-btn"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+        {validated && !password && (
+          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            Please provide a password.
+          </div>
+        )}
+      </div>
 
-      <Form.Group className="mb-3" controlId="formRememberMe">
-        <Form.Check
+      <div className="login-checkbox-wrapper">
+        <input
+          id="formRememberMe"
           type="checkbox"
-          label="Remember me"
+          className="login-checkbox"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
         />
-      </Form.Group>
+        <label htmlFor="formRememberMe" className="login-checkbox-label">
+          Remember me
+        </label>
+      </div>
 
-      <Button variant="primary" type="submit" disabled={loading}>
+      <button
+        type="submit"
+        className="login-submit-btn"
+        disabled={loading}
+      >
         {loading ? (
           <>
-            <Spinner
-              as="span"
-              animation="border"
-              size="sm"
-              role="status"
-              aria-hidden="true"
-            />
-            <span className="ms-2">Logging in...</span>
+            <span className="login-spinner"></span>
+            <span>Logging in...</span>
           </>
         ) : (
           'Login'
         )}
-      </Button>
+      </button>
     </Form>
   );
 };

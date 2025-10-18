@@ -5,11 +5,12 @@ This module provides API endpoints for managing transfers between kits and wareh
 """
 
 from flask import request, jsonify
-from models import db, AuditLog
+from models import db, AuditLog, Chemical, Warehouse
 from models_kits import Kit, KitItem, KitExpendable, KitTransfer
 from datetime import datetime
 from auth import jwt_required, department_required
 from utils.error_handler import handle_errors, ValidationError
+from utils.lot_utils import create_child_chemical
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def register_kit_transfer_routes(app):
             if field not in data:
                 raise ValidationError(f'{field} is required')
 
-        quantity = float(data['quantity'])
+        quantity = int(data['quantity'])  # Integer only for chemicals
 
         # Validate locations
         if data['from_location_type'] not in ['kit', 'warehouse']:
@@ -44,7 +45,50 @@ def register_kit_transfer_routes(app):
 
         # Get source item and verify quantity
         source_item = None
-        if data['from_location_type'] == 'kit':
+        source_chemical = None
+        child_chemical = None  # Will be set if we create a child lot
+
+        if data['from_location_type'] == 'warehouse' and data['item_type'] == 'chemical':
+            # Handle warehouse chemical transfer with potential lot splitting
+            source_chemical = Chemical.query.get(data['item_id'])
+            if not source_chemical:
+                raise ValidationError('Source chemical not found')
+
+            if source_chemical.quantity < quantity:
+                raise ValidationError(f'Insufficient quantity. Available: {source_chemical.quantity} {source_chemical.unit}')
+
+            # Determine destination warehouse ID (None if transferring to kit)
+            dest_warehouse_id = None
+            if data['to_location_type'] == 'warehouse':
+                dest_warehouse_id = data['to_location_id']
+
+            # Check if this is a partial transfer (not the full quantity)
+            is_partial_transfer = quantity < source_chemical.quantity
+
+            logger.info(f"Transfer check: quantity={quantity}, available={source_chemical.quantity}, is_partial={is_partial_transfer}")
+
+            if is_partial_transfer:
+                logger.info(f"Creating child chemical for partial transfer")
+                # Create a child chemical with new lot number
+                # warehouse_id will be None if transferring to kit
+                child_chemical = create_child_chemical(
+                    parent_chemical=source_chemical,
+                    quantity=quantity,
+                    destination_warehouse_id=dest_warehouse_id
+                )
+                db.session.add(child_chemical)
+                logger.info(f"Child chemical created: ID={child_chemical.id}, Lot={child_chemical.lot_number}")
+                # The create_child_chemical function already reduces parent quantity
+            else:
+                logger.info(f"Full transfer - moving entire chemical")
+                # Full transfer - just move the chemical
+                if data['to_location_type'] == 'warehouse':
+                    source_chemical.warehouse_id = dest_warehouse_id
+                else:
+                    # Transferring to kit - set warehouse_id to None
+                    source_chemical.warehouse_id = None
+
+        elif data['from_location_type'] == 'kit':
             if data['item_type'] == 'expendable':
                 source_item = KitExpendable.query.get(data['item_id'])
             else:
@@ -97,7 +141,7 @@ def register_kit_transfer_routes(app):
                 else:
                     # Create new expendable in destination kit
                     # Get first available box or create in loose
-                    dest_box = dest_kit.boxes[0] if dest_kit.boxes else None
+                    dest_box = dest_kit.boxes.first()
                     if not dest_box:
                         raise ValidationError('Destination kit has no boxes')
 
@@ -112,10 +156,14 @@ def register_kit_transfer_routes(app):
                     )
                     db.session.add(new_expendable)
             else:
+                # For tools/chemicals, determine which chemical ID to use
+                # If we created a child chemical, use that ID; otherwise use original
+                chemical_id_to_add = child_chemical.id if child_chemical else data['item_id']
+
                 # For tools/chemicals, check if same item exists in destination
                 dest_item = KitItem.query.filter_by(
                     kit_id=data['to_location_id'],
-                    item_id=data['item_id'],
+                    item_id=chemical_id_to_add,
                     item_type=data['item_type']
                 ).first()
 
@@ -124,7 +172,7 @@ def register_kit_transfer_routes(app):
                     dest_item.quantity += quantity
                 else:
                     # Create new item in destination kit
-                    dest_box = dest_kit.boxes[0] if dest_kit.boxes else None
+                    dest_box = dest_kit.boxes.first()
                     if not dest_box:
                         raise ValidationError('Destination kit has no boxes')
 
@@ -132,11 +180,37 @@ def register_kit_transfer_routes(app):
                         kit_id=data['to_location_id'],
                         box_id=dest_box.id,
                         item_type=data['item_type'],
-                        item_id=data['item_id'],
+                        item_id=chemical_id_to_add,  # Use child chemical ID if created
                         quantity=quantity,
                         status='available'
                     )
                     db.session.add(new_item)
+        elif data['to_location_type'] == 'warehouse':
+            # Handle transfer to warehouse
+            dest_warehouse = Warehouse.query.get(data['to_location_id'])
+            if not dest_warehouse:
+                raise ValidationError('Destination warehouse not found')
+
+            if data['item_type'] == 'chemical':
+                # For chemicals transferred from kit to warehouse
+                # If we have a child_chemical (from partial warehouse->kit->warehouse), use it
+                # Otherwise, we need to handle the chemical from the kit
+                if child_chemical:
+                    # Child chemical already has correct warehouse_id set
+                    pass
+                else:
+                    # Get the chemical being transferred from the kit
+                    if source_item and hasattr(source_item, 'item_id'):
+                        transferred_chemical = Chemical.query.get(source_item.item_id)
+                        if transferred_chemical:
+                            transferred_chemical.warehouse_id = data['to_location_id']
+            elif data['item_type'] == 'tool':
+                # For tools transferred from kit to warehouse
+                from models import Tool
+                if source_item and hasattr(source_item, 'item_id'):
+                    transferred_tool = Tool.query.get(source_item.item_id)
+                    if transferred_tool:
+                        transferred_tool.warehouse_id = data['to_location_id']
 
         db.session.add(transfer)
         db.session.commit()
@@ -150,7 +224,23 @@ def register_kit_transfer_routes(app):
         db.session.commit()
 
         logger.info(f"Transfer created and completed: ID {transfer.id}")
-        return jsonify(transfer.to_dict()), 201
+
+        # Prepare response with child chemical info if lot was split
+        response_data = transfer.to_dict()
+
+        logger.info(f"Preparing response: child_chemical={child_chemical}, source_chemical={source_chemical}")
+
+        if child_chemical:
+            logger.info(f"Adding child chemical to response: {child_chemical.lot_number}")
+            response_data['child_chemical'] = child_chemical.to_dict()
+            response_data['lot_split'] = True
+            response_data['parent_lot_number'] = source_chemical.lot_number if source_chemical else None
+        else:
+            logger.info(f"No child chemical - full transfer")
+            response_data['lot_split'] = False
+
+        logger.info(f"Response data keys: {response_data.keys()}")
+        return jsonify(response_data), 201
 
     @app.route('/api/transfers', methods=['GET'])
     @jwt_required

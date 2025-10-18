@@ -103,6 +103,18 @@ def create_app():
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 "allow_headers": allow_headers,
                 "supports_credentials": supports_credentials,
+            },
+            r"/tool-view/*": {
+                "origins": allowed_origins,
+                "methods": ["GET", "OPTIONS"],
+                "allow_headers": allow_headers,
+                "supports_credentials": supports_credentials,
+            },
+            r"/chemical-view/*": {
+                "origins": allowed_origins,
+                "methods": ["GET", "OPTIONS"],
+                "allow_headers": allow_headers,
+                "supports_credentials": supports_credentials,
             }
         },
     )

@@ -432,21 +432,19 @@ def register_report_routes(app):
 
             # Check if cycle count tables exist and have data
             try:
-                # Simple check to see if we have any cycle count data
-#                 total_results = CycleCountResult.query.count()  # FIXME: CycleCountResult removed
-                if total_results == 0:
-                    # Return empty report structure when no data exists
-                    result = {
-                        'summary': {
-                            'total_counts': 0,
-                            'accurate_counts': 0,
-                            'discrepancy_counts': 0,
-                            'accuracy_rate': 0
-                        },
-                        'by_location': [],
-                        'trends': []
-                    }
-                    return jsonify(result), 200
+                # CycleCountResult removed - always return empty report
+                # Return empty report structure when no data exists
+                result = {
+                    'summary': {
+                        'total_counts': 0,
+                        'accurate_counts': 0,
+                        'discrepancy_counts': 0,
+                        'accuracy_rate': 0
+                    },
+                    'by_location': [],
+                    'trends': []
+                }
+                return jsonify(result), 200
             except Exception:
                 # If tables don't exist, return empty report
                 result = {
@@ -544,17 +542,16 @@ def register_report_routes(app):
         try:
             # Check if cycle count tables exist and have data
             try:
-#                 total_results = CycleCountResult.query.count()  # FIXME: CycleCountResult removed
-                if total_results == 0:
-                    result = {
-                        'discrepancies': [],
-                        'summary': {
-                            'total_discrepancies': 0,
-                            'by_type': []
-                        },
-                        'trends': []
-                    }
-                    return jsonify(result), 200
+                # CycleCountResult removed - always return empty report
+                result = {
+                    'discrepancies': [],
+                    'summary': {
+                        'total_discrepancies': 0,
+                        'by_type': []
+                    },
+                    'trends': []
+                }
+                return jsonify(result), 200
             except Exception:
                 result = {
                     'discrepancies': [],
@@ -765,20 +762,19 @@ def register_report_routes(app):
         try:
             # Check if cycle count tables exist and have data
             try:
-#                 total_results = CycleCountResult.query.count()  # FIXME: CycleCountResult removed
-                if total_results == 0:
-                    result = {
-                        'summary': {
-                            'total_inventory': Tool.query.count(),
-                            'counted_items': 0,
-                            'uncounted_items': Tool.query.count(),
-                            'coverage_rate': 0
-                        },
-                        'uncounted_items': [],
-                        'by_location': [],
-                        'trends': []
-                    }
-                    return jsonify(result), 200
+                # CycleCountResult removed - always return empty report
+                result = {
+                    'summary': {
+                        'total_inventory': Tool.query.count(),
+                        'counted_items': 0,
+                        'uncounted_items': Tool.query.count(),
+                        'coverage_rate': 0
+                    },
+                    'uncounted_items': [],
+                    'by_location': [],
+                    'trends': []
+                }
+                return jsonify(result), 200
             except Exception:
                 result = {
                     'summary': {

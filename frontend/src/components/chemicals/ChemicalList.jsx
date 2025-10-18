@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-bootstrap';
 import { fetchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -14,6 +14,7 @@ import api from '../../services/api';
 
 const ChemicalList = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { chemicals, loading, error } = useSelector((state) => state.chemicals);
   const { showTooltips, showHelp } = useHelp();
   const [searchTerm, setSearchTerm] = useState('');
@@ -314,8 +315,7 @@ const ChemicalList = () => {
                         <div className="d-flex gap-2">
                           <Tooltip text="View chemical details" placement="top" show={showTooltips}>
                             <Button
-                              as={Link}
-                              to={`/chemicals/${chemical.id}`}
+                              onClick={() => navigate(`/chemicals/${chemical.id}`)}
                               variant="primary"
                               size="sm"
                             >
@@ -329,8 +329,7 @@ const ChemicalList = () => {
                             show={showTooltips}
                           >
                             <Button
-                              as={Link}
-                              to={`/chemicals/${chemical.id}/issue`}
+                              onClick={() => navigate(`/chemicals/${chemical.id}/issue`)}
                               variant="success"
                               size="sm"
                               disabled={chemical.status === 'out_of_stock' || chemical.status === 'expired'}

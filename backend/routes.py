@@ -22,6 +22,7 @@ from routes_kit_messages import register_kit_message_routes
 from routes_inventory import register_inventory_routes
 from routes_warehouses import warehouses_bp
 from routes_transfers import transfers_bp
+from routes_departments import register_department_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 import utils as password_utils
@@ -153,6 +154,9 @@ def register_routes(app):
 
     # Register RBAC routes
     register_rbac_routes(app)
+
+    # Register department routes
+    register_department_routes(app)
 
     # Register announcement routes
     register_announcement_routes(app)

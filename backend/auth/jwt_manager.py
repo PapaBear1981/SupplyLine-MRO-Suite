@@ -295,7 +295,10 @@ def admin_required(f):
 
 
 def permission_required(permission_name: str):
-    """Decorator for specific permission requirement"""
+    """Decorator for specific permission requirement
+
+    Admins (is_admin: true) automatically have ALL permissions and bypass this check.
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -303,6 +306,12 @@ def permission_required(permission_name: str):
             if not user_payload:
                 return jsonify({'error': 'Authentication required', 'code': 'AUTH_REQUIRED'}), 401
 
+            # Admins have FULL access - bypass permission check
+            if user_payload.get('is_admin', False):
+                request.current_user = user_payload
+                return f(*args, **kwargs)
+
+            # Check specific permission for non-admin users
             permissions = user_payload.get('permissions', [])
             if permission_name not in permissions:
                 return jsonify({
