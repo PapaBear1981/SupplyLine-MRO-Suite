@@ -470,11 +470,36 @@ def register_auth_routes(app):
             # Generate JWT tokens for the user
             tokens = JWTManager.generate_tokens(user)
 
-            return jsonify({
+            # SECURITY: Set tokens in HttpOnly cookies to prevent XSS attacks
+            # This ensures the user is properly authenticated after password change
+            response = jsonify({
                 'message': 'Password changed successfully',
-                'user': user.to_dict(include_roles=True, include_permissions=True),
-                **tokens
-            }), 200
+                'user': user.to_dict(include_roles=True, include_permissions=True)
+            })
+
+            # Set access token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'access_token',
+                value=tokens['access_token'],
+                max_age=900,  # 15 minutes
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            # Set refresh token cookie (HttpOnly, Secure, SameSite)
+            response.set_cookie(
+                'refresh_token',
+                value=tokens['refresh_token'],
+                max_age=604800,  # 7 days
+                httponly=True,  # Prevents JavaScript access
+                secure=current_app.config.get('SESSION_COOKIE_SECURE', True),  # HTTPS only in production
+                samesite='Lax',  # CSRF protection
+                path='/'
+            )
+
+            return response, 200
 
         except Exception as e:
             logger.error(f"Password change error: {str(e)}")
