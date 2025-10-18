@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Button, Tabs, Tab } from 'react-bootstrap';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import ReorderManagement from '../components/chemicals/ReorderManagement';
@@ -16,6 +17,7 @@ import {
 
 const ChemicalsManagement = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
   const [activeTab, setActiveTab] = useState('active');
@@ -44,7 +46,7 @@ const ChemicalsManagement = () => {
         <h1 className="mb-0">Chemical Inventory</h1>
         <div className="d-flex gap-2">
           {user?.is_admin && <BulkImportChemicals />}
-          <Button as={Link} to="/chemicals/new" variant="success" size="lg">
+          <Button onClick={() => navigate('/chemicals/new')} variant="success" size="lg">
             <i className="bi bi-plus-circle me-2"></i>
             Add New Chemical
           </Button>

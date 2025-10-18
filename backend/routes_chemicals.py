@@ -254,7 +254,12 @@ def register_chemical_routes(app):
                 'chemical_id': chemical.id,
                 'part_number': chemical.part_number,
                 'lot_number': chemical.lot_number,
+                'description': chemical.description,
+                'manufacturer': chemical.manufacturer,
+                'location': chemical.location,
+                'status': chemical.status,
                 'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None,
+                'created_at': chemical.created_at.isoformat() if chemical.created_at else None,
                 'barcode_data': barcode_data
             })
         except Exception as e:

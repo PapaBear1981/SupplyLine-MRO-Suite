@@ -187,7 +187,8 @@ const ChemicalService = {
   getUniquePartNumbers: async () => {
     try {
       // Get all chemicals and extract unique part numbers
-      const chemicals = await ChemicalService.getAllChemicals();
+      const response = await ChemicalService.getAllChemicals();
+      const chemicals = Array.isArray(response) ? response : response.chemicals || [];
       const partNumbers = [...new Set(chemicals.map(c => c.part_number))];
       return partNumbers.sort();
     } catch (error) {

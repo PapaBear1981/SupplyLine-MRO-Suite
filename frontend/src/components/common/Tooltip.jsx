@@ -8,6 +8,7 @@ import { OverlayTrigger, Tooltip as BSTooltip } from 'react-bootstrap';
  * @param {string} props.text - The tooltip text to display
  * @param {string} props.placement - The placement of the tooltip (top, bottom, left, right)
  * @param {string} props.delay - Delay in ms before showing the tooltip
+ * @param {boolean} props.show - Whether to show the tooltip (default: true)
  * @param {string} props.className - Additional CSS classes for the wrapper
  * @returns {React.ReactElement} - The wrapped element with a tooltip
  */
@@ -16,9 +17,11 @@ const Tooltip = ({
   text,
   placement = 'top',
   delay = 200,
+  show = true,
   className = ''
 }) => {
-  if (!text) return children;
+  // If show is false or no text, just return children without tooltip
+  if (!text || !show) return children;
 
   return (
     <OverlayTrigger
@@ -30,14 +33,13 @@ const Tooltip = ({
         </BSTooltip>
       }
     >
-      <span
+      <div
         className={className}
-        style={{ display: 'inline-block' }}
-        tabIndex={0}
+        style={{ display: 'inline-block', pointerEvents: 'auto' }}
         aria-label={text}
       >
         {children}
-      </span>
+      </div>
     </OverlayTrigger>
   );
 };

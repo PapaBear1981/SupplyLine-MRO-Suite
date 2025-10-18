@@ -60,10 +60,10 @@ const ChemicalIssueForm = () => {
 
     setValidated(true);
 
-    // Validate quantity
-    const quantity = parseFloat(issueData.quantity);
+    // Validate quantity - must be a whole number
+    const quantity = parseInt(issueData.quantity);
     if (isNaN(quantity) || quantity <= 0) {
-      setError('Quantity must be a positive number');
+      setError('Quantity must be a positive whole number');
       return;
     }
 
@@ -179,8 +179,8 @@ const ChemicalIssueForm = () => {
             <Form.Label>Quantity to Issue*</Form.Label>
             <Form.Control
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               max={currentChemical.quantity}
               name="quantity"
               value={issueData.quantity}
@@ -188,10 +188,10 @@ const ChemicalIssueForm = () => {
               required
             />
             <Form.Control.Feedback type="invalid">
-              Please enter a valid quantity (greater than 0 and not more than available)
+              Please enter a valid whole number quantity (greater than 0 and not more than available)
             </Form.Control.Feedback>
             <Form.Text className="text-muted">
-              Maximum available: {currentChemical.quantity} {currentChemical.unit}
+              Maximum available: {currentChemical.quantity} {currentChemical.unit}. Only whole numbers allowed.
             </Form.Text>
           </Form.Group>
 
