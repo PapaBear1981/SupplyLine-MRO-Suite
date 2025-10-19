@@ -1,3 +1,16 @@
+/**
+ * E2E tests for checkout workflows.
+ *
+ * This test suite covers:
+ * - Admin access to all checkouts with return modal interactions
+ * - Role-based access control and permission-based redirects
+ * - Materials manager return capabilities on personal checkouts
+ * - Tool navigation from checkout tables
+ * - Checkout history visibility
+ *
+ * @module checkouts.spec
+ */
+
 import { test, expect } from '@playwright/test';
 import { setupAuthenticatedState, TEST_USERS } from './utils/auth.js';
 import {
@@ -12,8 +25,20 @@ import {
   CHECKOUTS_SELECTORS
 } from './utils/checkouts.js';
 
+/**
+ * Selector for tool links in the checkout table.
+ * @constant {string}
+ */
 const TOOL_LINK_SELECTOR = `${CHECKOUTS_SELECTORS.allActiveCard} tbody tr td a[href^="/tools/"]`;
 
+/**
+ * Helper function to ensure a user is logged in before running tests.
+ *
+ * @async
+ * @param {import('@playwright/test').Page} page - Playwright page object
+ * @param {Object} user - User credentials object from TEST_USERS
+ * @returns {Promise<void>}
+ */
 async function ensureLoggedIn(page, user) {
   await setupAuthenticatedState(page, user, { navigateToDashboard: true });
 }
