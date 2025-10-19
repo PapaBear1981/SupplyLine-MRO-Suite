@@ -441,8 +441,8 @@ def main():
                 import subprocess
                 migrations_dir = os.path.join(os.path.dirname(__file__), 'migrations')
 
-                # Run RBAC migration
-                rbac_migration = os.path.join(migrations_dir, 'add_rbac_system.py')
+                # Run RBAC tables migration
+                rbac_migration = os.path.join(migrations_dir, 'add_rbac_tables.py')
                 subprocess.run([sys.executable, rbac_migration], check=True, capture_output=True)
 
                 # Run page access permissions migration
