@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask
 from models import (
     db, User, Tool, Chemical, Checkout, UserActivity, ToolCalibration,
-    CalibrationStandard, AuditLog, Warehouse
+    CalibrationStandard, AuditLog, Warehouse, Role
 )
 from models_kits import (
     AircraftType, Kit, KitBox, KitItem, KitExpendable,
@@ -88,20 +88,54 @@ def create_test_users():
     
     created_users = []
     for user_data in users_data:
-        user = User(
-            name=user_data['name'],
-            employee_number=user_data['employee_number'],
-            department=user_data['department'],
-            is_admin=user_data['is_admin'],
-            is_active=True,
-            created_at=get_current_time()
-        )
-        user.set_password(user_data['password'])
-        db.session.add(user)
-        created_users.append(user)
-        logger.info(f"Created user: {user.name} ({user.employee_number})")
-    
+        # Check if user already exists (from RBAC migration)
+        existing_user = User.query.filter_by(employee_number=user_data['employee_number']).first()
+        if existing_user:
+            logger.info(f"User already exists: {existing_user.name} ({existing_user.employee_number}), updating password...")
+            existing_user.set_password(user_data['password'])
+            created_users.append(existing_user)
+        else:
+            user = User(
+                name=user_data['name'],
+                employee_number=user_data['employee_number'],
+                department=user_data['department'],
+                is_admin=user_data['is_admin'],
+                is_active=True,
+                created_at=get_current_time()
+            )
+            user.set_password(user_data['password'])
+            db.session.add(user)
+            created_users.append(user)
+            logger.info(f"Created user: {user.name} ({user.employee_number})")
+
     db.session.commit()
+
+    # Assign roles to users
+    logger.info("Assigning roles to test users...")
+    admin_role = Role.query.filter_by(name='Administrator').first()
+    maintenance_role = Role.query.filter_by(name='Maintenance User').first()
+    materials_role = Role.query.filter_by(name='Materials Manager').first()
+
+    for user in created_users:
+        if user.employee_number == 'ADMIN001' and admin_role:
+            if not user.has_role('Administrator'):
+                user.add_role(admin_role)
+                logger.info(f"  Assigned Administrator role to {user.name}")
+        elif user.employee_number == 'USER001' and maintenance_role:
+            if not user.has_role('Maintenance User'):
+                user.add_role(maintenance_role)
+                logger.info(f"  Assigned Maintenance User role to {user.name}")
+        elif user.employee_number == 'MAT001' and materials_role:
+            if not user.has_role('Materials Manager'):
+                user.add_role(materials_role)
+                logger.info(f"  Assigned Materials Manager role to {user.name}")
+        elif user.employee_number in ['MAINT001', 'ENG001'] and maintenance_role:
+            if not user.has_role('Maintenance User'):
+                user.add_role(maintenance_role)
+                logger.info(f"  Assigned Maintenance User role to {user.name}")
+
+    db.session.commit()
+    logger.info(f"Created {len(created_users)} test users with roles")
     return created_users
 
 
@@ -400,7 +434,25 @@ def main():
             
             # Reset database to clean state
             reset_database()
-            
+
+            # Run RBAC migrations to set up roles and permissions
+            logger.info("Running RBAC migrations...")
+            try:
+                import subprocess
+                migrations_dir = os.path.join(os.path.dirname(__file__), 'migrations')
+
+                # Run RBAC tables migration
+                rbac_migration = os.path.join(migrations_dir, 'add_rbac_tables.py')
+                subprocess.run([sys.executable, rbac_migration], check=True, capture_output=True)
+
+                # Run page access permissions migration
+                page_perms_migration = os.path.join(migrations_dir, 'add_page_access_permissions.py')
+                subprocess.run([sys.executable, page_perms_migration], check=True, capture_output=True)
+
+                logger.info("RBAC migration completed")
+            except Exception as e:
+                logger.exception("Migration failed: %s", e)
+
             # Create test data
             users = create_test_users()
             warehouses = create_test_warehouses(users)

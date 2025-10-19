@@ -25,11 +25,14 @@ async function seedDatabase() {
   const seedScript = path.join(backendDir, 'seed_e2e_test_data.py');
   
   try {
-    // Try python3 first (works on both Windows and Unix), fallback to python
-    let pythonCmd = 'python3';
+    // Detect platform and use appropriate Python command
+    const isWindows = process.platform === 'win32';
+    const pythonCmd = isWindows
+      ? path.join(__dirname, '..', '..', '..', '.venv', 'Scripts', 'python.exe')
+      : 'python3';
 
     // Run the seeding script
-    const { stdout, stderr } = await execAsync(`${pythonCmd} "${seedScript}"`, {
+    const { stdout, stderr } = await execAsync(`"${pythonCmd}" "${seedScript}"`, {
       cwd: backendDir,
       timeout: 60000, // 60 second timeout
     });
@@ -37,9 +40,10 @@ async function seedDatabase() {
     if (stdout) {
       console.log(stdout);
     }
-    
-    if (stderr && !stderr.includes('INFO')) {
-      console.error('Seeding stderr:', stderr);
+
+    // Show all stderr output for debugging
+    if (stderr) {
+      console.log('Seeding stderr:', stderr);
     }
     
     console.log('✅ Test database seeded successfully');
@@ -71,7 +75,7 @@ async function verifyBackend() {
         console.log('✅ Backend server is running');
         return;
       }
-    } catch (error) {
+    } catch {
       if (i < maxRetries - 1) {
         console.log(`⏳ Waiting for backend server... (attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));

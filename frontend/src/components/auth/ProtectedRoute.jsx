@@ -19,7 +19,7 @@ const hasPermission = (user, permissionName) => {
   return permissions.includes(permissionName);
 };
 
-const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = null }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = null, permissionFallback = '/dashboard' }) => {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const location = useLocation();
@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = nu
       if (!user) {
         try {
           await dispatch(fetchCurrentUser());
-        } catch (error) {
+        } catch {
           // User is not authenticated, will be handled by auth state
         }
       }
@@ -64,25 +64,8 @@ const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = nu
 
   // Check if specific permission is required
   if (requirePermission && !hasPermission(user, requirePermission)) {
-    // Show access denied page
-    return (
-      <Container className="mt-5">
-        <Alert variant="danger">
-          <Alert.Heading>Access Denied</Alert.Heading>
-          <p>
-            You do not have permission to access this page.
-            {requirePermission && ` Required permission: ${requirePermission}`}
-          </p>
-          <hr />
-          <p className="mb-0">
-            Please contact your administrator if you believe you should have access to this page.
-          </p>
-        </Alert>
-        <div className="mt-3">
-          <Link to="/dashboard" className="btn btn-primary">Return to Dashboard</Link>
-        </div>
-      </Container>
-    );
+    // Redirect to fallback path (e.g., /dashboard or a contextual page)
+    return <Navigate to={permissionFallback} replace />;
   }
 
   return children;
@@ -94,8 +77,8 @@ export const AdminRoute = ({ children }) => {
 };
 
 // Specialized component for permission-based routes
-export const PermissionRoute = ({ children, permission }) => {
-  return <ProtectedRoute requirePermission={permission}>{children}</ProtectedRoute>;
+export const PermissionRoute = ({ children, permission, fallbackPath = '/dashboard' }) => {
+  return <ProtectedRoute requirePermission={permission} permissionFallback={fallbackPath}>{children}</ProtectedRoute>;
 };
 
 // Helper function to check permissions (can be used in components)

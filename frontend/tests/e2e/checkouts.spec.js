@@ -1,0 +1,144 @@
+/**
+ * E2E tests for checkout workflows.
+ *
+ * This test suite covers:
+ * - Admin access to all checkouts with return modal interactions
+ * - Role-based access control and permission-based redirects
+ * - Materials manager return capabilities on personal checkouts
+ * - Tool navigation from checkout tables
+ * - Checkout history visibility
+ *
+ * @module checkouts.spec
+ */
+
+import { test, expect } from '@playwright/test';
+import { setupAuthenticatedState, TEST_USERS } from './utils/auth.js';
+import {
+  waitForMyCheckouts,
+  waitForAllCheckouts,
+  activeCheckoutRows,
+  checkoutHistoryRows,
+  allCheckoutRows,
+  allCheckoutReturnButtons,
+  myCheckoutReturnButtons,
+  hasVisibleRows,
+  CHECKOUTS_SELECTORS
+} from './utils/checkouts.js';
+
+/**
+ * Selector for tool links in the checkout table.
+ * @constant {string}
+ */
+const TOOL_LINK_SELECTOR = `${CHECKOUTS_SELECTORS.allActiveCard} tbody tr td a[href^="/tools/"]`;
+
+/**
+ * Helper function to ensure a user is logged in before running tests.
+ *
+ * @async
+ * @param {import('@playwright/test').Page} page - Playwright page object
+ * @param {Object} user - User credentials object from TEST_USERS
+ * @returns {Promise<void>}
+ */
+async function ensureLoggedIn(page, user) {
+  await setupAuthenticatedState(page, user, { navigateToDashboard: true });
+}
+
+test.describe('Checkout Workflows', () => {
+  test('admin can view all checkouts and interact with return modal', async ({ page }) => {
+    await ensureLoggedIn(page, TEST_USERS.admin);
+    await page.goto('/checkouts/all');
+    await waitForAllCheckouts(page);
+
+    const rows = allCheckoutRows(page);
+    const returnButtons = allCheckoutReturnButtons(page);
+    const hasRows = await hasVisibleRows(rows);
+    const btnCount = await returnButtons.count();
+
+    if (hasRows) {
+      expect(btnCount).toBeGreaterThan(0);
+      await expect(returnButtons.first()).toBeVisible();
+      await returnButtons.first().click();
+      await expect(page.locator('.modal-title:has-text("Return Tool")')).toBeVisible();
+      await expect(page.locator('.modal-body')).toContainText('Tool:');
+      await expect(page.locator('.modal-body')).toContainText('Description:');
+      await page.click('.modal-footer button:has-text("Cancel")');
+      await expect(page.locator('.modal.show')).toHaveCount(0, { timeout: 5000 });
+    } else {
+      await expect(page.getByText(/there are no active checkouts\./i)).toBeVisible();
+    }
+  });
+
+  test('standard users are redirected away from all checkouts view', async ({ page }) => {
+    await ensureLoggedIn(page, TEST_USERS.user);
+    await page.goto('/checkouts');
+    await waitForMyCheckouts(page);
+
+    await expect(page.locator('button:has-text("View All Active Checkouts")')).toHaveCount(0);
+
+    // Try to access /checkouts/all - should be redirected to /checkouts
+    await page.goto('/checkouts/all');
+    await waitForMyCheckouts(page);
+    await expect(page).toHaveURL('/checkouts');
+  });
+
+  test('materials personnel retain return capabilities on personal checkouts', async ({ page }) => {
+    await ensureLoggedIn(page, TEST_USERS.materials);
+    await page.goto('/checkouts');
+    await waitForMyCheckouts(page);
+
+    const rows = activeCheckoutRows(page);
+    const returnButtons = myCheckoutReturnButtons(page);
+    const hasRows = await hasVisibleRows(rows);
+
+    if (hasRows) {
+      // If there are actual checkout rows, verify return buttons exist
+      expect(await returnButtons.count()).toBeGreaterThan(0);
+      await expect(returnButtons.first()).toBeVisible();
+    } else {
+      // If no checkouts, verify empty state message is shown
+      await expect(page.getByText(/no active checkouts/i)).toBeVisible();
+    }
+  });
+
+  test('tool links from all checkouts navigate to tool detail pages', async ({ page }) => {
+    await ensureLoggedIn(page, TEST_USERS.admin);
+    await page.goto('/checkouts/all');
+    await waitForAllCheckouts(page);
+
+    const toolLink = page.locator(TOOL_LINK_SELECTOR).first();
+
+    if (await toolLink.count() > 0) {
+      const href = await toolLink.getAttribute('href');
+      await toolLink.click();
+      await page.waitForLoadState('networkidle');
+
+      if (href) {
+        const escapedHref = href.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+        await expect(page).toHaveURL(new RegExp(`${escapedHref}$`));
+      } else {
+        await expect(page).toHaveURL(/\/tools\/\d+$/);
+      }
+
+      await expect(
+        page.locator('[data-testid="tool-details"], h1:has-text("Tool Detail"), h1:has-text("Tool Inventory")')
+      ).toBeVisible();
+    } else {
+      await expect(page.locator('text=There are no active checkouts.')).toBeVisible();
+    }
+  });
+
+  test('checkout history is available on personal checkouts page', async ({ page }) => {
+    await ensureLoggedIn(page, TEST_USERS.admin);
+    await page.goto('/checkouts');
+    await waitForMyCheckouts(page);
+
+    const historyRows = checkoutHistoryRows(page);
+    const hasHistory = await hasVisibleRows(historyRows);
+
+    if (hasHistory) {
+      await expect(historyRows.first()).toBeVisible();
+    } else {
+      await expect(page.locator('text=You have no past checkouts.')).toBeVisible();
+    }
+  });
+});
