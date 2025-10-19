@@ -1,6 +1,6 @@
 # SupplyLine MRO Suite
 
-A comprehensive, secure, and scalable Maintenance, Repair, and Operations (MRO) management system built with modern technologies and AWS-ready architecture.
+A comprehensive, secure, and scalable Maintenance, Repair, and Operations (MRO) management system built with modern technologies and containerized deployment.
 
 **Current Version: 4.1.0 - Security Hardening & Feature Enhancements** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
 
@@ -114,81 +114,99 @@ Built with modern security practices and designed for enterprise-scale deploymen
 
 ### Backend
 - **Flask 2.2.3** - Python web framework
-- **PostgreSQL** - Production database (AWS RDS)
-- **SQLite** - Development database
+- **SQLite** - Lightweight database (default)
+- **PostgreSQL** - Optional production database
 - **Flask-SQLAlchemy** - ORM
 - **Flask-CORS** - Cross-origin resource sharing
 - **PyJWT 2.8.0** - JWT token authentication
 - **Gunicorn** - WSGI HTTP server
 
-### AWS Cloud Infrastructure
-- **Amazon ECS Fargate** - Container orchestration
-- **Amazon RDS PostgreSQL** - Managed database service
-- **Amazon S3** - Static website hosting
-- **Amazon CloudFront** - CDN for global content delivery
-- **Application Load Balancer** - Load balancing and SSL termination
-- **Amazon ECR** - Container registry
-- **AWS Secrets Manager** - Secure secrets management
-- **AWS CloudFormation** - Infrastructure as Code
-- **Amazon VPC** - Network isolation and security
+### Deployment & Infrastructure
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **Nginx** - Web server and reverse proxy
+- **Multi-stage Docker builds** - Optimized container images
 
 ### Security & Authentication
 - **JWT Tokens** - Stateless authentication
-- **AWS IAM** - Identity and access management
 - **CSRF Protection** - Cross-site request forgery protection
-- **SSL/TLS** - End-to-end encryption
-- **Security Groups** - Network-level security
+- **Rate Limiting** - Brute force protection
+- **Password Security** - History tracking and expiration
+- **Secure Token Generation** - Cryptographically secure tokens
 
-### DevOps & Deployment
-- **Docker** - Containerization
-- **GitHub Actions** - CI/CD pipeline
+### Testing & Quality
 - **Playwright** - End-to-end testing
-- **CloudFormation** - Infrastructure automation
-- **Multi-stage Docker builds** - Optimized container images
+- **Pytest** - Backend unit testing
+- **ESLint** - Frontend code quality
 
-## 🚀 AWS Production Deployment
+## 🚀 Docker Deployment
 
-### Prerequisites for AWS Deployment
-- **AWS Account** with appropriate permissions
-- **AWS CLI** installed and configured
-- **Docker** installed locally
-- **Node.js** (v20+) and **Python** (v3.11+)
+### Prerequisites
+- **Docker** and **Docker Compose** installed
 - **Git** for version control
+- At least 2GB of available RAM
+- 5GB of available disk space
 
-### Quick AWS Deployment
+### Quick Start with Docker
 
-The application includes automated deployment scripts for AWS:
+The application is fully containerized and can be deployed with a single command:
 
 ```bash
 # Clone the repository
 git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
 cd SupplyLine-MRO-Suite
 
-# Configure AWS credentials
-aws configure
+# Create environment file from template
+cp .env.example .env
 
-# Deploy to AWS (creates all infrastructure)
-./scripts/deploy.sh
+# Generate secure keys (REQUIRED)
+python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(64))" >> .env
+python -c "import secrets; print('JWT_SECRET_KEY=' + secrets.token_urlsafe(64))" >> .env
+
+# Build and start the containers
+docker-compose up -d
+
+# Access the application at http://localhost
 ```
 
-This will:
-1. Create ECR repository for container images
-2. Build and push Docker images
-3. Deploy infrastructure using CloudFormation
-4. Deploy the application to ECS Fargate
-5. Set up RDS PostgreSQL database
-6. Configure S3 and CloudFront for frontend
-7. Set up load balancer and SSL certificates
+### Docker Deployment Features
 
-### Manual AWS Setup
+The Docker deployment includes:
+1. **Backend Container**: Flask API with SQLite database
+2. **Frontend Container**: Nginx serving React application
+3. **Persistent Volumes**: Database and session data preserved across restarts
+4. **Health Checks**: Automatic container health monitoring
+5. **Resource Limits**: CPU and memory constraints for stability
+6. **Network Isolation**: Containers communicate on isolated network
 
-For more control over the deployment process, see the comprehensive [AWS Deployment Guide](DEPLOYMENT.md).
+### Docker Commands
 
-### Production URLs
+```bash
+# Start the application
+docker-compose up -d
 
-After deployment, your application will be available at:
-- **Frontend**: `https://your-cloudfront-domain.cloudfront.net`
-- **Backend API**: `https://your-alb-domain.us-east-1.elb.amazonaws.com/api`
+# View logs
+docker-compose logs -f
+
+# Stop the application
+docker-compose down
+
+# Rebuild containers after code changes
+docker-compose up -d --build
+
+# Remove all data (including database)
+docker-compose down -v
+```
+
+### Production Deployment
+
+For production deployments:
+1. Update the `.env` file with production values
+2. Set `FLASK_ENV=production` and `FLASK_DEBUG=False`
+3. Generate strong, unique values for `SECRET_KEY` and `JWT_SECRET_KEY`
+4. Configure appropriate `CORS_ORIGINS` for your domain
+5. Consider using a reverse proxy (like Traefik or Nginx) for SSL/TLS
+6. Set up regular database backups of the `database` volume
 
 ## Getting Started (Local Development)
 
@@ -237,23 +255,7 @@ npm run dev
 
 #### Option 2: Docker Deployment
 
-The application can be easily deployed using Docker and Docker Compose:
-
-```bash
-# Clone the repository
-git clone https://github.com/PapaBear1981/SupplyLine-MRO-Suite.git
-cd SupplyLine-MRO-Suite
-
-# Create a .env file from the example
-cp .env.example .env
-
-# Build and start the containers
-docker-compose up -d
-
-# Access the application at http://localhost
-```
-
-For more detailed instructions on Docker deployment, see [DOCKER_README.md](DOCKER_README.md).
+See the **Docker Deployment** section above for complete instructions on deploying with Docker and Docker Compose.
 
 ### QR Code Configuration for External Devices
 
