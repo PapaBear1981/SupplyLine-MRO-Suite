@@ -46,10 +46,10 @@ test.describe('Checkout Workflows', () => {
 
     await expect(page.locator('button:has-text("View All Active Checkouts")')).toHaveCount(0);
 
-    // Try to access /checkouts/all - should see access denied
+    // Try to access /checkouts/all - should be redirected to /checkouts
     await page.goto('/checkouts/all');
-    await expect(page.locator('text=Access Denied')).toBeVisible();
-    await expect(page.locator('text=Required permission: page.checkouts')).toBeVisible();
+    await waitForMyCheckouts(page);
+    await expect(page).toHaveURL('/checkouts');
   });
 
   test('materials personnel retain return capabilities on personal checkouts', async ({ page }) => {

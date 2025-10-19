@@ -193,7 +193,7 @@ function App() {
         } />
 
         <Route path="/checkouts/all" element={
-          <PermissionRoute permission="page.checkouts">
+          <PermissionRoute permission="page.checkouts" fallbackPath="/checkouts">
             <MainLayout>
               <AllCheckoutsPage />
             </MainLayout>
