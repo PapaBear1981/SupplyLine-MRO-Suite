@@ -49,10 +49,14 @@ test.describe('Checkout Workflows', () => {
     await page.goto('/checkouts/all');
     await waitForAllCheckouts(page);
 
+    const rows = allCheckoutRows(page);
     const returnButtons = allCheckoutReturnButtons(page);
-    const hasReturnableRows = await hasVisibleRows(allCheckoutRows(page));
+    const hasRows = await hasVisibleRows(rows);
+    const btnCount = await returnButtons.count();
 
-    if (hasReturnableRows && await returnButtons.count() > 0) {
+    if (hasRows) {
+      expect(btnCount).toBeGreaterThan(0);
+      await expect(returnButtons.first()).toBeVisible();
       await returnButtons.first().click();
       await expect(page.locator('.modal-title:has-text("Return Tool")')).toBeVisible();
       await expect(page.locator('.modal-body')).toContainText('Tool:');
@@ -60,7 +64,7 @@ test.describe('Checkout Workflows', () => {
       await page.click('.modal-footer button:has-text("Cancel")');
       await expect(page.locator('.modal.show')).toHaveCount(0, { timeout: 5000 });
     } else {
-      await expect(page.locator('text=There are no active checkouts.')).toBeVisible();
+      await expect(page.getByText(/there are no active checkouts\./i)).toBeVisible();
     }
   });
 
@@ -82,13 +86,17 @@ test.describe('Checkout Workflows', () => {
     await page.goto('/checkouts');
     await waitForMyCheckouts(page);
 
+    const rows = activeCheckoutRows(page);
     const returnButtons = myCheckoutReturnButtons(page);
-    const hasActionableRows = await hasVisibleRows(activeCheckoutRows(page));
+    const hasRows = await hasVisibleRows(rows);
 
-    if (hasActionableRows && await returnButtons.count() > 0) {
+    if (hasRows) {
+      // If there are actual checkout rows, verify return buttons exist
+      expect(await returnButtons.count()).toBeGreaterThan(0);
       await expect(returnButtons.first()).toBeVisible();
     } else {
-      await expect(page.locator('.alert-info')).toHaveCount(0);
+      // If no checkouts, verify empty state message is shown
+      await expect(page.getByText(/no active checkouts/i)).toBeVisible();
     }
   });
 

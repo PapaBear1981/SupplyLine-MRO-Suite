@@ -451,9 +451,7 @@ def main():
 
                 logger.info("RBAC migration completed")
             except Exception as e:
-                logger.error(f"Migration failed: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("Migration failed: %s", e)
 
             # Create test data
             users = create_test_users()
