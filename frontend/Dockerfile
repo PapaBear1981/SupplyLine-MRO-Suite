@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-slim as build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
@@ -13,6 +13,10 @@ RUN npm ci --quiet && \
 # Copy application code
 COPY . .
 
+# Accept build argument for API URL
+ARG VITE_API_URL=http://localhost:5000
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Build the application
 RUN npm run build
 
@@ -22,7 +26,7 @@ FROM nginx:stable-alpine
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
-# Copy the nginx configuration
+# Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy the built files from the build stage
@@ -33,7 +37,7 @@ RUN chmod -R 755 /usr/share/nginx/html
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:80/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

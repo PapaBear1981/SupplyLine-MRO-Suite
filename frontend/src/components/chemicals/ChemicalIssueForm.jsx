@@ -78,7 +78,8 @@ const ChemicalIssueForm = () => {
     // Format data for API
     const formattedData = {
       ...issueData,
-      quantity: quantity
+      quantity: quantity,
+      user_id: parseInt(issueData.user_id) // Ensure user_id is an integer
     };
 
     dispatch(issueChemical({ id, data: formattedData }))

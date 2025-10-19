@@ -1129,6 +1129,107 @@ def register_kit_routes(app):
 
         return jsonify(report), 200
 
+    @app.route('/api/kits/analytics/utilization', methods=['GET'])
+    @jwt_required
+    @handle_errors
+    def get_kit_utilization_analytics():
+        """Get kit utilization analytics across all kits"""
+        from models_kits import KitIssuance, KitTransfer
+        from sqlalchemy import func
+
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.now() - timedelta(days=days)
+
+        # Get all active kits
+        kits = Kit.query.filter_by(status='active').all()
+
+        # Issuances by kit
+        issuances_by_kit = db.session.query(
+            Kit.name,
+            func.count(KitIssuance.id).label('count')
+        ).join(KitIssuance, Kit.id == KitIssuance.kit_id).filter(
+            KitIssuance.issued_date >= start_date
+        ).group_by(Kit.name).all()
+
+        issuances_data = [{'name': name, 'value': count} for name, count in issuances_by_kit]
+
+        # Transfers by type
+        kit_to_kit = KitTransfer.query.filter(
+            KitTransfer.from_location_type == 'kit',
+            KitTransfer.to_location_type == 'kit',
+            KitTransfer.transfer_date >= start_date
+        ).count()
+
+        kit_to_warehouse = KitTransfer.query.filter(
+            KitTransfer.from_location_type == 'kit',
+            KitTransfer.to_location_type == 'warehouse',
+            KitTransfer.transfer_date >= start_date
+        ).count()
+
+        warehouse_to_kit = KitTransfer.query.filter(
+            KitTransfer.from_location_type == 'warehouse',
+            KitTransfer.to_location_type == 'kit',
+            KitTransfer.transfer_date >= start_date
+        ).count()
+
+        transfers_data = [
+            {'name': 'Kit to Kit', 'value': kit_to_kit},
+            {'name': 'Kit to Warehouse', 'value': kit_to_warehouse},
+            {'name': 'Warehouse to Kit', 'value': warehouse_to_kit}
+        ]
+
+        # Activity over time (weekly breakdown)
+        weeks = []
+        for i in range(4):
+            week_start = datetime.now() - timedelta(days=(4-i)*7)
+            week_end = week_start + timedelta(days=7)
+
+            week_issuances = KitIssuance.query.filter(
+                KitIssuance.issued_date >= week_start,
+                KitIssuance.issued_date < week_end
+            ).count()
+
+            week_transfers = KitTransfer.query.filter(
+                KitTransfer.transfer_date >= week_start,
+                KitTransfer.transfer_date < week_end
+            ).count()
+
+            weeks.append({
+                'date': f'Week {i+1}',
+                'issuances': week_issuances,
+                'transfers': week_transfers
+            })
+
+        # Summary stats
+        total_issuances = KitIssuance.query.filter(
+            KitIssuance.issued_date >= start_date
+        ).count()
+
+        total_transfers = KitTransfer.query.filter(
+            KitTransfer.transfer_date >= start_date
+        ).count()
+
+        active_kits = len(kits)
+
+        # Calculate average utilization (percentage of kits with activity)
+        kits_with_activity = db.session.query(KitIssuance.kit_id).filter(
+            KitIssuance.issued_date >= start_date
+        ).distinct().count()
+
+        avg_utilization = round((kits_with_activity / active_kits * 100) if active_kits > 0 else 0, 1)
+
+        return jsonify({
+            'issuancesByKit': issuances_data,
+            'transfersByType': transfers_data,
+            'activityOverTime': weeks,
+            'summary': {
+                'totalIssuances': total_issuances,
+                'totalTransfers': total_transfers,
+                'activeKits': active_kits,
+                'avgUtilization': avg_utilization
+            }
+        }), 200
+
     @app.route('/api/kits/<int:kit_id>/alerts', methods=['GET'])
     @jwt_required
     @handle_errors

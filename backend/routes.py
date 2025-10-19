@@ -23,6 +23,7 @@ from routes_inventory import register_inventory_routes
 from routes_warehouses import warehouses_bp
 from routes_transfers import transfers_bp
 from routes_departments import register_department_routes
+from routes_database import register_database_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 import utils as password_utils
@@ -187,6 +188,9 @@ def register_routes(app):
 
     # Register warehouse transfer routes
     app.register_blueprint(transfers_bp, url_prefix='/api')
+
+    # Register database management routes
+    register_database_routes(app)
 
     # Add direct routes for chemicals management
     @app.route('/api/chemicals/reorder-needed', methods=['GET'])
