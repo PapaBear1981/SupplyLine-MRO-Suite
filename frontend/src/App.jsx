@@ -167,18 +167,19 @@ function App() {
           </PermissionRoute>
         } />
 
-        <Route path="/checkout/:id" element={
-          <PermissionRoute permission="page.checkouts">
+        {/* NOTE: /checkouts route MUST come before /checkout/:id to avoid matching issues */}
+        <Route path="/checkouts" element={
+          <PermissionRoute permission="page.my_checkouts">
             <MainLayout>
-              <CheckoutPage />
+              <CheckoutsPage />
             </MainLayout>
           </PermissionRoute>
         } />
 
-        <Route path="/checkouts" element={
+        <Route path="/checkout/:id" element={
           <PermissionRoute permission="page.checkouts">
             <MainLayout>
-              <CheckoutsPage />
+              <CheckoutPage />
             </MainLayout>
           </PermissionRoute>
         } />

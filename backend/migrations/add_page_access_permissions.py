@@ -11,6 +11,11 @@ Note: Dashboard (/dashboard) is accessible to all authenticated users by default
 
 import sys
 import os
+import io
+
+# Set UTF-8 encoding for stdout to handle emoji characters on Windows
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add parent directory to path to import models
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

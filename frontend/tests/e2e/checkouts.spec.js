@@ -30,7 +30,8 @@ test.describe('Checkout Workflows', () => {
     if (hasReturnableRows && await returnButtons.count() > 0) {
       await returnButtons.first().click();
       await expect(page.locator('.modal-title:has-text("Return Tool")')).toBeVisible();
-      await expect(page.locator('.modal-body')).toContainText(['Tool:', 'Description:']);
+      await expect(page.locator('.modal-body')).toContainText('Tool:');
+      await expect(page.locator('.modal-body')).toContainText('Description:');
       await page.click('.modal-footer button:has-text("Cancel")');
       await expect(page.locator('.modal.show')).toHaveCount(0, { timeout: 5000 });
     } else {
