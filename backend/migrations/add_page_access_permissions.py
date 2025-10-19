@@ -13,15 +13,16 @@ import sys
 import os
 import io
 
+# Add parent directory to path to import models
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Set UTF-8 encoding for stdout to handle emoji characters on Windows
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# Add parent directory to path to import models
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app import create_app  # noqa: E402
+from models import db, Permission, Role, RolePermission  # noqa: E402
 
-from app import create_app
-from models import db, Permission, Role, RolePermission
 
 def run_migration():
     """Add page access permissions to the database"""
@@ -185,6 +186,6 @@ def run_migration():
         print("\nNote: Dashboard (/dashboard) is accessible to ALL authenticated users by default.")
         print("="*60)
 
+
 if __name__ == '__main__':
     run_migration()
-
