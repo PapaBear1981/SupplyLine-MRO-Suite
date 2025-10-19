@@ -118,20 +118,20 @@ def create_test_users():
 
     for user in created_users:
         if user.employee_number == 'ADMIN001' and admin_role:
-            if admin_role not in user.roles:
-                user.roles.append(admin_role)
+            if not user.has_role('Administrator'):
+                user.add_role(admin_role)
                 logger.info(f"  Assigned Administrator role to {user.name}")
         elif user.employee_number == 'USER001' and maintenance_role:
-            if maintenance_role not in user.roles:
-                user.roles.append(maintenance_role)
+            if not user.has_role('Maintenance User'):
+                user.add_role(maintenance_role)
                 logger.info(f"  Assigned Maintenance User role to {user.name}")
         elif user.employee_number == 'MAT001' and materials_role:
-            if materials_role not in user.roles:
-                user.roles.append(materials_role)
+            if not user.has_role('Materials Manager'):
+                user.add_role(materials_role)
                 logger.info(f"  Assigned Materials Manager role to {user.name}")
         elif user.employee_number in ['MAINT001', 'ENG001'] and maintenance_role:
-            if maintenance_role not in user.roles:
-                user.roles.append(maintenance_role)
+            if not user.has_role('Maintenance User'):
+                user.add_role(maintenance_role)
                 logger.info(f"  Assigned Maintenance User role to {user.name}")
 
     db.session.commit()
