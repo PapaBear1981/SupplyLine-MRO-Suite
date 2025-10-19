@@ -92,7 +92,7 @@ test.describe('Concurrent Calibrations', () => {
             hasError: false,
             hasSuccess: true,
           };
-        } catch (e) {
+        } catch {
           // If it stays on the calibration form or shows an error, it failed
           const currentUrl = page.url();
           const stillOnCalibrationPage = currentUrl.includes('/calibrations/new');
