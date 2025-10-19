@@ -75,7 +75,7 @@ async function verifyBackend() {
         console.log('✅ Backend server is running');
         return;
       }
-    } catch (error) {
+    } catch {
       if (i < maxRetries - 1) {
         console.log(`⏳ Waiting for backend server... (attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));

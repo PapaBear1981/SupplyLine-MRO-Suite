@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, requirePermission = nu
       if (!user) {
         try {
           await dispatch(fetchCurrentUser());
-        } catch (error) {
+        } catch {
           // User is not authenticated, will be handled by auth state
         }
       }
