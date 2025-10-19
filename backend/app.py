@@ -10,6 +10,8 @@ import datetime
 import logging.config
 from utils.resource_monitor import init_resource_monitoring
 from utils.logging_utils import setup_request_logging
+from utils.scheduled_backup import init_scheduled_backup, shutdown_scheduled_backup
+import atexit
 
 
 def create_app():
@@ -209,6 +211,21 @@ def create_app():
         'route_count': len(list(app.url_map.iter_rules())),
         'routes': [f"{rule} - {rule.methods}" for rule in app.url_map.iter_rules()]
     })
+
+    # Initialize scheduled backup service
+    if not is_testing_env:
+        try:
+            logger.info("Initializing scheduled backup service...")
+            init_scheduled_backup(app)
+
+            # Register cleanup on shutdown
+            atexit.register(shutdown_scheduled_backup)
+
+            logger.info("Scheduled backup service initialized")
+        except Exception as e:
+            logger.error("Error initializing scheduled backup service", exc_info=True, extra={
+                'error_message': str(e)
+            })
 
     return app
 

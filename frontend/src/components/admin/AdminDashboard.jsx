@@ -12,6 +12,7 @@ import RegistrationRequests from './RegistrationRequests';
 import AnnouncementManagement from './AnnouncementManagement';
 import PasswordReset from './PasswordReset';
 import AircraftTypeManagement from './AircraftTypeManagement';
+import DatabaseManagement from './DatabaseManagement';
 import { fetchDashboardStats, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
@@ -35,7 +36,8 @@ const AdminDashboard = () => {
     canViewRegistrations,
     canManageAnnouncements,
     canResetPasswords,
-    canManageAircraftTypes
+    canManageAircraftTypes,
+    canManageDatabase
   } = useMemo(() => ({
     canViewDashboard: currentUser?.is_admin,
     canViewUsers: currentUser?.is_admin || currentUser?.permissions?.includes('user.view'),
@@ -46,7 +48,8 @@ const AdminDashboard = () => {
     canViewRegistrations: currentUser?.is_admin,
     canManageAnnouncements: currentUser?.is_admin,
     canResetPasswords: currentUser?.is_admin || currentUser?.permissions?.includes('user.manage'),
-    canManageAircraftTypes: currentUser?.is_admin
+    canManageAircraftTypes: currentUser?.is_admin,
+    canManageDatabase: currentUser?.is_admin
   }), [currentUser?.permissions, currentUser?.is_admin]);
 
   // Fetch dashboard data when component mounts
@@ -149,6 +152,11 @@ const AdminDashboard = () => {
                   <Nav.Link eventKey="aircraft-types">Aircraft Types</Nav.Link>
                 </Nav.Item>
               )}
+              {canManageDatabase && (
+                <Nav.Item>
+                  <Nav.Link eventKey="database">Database</Nav.Link>
+                </Nav.Item>
+              )}
             </Nav>
           </Card.Header>
           <Card.Body>
@@ -184,6 +192,9 @@ const AdminDashboard = () => {
               </Tab.Pane>
               <Tab.Pane eventKey="aircraft-types">
                 {canManageAircraftTypes && <AircraftTypeManagement />}
+              </Tab.Pane>
+              <Tab.Pane eventKey="database">
+                {canManageDatabase && <DatabaseManagement />}
               </Tab.Pane>
             </Tab.Content>
           </Card.Body>
