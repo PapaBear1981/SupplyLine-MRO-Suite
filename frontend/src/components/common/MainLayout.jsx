@@ -60,6 +60,9 @@ const MainLayout = ({ children }) => {
                     <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
                   )}
 
+                  {/* Item History Lookup - Available to all authenticated users */}
+                  <Nav.Link as={Link} to="/history">History</Nav.Link>
+
                   {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
                   {/* ============================================== */}
                   {/* The "Cycle Counts" navigation menu item has been disabled due to GitHub Issue #366 */}
