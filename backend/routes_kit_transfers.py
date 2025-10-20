@@ -128,6 +128,19 @@ def register_kit_transfer_routes(app):
             if not dest_kit:
                 raise ValidationError('Destination kit not found')
 
+            # Get destination box - use provided box_id or default to first box
+            dest_box_id = data.get('box_id')
+            if dest_box_id:
+                from models_kits import KitBox
+                dest_box = KitBox.query.filter_by(id=dest_box_id, kit_id=data['to_location_id']).first()
+                if not dest_box:
+                    raise ValidationError('Specified box not found in destination kit')
+            else:
+                # Fallback to first box if no box_id provided
+                dest_box = dest_kit.boxes.first()
+                if not dest_box:
+                    raise ValidationError('Destination kit has no boxes')
+
             if data['item_type'] == 'expendable':
                 # For expendables, check if same part number exists in destination
                 dest_item = KitExpendable.query.filter_by(
@@ -140,10 +153,6 @@ def register_kit_transfer_routes(app):
                     dest_item.quantity += quantity
                 else:
                     # Create new expendable in destination kit
-                    # Get first available box or create in loose
-                    dest_box = dest_kit.boxes.first()
-                    if not dest_box:
-                        raise ValidationError('Destination kit has no boxes')
 
                     new_expendable = KitExpendable(
                         kit_id=data['to_location_id'],
@@ -172,9 +181,7 @@ def register_kit_transfer_routes(app):
                     dest_item.quantity += quantity
                 else:
                     # Create new item in destination kit
-                    dest_box = dest_kit.boxes.first()
-                    if not dest_box:
-                        raise ValidationError('Destination kit has no boxes')
+                    # dest_box is already set above, no need to get it again
 
                     # Get the actual item to populate fields
                     if data['item_type'] == 'tool':
