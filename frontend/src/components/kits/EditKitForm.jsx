@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Form, Button, Card, Alert } from 'react-bootstrap';
+import { Form, Button, Card, Alert, Tabs, Tab } from 'react-bootstrap';
 import { fetchKitById, updateKit, fetchAircraftTypes } from '../../store/kitsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import KitBoxManager from './KitBoxManager';
 
 const EditKitForm = () => {
   const { id } = useParams();
@@ -19,6 +20,7 @@ const EditKitForm = () => {
   });
   const [validated, setValidated] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
     // Fetch aircraft types
@@ -99,80 +101,97 @@ const EditKitForm = () => {
       <Card.Body>
         {error && <Alert variant="danger">{error.message || error}</Alert>}
 
-        <Form noValidate validated={validated} onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Kit Name*</Form.Label>
-            <Form.Control
-              type="text"
-              name="name"
-              value={kitData.name}
-              onChange={handleChange}
-              required
-              placeholder="Enter kit name"
-            />
-            <Form.Control.Feedback type="invalid">
-              Kit name is required
-            </Form.Control.Feedback>
-          </Form.Group>
+        <Tabs
+          activeKey={activeTab}
+          onSelect={(k) => setActiveTab(k)}
+          className="mb-3"
+        >
+          <Tab eventKey="details" title="Kit Details">
+            <Form noValidate validated={validated} onSubmit={handleSubmit}>
+              <Form.Group className="mb-3">
+                <Form.Label>Kit Name*</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={kitData.name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter kit name"
+                />
+                <Form.Control.Feedback type="invalid">
+                  Kit name is required
+                </Form.Control.Feedback>
+              </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Aircraft Type*</Form.Label>
-            <Form.Select
-              name="aircraft_type_id"
-              value={kitData.aircraft_type_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select aircraft type...</option>
-              {aircraftTypes.map(type => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </Form.Select>
-            <Form.Control.Feedback type="invalid">
-              Aircraft type is required
-            </Form.Control.Feedback>
-          </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Aircraft Type*</Form.Label>
+                <Form.Select
+                  name="aircraft_type_id"
+                  value={kitData.aircraft_type_id}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select aircraft type...</option>
+                  {aircraftTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Aircraft type is required
+                </Form.Control.Feedback>
+              </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              name="description"
-              value={kitData.description}
-              onChange={handleChange}
-              placeholder="Enter kit description (optional)"
-            />
-          </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  name="description"
+                  value={kitData.description}
+                  onChange={handleChange}
+                  placeholder="Enter kit description (optional)"
+                />
+              </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Status*</Form.Label>
-            <Form.Select
-              name="status"
-              value={kitData.status}
-              onChange={handleChange}
-              required
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="maintenance">Maintenance</option>
-            </Form.Select>
-            <Form.Control.Feedback type="invalid">
-              Status is required
-            </Form.Control.Feedback>
-          </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Status*</Form.Label>
+                <Form.Select
+                  name="status"
+                  value={kitData.status}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="maintenance">Maintenance</option>
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Status is required
+                </Form.Control.Feedback>
+              </Form.Group>
 
-          <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={() => navigate(`/kits/${id}`)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </Form>
+              <div className="d-flex justify-content-end gap-2">
+                <Button variant="secondary" onClick={() => navigate(`/kits/${id}`)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </Form>
+          </Tab>
+
+          <Tab eventKey="boxes" title="Manage Boxes">
+            <KitBoxManager kitId={parseInt(id)} />
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <Button variant="secondary" onClick={() => navigate(`/kits/${id}`)}>
+                Back to Kit
+              </Button>
+            </div>
+          </Tab>
+        </Tabs>
       </Card.Body>
     </Card>
   );

@@ -5,7 +5,7 @@ This module provides API endpoints for managing transfers between kits and wareh
 """
 
 from flask import request, jsonify
-from models import db, AuditLog, Chemical, Warehouse
+from models import db, AuditLog, Chemical, Warehouse, Tool
 from models_kits import Kit, KitItem, KitExpendable, KitTransfer
 from datetime import datetime
 from auth import jwt_required, department_required
@@ -176,14 +176,43 @@ def register_kit_transfer_routes(app):
                     if not dest_box:
                         raise ValidationError('Destination kit has no boxes')
 
-                    new_item = KitItem(
-                        kit_id=data['to_location_id'],
-                        box_id=dest_box.id,
-                        item_type=data['item_type'],
-                        item_id=chemical_id_to_add,  # Use child chemical ID if created
-                        quantity=quantity,
-                        status='available'
-                    )
+                    # Get the actual item to populate fields
+                    if data['item_type'] == 'tool':
+                        actual_item = Tool.query.get(chemical_id_to_add)
+                        if not actual_item:
+                            raise ValidationError('Tool not found')
+
+                        new_item = KitItem(
+                            kit_id=data['to_location_id'],
+                            box_id=dest_box.id,
+                            item_type=data['item_type'],
+                            item_id=chemical_id_to_add,
+                            part_number=actual_item.tool_number,
+                            serial_number=actual_item.serial_number,
+                            lot_number=actual_item.lot_number,
+                            description=actual_item.description,
+                            quantity=quantity,
+                            location=source_item.location if source_item else '',
+                            status='available'
+                        )
+                    else:  # chemical
+                        actual_item = Chemical.query.get(chemical_id_to_add)
+                        if not actual_item:
+                            raise ValidationError('Chemical not found')
+
+                        new_item = KitItem(
+                            kit_id=data['to_location_id'],
+                            box_id=dest_box.id,
+                            item_type=data['item_type'],
+                            item_id=chemical_id_to_add,
+                            part_number=actual_item.part_number,
+                            lot_number=actual_item.lot_number,
+                            description=actual_item.description,
+                            quantity=quantity,
+                            location=source_item.location if source_item else '',
+                            status='available'
+                        )
+
                     db.session.add(new_item)
         elif data['to_location_type'] == 'warehouse':
             # Handle transfer to warehouse
