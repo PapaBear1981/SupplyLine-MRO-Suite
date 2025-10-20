@@ -142,14 +142,16 @@ def register_kit_transfer_routes(app):
                     raise ValidationError('Destination kit has no boxes')
 
             if data['item_type'] == 'expendable':
-                # For expendables, check if same part number exists in destination
+                # For expendables, check if same part number exists in destination BOX
+                # Important: We check box_id too, so items in different boxes are kept separate
                 dest_item = KitExpendable.query.filter_by(
                     kit_id=data['to_location_id'],
+                    box_id=dest_box.id,
                     part_number=source_item.part_number if source_item else None
                 ).first()
 
                 if dest_item:
-                    # Add to existing expendable
+                    # Add to existing expendable in the same box
                     dest_item.quantity += quantity
                 else:
                     # Create new expendable in destination kit
@@ -169,58 +171,48 @@ def register_kit_transfer_routes(app):
                 # If we created a child chemical, use that ID; otherwise use original
                 chemical_id_to_add = child_chemical.id if child_chemical else data['item_id']
 
-                # For tools/chemicals, check if same item exists in destination
-                dest_item = KitItem.query.filter_by(
-                    kit_id=data['to_location_id'],
-                    item_id=chemical_id_to_add,
-                    item_type=data['item_type']
-                ).first()
+                # For tools/chemicals, ALWAYS create a new line item
+                # Each lot number or serial number should be tracked separately
+                # Even if the same lot is transferred multiple times, keep them as separate entries
 
-                if dest_item:
-                    # Add to existing item
-                    dest_item.quantity += quantity
-                else:
-                    # Create new item in destination kit
-                    # dest_box is already set above, no need to get it again
+                # Get the actual item to populate fields
+                if data['item_type'] == 'tool':
+                    actual_item = Tool.query.get(chemical_id_to_add)
+                    if not actual_item:
+                        raise ValidationError('Tool not found')
 
-                    # Get the actual item to populate fields
-                    if data['item_type'] == 'tool':
-                        actual_item = Tool.query.get(chemical_id_to_add)
-                        if not actual_item:
-                            raise ValidationError('Tool not found')
+                    new_item = KitItem(
+                        kit_id=data['to_location_id'],
+                        box_id=dest_box.id,
+                        item_type=data['item_type'],
+                        item_id=chemical_id_to_add,
+                        part_number=actual_item.tool_number,
+                        serial_number=actual_item.serial_number,
+                        lot_number=actual_item.lot_number,
+                        description=actual_item.description,
+                        quantity=quantity,
+                        location=source_item.location if source_item else '',
+                        status='available'
+                    )
+                else:  # chemical
+                    actual_item = Chemical.query.get(chemical_id_to_add)
+                    if not actual_item:
+                        raise ValidationError('Chemical not found')
 
-                        new_item = KitItem(
-                            kit_id=data['to_location_id'],
-                            box_id=dest_box.id,
-                            item_type=data['item_type'],
-                            item_id=chemical_id_to_add,
-                            part_number=actual_item.tool_number,
-                            serial_number=actual_item.serial_number,
-                            lot_number=actual_item.lot_number,
-                            description=actual_item.description,
-                            quantity=quantity,
-                            location=source_item.location if source_item else '',
-                            status='available'
-                        )
-                    else:  # chemical
-                        actual_item = Chemical.query.get(chemical_id_to_add)
-                        if not actual_item:
-                            raise ValidationError('Chemical not found')
+                    new_item = KitItem(
+                        kit_id=data['to_location_id'],
+                        box_id=dest_box.id,
+                        item_type=data['item_type'],
+                        item_id=chemical_id_to_add,
+                        part_number=actual_item.part_number,
+                        lot_number=actual_item.lot_number,
+                        description=actual_item.description,
+                        quantity=quantity,
+                        location=source_item.location if source_item else '',
+                        status='available'
+                    )
 
-                        new_item = KitItem(
-                            kit_id=data['to_location_id'],
-                            box_id=dest_box.id,
-                            item_type=data['item_type'],
-                            item_id=chemical_id_to_add,
-                            part_number=actual_item.part_number,
-                            lot_number=actual_item.lot_number,
-                            description=actual_item.description,
-                            quantity=quantity,
-                            location=source_item.location if source_item else '',
-                            status='available'
-                        )
-
-                    db.session.add(new_item)
+                db.session.add(new_item)
         elif data['to_location_type'] == 'warehouse':
             # Handle transfer to warehouse
             dest_warehouse = Warehouse.query.get(data['to_location_id'])
