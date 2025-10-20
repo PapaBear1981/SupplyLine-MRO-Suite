@@ -146,8 +146,17 @@ def validate_tool_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
         'category': row_data.get('category', 'General'),
         'status': row_data.get('status', 'available'),
         'requires_calibration': str(row_data.get('requires_calibration', 'false')).lower() in ['true', '1', 'yes'],
-        'calibration_frequency_days': None
+        'calibration_frequency_days': None,
+        'warehouse_id': None
     }
+
+    # Handle warehouse_id
+    warehouse_id_str = row_data.get('warehouse_id', '')
+    if warehouse_id_str:
+        try:
+            tool_data['warehouse_id'] = int(warehouse_id_str)
+        except ValueError:
+            raise ValidationError(f"Invalid warehouse_id: {warehouse_id_str}")
 
     # Handle calibration frequency
     if tool_data['requires_calibration']:
@@ -189,15 +198,24 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
         'location': row_data.get('location', ''),
         'category': row_data.get('category', 'General'),
         'expiration_date': None,
-        'msds_url': row_data.get('msds_url', '')
+        'msds_url': row_data.get('msds_url', '') or None,  # Convert empty string to None
+        'warehouse_id': None
     }
 
-    # Handle quantity
+    # Handle warehouse_id
+    warehouse_id_str = row_data.get('warehouse_id', '')
+    if warehouse_id_str:
+        try:
+            chemical_data['warehouse_id'] = int(warehouse_id_str)
+        except ValueError:
+            raise ValidationError(f"Invalid warehouse_id: {warehouse_id_str}")
+
+    # Handle quantity - must be integer
     quantity_str = row_data.get('quantity', '0')
     try:
-        chemical_data['quantity'] = float(quantity_str) if quantity_str else 0
+        chemical_data['quantity'] = int(float(quantity_str)) if quantity_str else 0
     except ValueError:
-        raise ValidationError(f"Invalid quantity: {quantity_str}")
+        raise ValidationError(f"Invalid quantity: {quantity_str}. Quantity must be a whole number.")
 
     # Handle expiration date
     exp_date_str = row_data.get('expiration_date', '')
@@ -218,8 +236,9 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
     # Validate using existing schema
     validated_chemical = validate_schema(chemical_data, 'chemical')
 
+    # Sanitize string fields (skip None values)
     for field in ['part_number', 'lot_number', 'description', 'manufacturer', 'location', 'category', 'msds_url']:
-        if field in validated_chemical:
+        if field in validated_chemical and validated_chemical[field] is not None:
             validated_chemical[field] = neutralize_csv_formula(validated_chemical[field])
 
     return validated_chemical
@@ -368,8 +387,9 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
                                    f"Duplicate chemical: {chemical_data['part_number']} - {chemical_data['lot_number']}")
                     continue
 
-            # Create new chemical
-            chemical = Chemical(**chemical_data)
+            # Create new chemical - remove fields that don't exist in the model
+            chemical_model_data = {k: v for k, v in chemical_data.items() if k != 'msds_url'}
+            chemical = Chemical(**chemical_model_data)
             db.session.add(chemical)
             db.session.flush()  # Get the ID without committing
 
@@ -411,7 +431,8 @@ def generate_tool_template() -> str:
         'category',
         'status',
         'requires_calibration',
-        'calibration_frequency_days'
+        'calibration_frequency_days',
+        'warehouse_id'
     ]
 
     # Create sample data
@@ -424,7 +445,8 @@ def generate_tool_template() -> str:
         'General',
         'available',
         'false',
-        ''
+        '',
+        '1'
     ]
 
     output = io.StringIO()
@@ -447,7 +469,8 @@ def generate_chemical_template() -> str:
         'location',
         'category',
         'expiration_date',
-        'msds_url'
+        'msds_url',
+        'warehouse_id'
     ]
 
     # Create sample data
@@ -461,7 +484,8 @@ def generate_chemical_template() -> str:
         'Storage A',
         'General',
         '2025-12-31',
-        'https://example.com/msds'
+        'https://example.com/msds',
+        '1'
     ]
 
     output = io.StringIO()

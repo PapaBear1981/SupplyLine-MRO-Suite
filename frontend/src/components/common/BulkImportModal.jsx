@@ -30,11 +30,43 @@ const BulkImportModal = ({
     }
   }, [show]);
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     setSelectedFile(file);
     setValidationResults(null);
     setImportResults(null);
     setError('');
+
+    // Automatically validate the file when selected
+    if (file) {
+      setValidating(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', importType);
+
+        const response = await fetch('/api/bulk-import/validate', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || 'Validation failed');
+        } else {
+          setValidationResults(data);
+          // Auto-switch to preview tab if validation succeeded
+          if (data.valid_rows > 0 || data.invalid_rows > 0) {
+            setActiveTab('preview');
+          }
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to validate file');
+      } finally {
+        setValidating(false);
+      }
+    }
   };
 
   const handleValidate = async () => {
@@ -78,6 +110,8 @@ const BulkImportModal = ({
       return;
     }
 
+    setError('');
+
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -87,7 +121,14 @@ const BulkImportModal = ({
       setImportResults(result);
       setActiveTab('results');
     } catch (err) {
-      setError(err.message || 'Import failed');
+      // Even if import fails, we might have partial results
+      // Check if the error contains result data
+      if (err.result) {
+        setImportResults(err.result);
+        setActiveTab('results');
+      } else {
+        setError(err.message || 'Import failed');
+      }
     }
   };
 
@@ -142,10 +183,37 @@ const BulkImportModal = ({
         </Form.Text>
       </div>
 
+      {validating && (
+        <Alert variant="info">
+          <div className="d-flex align-items-center">
+            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span>Validating file... Please wait.</span>
+          </div>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="danger">
           <i className="bi bi-exclamation-triangle me-2"></i>
           {error}
+        </Alert>
+      )}
+
+      {validationResults && (
+        <Alert variant={validationResults.valid_rows > 0 ? 'success' : 'warning'}>
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <i className={`bi ${validationResults.valid_rows > 0 ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2`}></i>
+              <strong>Validation Complete:</strong> {validationResults.valid_rows} valid, {validationResults.invalid_rows} invalid
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => setActiveTab('preview')}
+            >
+              View Details <i className="bi bi-arrow-right"></i>
+            </Button>
+          </div>
         </Alert>
       )}
 
@@ -163,14 +231,15 @@ const BulkImportModal = ({
           ) : (
             <>
               <i className="bi bi-check-circle me-2"></i>
-              Validate File
+              Re-validate File
             </>
           )}
         </Button>
         <Button
           variant="primary"
           onClick={handleImport}
-          disabled={!selectedFile || loading || validating}
+          disabled={!selectedFile || loading || validating || !validationResults || validationResults.valid_rows === 0}
+          title={!validationResults ? 'Please wait for validation to complete' : validationResults.valid_rows === 0 ? 'No valid rows to import' : ''}
         >
           {loading ? (
             <>
@@ -180,7 +249,7 @@ const BulkImportModal = ({
           ) : (
             <>
               <i className="bi bi-upload me-2"></i>
-              Import Now
+              {validationResults && validationResults.valid_rows > 0 ? `Import ${validationResults.valid_rows} Rows` : 'Import Now'}
             </>
           )}
         </Button>
@@ -278,6 +347,22 @@ const BulkImportModal = ({
           </div>
         )}
 
+        {validationResults.valid_rows === 0 && validationResults.invalid_rows > 0 && (
+          <Alert variant="danger" className="mt-3">
+            <h6><i className="bi bi-exclamation-triangle me-2"></i>Cannot Import</h6>
+            <p className="mb-0">
+              All rows in the file have validation errors. Please fix the errors and try again.
+              Common issues include:
+            </p>
+            <ul className="mb-0 mt-2">
+              <li>Invalid unit values (must be: each, oz, ml, l, g, kg, lb, gal, tubes)</li>
+              <li>Missing required fields (part_number, lot_number, quantity, unit)</li>
+              <li>Invalid data types (quantity must be a whole number)</li>
+              <li>Invalid date formats (use YYYY-MM-DD)</li>
+            </ul>
+          </Alert>
+        )}
+
         <div className="d-flex justify-content-between mt-4">
           <Button
             variant="outline-secondary"
@@ -299,7 +384,7 @@ const BulkImportModal = ({
             ) : (
               <>
                 <i className="bi bi-upload me-2"></i>
-                Import {validationResults.valid_rows} Valid Rows
+                {validationResults.valid_rows > 0 ? `Import ${validationResults.valid_rows} Valid Rows` : 'No Valid Rows to Import'}
               </>
             )}
           </Button>

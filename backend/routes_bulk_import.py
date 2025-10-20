@@ -12,7 +12,7 @@ from utils.bulk_import import (
 )
 from utils.validation import ValidationError
 from utils.file_validation import FileValidationError, validate_csv_upload
-from auth import JWTManager
+from auth import admin_required as auth_admin_required
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,19 +36,8 @@ def handle_errors(f):
     return decorated_function
 
 
-def admin_required(f):
-    """Decorator to require admin access for bulk import operations"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        current_user = JWTManager.get_current_user()
-        if not current_user:
-            return jsonify({'error': 'Authentication required'}), 401
-
-        if not current_user.get('is_admin', False):
-            return jsonify({'error': 'Admin access required for bulk import operations'}), 403
-
-        return f(*args, **kwargs)
-    return decorated_function
+# Use the admin_required decorator from auth module
+admin_required = auth_admin_required
 
 
 def register_bulk_import_routes(app):

@@ -46,7 +46,7 @@ const BulkImportChemicals = ({ onImportComplete }) => {
 
   const handleImport = async (formData) => {
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/chemicals/bulk-import', {
         method: 'POST',
@@ -56,25 +56,39 @@ const BulkImportChemicals = ({ onImportComplete }) => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Import failed');
+      // Refresh chemicals list if any chemicals were imported
+      if (data.success_count > 0) {
+        dispatch(fetchChemicals());
       }
 
-      // Refresh chemicals list
-      dispatch(fetchChemicals());
+      // Show appropriate message
+      if (response.ok || response.status === 207) {
+        // Success or partial success
+        showToast(data.message || 'Chemicals imported successfully', data.error_count > 0 ? 'warning' : 'success');
 
-      // Show success message
-      showToast(data.message || 'Chemicals imported successfully');
+        // Call completion callback if provided
+        if (onImportComplete) {
+          onImportComplete(data);
+        }
 
-      // Call completion callback if provided
-      if (onImportComplete) {
-        onImportComplete(data);
+        return data;
+      } else {
+        // Complete failure - but still return data for results display
+        showToast(data.message || data.error || 'Import failed', 'danger');
+
+        // Throw error with result data attached
+        const error = new Error(data.message || data.error || 'Import failed');
+        error.result = data;
+        throw error;
       }
-
-      return data;
     } catch (error) {
       console.error('Error importing chemicals:', error);
-      showToast(error.message || 'Failed to import chemicals', 'danger');
+
+      // If error doesn't have result data, show generic error
+      if (!error.result) {
+        showToast(error.message || 'Failed to import chemicals', 'danger');
+      }
+
       throw error;
     } finally {
       setLoading(false);
