@@ -275,7 +275,10 @@ def register_kit_transfer_routes(app):
     @handle_errors
     def get_transfers():
         """Get all transfers with optional filtering"""
+        from sqlalchemy import or_
+
         status = request.args.get('status')
+        kit_id = request.args.get('kit_id', type=int)  # Kit as either source or destination
         from_kit_id = request.args.get('from_kit_id', type=int)
         to_kit_id = request.args.get('to_kit_id', type=int)
 
@@ -284,11 +287,21 @@ def register_kit_transfer_routes(app):
         if status:
             query = query.filter_by(status=status)
 
-        if from_kit_id:
-            query = query.filter_by(from_location_type='kit', from_location_id=from_kit_id)
+        # If kit_id is provided, match transfers where kit is either source OR destination
+        if kit_id:
+            query = query.filter(
+                or_(
+                    (KitTransfer.from_location_type == 'kit') & (KitTransfer.from_location_id == kit_id),
+                    (KitTransfer.to_location_type == 'kit') & (KitTransfer.to_location_id == kit_id)
+                )
+            )
+        else:
+            # Otherwise use the specific from/to filters
+            if from_kit_id:
+                query = query.filter_by(from_location_type='kit', from_location_id=from_kit_id)
 
-        if to_kit_id:
-            query = query.filter_by(to_location_type='kit', to_location_id=to_kit_id)
+            if to_kit_id:
+                query = query.filter_by(to_location_type='kit', to_location_id=to_kit_id)
 
         transfers = query.order_by(KitTransfer.transfer_date.desc()).all()
 

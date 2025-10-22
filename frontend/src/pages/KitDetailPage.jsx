@@ -11,6 +11,7 @@ import KitItemsList from '../components/kits/KitItemsList';
 import KitAlerts from '../components/kits/KitAlerts';
 import KitIssuanceForm from '../components/kits/KitIssuanceForm';
 import KitIssuanceHistory from '../components/kits/KitIssuanceHistory';
+import KitTransferHistory from '../components/kits/KitTransferHistory';
 import KitTransferForm from '../components/kits/KitTransferForm';
 import KitMessaging from '../components/kits/KitMessaging';
 import KitReorderManagement from '../components/kits/KitReorderManagement';
@@ -270,11 +271,7 @@ const KitDetailPage = () => {
         </Tab>
 
         <Tab eventKey="transfers" title="Transfers">
-          <Card>
-            <Card.Body>
-              <p className="text-muted">Transfer history will be displayed here</p>
-            </Card.Body>
-          </Card>
+          <KitTransferHistory kitId={id} />
         </Tab>
 
         <Tab eventKey="reorders" title={`Reorders ${currentKit.pending_reorders > 0 ? `(${currentKit.pending_reorders})` : ''}`}>
