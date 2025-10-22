@@ -261,18 +261,17 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
 
           {/* Work Order */}
           <Form.Group className="mb-3">
-            <Form.Label>Work Order Number *</Form.Label>
+            <Form.Label>Work Order Number (Optional)</Form.Label>
             <Form.Control
               type="text"
               name="work_order"
               value={formData.work_order}
               onChange={handleChange}
-              required
               placeholder="Enter work order number"
             />
-            <Form.Control.Feedback type="invalid">
-              Work order number is required.
-            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Optional: Enter work order number if applicable
+            </Form.Text>
           </Form.Group>
 
           {/* Purpose */}
