@@ -363,7 +363,13 @@ def register_kit_transfer_routes(app):
             if transfer.item_type == 'expendable':
                 source_item = KitExpendable.query.get(transfer.item_id)
             else:
-                source_item = KitItem.query.get(transfer.item_id)
+                # For non-expendables from kits, transfer.item_id is the underlying Tool/Chemical ID
+                # We need to find the KitItem by filtering on kit_id, item_type, and item_id
+                source_item = KitItem.query.filter_by(
+                    kit_id=transfer.from_location_id,
+                    item_type=transfer.item_type,
+                    item_id=transfer.item_id
+                ).first()
 
             if source_item:
                 source_item.quantity -= transfer.quantity
