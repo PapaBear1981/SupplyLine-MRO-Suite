@@ -175,7 +175,7 @@ class KitExpendable(db.Model):
     """
     KitExpendable model for manually added expendable items.
     These are not linked to existing inventory records.
-    Expendables can be tracked by lot number, serial number, or both.
+    Expendables can be tracked by EITHER lot number OR serial number (never both).
     """
     __tablename__ = 'kit_expendables'
 
@@ -185,7 +185,7 @@ class KitExpendable(db.Model):
     part_number = db.Column(db.String(100), nullable=False)
     serial_number = db.Column(db.String(100))
     lot_number = db.Column(db.String(100))
-    tracking_type = db.Column(db.String(20), nullable=False, default='lot')  # lot, serial, both
+    tracking_type = db.Column(db.String(20), nullable=False, default='lot')  # lot or serial (never both)
     description = db.Column(db.String(500), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     unit = db.Column(db.String(20), nullable=False, default='each')  # each, oz, ml, etc.
@@ -230,6 +230,7 @@ class KitExpendable(db.Model):
     def validate_tracking(self):
         """
         Validate that appropriate tracking identifiers are present based on tracking_type.
+        Items can have EITHER lot number OR serial number, never both.
 
         Returns:
             tuple: (is_valid, error_message)
@@ -237,14 +238,15 @@ class KitExpendable(db.Model):
         if self.tracking_type == 'lot':
             if not self.lot_number:
                 return False, "Lot number is required for lot-tracked expendables"
+            if self.serial_number:
+                return False, "Items cannot have both lot number and serial number"
         elif self.tracking_type == 'serial':
             if not self.serial_number:
                 return False, "Serial number is required for serial-tracked expendables"
-        elif self.tracking_type == 'both':
-            if not self.lot_number or not self.serial_number:
-                return False, "Both lot number and serial number are required for dual-tracked expendables"
+            if self.lot_number:
+                return False, "Items cannot have both lot number and serial number"
         else:
-            return False, f"Invalid tracking_type: {self.tracking_type}"
+            return False, f"Invalid tracking_type: {self.tracking_type}. Must be 'lot' or 'serial'"
 
         return True, None
 

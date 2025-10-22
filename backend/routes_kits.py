@@ -803,7 +803,7 @@ def register_kit_routes(app):
             raise ValidationError(error_msg)
 
         # Validate serial number uniqueness if serial tracking
-        if expendable.tracking_type in ['serial', 'both'] and expendable.serial_number:
+        if expendable.tracking_type == 'serial' and expendable.serial_number:
             from utils.transaction_helper import validate_serial_number_uniqueness
             is_unique, error_msg = validate_serial_number_uniqueness(
                 expendable.part_number,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Badge, Button, Form, Row, Col, ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { FaBox, FaFilter, FaBarcode, FaHashtag, FaLayerGroup } from 'react-icons/fa';
+import { FaBox, FaFilter, FaBarcode, FaHashtag } from 'react-icons/fa';
 import { fetchKitItems, fetchKitBoxes } from '../../store/kitsSlice';
 import KitIssuanceForm from './KitIssuanceForm';
 import KitTransferForm from './KitTransferForm';
@@ -62,23 +62,12 @@ const KitItemsList = ({ kitId }) => {
 
   const getTrackingIcon = (item) => {
     // Determine tracking type based on what fields are present
+    // Items can only have EITHER lot OR serial, never both
     const hasLot = !!item.lot_number;
     const hasSerial = !!item.serial_number;
     const trackingType = item.tracking_type;
 
-    if (trackingType === 'both' || (hasLot && hasSerial)) {
-      return (
-        <OverlayTrigger
-          placement="top"
-          overlay={<Tooltip>Tracked by both Lot and Serial Number</Tooltip>}
-        >
-          <Badge bg="info" className="ms-2">
-            <FaLayerGroup className="me-1" />
-            Both
-          </Badge>
-        </OverlayTrigger>
-      );
-    } else if (trackingType === 'lot' || hasLot) {
+    if (trackingType === 'lot' || hasLot) {
       return (
         <OverlayTrigger
           placement="top"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Modal, Button, Form, Alert, Row, Col, Badge, Card } from 'react-bootstrap';
-import { FaExchangeAlt, FaCheckCircle, FaWarehouse, FaBox } from 'react-icons/fa';
+import { FaExchangeAlt, FaCheckCircle, FaWarehouse, FaBox, FaSearch } from 'react-icons/fa';
 import { createTransfer } from '../../store/kitTransfersSlice';
 import { fetchKits, fetchKitItems } from '../../store/kitsSlice';
 import api from '../../services/api';
@@ -16,6 +16,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     from_location_id: sourceKitId || '',
     to_location_type: '',
     to_location_id: '',
+    box_id: '',  // Added for destination box selection
     item_type: '',
     item_id: '',
     quantity: '',
@@ -34,6 +35,15 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
   // Source kit state (when sourceKitId is provided)
   const [sourceKit, setSourceKit] = useState(null);
   const [loadingSourceKit, setLoadingSourceKit] = useState(false);
+
+  // Destination kit boxes state
+  const [kitBoxes, setKitBoxes] = useState([]);
+  const [loadingBoxes, setLoadingBoxes] = useState(false);
+
+  // Warehouse items state (for when source is warehouse)
+  const [warehouseItems, setWarehouseItems] = useState([]);
+  const [loadingWarehouseItems, setLoadingWarehouseItems] = useState(false);
+  const [warehouseSearchTerm, setWarehouseSearchTerm] = useState('');
 
   // Load source kit information when sourceKitId is provided
   useEffect(() => {
@@ -83,12 +93,58 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     }
   };
 
+  // Load kit boxes when destination kit is selected
+  const loadKitBoxes = async (kitId) => {
+    setLoadingBoxes(true);
+    try {
+      const response = await api.get(`/kits/${kitId}/boxes`);
+      setKitBoxes(response.data || []);
+    } catch (err) {
+      console.error('Failed to load kit boxes:', err);
+      setKitBoxes([]);
+    } finally {
+      setLoadingBoxes(false);
+    }
+  };
+
+  // Load warehouse items when source warehouse is selected
+  const loadWarehouseItems = async (warehouseId, searchTerm = '') => {
+    setLoadingWarehouseItems(true);
+    try {
+      const params = {};
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      const response = await api.get(`/warehouses/${warehouseId}/inventory`, { params });
+      // Backend returns { warehouse: {...}, inventory: [...], total: N }
+      setWarehouseItems(response.data.inventory || []);
+    } catch (err) {
+      console.error('Failed to load warehouse items:', err);
+      setWarehouseItems([]);
+    } finally {
+      setLoadingWarehouseItems(false);
+    }
+  };
+
   // Load items when source is selected
   useEffect(() => {
     if (formData.from_location_type === 'kit' && formData.from_location_id) {
       dispatch(fetchKitItems({ kitId: formData.from_location_id }));
+    } else if (formData.from_location_type === 'warehouse' && formData.from_location_id) {
+      loadWarehouseItems(formData.from_location_id, warehouseSearchTerm);
     }
   }, [formData.from_location_type, formData.from_location_id, dispatch]);
+
+  // Debounced search for warehouse items
+  useEffect(() => {
+    if (formData.from_location_type === 'warehouse' && formData.from_location_id && warehouseSearchTerm !== '') {
+      const timer = setTimeout(() => {
+        loadWarehouseItems(formData.from_location_id, warehouseSearchTerm);
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timer);
+    }
+  }, [warehouseSearchTerm]);
 
   // Pre-select item if provided
   useEffect(() => {
@@ -116,14 +172,20 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
       setQuantityError('');
     }
 
+    // Load boxes when destination kit is selected
+    if (name === 'to_location_id' && formData.to_location_type === 'kit' && value) {
+      loadKitBoxes(value);
+      // Reset box selection when kit changes
+      setFormData(prev => ({
+        ...prev,
+        box_id: ''
+      }));
+    }
+
     // Update selected item when item selection changes
     if (name === 'item_id' && formData.from_location_id) {
-      const items = kitItems[formData.from_location_id] || { items: [], expendables: [] };
-      const allItems = [
-        ...items.items.map(item => ({ ...item, source: 'item' })),
-        ...items.expendables.map(exp => ({ ...exp, source: 'expendable' }))
-      ];
-      const item = allItems.find(i => i.id === parseInt(value));
+      const availableItems = getAvailableItems();
+      const item = availableItems.find(i => i.id === parseInt(value));
       setSelectedItem(item);
       setFormData(prev => ({
         ...prev,
@@ -166,6 +228,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
       from_location_id: parseInt(formData.from_location_id),
       to_location_type: formData.to_location_type,
       to_location_id: parseInt(formData.to_location_id),
+      box_id: formData.box_id ? parseInt(formData.box_id) : undefined,  // Include box_id if destination is kit
       item_type: formData.item_type,
       item_id: parseInt(formData.item_id),
       quantity: parseFloat(formData.quantity),
@@ -192,12 +255,16 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
       from_location_id: sourceKitId || '',
       to_location_type: '',
       to_location_id: '',
+      box_id: '',
       item_type: '',
       item_id: '',
       quantity: '',
       notes: ''
     });
     setSelectedItem(null);
+    setKitBoxes([]);
+    setWarehouseItems([]);
+    setWarehouseSearchTerm('');
     setValidated(false);
     setShowSuccess(false);
     setQuantityError('');
@@ -210,17 +277,37 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
 
   // Get available items based on source
   const getAvailableItems = () => {
-    if (formData.from_location_type !== 'kit' || !formData.from_location_id) {
+    if (!formData.from_location_id) {
       return [];
     }
-    const items = kitItems[formData.from_location_id] || { items: [], expendables: [] };
-    return [
-      ...items.items.map(item => ({ ...item, source: 'item' })),
-      ...items.expendables.map(exp => ({ ...exp, source: 'expendable' }))
-    ];
+
+    if (formData.from_location_type === 'kit') {
+      const items = kitItems[formData.from_location_id] || { items: [], expendables: [] };
+      return [
+        ...items.items.map(item => ({ ...item, source: 'item' })),
+        ...items.expendables.map(exp => ({ ...exp, source: 'expendable' }))
+      ];
+    } else if (formData.from_location_type === 'warehouse') {
+      // Warehouse items already have the correct structure from the API
+      // Backend returns items with item_type, tracking_number, tracking_type already set
+      return warehouseItems.map(item => ({
+        ...item,
+        source: item.item_type === 'tool' || item.item_type === 'chemical' ? 'item' : 'expendable',
+        // Ensure we have the part_number field for display (tools use tool_number)
+        part_number: item.part_number || item.tool_number,
+        quantity: item.quantity || 1
+      }));
+    }
+
+    return [];
   };
 
   const availableItems = getAvailableItems();
+
+  // Handle warehouse search
+  const handleWarehouseSearch = (e) => {
+    setWarehouseSearchTerm(e.target.value);
+  };
 
   return (
     <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="transfer-modal">
@@ -322,6 +409,31 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* Warehouse Search - Only show when warehouse is selected as source */}
+              {formData.from_location_type === 'warehouse' && formData.from_location_id && (
+                <Row>
+                  <Col>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FaSearch className="me-2" />
+                        Search Warehouse Inventory
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Search by part number, serial, lot, or description..."
+                        value={warehouseSearchTerm}
+                        onChange={handleWarehouseSearch}
+                      />
+                      <Form.Text className="text-muted">
+                        {loadingWarehouseItems
+                          ? 'Searching...'
+                          : `Found ${availableItems.length} item${availableItems.length !== 1 ? 's' : ''}`}
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
             </Card.Body>
           </Card>
 
@@ -387,6 +499,42 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* Box Selection - Only show when destination is a kit */}
+              {formData.to_location_type === 'kit' && formData.to_location_id && (
+                <Row>
+                  <Col>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FaBox className="me-2" />
+                        Destination Box *
+                      </Form.Label>
+                      <Form.Select
+                        name="box_id"
+                        value={formData.box_id}
+                        onChange={handleChange}
+                        required
+                        disabled={loadingBoxes}
+                      >
+                        <option value="">
+                          {loadingBoxes ? 'Loading boxes...' : '-- Select box --'}
+                        </option>
+                        {kitBoxes.map((box) => (
+                          <option key={box.id} value={box.id}>
+                            Box {box.box_number} - {box.box_type} {box.description ? `(${box.description})` : ''}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className="text-muted">
+                        Select which box in the kit to place this item
+                      </Form.Text>
+                      <Form.Control.Feedback type="invalid">
+                        Please select a destination box
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
             </Card.Body>
           </Card>
 
@@ -400,13 +548,24 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
               required
               disabled={!formData.from_location_id || !!preSelectedItem}
             >
-              <option value="">-- Select an item --</option>
+              <option value="">
+                {formData.from_location_type === 'warehouse' && loadingWarehouseItems
+                  ? 'Loading items...'
+                  : '-- Select an item --'}
+              </option>
               {availableItems.map((item) => (
                 <option key={`${item.source}-${item.id}`} value={item.id}>
-                  {item.part_number} - {item.description} - Available: {item.quantity}
+                  {item.part_number || item.tool_number} - {item.description} - Available: {item.quantity}
                 </option>
               ))}
             </Form.Select>
+            <Form.Text className="text-muted">
+              {formData.from_location_type === 'warehouse'
+                ? 'Select an item from the warehouse to transfer'
+                : formData.from_location_type === 'kit'
+                ? 'Select an item from the kit to transfer'
+                : 'Select a source location first'}
+            </Form.Text>
           </Form.Group>
 
           {/* Quantity */}

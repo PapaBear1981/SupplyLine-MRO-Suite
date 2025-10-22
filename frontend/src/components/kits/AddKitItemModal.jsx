@@ -508,45 +508,36 @@ const AddKitItemModal = ({ show, onHide, kitId, onSuccess }) => {
                     checked={expendableFormData.tracking_type === 'serial'}
                     onChange={handleExpendableFormChange}
                   />
-                  <Form.Check
-                    type="radio"
-                    id="tracking-both"
-                    label="Both"
-                    name="tracking_type"
-                    value="both"
-                    checked={expendableFormData.tracking_type === 'both'}
-                    onChange={handleExpendableFormChange}
-                  />
                 </div>
                 <Form.Text className="text-muted">
-                  Choose how to track this expendable item
+                  Choose either lot number OR serial number (not both)
                 </Form.Text>
               </Form.Group>
 
-              {(expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both') && (
+              {expendableFormData.tracking_type === 'lot' && (
                 <LotNumberInput
                   value={expendableFormData.lot_number}
                   onChange={(value) => setExpendableFormData(prev => ({ ...prev, lot_number: value }))}
                   disabled={loading}
-                  required={expendableFormData.tracking_type === 'lot' || expendableFormData.tracking_type === 'both'}
+                  required={expendableFormData.tracking_type === 'lot'}
                   label="Lot Number"
                   helpText="Auto-generate or enter manually"
                   showAutoGenerate={true}
                 />
               )}
 
-              {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && (
+              {expendableFormData.tracking_type === 'serial' && (
                 <Form.Group className="mb-3">
                   <Form.Label>
                     Serial Number
-                    {(expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both') && <span className="text-danger ms-1">*</span>}
+                    <span className="text-danger ms-1">*</span>
                   </Form.Label>
                   <Form.Control
                     type="text"
                     name="serial_number"
                     value={expendableFormData.serial_number}
                     onChange={handleExpendableFormChange}
-                    required={expendableFormData.tracking_type === 'serial' || expendableFormData.tracking_type === 'both'}
+                    required={expendableFormData.tracking_type === 'serial'}
                     placeholder="Enter serial number"
                   />
                   <Form.Control.Feedback type="invalid">
