@@ -256,7 +256,7 @@ const KitItemsList = ({ kitId }) => {
                   <td>
                     <strong>{item.quantity}</strong>
                     {item.unit && ` ${item.unit}`}
-                    {item.minimum_stock_level && item.quantity <= item.minimum_stock_level && (
+                    {item.minimum_stock_level != null && item.minimum_stock_level > 0 && item.quantity <= item.minimum_stock_level && (
                       <div className="small text-danger">
                         Min: {item.minimum_stock_level}
                       </div>
