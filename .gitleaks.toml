@@ -1,0 +1,17 @@
+title = "SupplyLine gitleaks configuration"
+
+[extend]
+  paths = []
+
+[[rules]]
+  description = "Generic secret"
+  id = "generic-secret"
+  regex = '''(?i)secret\s*=?\s*[0-9a-zA-Z]{12,}'''
+  tags = ["key"]
+
+[allowlist]
+  description = "Allow common false positives"
+  regexes = [
+    '''example\.com''',
+    '''(?i)test-token'''
+  ]

@@ -1,0 +1,238 @@
+openapi: 3.1.0
+info:
+  title: SupplyLine MRO Suite API
+  version: 1.0.0
+  description: |
+    Stub OpenAPI document used for contract testing. Replace the example
+    payloads with the production schemas when integrating against the
+    backend service.
+servers:
+  - url: https://api.example.com
+paths:
+  /checkout:
+    post:
+      summary: Check a tool out to a technician
+      operationId: checkoutTool
+      tags: [custody]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+            examples:
+              valid:
+                summary: Checkout with work order
+                value:
+                  toolId: TL-100
+                  userId: u-tech
+                  workOrder: WO-123
+                  expectedReturn: 2024-01-10T12:00:00Z
+              missingWorkOrder:
+                summary: Checkout missing required work order
+                value:
+                  toolId: TL-100
+                  userId: u-tech
+      responses:
+        "200":
+          description: Checkout accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+        "400":
+          description: Validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /return:
+    post:
+      summary: Return a tool back to inventory
+      operationId: returnTool
+      tags: [custody]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnRequest'
+      responses:
+        "200":
+          description: Return successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnResponse'
+        "409":
+          description: Tool was not checked out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tools/{toolId}:
+    get:
+      summary: Retrieve tool details
+      operationId: getTool
+      tags: [inventory]
+      parameters:
+        - name: toolId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tool record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolResponse'
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /audit/export:
+    get:
+      summary: Export audit records in CSV format
+      operationId: exportAudit
+      tags: [audit]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportManifest'
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      tags: [meta]
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+components:
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [toolId, userId, workOrder]
+      properties:
+        toolId:
+          type: string
+          description: Identifier for the tool
+        userId:
+          type: string
+          description: User requesting the checkout
+        workOrder:
+          type: string
+          description: Work order linked to the checkout
+        expectedReturn:
+          type: string
+          format: date-time
+          nullable: true
+    CheckoutResponse:
+      type: object
+      required: [toolId, holder, status]
+      properties:
+        toolId:
+          type: string
+        holder:
+          type: string
+        status:
+          type: string
+          enum: [checkedOut]
+        dueBack:
+          type: string
+          format: date-time
+          nullable: true
+    ReturnRequest:
+      type: object
+      required: [toolId, userId]
+      properties:
+        toolId:
+          type: string
+        userId:
+          type: string
+        condition:
+          type: string
+          nullable: true
+    ReturnResponse:
+      type: object
+      required: [toolId, status]
+      properties:
+        toolId:
+          type: string
+        status:
+          type: string
+          enum: [returned]
+    ToolResponse:
+      type: object
+      required: [toolId, calibrationDue, holder]
+      properties:
+        toolId:
+          type: string
+        calibrationDue:
+          type: string
+          format: date-time
+        holder:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [available, checkedOut]
+    ExportManifest:
+      type: object
+      required: [generatedAt, recordCount, hashAlgorithm]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        recordCount:
+          type: integer
+          minimum: 0
+        hashAlgorithm:
+          type: string
+        signature:
+          type: string
+          nullable: true
+          description: TODO replace with signed manifest
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+          nullable: true

@@ -1,0 +1,6 @@
+[bandit]
+targets: src
+exclude_dirs: tests,e2e,qa
+severity: medium
+confidence: medium
+skips: B101,B603

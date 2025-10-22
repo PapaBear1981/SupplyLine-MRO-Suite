@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config --cov=src --cov-report=term --cov-report=xml --cov-report=html"
+filterwarnings = [
+  "error::DeprecationWarning",
+]
+markers = [
+  "unit: fast-running logic tests",
+  "integration: exercises multiple components",
+  "contract: OpenAPI contract validation",
+  "property: Hypothesis-backed invariants",
+  "security: static analysis and supply-chain checks",
+  "db: database lifecycle tests",
+  "e2e: browser automation",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.json]
+output = "coverage.json"
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+per-file-ignores = [
+  "tests/e2e/*:E501",
+]
+
+[tool.hypothesis]
+database = ".hypothesis"
+stateful_step_count = 25
+max_examples = 100
+
+default_settings = [
+  "deadline=None",
+]

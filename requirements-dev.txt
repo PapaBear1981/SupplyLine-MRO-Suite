@@ -1,0 +1,28 @@
+# Core testing stack
+pytest>=8.0
+pytest-cov>=4.1
+pytest-xdist>=3.3
+hypothesis>=6.100
+freezegun>=1.4
+schemathesis>=3.20
+requests>=2.31
+pyyaml>=6.0.1
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary,pool]>=3.1 ; platform_system != "Windows"
+psycopg[binary]>=3.1 ; platform_system == "Windows"
+testcontainers[postgresql]>=3.7
+approvaltests>=10.0
+pytest-approvaltests>=0.2.4
+
+# Security & quality gates
+bandit>=1.7
+pip-audit>=2.7
+mutmut>=3.0
+
+# Playwright & e2e
+pytest-playwright>=0.5
+playwright>=1.43
+
+# Linting / misc
+flake8>=7.0
