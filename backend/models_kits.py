@@ -328,8 +328,11 @@ class KitTransfer(db.Model):
     transferrer = db.relationship('User', foreign_keys=[transferred_by])
 
     def to_dict(self):
-        """Convert model to dictionary"""
-        return {
+        """Convert model to dictionary with item details"""
+        from models import Tool, Chemical
+
+        # Base transfer data
+        data = {
             'id': self.id,
             'item_type': self.item_type,
             'item_id': self.item_id,
@@ -339,12 +342,55 @@ class KitTransfer(db.Model):
             'to_location_id': self.to_location_id,
             'quantity': self.quantity,
             'transferred_by': self.transferred_by,
-            'transferrer_name': self.transferrer.name if self.transferrer else None,
+            'transferred_by_name': self.transferrer.name if self.transferrer else None,
             'transfer_date': self.transfer_date.isoformat() if self.transfer_date else None,
             'status': self.status,
             'completed_date': self.completed_date.isoformat() if self.completed_date else None,
             'notes': self.notes
         }
+
+        # Add location names
+        if self.from_location_type == 'kit':
+            from_kit = Kit.query.get(self.from_location_id)
+            data['from_location_name'] = from_kit.name if from_kit else None
+        elif self.from_location_type == 'warehouse':
+            from models import Warehouse
+            from_warehouse = Warehouse.query.get(self.from_location_id)
+            data['from_location_name'] = from_warehouse.name if from_warehouse else None
+
+        if self.to_location_type == 'kit':
+            to_kit = Kit.query.get(self.to_location_id)
+            data['to_location_name'] = to_kit.name if to_kit else None
+        elif self.to_location_type == 'warehouse':
+            from models import Warehouse
+            to_warehouse = Warehouse.query.get(self.to_location_id)
+            data['to_location_name'] = to_warehouse.name if to_warehouse else None
+
+        # Fetch item details based on item_type
+        if self.item_type == 'tool':
+            tool = Tool.query.get(self.item_id)
+            if tool:
+                data['tool_number'] = tool.tool_number
+                data['part_number'] = None
+                data['description'] = tool.description
+                data['serial_number'] = tool.serial_number
+        elif self.item_type == 'chemical':
+            chemical = Chemical.query.get(self.item_id)
+            if chemical:
+                data['part_number'] = chemical.part_number
+                data['tool_number'] = None
+                data['description'] = chemical.description
+                data['lot_number'] = chemical.lot_number
+        elif self.item_type == 'expendable':
+            expendable = KitExpendable.query.get(self.item_id)
+            if expendable:
+                data['part_number'] = expendable.part_number
+                data['tool_number'] = None
+                data['description'] = expendable.description
+                data['lot_number'] = expendable.lot_number
+                data['serial_number'] = expendable.serial_number
+
+        return data
 
 
 class KitReorderRequest(db.Model):
