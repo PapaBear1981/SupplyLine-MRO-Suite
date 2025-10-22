@@ -546,8 +546,8 @@ def register_kit_routes(app):
         item_type = request.args.get('item_type')
         status = request.args.get('status')
 
-        # Get kit items
-        items_query = kit.items
+        # Get kit items (filter out items with quantity 0)
+        items_query = kit.items.filter(KitItem.quantity > 0)
         if box_id:
             items_query = items_query.filter_by(box_id=box_id)
         if item_type:
@@ -557,8 +557,8 @@ def register_kit_routes(app):
 
         items = items_query.all()
 
-        # Get expendables
-        expendables_query = kit.expendables
+        # Get expendables (filter out items with quantity 0)
+        expendables_query = kit.expendables.filter(KitExpendable.quantity > 0)
         if box_id:
             expendables_query = expendables_query.filter_by(box_id=box_id)
         if status:
