@@ -63,13 +63,13 @@ This feature allows administrators and Materials department users to add, edit, 
 ## API Endpoints
 
 ### Get Kit Boxes
-```
+```http
 GET /api/kits/{kit_id}/boxes
 ```
 Returns all boxes for a specific kit.
 
 ### Add Box
-```
+```http
 POST /api/kits/{kit_id}/boxes
 Content-Type: application/json
 
@@ -81,7 +81,7 @@ Content-Type: application/json
 ```
 
 ### Update Box
-```
+```http
 PUT /api/kits/{kit_id}/boxes/{box_id}
 Content-Type: application/json
 
@@ -93,7 +93,7 @@ Content-Type: application/json
 ```
 
 ### Delete Box
-```
+```http
 DELETE /api/kits/{kit_id}/boxes/{box_id}
 ```
 Returns error if box contains items.

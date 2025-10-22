@@ -213,7 +213,14 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
     # Handle quantity - must be integer
     quantity_str = row_data.get('quantity', '0')
     try:
-        chemical_data['quantity'] = int(float(quantity_str)) if quantity_str else 0
+        if quantity_str:
+            quantity_value = float(quantity_str)
+            # Validate that the value is an integer (no fractional part)
+            if not quantity_value.is_integer():
+                raise ValidationError(f"Invalid quantity: {quantity_str}. Quantity must be a whole number (no decimals).")
+            chemical_data['quantity'] = int(quantity_value)
+        else:
+            chemical_data['quantity'] = 0
     except ValueError:
         raise ValidationError(f"Invalid quantity: {quantity_str}. Quantity must be a whole number.")
 

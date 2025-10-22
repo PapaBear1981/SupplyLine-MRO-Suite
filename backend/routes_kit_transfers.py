@@ -151,12 +151,26 @@ def register_kit_transfer_routes(app):
 
             if data['item_type'] == 'expendable':
                 # For expendables, check if same part number exists in destination BOX
-                # Important: We check box_id too, so items in different boxes are kept separate
-                dest_item = KitExpendable.query.filter_by(
+                # Important: We must match on part_number, tracking_type, lot/serial, and unit
+                # to prevent merging items with different tracking identities
+                q = KitExpendable.query.filter_by(
                     kit_id=data['to_location_id'],
                     box_id=dest_box.id,
-                    part_number=source_item.part_number if source_item else None
-                ).first()
+                    part_number=source_item.part_number if source_item else None,
+                    tracking_type=source_item.tracking_type,
+                    unit=source_item.unit
+                )
+
+                # Match on lot_number or serial_number based on tracking_type
+                if source_item.tracking_type == 'lot':
+                    q = q.filter_by(lot_number=source_item.lot_number, serial_number=None)
+                elif source_item.tracking_type == 'serial':
+                    q = q.filter_by(serial_number=source_item.serial_number, lot_number=None)
+                else:
+                    # For items without tracking, match on None for both
+                    q = q.filter_by(lot_number=None, serial_number=None)
+
+                dest_item = q.first()
 
                 if dest_item:
                     # Add to existing expendable in the same box

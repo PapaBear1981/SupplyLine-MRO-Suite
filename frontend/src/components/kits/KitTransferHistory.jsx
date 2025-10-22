@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Table, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Card, Table, Badge, Spinner, Alert, Pagination } from 'react-bootstrap';
 import { FaExchangeAlt, FaWarehouse, FaBox, FaArrowRight } from 'react-icons/fa';
 import { fetchTransfers } from '../../store/kitTransfersSlice';
 
 const KitTransferHistory = ({ kitId }) => {
   const dispatch = useDispatch();
   const { transfers, loading } = useSelector((state) => state.kitTransfers);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (kitId) {
@@ -15,10 +17,25 @@ const KitTransferHistory = ({ kitId }) => {
     }
   }, [dispatch, kitId]);
 
+  // Reset to page 1 when transfers change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [transfers]);
+
   // Transfers are already filtered by backend, just sort by date descending
   const sortedTransfers = [...transfers].sort(
     (a, b) => new Date(b.transfer_date) - new Date(a.transfer_date)
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedTransfers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTransfers = sortedTransfers.slice(startIndex, endIndex);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -105,6 +122,7 @@ const KitTransferHistory = ({ kitId }) => {
         </h5>
         <small className="text-muted">
           Total Transfers: {sortedTransfers.length}
+          {totalPages > 1 && ` | Page ${currentPage} of ${totalPages}`}
         </small>
       </Card.Header>
       <Card.Body>
@@ -126,10 +144,10 @@ const KitTransferHistory = ({ kitId }) => {
               </tr>
             </thead>
             <tbody>
-              {sortedTransfers.map((transfer) => (
+              {currentTransfers.map((transfer) => (
                 <tr key={transfer.id}>
                   <td className="text-nowrap">
-                    {new Date(transfer.transfer_date).toLocaleDateString('en-US', {
+                    {new Date(transfer.transfer_date).toLocaleString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -176,6 +194,57 @@ const KitTransferHistory = ({ kitId }) => {
             </tbody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-center mt-3">
+            <Pagination>
+              <Pagination.First
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+              />
+              <Pagination.Prev
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              />
+
+              {[...Array(totalPages)].map((_, index) => {
+                const pageNumber = index + 1;
+                // Show first page, last page, current page, and pages around current
+                if (
+                  pageNumber === 1 ||
+                  pageNumber === totalPages ||
+                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                ) {
+                  return (
+                    <Pagination.Item
+                      key={pageNumber}
+                      active={pageNumber === currentPage}
+                      onClick={() => handlePageChange(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Pagination.Item>
+                  );
+                } else if (
+                  pageNumber === currentPage - 2 ||
+                  pageNumber === currentPage + 2
+                ) {
+                  return <Pagination.Ellipsis key={pageNumber} disabled />;
+                }
+                return null;
+              })}
+
+              <Pagination.Next
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              />
+              <Pagination.Last
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              />
+            </Pagination>
+          </div>
+        )}
       </Card.Body>
     </Card>
   );

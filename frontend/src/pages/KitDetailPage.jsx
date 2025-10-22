@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Alert } from 'react-bootstrap';
 import { FaEdit, FaCopy, FaBox, FaExchangeAlt, FaShoppingCart, FaEnvelope, FaChartBar, FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts, fetchReorderRequests } from '../store/kitsSlice';
-import { fetchTransfers } from '../store/kitTransfersSlice';
 import { fetchKitMessages } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import KitItemsList from '../components/kits/KitItemsList';
@@ -44,11 +43,10 @@ const KitDetailPage = () => {
       dispatch(fetchKitItems({ kitId: id }));
     } else if (id && activeTab === 'issuances') {
       dispatch(fetchKitIssuances({ kitId: id }));
-    } else if (id && activeTab === 'transfers') {
-      dispatch(fetchTransfers({ from_kit_id: id }));
     } else if (id && activeTab === 'messages') {
       dispatch(fetchKitMessages({ kitId: id }));
     }
+    // Note: 'transfers' tab is handled by KitTransferHistory component's own useEffect
   }, [dispatch, id, activeTab]);
 
   if (loading && !currentKit) {
