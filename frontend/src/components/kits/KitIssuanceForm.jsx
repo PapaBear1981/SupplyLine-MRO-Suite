@@ -22,20 +22,6 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [quantityError, setQuantityError] = useState('');
 
-  // Get items for this kit
-  const items = kitItems[kitId] || { items: [], expendables: [] };
-  const allItems = [
-    ...items.items.map(item => ({ ...item, source: 'item' })),
-    ...items.expendables.map(exp => ({ ...exp, source: 'expendable' }))
-  ];
-
-  // Load items when modal opens
-  useEffect(() => {
-    if (show && kitId) {
-      dispatch(fetchKitItems({ kitId }));
-    }
-  }, [show, kitId, dispatch]);
-
   // Pre-select item if provided
   useEffect(() => {
     if (preSelectedItem) {
@@ -58,16 +44,6 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
     // Clear quantity error when user changes quantity
     if (name === 'quantity') {
       setQuantityError('');
-    }
-
-    // Update selected item when item selection changes
-    if (name === 'item_id') {
-      const item = allItems.find(i => i.id === parseInt(value));
-      setSelectedItem(item);
-      setFormData(prev => ({
-        ...prev,
-        item_type: item?.source === 'item' ? item.item_type : 'expendable'
-      }));
     }
   };
 
@@ -175,32 +151,6 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
               {error.message || 'Failed to issue item'}
             </Alert>
           )}
-
-          {/* Item Selection */}
-          <Form.Group className="mb-3">
-            <Form.Label>Select Item *</Form.Label>
-            <Form.Select
-              name="item_id"
-              value={formData.item_id}
-              onChange={handleChange}
-              required
-              disabled={loading || !!preSelectedItem}
-            >
-              <option value="">-- Select an item --</option>
-              {allItems.map((item) => (
-                <option key={`${item.source}-${item.id}`} value={item.id}>
-                  {item.part_number} - {item.description} 
-                  {item.serial_number && ` (S/N: ${item.serial_number})`}
-                  {item.lot_number && ` (Lot: ${item.lot_number})`}
-                  {' - Available: '}{item.quantity}
-                  {item.unit && ` ${item.unit}`}
-                </option>
-              ))}
-            </Form.Select>
-            <Form.Control.Feedback type="invalid">
-              Please select an item to issue.
-            </Form.Control.Feedback>
-          </Form.Group>
 
           {/* Selected Item Details */}
           {selectedItem && (
