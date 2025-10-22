@@ -24,6 +24,7 @@ from routes_warehouses import warehouses_bp
 from routes_transfers import transfers_bp
 from routes_departments import register_department_routes
 from routes_database import register_database_routes
+from routes_history import register_history_routes
 from utils.rate_limiter import rate_limit
 from utils.password_reset_security import get_password_reset_tracker
 import utils as password_utils
@@ -182,6 +183,9 @@ def register_routes(app):
 
     # Register inventory tracking routes (lot/serial numbers, transactions)
     register_inventory_routes(app)
+
+    # Register item history lookup routes
+    register_history_routes(app)
 
     # Register warehouse management routes
     app.register_blueprint(warehouses_bp, url_prefix='/api')

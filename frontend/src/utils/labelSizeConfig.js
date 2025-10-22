@@ -317,15 +317,33 @@ export const getBarcodeConfig = (labelSize) => {
     };
   }
 
+  // Adjust bar width based on label size to ensure barcode fits
+  let barWidth;
+  switch (labelSize) {
+    case '2x2':
+      barWidth = 1;
+      break;
+    case '2x4':
+      barWidth = 1.2;
+      break;
+    case '3x4':
+      barWidth = 1.5;
+      break;
+    case '4x6':
+    default:
+      barWidth = 2;
+      break;
+  }
+
   return {
     format: "CODE128",
     lineColor: "#000",
-    width: labelSize === '2x2' ? 1.5 : 2,
+    width: barWidth,
     height: config.barcodeHeight,
     displayValue: true,
     fontSize: parseInt(config.fontSize.fieldValue),
-    margin: labelSize === '2x2' ? 5 : 8,
-    textMargin: labelSize === '2x2' ? 4 : 6
+    margin: labelSize === '2x2' ? 3 : labelSize === '2x4' ? 5 : 8,
+    textMargin: labelSize === '2x2' ? 2 : labelSize === '2x4' ? 4 : 6
   };
 };
 

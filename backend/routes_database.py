@@ -11,7 +11,7 @@ import logging
 import os
 from pathlib import Path
 from utils.database_backup import DatabaseBackupManager
-from utils.auth import token_required, admin_required
+from auth import jwt_required, admin_required
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,12 @@ def register_database_routes(app):
         return DatabaseBackupManager(db_path)
     
     @app.route('/api/admin/database/backup', methods=['POST'])
-    @token_required
+    @jwt_required
     @admin_required
-    def create_database_backup(current_user):
+    def create_database_backup():
         """
         Create a manual backup of the database.
-        
+
         Request body (optional):
             {
                 "backup_name": "custom_name",
@@ -52,22 +52,22 @@ def register_database_routes(app):
                     'success': False,
                     'message': 'Database backup is only supported for SQLite databases'
                 }), 400
-            
+
             data = request.get_json() or {}
             backup_name = data.get('backup_name')
             compress = data.get('compress')
-            
+
             success, message, backup_path = backup_manager.create_backup(
                 backup_name=backup_name,
                 compress=compress
             )
-            
+
             if success:
-                logger.info(f"Manual backup created by {current_user.name}", extra={
-                    'user_id': current_user.id,
+                logger.info(f"Manual backup created by {request.current_user.get('user_name', 'Unknown')}", extra={
+                    'user_id': request.current_user.get('user_id'),
                     'backup_path': backup_path
                 })
-                
+
                 return jsonify({
                     'success': True,
                     'message': message,
@@ -87,9 +87,9 @@ def register_database_routes(app):
             }), 500
     
     @app.route('/api/admin/database/backups', methods=['GET'])
-    @token_required
+    @jwt_required
     @admin_required
-    def list_database_backups(current_user):
+    def list_database_backups():
         """List all available database backups."""
         try:
             backup_manager = get_backup_manager()
@@ -115,9 +115,9 @@ def register_database_routes(app):
             }), 500
     
     @app.route('/api/admin/database/backup/<path:backup_filename>', methods=['DELETE'])
-    @token_required
+    @jwt_required
     @admin_required
-    def delete_database_backup(current_user, backup_filename):
+    def delete_database_backup(backup_filename):
         """Delete a specific backup file."""
         try:
             backup_manager = get_backup_manager()
@@ -156,9 +156,9 @@ def register_database_routes(app):
             }), 500
     
     @app.route('/api/admin/database/backup/<path:backup_filename>/download', methods=['GET'])
-    @token_required
+    @jwt_required
     @admin_required
-    def download_database_backup(current_user, backup_filename):
+    def download_database_backup(backup_filename):
         """Download a specific backup file."""
         try:
             backup_manager = get_backup_manager()
@@ -203,9 +203,9 @@ def register_database_routes(app):
             }), 500
     
     @app.route('/api/admin/database/restore', methods=['POST'])
-    @token_required
+    @jwt_required
     @admin_required
-    def restore_database_backup(current_user):
+    def restore_database_backup():
         """
         Restore database from a backup file.
         
@@ -266,9 +266,9 @@ def register_database_routes(app):
             }), 500
     
     @app.route('/api/admin/database/health', methods=['GET'])
-    @token_required
+    @jwt_required
     @admin_required
-    def check_database_health(current_user):
+    def check_database_health():
         """Check database integrity and health."""
         try:
             backup_manager = get_backup_manager()

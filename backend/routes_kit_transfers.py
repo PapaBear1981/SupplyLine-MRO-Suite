@@ -5,7 +5,7 @@ This module provides API endpoints for managing transfers between kits and wareh
 """
 
 from flask import request, jsonify
-from models import db, AuditLog, Chemical, Warehouse
+from models import db, AuditLog, Chemical, Warehouse, Tool
 from models_kits import Kit, KitItem, KitExpendable, KitTransfer
 from datetime import datetime
 from auth import jwt_required, department_required
@@ -100,10 +100,18 @@ def register_kit_transfer_routes(app):
             if source_item.quantity < quantity:
                 raise ValidationError(f'Insufficient quantity. Available: {source_item.quantity}')
 
+        # Determine the actual item_id to store in the transfer record
+        # For warehouse transfers, use data['item_id'] (the chemical/tool ID)
+        # For kit transfers, use source_item.item_id (the actual chemical/tool ID, not the KitItem ID)
+        if data['from_location_type'] == 'kit' and source_item and data['item_type'] != 'expendable':
+            transfer_item_id = source_item.item_id
+        else:
+            transfer_item_id = data['item_id']
+
         # Create transfer record
         transfer = KitTransfer(
             item_type=data['item_type'],
-            item_id=data['item_id'],
+            item_id=transfer_item_id,
             from_location_type=data['from_location_type'],
             from_location_id=data['from_location_id'],
             to_location_type=data['to_location_type'],
@@ -128,22 +136,47 @@ def register_kit_transfer_routes(app):
             if not dest_kit:
                 raise ValidationError('Destination kit not found')
 
+            # Get destination box - use provided box_id or default to first box
+            dest_box_id = data.get('box_id')
+            if dest_box_id:
+                from models_kits import KitBox
+                dest_box = KitBox.query.filter_by(id=dest_box_id, kit_id=data['to_location_id']).first()
+                if not dest_box:
+                    raise ValidationError('Specified box not found in destination kit')
+            else:
+                # Fallback to first box if no box_id provided
+                dest_box = dest_kit.boxes.first()
+                if not dest_box:
+                    raise ValidationError('Destination kit has no boxes')
+
             if data['item_type'] == 'expendable':
-                # For expendables, check if same part number exists in destination
-                dest_item = KitExpendable.query.filter_by(
+                # For expendables, check if same part number exists in destination BOX
+                # Important: We must match on part_number, tracking_type, lot/serial, and unit
+                # to prevent merging items with different tracking identities
+                q = KitExpendable.query.filter_by(
                     kit_id=data['to_location_id'],
-                    part_number=source_item.part_number if source_item else None
-                ).first()
+                    box_id=dest_box.id,
+                    part_number=source_item.part_number if source_item else None,
+                    tracking_type=source_item.tracking_type,
+                    unit=source_item.unit
+                )
+
+                # Match on lot_number or serial_number based on tracking_type
+                if source_item.tracking_type == 'lot':
+                    q = q.filter_by(lot_number=source_item.lot_number, serial_number=None)
+                elif source_item.tracking_type == 'serial':
+                    q = q.filter_by(serial_number=source_item.serial_number, lot_number=None)
+                else:
+                    # For items without tracking, match on None for both
+                    q = q.filter_by(lot_number=None, serial_number=None)
+
+                dest_item = q.first()
 
                 if dest_item:
-                    # Add to existing expendable
+                    # Add to existing expendable in the same box
                     dest_item.quantity += quantity
                 else:
                     # Create new expendable in destination kit
-                    # Get first available box or create in loose
-                    dest_box = dest_kit.boxes.first()
-                    if not dest_box:
-                        raise ValidationError('Destination kit has no boxes')
 
                     new_expendable = KitExpendable(
                         kit_id=data['to_location_id'],
@@ -152,39 +185,68 @@ def register_kit_transfer_routes(app):
                         description=source_item.description,
                         quantity=quantity,
                         unit=source_item.unit,
-                        location_in_box=source_item.location_in_box
+                        location=source_item.location,  # KitExpendable uses 'location', not 'location_in_box'
+                        serial_number=source_item.serial_number,
+                        lot_number=source_item.lot_number,
+                        tracking_type=source_item.tracking_type
                     )
                     db.session.add(new_expendable)
             else:
-                # For tools/chemicals, determine which chemical ID to use
-                # If we created a child chemical, use that ID; otherwise use original
-                chemical_id_to_add = child_chemical.id if child_chemical else data['item_id']
-
-                # For tools/chemicals, check if same item exists in destination
-                dest_item = KitItem.query.filter_by(
-                    kit_id=data['to_location_id'],
-                    item_id=chemical_id_to_add,
-                    item_type=data['item_type']
-                ).first()
-
-                if dest_item:
-                    # Add to existing item
-                    dest_item.quantity += quantity
+                # For tools/chemicals, determine which item ID to use
+                # If we created a child chemical (from warehouse transfer), use that ID
+                # Otherwise, use the item_id from the source KitItem
+                if child_chemical:
+                    # Warehouse to kit transfer with lot split
+                    item_id_to_add = child_chemical.id
+                elif source_item:
+                    # Kit to kit transfer - use the actual item_id from the source KitItem
+                    item_id_to_add = source_item.item_id
                 else:
-                    # Create new item in destination kit
-                    dest_box = dest_kit.boxes.first()
-                    if not dest_box:
-                        raise ValidationError('Destination kit has no boxes')
+                    # Fallback to data['item_id'] for warehouse to kit full transfer
+                    item_id_to_add = data['item_id']
+
+                # For tools/chemicals, ALWAYS create a new line item
+                # Each lot number or serial number should be tracked separately
+                # Even if the same lot is transferred multiple times, keep them as separate entries
+
+                # Get the actual item to populate fields
+                if data['item_type'] == 'tool':
+                    actual_item = Tool.query.get(item_id_to_add)
+                    if not actual_item:
+                        raise ValidationError('Tool not found')
 
                     new_item = KitItem(
                         kit_id=data['to_location_id'],
                         box_id=dest_box.id,
                         item_type=data['item_type'],
-                        item_id=chemical_id_to_add,  # Use child chemical ID if created
+                        item_id=item_id_to_add,
+                        part_number=actual_item.tool_number,
+                        serial_number=actual_item.serial_number,
+                        lot_number=actual_item.lot_number,
+                        description=actual_item.description,
                         quantity=quantity,
+                        location=source_item.location if source_item else '',
                         status='available'
                     )
-                    db.session.add(new_item)
+                else:  # chemical
+                    actual_item = Chemical.query.get(item_id_to_add)
+                    if not actual_item:
+                        raise ValidationError('Chemical not found')
+
+                    new_item = KitItem(
+                        kit_id=data['to_location_id'],
+                        box_id=dest_box.id,
+                        item_type=data['item_type'],
+                        item_id=item_id_to_add,
+                        part_number=actual_item.part_number,
+                        lot_number=actual_item.lot_number,
+                        description=actual_item.description,
+                        quantity=quantity,
+                        location=source_item.location if source_item else '',
+                        status='available'
+                    )
+
+                db.session.add(new_item)
         elif data['to_location_type'] == 'warehouse':
             # Handle transfer to warehouse
             dest_warehouse = Warehouse.query.get(data['to_location_id'])
@@ -206,7 +268,6 @@ def register_kit_transfer_routes(app):
                             transferred_chemical.warehouse_id = data['to_location_id']
             elif data['item_type'] == 'tool':
                 # For tools transferred from kit to warehouse
-                from models import Tool
                 if source_item and hasattr(source_item, 'item_id'):
                     transferred_tool = Tool.query.get(source_item.item_id)
                     if transferred_tool:
@@ -247,7 +308,10 @@ def register_kit_transfer_routes(app):
     @handle_errors
     def get_transfers():
         """Get all transfers with optional filtering"""
+        from sqlalchemy import or_
+
         status = request.args.get('status')
+        kit_id = request.args.get('kit_id', type=int)  # Kit as either source or destination
         from_kit_id = request.args.get('from_kit_id', type=int)
         to_kit_id = request.args.get('to_kit_id', type=int)
 
@@ -256,11 +320,21 @@ def register_kit_transfer_routes(app):
         if status:
             query = query.filter_by(status=status)
 
-        if from_kit_id:
-            query = query.filter_by(from_location_type='kit', from_location_id=from_kit_id)
+        # If kit_id is provided, match transfers where kit is either source OR destination
+        if kit_id:
+            query = query.filter(
+                or_(
+                    (KitTransfer.from_location_type == 'kit') & (KitTransfer.from_location_id == kit_id),
+                    (KitTransfer.to_location_type == 'kit') & (KitTransfer.to_location_id == kit_id)
+                )
+            )
+        else:
+            # Otherwise use the specific from/to filters
+            if from_kit_id:
+                query = query.filter_by(from_location_type='kit', from_location_id=from_kit_id)
 
-        if to_kit_id:
-            query = query.filter_by(to_location_type='kit', to_location_id=to_kit_id)
+            if to_kit_id:
+                query = query.filter_by(to_location_type='kit', to_location_id=to_kit_id)
 
         transfers = query.order_by(KitTransfer.transfer_date.desc()).all()
 

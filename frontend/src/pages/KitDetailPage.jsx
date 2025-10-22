@@ -4,13 +4,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Alert } from 'react-bootstrap';
 import { FaEdit, FaCopy, FaBox, FaExchangeAlt, FaShoppingCart, FaEnvelope, FaChartBar, FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts, fetchReorderRequests } from '../store/kitsSlice';
-import { fetchTransfers } from '../store/kitTransfersSlice';
 import { fetchKitMessages } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import KitItemsList from '../components/kits/KitItemsList';
 import KitAlerts from '../components/kits/KitAlerts';
 import KitIssuanceForm from '../components/kits/KitIssuanceForm';
 import KitIssuanceHistory from '../components/kits/KitIssuanceHistory';
+import KitTransferHistory from '../components/kits/KitTransferHistory';
 import KitTransferForm from '../components/kits/KitTransferForm';
 import KitMessaging from '../components/kits/KitMessaging';
 import KitReorderManagement from '../components/kits/KitReorderManagement';
@@ -43,11 +43,10 @@ const KitDetailPage = () => {
       dispatch(fetchKitItems({ kitId: id }));
     } else if (id && activeTab === 'issuances') {
       dispatch(fetchKitIssuances({ kitId: id }));
-    } else if (id && activeTab === 'transfers') {
-      dispatch(fetchTransfers({ from_kit_id: id }));
     } else if (id && activeTab === 'messages') {
       dispatch(fetchKitMessages({ kitId: id }));
     }
+    // Note: 'transfers' tab is handled by KitTransferHistory component's own useEffect
   }, [dispatch, id, activeTab]);
 
   if (loading && !currentKit) {
@@ -270,11 +269,7 @@ const KitDetailPage = () => {
         </Tab>
 
         <Tab eventKey="transfers" title="Transfers">
-          <Card>
-            <Card.Body>
-              <p className="text-muted">Transfer history will be displayed here</p>
-            </Card.Body>
-          </Card>
+          <KitTransferHistory kitId={id} />
         </Tab>
 
         <Tab eventKey="reorders" title={`Reorders ${currentKit.pending_reorders > 0 ? `(${currentKit.pending_reorders})` : ''}`}>

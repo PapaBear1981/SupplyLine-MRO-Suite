@@ -39,34 +39,12 @@ const TransferBarcodeModal = ({ show, onHide, chemical, parentLotNumber, destina
     if (!barcodeContainerRef.current || !chemical) return;
 
     const printWindow = window.open('', '_blank');
-    const transferDateFormatted = formatDate(transferDate || new Date());
 
-    // Get all fields for transfer barcode
-    const allFields = getChemicalBarcodeFields(chemical, {
-      isTransfer: true,
-      transferData: {
-        quantity: chemical.quantity,
-        unit: chemical.unit,
-        parent_lot_number: parentLotNumber,
-        destination: destinationName,
-        transfer_date: transferDate || new Date()
-      }
-    });
-
-    // Filter fields based on label size
-    const fields = filterFieldsForLabelSize(allFields, labelSize);
-
-    // Build field rows HTML
-    const fieldsHTML = fields.map(field =>
-      `<div class="field-row">
-        <div class="field-label">${field.label}:</div>
-        <div class="field-value">${field.value}</div>
-      </div>`
-    ).join('');
-
-    // Generate CSS for selected label size
+    // Generate CSS for selected label size (with transfer styling)
     const printCSS = generatePrintCSS(labelSize, true);
 
+    // The containerRef already contains the complete barcode card with logo, title, code, and fields
+    // We just need to wrap it in the print CSS
     printWindow.document.write(`
       <html>
         <head>
@@ -76,20 +54,7 @@ const TransferBarcodeModal = ({ show, onHide, chemical, parentLotNumber, destina
           </style>
         </head>
         <body>
-          <div class="label-container">
-            <div class="logo-header">🔧 SupplyLine MRO Suite</div>
-            <div class="warning-badge">⚠️ PARTIAL TRANSFER - NEW LOT NUMBER</div>
-            <div class="title">${chemical.part_number} - ${chemical.lot_number}</div>
-            <div class="code-container">
-              ${barcodeContainerRef.current.innerHTML}
-            </div>
-            <div class="info-fields">
-              ${fieldsHTML}
-            </div>
-            <div class="transfer-note">
-              <strong>Note:</strong> This is a partial transfer. The parent lot has been split.
-            </div>
-          </div>
+          ${barcodeContainerRef.current.innerHTML}
           <div style="text-align: center; margin-top: 10px;">
             <button onclick="window.print(); window.close();">Print Label</button>
           </div>

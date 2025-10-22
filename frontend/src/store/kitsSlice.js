@@ -165,6 +165,30 @@ export const addKitBox = createAsyncThunk(
   }
 );
 
+export const updateKitBox = createAsyncThunk(
+  'kits/updateKitBox',
+  async ({ kitId, boxId, data }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/kits/${kitId}/boxes/${boxId}`, data);
+      return { kitId, box: response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to update box' });
+    }
+  }
+);
+
+export const deleteKitBox = createAsyncThunk(
+  'kits/deleteKitBox',
+  async ({ kitId, boxId }, { rejectWithValue }) => {
+    try {
+      await api.delete(`/kits/${kitId}/boxes/${boxId}`);
+      return { kitId, boxId };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to delete box' });
+    }
+  }
+);
+
 // Kit Items
 export const fetchKitItems = createAsyncThunk(
   'kits/fetchKitItems',
@@ -511,6 +535,35 @@ const kitsSlice = createSlice({
       // Kit Boxes
       .addCase(fetchKitBoxes.fulfilled, (state, action) => {
         state.kitBoxes[action.payload.kitId] = action.payload.boxes;
+      })
+      .addCase(addKitBox.fulfilled, (state, action) => {
+        const { kitId, box } = action.payload;
+        if (state.kitBoxes[kitId]) {
+          state.kitBoxes[kitId].push(box);
+        }
+        // Update current kit's box count
+        if (state.currentKit && state.currentKit.id === kitId) {
+          state.currentKit.box_count = (state.currentKit.box_count || 0) + 1;
+        }
+      })
+      .addCase(updateKitBox.fulfilled, (state, action) => {
+        const { kitId, box } = action.payload;
+        if (state.kitBoxes[kitId]) {
+          const index = state.kitBoxes[kitId].findIndex(b => b.id === box.id);
+          if (index !== -1) {
+            state.kitBoxes[kitId][index] = box;
+          }
+        }
+      })
+      .addCase(deleteKitBox.fulfilled, (state, action) => {
+        const { kitId, boxId } = action.payload;
+        if (state.kitBoxes[kitId]) {
+          state.kitBoxes[kitId] = state.kitBoxes[kitId].filter(b => b.id !== boxId);
+        }
+        // Update current kit's box count
+        if (state.currentKit && state.currentKit.id === kitId) {
+          state.currentKit.box_count = Math.max((state.currentKit.box_count || 1) - 1, 0);
+        }
       })
 
       // Kit Items

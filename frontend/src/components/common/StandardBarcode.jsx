@@ -4,6 +4,7 @@ import JsBarcode from 'jsbarcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { FaTools } from 'react-icons/fa';
 import PropTypes from 'prop-types';
+import { LABEL_SIZES, getBarcodeConfig, filterFieldsForLabelSize } from '../../utils/labelSizeConfig';
 
 /**
  * Standardized barcode/QR code display component
@@ -44,27 +45,25 @@ const StandardBarcode = ({
     }
   };
 
-  // Generate barcode when data changes
+  // Generate barcode when data or label size changes
   useEffect(() => {
     if (type === 'barcode' && barcodeData && barcodeRef.current) {
       try {
-        JsBarcode(barcodeRef.current, barcodeData, {
-          format: "CODE128",
-          lineColor: "#000",
-          width: 2,
-          height: 100,
-          displayValue: true,
-          fontSize: 16,
-          margin: 10,
-          textMargin: 10
-        });
+        const barcodeConfig = getBarcodeConfig(labelSize);
+        JsBarcode(barcodeRef.current, barcodeData, barcodeConfig);
       } catch (error) {
         console.error('Error generating barcode:', error);
       }
     }
-  }, [type, barcodeData]);
+  }, [type, barcodeData, labelSize]);
 
   const { isTransfer, isWarning, warningText } = specialStyling;
+
+  // Get label size configuration
+  const labelConfig = LABEL_SIZES[labelSize];
+
+  // Filter fields based on label size
+  const filteredFields = filterFieldsForLabelSize(fields, labelSize);
 
   return (
     <>
@@ -108,16 +107,32 @@ const StandardBarcode = ({
               color: '#000',
               fontWeight: 'bold',
               borderRadius: '4px',
-              fontSize: '0.9rem'
+              fontSize: labelConfig.fontSize.warning
             }}
           >
             ⚠️ {warningText}
           </div>
         )}
 
-        {/* Title */}
-        {title && (
-          <Card.Title className="mb-3" style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--bs-body-color)' }}>
+        {/* Logo Header - hide on compact labels */}
+        {!labelConfig.hideLogo && (
+          <div style={{
+            fontSize: labelConfig.fontSize.logo,
+            fontWeight: 'bold',
+            color: '#0066ff',
+            marginBottom: labelSize === '2x2' ? '4px' : '8px'
+          }}>
+            🔧 SupplyLine MRO Suite
+          </div>
+        )}
+
+        {/* Title - hide on compact labels if configured */}
+        {title && !labelConfig.hideTitle && (
+          <Card.Title className="mb-3" style={{
+            fontSize: labelConfig.fontSize.title,
+            fontWeight: '600',
+            color: 'var(--bs-body-color)'
+          }}>
             {title}
           </Card.Title>
         )}
@@ -125,50 +140,69 @@ const StandardBarcode = ({
         {/* Barcode or QR Code */}
         <div className="d-flex justify-content-center my-3">
           {type === 'barcode' ? (
-            <svg ref={barcodeRef}></svg>
+            <div style={{
+              maxWidth: '100%',
+              overflow: 'hidden',
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <svg
+                ref={barcodeRef}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto'
+                }}
+              ></svg>
+            </div>
           ) : (
-            <QRCodeSVG value={qrUrl || ''} size={256} />
+            <QRCodeSVG value={qrUrl || ''} size={labelConfig.qrSize} />
           )}
         </div>
 
         {/* QR Code Helper Text */}
         {type === 'qrcode' && (
-          <Card.Text style={{ fontSize: '12px', color: 'var(--bs-secondary-color)', marginBottom: '20px' }}>
+          <Card.Text style={{
+            fontSize: labelConfig.fontSize.note,
+            color: 'var(--bs-secondary-color)',
+            marginBottom: '20px'
+          }}>
             Scan this QR code to view detailed information
           </Card.Text>
         )}
 
-        {/* Information Fields */}
-        {fields && fields.length > 0 && (
+        {/* Information Fields - filtered based on label size */}
+        {filteredFields && filteredFields.length > 0 && (
           <div
             className="mt-3"
             style={{
               textAlign: 'left',
-              fontSize: '0.9rem',
+              fontSize: labelConfig.fontSize.fieldValue,
               lineHeight: '1.8'
             }}
           >
-            {fields.map((field, index) => (
+            {filteredFields.map((field, index) => (
               <div
                 key={index}
                 style={{
                   display: 'flex',
-                  padding: '8px 0',
-                  borderBottom: index < fields.length - 1 ? '1px solid var(--bs-border-color)' : 'none'
+                  padding: labelSize === '2x2' ? '4px 0' : '8px 0',
+                  borderBottom: index < filteredFields.length - 1 ? '1px solid var(--bs-border-color)' : 'none'
                 }}
               >
                 <div style={{
                   fontWeight: '600',
                   color: 'var(--bs-secondary-color)',
-                  minWidth: '180px',
-                  flexShrink: 0
+                  minWidth: labelSize === '2x2' ? '80px' : labelSize === '2x4' ? '100px' : '180px',
+                  flexShrink: 0,
+                  fontSize: labelConfig.fontSize.fieldLabel
                 }}>
                   {field.label}:
                 </div>
                 <div style={{
                   color: 'var(--bs-body-color)',
                   flex: 1,
-                  wordBreak: 'break-word'
+                  wordBreak: 'break-word',
+                  fontSize: labelConfig.fontSize.fieldValue
                 }}>
                   {field.value}
                 </div>
@@ -185,7 +219,7 @@ const StandardBarcode = ({
               backgroundColor: 'var(--bs-warning-bg-subtle)',
               border: '1px solid var(--bs-warning)',
               borderRadius: '4px',
-              fontSize: '0.85rem',
+              fontSize: labelConfig.fontSize.note,
               color: 'var(--bs-warning-text-emphasis)'
             }}
           >

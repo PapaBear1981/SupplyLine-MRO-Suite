@@ -10,14 +10,17 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
     from_location_id: '',
     to_location_type: '',
     to_location_id: '',
+    box_id: '',
     quantity: '1',
     notes: ''
   });
 
   const [warehouses, setWarehouses] = useState([]);
   const [kits, setKits] = useState([]);
+  const [kitBoxes, setKitBoxes] = useState([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [loadingKits, setLoadingKits] = useState(false);
+  const [loadingBoxes, setLoadingBoxes] = useState(false);
   const [validated, setValidated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -70,6 +73,19 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
     }
   };
 
+  const loadKitBoxes = async (kitId) => {
+    setLoadingBoxes(true);
+    try {
+      const response = await api.get(`/kits/${kitId}/boxes`);
+      setKitBoxes(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to load kit boxes:', err);
+      setKitBoxes([]);
+    } finally {
+      setLoadingBoxes(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -77,6 +93,16 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
       [name]: value
     }));
     setError(null);
+
+    // Load boxes when destination kit is selected
+    if (name === 'to_location_id' && formData.to_location_type === 'kit' && value) {
+      loadKitBoxes(value);
+      // Reset box selection when kit changes
+      setFormData(prev => ({
+        ...prev,
+        box_id: ''
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -104,6 +130,11 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
         quantity: parseInt(formData.quantity),  // Integer only - no decimal quantities
         notes: formData.notes
       };
+
+      // Add box_id if transferring to a kit
+      if (formData.to_location_type === 'kit' && formData.box_id) {
+        transferData.box_id = parseInt(formData.box_id);
+      }
 
       const response = await api.post('/transfers', transferData);
 
@@ -170,9 +201,11 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
       from_location_id: '',
       to_location_type: '',
       to_location_id: '',
+      box_id: '',
       quantity: '1',
       notes: ''
     });
+    setKitBoxes([]);
     setValidated(false);
     setShowSuccess(false);
     setError(null);
@@ -366,6 +399,42 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* Box Selection - Only show when destination is a kit */}
+              {formData.to_location_type === 'kit' && formData.to_location_id && (
+                <Row>
+                  <Col>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FaBox className="me-2" />
+                        Destination Box *
+                      </Form.Label>
+                      <Form.Select
+                        name="box_id"
+                        value={formData.box_id}
+                        onChange={handleChange}
+                        required
+                        disabled={loadingBoxes}
+                      >
+                        <option value="">
+                          {loadingBoxes ? 'Loading boxes...' : '-- Select box --'}
+                        </option>
+                        {kitBoxes.map((box) => (
+                          <option key={box.id} value={box.id}>
+                            Box {box.box_number} - {box.box_type} {box.description ? `(${box.description})` : ''}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className="text-muted">
+                        Select which box in the kit to place this item
+                      </Form.Text>
+                      <Form.Control.Feedback type="invalid">
+                        Please select a destination box
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
             </Card.Body>
           </Card>
 

@@ -85,6 +85,7 @@ import KitReports from './pages/KitReports';
 import KitMobileInterface from './pages/KitMobileInterface';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
+import ItemHistoryPage from './pages/ItemHistoryPage';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
 const RootRoute = () => {
@@ -237,6 +238,15 @@ function App() {
           <PermissionRoute permission="page.profile">
             <ProfilePageNew />
           </PermissionRoute>
+        } />
+
+        {/* Item History Lookup */}
+        <Route path="/history" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ItemHistoryPage />
+            </MainLayout>
+          </ProtectedRoute>
         } />
 
         {/* Chemical routes */}
