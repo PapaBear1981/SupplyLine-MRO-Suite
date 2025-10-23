@@ -11,6 +11,7 @@ from datetime import datetime
 from auth import jwt_required, department_required
 from utils.error_handler import handle_errors, ValidationError
 from utils.lot_utils import create_child_chemical
+from utils.transaction_helper import record_transaction
 import logging
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,26 @@ def register_kit_transfer_routes(app):
                 else:
                     # Transferring to kit - set warehouse_id to None
                     source_chemical.warehouse_id = None
+
+        elif data['from_location_type'] == 'warehouse' and data['item_type'] == 'tool':
+            # Handle warehouse tool transfer (always full transfer for serialized/lot-tracked tools)
+            tool = Tool.query.get(data['item_id'])
+            if not tool:
+                raise ValidationError('Tool not found')
+
+            if tool.warehouse_id != data['from_location_id']:
+                raise ValidationError('Tool is not in the source warehouse')
+
+            # Tools are serialized/lot-tracked, so quantity must be 1
+            if quantity != 1:
+                raise ValidationError('Tool transfers must have a quantity of 1')
+
+            # Update tool location
+            if data['to_location_type'] == 'warehouse':
+                tool.warehouse_id = data['to_location_id']
+            else:
+                # Transferring to kit - set warehouse_id to None
+                tool.warehouse_id = None
 
         elif data['from_location_type'] == 'kit':
             if data['item_type'] == 'expendable':
@@ -276,6 +297,24 @@ def register_kit_transfer_routes(app):
         db.session.add(transfer)
         db.session.commit()
 
+        # Record InventoryTransaction for warehouse-to-warehouse transfers
+        if data['from_location_type'] == 'warehouse' and data['to_location_type'] == 'warehouse':
+            from_warehouse = Warehouse.query.get(data['from_location_id'])
+            to_warehouse = Warehouse.query.get(data['to_location_id'])
+            
+            # transfer_item_id is determined earlier
+            if from_warehouse and to_warehouse:
+                record_transaction(
+                    item_type=data['item_type'],
+                    item_id=transfer_item_id,
+                    transaction_type='transfer',
+                    user_id=request.current_user['user_id'],
+                    quantity_change=0, # Location change, net quantity change is zero
+                    location_from=from_warehouse.name,
+                    location_to=to_warehouse.name,
+                    notes=data.get('notes', f"Warehouse to warehouse transfer: {from_warehouse.name} to {to_warehouse.name}")
+                )
+                
         # Log action
         log = AuditLog(
             action_type='kit_transfer_completed',

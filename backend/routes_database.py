@@ -6,6 +6,7 @@ Admin-only access required for all operations.
 """
 
 from flask import request, jsonify, send_file, current_app
+from flask_jwt_extended import current_user
 from functools import wraps
 import logging
 import os

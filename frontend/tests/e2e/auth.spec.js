@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupAuthenticatedState, TEST_USERS } from './utils/auth.js';
+import { TEST_USERS } from './utils/auth.js';
 
 // Test data
 const TEST_USER = {

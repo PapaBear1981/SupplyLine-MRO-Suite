@@ -1,40 +1,42 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
-import api from '../../services/api';
+import React, { useState, useRef, useEffect } from 'react';
+import { Modal, Button, Tabs, Tab, Alert } from 'react-bootstrap';
 import StandardBarcode from '../common/StandardBarcode';
-import {
-  generateToolBarcodeData,
-  getToolBarcodeFields
-} from '../../utils/barcodeFormatter';
-import {
-  generatePrintCSS
-} from '../../utils/labelSizeConfig';
+import { generateChemicalBarcodeData, generateToolBarcodeData, getChemicalBarcodeFields, getToolBarcodeFields } from '../../utils/barcodeFormatter';
+import { generatePrintCSS } from '../../utils/labelSizeConfig';
+import api from '../../services/api';
 
 /**
- * Component for displaying and printing a tool barcode and QR code
- *
- * @param {Object} props - Component props
- * @param {boolean} props.show - Whether to show the modal
- * @param {Function} props.onHide - Function to call when hiding the modal
- * @param {Object} props.tool - The tool data to generate barcode/QR code for
+ * KitItemBarcode - Universal barcode modal for kit items (tools, chemicals, expendables)
+ * Reuses existing barcode infrastructure for consistency
  */
-const ToolBarcode = ({ show, onHide, tool }) => {
-  const barcodeContainerRef = useRef(null);
-  const qrCodeContainerRef = useRef(null);
-
+const KitItemBarcode = ({ show, onHide, item }) => {
   const [barcodeData, setBarcodeData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [labelSize, setLabelSize] = useState('4x6');
+  const barcodeContainerRef = useRef(null);
+  const qrCodeContainerRef = useRef(null);
 
-  // Fetch barcode data including calibration information
+  // Fetch barcode data when modal opens
   useEffect(() => {
     const fetchBarcodeData = async () => {
-      if (show && tool) {
+      if (show && item) {
         setLoading(true);
         setError(null);
         try {
-          const response = await api.get(`/tools/${tool.id}/barcode`);
+          let response;
+          
+          // Determine item type and fetch appropriate barcode data
+          if (item.item_type === 'tool' || item.source === 'item') {
+            // For tools, use the tool barcode endpoint
+            response = await api.get(`/tools/${item.id}/barcode`);
+          } else if (item.item_type === 'chemical' || item.source === 'expendable') {
+            // For chemicals/expendables, use the chemical barcode endpoint
+            response = await api.get(`/chemicals/${item.id}/barcode`);
+          } else {
+            throw new Error('Unknown item type');
+          }
+          
           setBarcodeData(response.data);
         } catch (err) {
           console.error('Error fetching barcode data:', err);
@@ -46,16 +48,16 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     };
 
     fetchBarcodeData();
-  }, [show, tool]);
+  }, [show, item]);
 
   // Handle label size change
   const handleLabelSizeChange = (newSize) => {
     setLabelSize(newSize);
   };
 
-  // Generic print function to handle both barcode and QR code printing
+  // Generic print function for both barcode and QR code
   const handlePrint = (type, containerRef) => {
-    if (!containerRef.current || !barcodeData || !tool) return;
+    if (!containerRef.current || !barcodeData || !item) return;
 
     const printWindow = window.open('', '_blank');
     const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
@@ -68,7 +70,7 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Tool ${typeCapitalized} - ${tool.tool_number}</title>
+          <title>Kit Item ${typeCapitalized} - ${item.part_number || item.tool_number}</title>
           <style>
             ${printCSS}
           </style>
@@ -91,44 +93,66 @@ const ToolBarcode = ({ show, onHide, tool }) => {
   // Handle print button click for QR code
   const handlePrintQRCode = () => handlePrint('qr code', qrCodeContainerRef);
 
-  if (!tool) return null;
+  if (!item) return null;
 
   // Prepare data for StandardBarcode component
-  const completeToolData = barcodeData ? {
-    ...tool,
+  const completeItemData = barcodeData ? {
+    ...item,
     ...barcodeData,
-    created_at: barcodeData.created_at || tool.created_at
-  } : tool;
+    created_at: barcodeData.created_at || item.created_at
+  } : item;
 
-  const barcodeString = barcodeData ? barcodeData.barcode_data : generateToolBarcodeData(tool);
-  const fields = barcodeData ? getToolBarcodeFields(completeToolData, barcodeData.calibration) : [];
-  const title = barcodeData
-    ? `${tool.tool_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}`
-    : `${tool.tool_number}`;
+  // Generate barcode string
+  let barcodeString = '';
+  if (barcodeData) {
+    barcodeString = barcodeData.barcode_data;
+  } else if (item.item_type === 'tool' || item.source === 'item') {
+    barcodeString = generateToolBarcodeData(item);
+  } else {
+    barcodeString = generateChemicalBarcodeData(item);
+  }
+
+  // Get fields based on item type
+  let fields = [];
+  if (barcodeData) {
+    if (item.item_type === 'tool' || item.source === 'item') {
+      fields = getToolBarcodeFields(completeItemData, barcodeData.calibration);
+    } else {
+      fields = getChemicalBarcodeFields(completeItemData);
+    }
+  }
+
+  // Generate title
+  let title = '';
+  if (item.item_type === 'tool' || item.source === 'item') {
+    title = barcodeData
+      ? `${item.part_number || item.tool_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${item.serial_number}`}`
+      : `${item.part_number || item.tool_number}`;
+  } else {
+    title = `${item.part_number} - ${item.lot_number}`;
+  }
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>Tool Identification</Modal.Title>
+        <Modal.Title>Kit Item Barcode</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loading && (
-          <div className="text-center p-4">
-            <Spinner animation="border" role="status">
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
               <span className="visually-hidden">Loading...</span>
-            </Spinner>
+            </div>
             <p className="mt-2">Loading barcode data...</p>
           </div>
         )}
 
         {error && (
-          <Alert variant="danger">
-            {error}
-          </Alert>
+          <Alert variant="danger">{error}</Alert>
         )}
 
         {!loading && !error && barcodeData && (
-          <Tabs defaultActiveKey="barcode" id="tool-code-tabs" className="mb-3">
+          <Tabs defaultActiveKey="barcode" id="kit-item-code-tabs" className="mb-3">
             <Tab eventKey="barcode" title="Barcode">
               <StandardBarcode
                 type="barcode"
@@ -174,4 +198,5 @@ const ToolBarcode = ({ show, onHide, tool }) => {
   );
 };
 
-export default ToolBarcode;
+export default KitItemBarcode;
+

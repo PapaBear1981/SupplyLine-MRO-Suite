@@ -459,76 +459,6 @@ def register_report_routes(app):
                 }
                 return jsonify(result), 200
 
-            # Calculate date range based on timeframe
-            calculate_date_range(timeframe)
-
-            # Get all cycle count results within the timeframe
-#             query = CycleCountResult.query.filter(CycleCountResult.counted_at >= start_date)  # FIXME: CycleCountResult removed
-
-            # Join with items to get additional filtering options
-            query = query.join(CycleCountItem)
-
-            # Apply filters if provided
-            if location:
-                query = query.filter(CycleCountItem.expected_location.ilike(f'%{location}%'))
-
-            if category:
-                # Filter by tool category (assuming most items are tools)
-                query = query.join(Tool, CycleCountItem.item_id == Tool.id).filter(
-                    CycleCountItem.item_type == 'tool',
-                    Tool.category == category
-                )
-
-            results = query.all()
-
-            # Calculate accuracy metrics
-            total_counts = len(results)
-            accurate_counts = sum(1 for r in results if not r.has_discrepancy)
-            discrepancy_counts = total_counts - accurate_counts
-
-            accuracy_rate = (accurate_counts / total_counts * 100) if total_counts > 0 else 0
-
-            # Calculate accuracy by location
-            location_accuracy = {}
-            for result in results:
-                loc = result.item.expected_location or 'Unknown'
-                if loc not in location_accuracy:
-                    location_accuracy[loc] = {'total': 0, 'accurate': 0}
-                location_accuracy[loc]['total'] += 1
-                if not result.has_discrepancy:
-                    location_accuracy[loc]['accurate'] += 1
-
-            # Calculate accuracy rate for each location
-            location_data = []
-            for loc, data in location_accuracy.items():
-                rate = (data['accurate'] / data['total'] * 100) if data['total'] > 0 else 0
-                location_data.append({
-                    'location': loc,
-                    'total_counts': data['total'],
-                    'accurate_counts': data['accurate'],
-                    'accuracy_rate': round(rate, 2)
-                })
-
-            # Sort by accuracy rate
-            location_data.sort(key=lambda x: x['accuracy_rate'], reverse=True)
-
-            # For trends, just return empty array if no data
-            trend_data = []
-
-            # Format response
-            result = {
-                'summary': {
-                    'total_counts': total_counts,
-                    'accurate_counts': accurate_counts,
-                    'discrepancy_counts': discrepancy_counts,
-                    'accuracy_rate': round(accuracy_rate, 2)
-                },
-                'by_location': location_data,
-                'trends': trend_data
-            }
-
-            return jsonify(result), 200
-
         except Exception:
             logger.exception("Error in cycle count accuracy report")
             return jsonify({
@@ -563,43 +493,6 @@ def register_report_routes(app):
                 }
                 return jsonify(result), 200
 
-            # Get filter parameters
-            timeframe = request.args.get('timeframe', 'month')
-            discrepancy_type = request.args.get('discrepancy_type')
-            location = request.args.get('location')
-
-            # Calculate date range based on timeframe
-            calculate_date_range(timeframe)
-
-            # Get all discrepancy results within the timeframe
-            # FIXME: CycleCountResult removed - need to implement alternative
-            # query = CycleCountResult.query.filter(
-            #     CycleCountResult.counted_at >= start_date,
-            #     CycleCountResult.has_discrepancy is True
-            # ).join(CycleCountItem)
-            query = None  # Placeholder until CycleCountResult is restored
-
-            # Apply filters if provided
-            if discrepancy_type:
-                # query = query.filter(CycleCountResult.discrepancy_type == discrepancy_type)
-                pass
-
-            if location:
-                query = query.filter(CycleCountItem.expected_location.ilike(f'%{location}%'))
-
-            # TODO: Complete implementation to include actual discrepancies data from query
-            # For now, return empty data structure
-            result = {
-                'discrepancies': [],
-                'summary': {
-                    'total_discrepancies': 0,
-                    'by_type': []
-                },
-                'trends': []
-            }
-
-            return jsonify(result), 200
-
         except Exception:
             logger.exception("Error in cycle count discrepancy report")
             return jsonify({
@@ -613,8 +506,9 @@ def register_report_routes(app):
         try:
             # Check if cycle count tables exist and have data
             try:
-                total_results = CycleCountBatch.query.count()
-                if total_results == 0:
+                # CycleCountBatch removed - always return empty report
+                # total_results = CycleCountBatch.query.count()
+                if True:  # Always return empty report
                     result = {
                         'batches': [],
                         'summary': {
@@ -638,116 +532,6 @@ def register_report_routes(app):
                     'trends': []
                 }
                 return jsonify(result), 200
-            # Get filter parameters
-            timeframe = request.args.get('timeframe', 'month')
-
-            # Calculate date range based on timeframe
-            start_date = calculate_date_range(timeframe)
-
-            # Get all batches within the timeframe
-            batches = CycleCountBatch.query.filter(
-                CycleCountBatch.created_at >= start_date
-            ).all()
-
-            # Calculate batch performance metrics
-            batch_data = []
-            total_completion_time = 0
-            completed_batches = 0
-
-            for batch in batches:
-                # Get items for this batch
-                items = CycleCountItem.query.filter_by(batch_id=batch.id).all()
-                total_items = len(items)
-                counted_items = sum(1 for item in items if item.status == 'counted')
-
-                completion_rate = (counted_items / total_items * 100) if total_items > 0 else 0
-
-                # Calculate completion time if batch is completed
-                completion_time = None
-                if batch.status == 'completed' and batch.start_date and batch.end_date:
-                    completion_time = (batch.end_date - batch.start_date).days
-                    total_completion_time += completion_time
-                    completed_batches += 1
-
-                batch_data.append({
-                    'id': batch.id,
-                    'name': batch.name,
-                    'status': batch.status,
-                    'start_date': batch.start_date.isoformat() if batch.start_date else None,
-                    'end_date': batch.end_date.isoformat() if batch.end_date else None,
-                    'total_items': total_items,
-                    'counted_items': counted_items,
-                    'completion_rate': round(completion_rate, 2),
-                    'completion_time_days': completion_time,
-                    'created_by': batch.creator.name if batch.creator else 'Unknown'
-                })
-
-            # Calculate average completion time
-            avg_completion_time = (total_completion_time / completed_batches) if completed_batches > 0 else 0
-
-            # Get performance by user
-            user_performance = db.session.query(
-#                 CycleCountResult.counted_by,  # FIXME: CycleCountResult removed
-                User.name,
-                func.count().label('counts_performed'),
-#                 func.sum(func.case([(CycleCountResult.has_discrepancy.is_(False), 1)], else_=0)).label('accurate_counts')  # FIXME: CycleCountResult removed
-#             ).join(User, CycleCountResult.counted_by == User.id).filter(  # FIXME: CycleCountResult removed
-#                 CycleCountResult.counted_at >= start_date  # FIXME: CycleCountResult removed
-            ).group_by(
-#                 CycleCountResult.counted_by,  # FIXME: CycleCountResult removed
-                User.name
-            ).all()
-
-            user_data = []
-            for user_id, name, total_counts, accurate_counts in user_performance:
-                accuracy_rate = (accurate_counts / total_counts * 100) if total_counts > 0 else 0
-                user_data.append({
-                    'user_id': user_id,
-                    'name': name,
-                    'counts_performed': total_counts,
-                    'accurate_counts': accurate_counts,
-                    'accuracy_rate': round(accuracy_rate, 2)
-                })
-
-            # Sort by counts performed
-            user_data.sort(key=lambda x: x['counts_performed'], reverse=True)
-
-            # Calculate batch completion trends
-            batch_trends = db.session.query(
-                func.date(CycleCountBatch.created_at).label('date'),
-                func.count().label('batches_created'),
-                func.sum(func.case([(CycleCountBatch.status == 'completed', 1)], else_=0)).label('batches_completed')
-            ).filter(
-                CycleCountBatch.created_at >= start_date
-            ).group_by(
-                func.date(CycleCountBatch.created_at)
-            ).all()
-
-            trend_data = []
-            for date, created, completed in batch_trends:
-                date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
-                trend_data.append({
-                    'date': date_str,
-                    'batches_created': created,
-                    'batches_completed': completed
-                })
-
-            # Sort by date
-            trend_data.sort(key=lambda x: x['date'])
-
-            # Format response
-            result = {
-                'batches': batch_data,
-                'summary': {
-                    'total_batches': len(batches),
-                    'completed_batches': completed_batches,
-                    'average_completion_time_days': round(avg_completion_time, 1)
-                },
-                'user_performance': user_data,
-                'trends': trend_data
-            }
-
-            return jsonify(result), 200
 
         except Exception:
             logger.exception("Error in cycle count performance report")
@@ -788,126 +572,6 @@ def register_report_routes(app):
                     'trends': []
                 }
                 return jsonify(result), 200
-
-            # Get filter parameters
-            timeframe = request.args.get('timeframe', 'month')
-            item_type = request.args.get('item_type', 'tool')  # tool or chemical
-
-            # Calculate date range based on timeframe
-            calculate_date_range(timeframe)
-
-            # Get total inventory count based on item type
-            if item_type != 'tool':
-                # Currently only tools are supported
-                return jsonify({
-                    'error': f'Unsupported item_type: {item_type}. Only "tool" is currently supported.'
-                }), 400
-
-            total_inventory = Tool.query.count()
-            inventory_items = Tool.query.all()
-
-            # Get items that have been counted within the timeframe
-            # FIXME: CycleCountResult removed - need to implement alternative
-            # counted_items = db.session.query(
-            #     CycleCountItem.item_id
-            # ).join(CycleCountResult).filter(
-            #     CycleCountItem.item_type == item_type,
-            #     CycleCountResult.counted_at >= start_date
-            # ).distinct().all()
-            counted_items = []  # Placeholder
-
-            counted_item_ids = {item_id for (item_id,) in counted_items}
-            coverage_count = len(counted_item_ids)
-            coverage_rate = (coverage_count / total_inventory * 100) if total_inventory > 0 else 0
-
-            # Get last count dates for all items in a single query
-            last_counts = {}
-            all_last_counts = db.session.query(
-                CycleCountItem.item_id,
-#                 func.max(CycleCountResult.counted_at).label('last_counted')  # FIXME: CycleCountResult removed
-#             ).join(CycleCountResult).filter(  # FIXME: CycleCountResult removed
-                CycleCountItem.item_type == item_type
-            ).group_by(CycleCountItem.item_id).all()
-
-            for item_id, last_counted in all_last_counts:
-                last_counts[item_id] = last_counted
-
-            # Get items that haven't been counted recently
-            uncounted_items = []
-            for item in inventory_items:
-                if item.id not in counted_item_ids:
-                    uncounted_items.append({
-                        'id': item.id,
-                        'number': getattr(item, 'tool_number', 'N/A'),
-                        'serial_number': getattr(item, 'serial_number', 'N/A'),
-                        'description': item.description,
-                        'location': getattr(item, 'location', 'Unknown'),
-                        'category': getattr(item, 'category', 'General'),
-                        'last_counted': last_counts.get(item.id).isoformat() if last_counts.get(item.id) else None
-                    })
-
-            # Sort uncounted items by last counted date (oldest first)
-            uncounted_items.sort(key=lambda x: x['last_counted'] or '1970-01-01')
-
-            # Calculate coverage by location
-            location_coverage = {}
-            for item in inventory_items:
-                location = getattr(item, 'location', 'Unknown')
-                if location not in location_coverage:
-                    location_coverage[location] = {'total': 0, 'counted': 0}
-                location_coverage[location]['total'] += 1
-                if item.id in counted_item_ids:
-                    location_coverage[location]['counted'] += 1
-
-            location_data = []
-            for loc, data in location_coverage.items():
-                rate = (data['counted'] / data['total'] * 100) if data['total'] > 0 else 0
-                location_data.append({
-                    'location': loc,
-                    'total_items': data['total'],
-                    'counted_items': data['counted'],
-                    'coverage_rate': round(rate, 2)
-                })
-
-            # Sort by coverage rate
-            location_data.sort(key=lambda x: x['coverage_rate'])
-
-            # Calculate coverage trends over time
-            coverage_trends = db.session.query(
-#                 func.date(CycleCountResult.counted_at).label('date'),  # FIXME: CycleCountResult removed
-                func.count(func.distinct(CycleCountItem.item_id)).label('items_counted')
-            ).join(CycleCountItem).filter(
-                CycleCountItem.item_type == item_type,
-#                 CycleCountResult.counted_at >= start_date  # FIXME: CycleCountResult removed
-            ).group_by(
-#                 func.date(CycleCountResult.counted_at)  # FIXME: CycleCountResult removed
-            ).all()
-
-            trend_data = []
-            for date, count in coverage_trends:
-                date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
-                trend_data.append({
-                    'date': date_str,
-                    'items_counted': count
-                })
-
-            # Sort by date
-            trend_data.sort(key=lambda x: x['date'])
-
-            # Format response
-            result = {
-                'summary': {
-                    'total_inventory': total_inventory,
-                    'counted_items': coverage_count,
-                    'uncounted_items': total_inventory - coverage_count,
-                    'coverage_rate': round(coverage_rate, 2)
-                },
-                'uncounted_items': uncounted_items[:50],  # Limit to first 50 for performance
-                'by_location': location_data,
-                'trends': trend_data
-            }
-
-            return jsonify(result), 200
 
         except Exception:
             logger.exception("Error in cycle count coverage report")
