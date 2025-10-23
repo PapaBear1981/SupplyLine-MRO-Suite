@@ -182,14 +182,17 @@ def materials_user(db_session):
 
 
 @pytest.fixture
-def auth_headers_materials(client, materials_user):
+def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
-    response = client.post('/api/auth/login', json={
-        'employee_number': materials_user.employee_number,
-        'password': 'materials123'
-    })
-    data = json.loads(response.data)
-    return {'Authorization': f'Bearer {data["access_token"]}'}
+    # Generate tokens using jwt_manager
+    access_token, refresh_token = jwt_manager.generate_tokens(materials_user.id)
+
+    # Set cookies on the client
+    client.set_cookie('access_token_cookie', access_token)
+    client.set_cookie('refresh_token_cookie', refresh_token)
+
+    # Return empty dict since auth is now cookie-based
+    return {}
 
 
 @pytest.fixture

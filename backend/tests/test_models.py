@@ -11,9 +11,12 @@ class TestUserModel:
 
     def test_create_user(self, db_session):
         """Test creating a user"""
+        import time
+        unique_emp_num = f'TEST{int(time.time() * 1000) % 1000000}'
+
         user = User(
             name='Test User',
-            employee_number='TEST001',
+            employee_number=unique_emp_num,
             department='Testing',
             is_admin=False,
             is_active=True
@@ -25,7 +28,7 @@ class TestUserModel:
 
         assert user.id is not None
         assert user.name == 'Test User'
-        assert user.employee_number == 'TEST001'
+        assert user.employee_number == unique_emp_num
         assert user.check_password('testpassword123')
         assert not user.check_password('wrongpassword')
 

@@ -95,11 +95,14 @@ class TestRoleBasedAccessControl:
 
     def test_inactive_user_access(self, client):
         """Test that inactive users cannot access the system"""
-        # Create inactive user
+        # Create inactive user with unique employee number
+        import time
+        unique_emp_num = f'INACTIVE{int(time.time() * 1000) % 1000000}'
+
         with client.application.app_context():
             inactive_user = User(
                 name='Inactive User',
-                employee_number='INACTIVE001',
+                employee_number=unique_emp_num,
                 department='IT',
                 is_admin=False,
                 is_active=False  # Inactive
@@ -110,7 +113,7 @@ class TestRoleBasedAccessControl:
 
         # Try to login as inactive user
         login_data = {
-            'employee_number': 'INACTIVE001',
+            'employee_number': unique_emp_num,
             'password': 'inactivepass123'
         }
         response = client.post('/api/auth/login', json=login_data)
