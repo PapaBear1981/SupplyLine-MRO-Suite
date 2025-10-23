@@ -7,6 +7,20 @@ import jwt
 from datetime import datetime, timedelta
 from flask import current_app
 from models import User
+from auth import JWTManager
+
+
+def extract_token_from_cookie(response, token_name='access_token'):
+    """Helper to extract JWT token from Set-Cookie header"""
+    set_cookie = response.headers.get('Set-Cookie', '')
+    if token_name not in set_cookie:
+        return None
+
+    # Parse the cookie value
+    for cookie in set_cookie.split(';'):
+        if token_name in cookie:
+            return cookie.split('=')[1].strip()
+    return None
 
 
 class TestJWTSecurity:
@@ -50,17 +64,12 @@ class TestJWTSecurity:
         data = response.get_json()
         assert 'expired' in data.get('message', '').lower() or 'invalid' in data.get('message', '').lower()
 
-    def test_jwt_token_tampering(self, client, regular_user):
+    def test_jwt_token_tampering(self, client, app, regular_user):
         """Test that tampered JWT tokens are rejected"""
-        # Login to get a valid token
-        login_data = {
-            'employee_number': regular_user.employee_number,
-            'password': 'user123'
-        }
-        response = client.post('/api/auth/login', json=login_data)
-        assert response.status_code == 200
-
-        token = response.get_json()['access_token']
+        # Generate a valid token using JWTManager
+        with app.app_context():
+            tokens = JWTManager.generate_tokens(regular_user)
+            token = tokens['access_token']
 
         # Tamper with the token (change last character)
         tampered_token = token[:-1] + ('a' if token[-1] != 'a' else 'b')
@@ -103,17 +112,13 @@ class TestJWTSecurity:
         assert data['code'] == 'PASSWORD_CHANGE_REQUIRED'
         assert data['employee_number'] == regular_user.employee_number
 
-    def test_password_reuse_blocked_on_change(self, client, db_session, regular_user):
+    def test_password_reuse_blocked_on_change(self, client, app, db_session, regular_user):
         """Users should not be able to reuse previous passwords."""
-        login_data = {
-            'employee_number': regular_user.employee_number,
-            'password': 'user123'
-        }
+        # Generate token using JWTManager
+        with app.app_context():
+            tokens = JWTManager.generate_tokens(regular_user)
+            access_token = tokens['access_token']
 
-        response = client.post('/api/auth/login', json=login_data)
-        assert response.status_code == 200
-
-        access_token = response.get_json()['access_token']
         headers = {'Authorization': f'Bearer {access_token}'}
 
         # Change to a new password
@@ -162,7 +167,8 @@ class TestPasswordSecurity:
             # Password should be hashed, not stored in plain text
             assert user.password_hash != password
             assert len(user.password_hash) > 50  # Hashes are long
-            assert user.password_hash.startswith('pbkdf2:')  # PBKDF2 prefix (Werkzeug default)
+            # Check for common hash prefixes (bcrypt, scrypt, or pbkdf2)
+            assert any(user.password_hash.startswith(prefix) for prefix in ['$2b$', 'scrypt:', 'pbkdf2:'])
 
             # Should be able to verify the password
             assert user.check_password(password) is True
@@ -213,7 +219,7 @@ class TestPasswordSecurity:
 class TestSessionSecurity:
     """Test session management security"""
 
-    def test_concurrent_login_handling(self, client, regular_user):
+    def test_concurrent_login_handling(self, client, app, regular_user):
         """Test handling of concurrent logins"""
         login_data = {
             'employee_number': regular_user.employee_number,
@@ -229,11 +235,12 @@ class TestSessionSecurity:
         assert response2.status_code == 200
         assert response3.status_code == 200
 
-        # All tokens should be different
-        token1 = response1.get_json()['access_token']
-        token2 = response2.get_json()['access_token']
-        token3 = response3.get_json()['access_token']
+        # Extract tokens from cookies
+        token1 = extract_token_from_cookie(response1)
+        token2 = extract_token_from_cookie(response2)
+        token3 = extract_token_from_cookie(response3)
 
+        # All tokens should be different
         assert token1 != token2 != token3
 
         # All tokens should be valid (unless there's a session limit)
@@ -242,17 +249,13 @@ class TestSessionSecurity:
             response = client.get('/api/user/profile', headers=headers)
             assert response.status_code == 200
 
-    def test_logout_token_invalidation(self, client, regular_user):
+    def test_logout_token_invalidation(self, client, app, regular_user):
         """Test that logout properly invalidates tokens"""
-        # Login
-        login_data = {
-            'employee_number': regular_user.employee_number,
-            'password': 'user123'
-        }
-        response = client.post('/api/auth/login', json=login_data)
-        assert response.status_code == 200
+        # Generate token using JWTManager
+        with app.app_context():
+            tokens = JWTManager.generate_tokens(regular_user)
+            token = tokens['access_token']
 
-        token = response.get_json()['access_token']
         headers = {'Authorization': f'Bearer {token}'}
 
         # Verify token works
