@@ -67,7 +67,7 @@ const KitItemBarcode = ({ show, onHide, item }) => {
       alert('Pop-up blocked. Please allow pop-ups to print labels.');
       return;
     }
-    try { printWindow.opener = null; } catch (e) { /* ignore */ }
+    try { printWindow.opener = null; } catch { /* ignore */ }
     const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
 
     // Generate CSS for selected label size
