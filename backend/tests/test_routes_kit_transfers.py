@@ -184,8 +184,8 @@ def materials_user(db_session):
 @pytest.fixture
 def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
-    # Generate tokens using jwt_manager
-    access_token, refresh_token = jwt_manager.generate_tokens(materials_user.id)
+    # Generate tokens using jwt_manager (pass User object, not ID)
+    access_token, refresh_token = jwt_manager.generate_tokens(materials_user)
 
     # Set cookies on the client
     client.set_cookie('access_token_cookie', access_token)
