@@ -14,6 +14,7 @@ from models import db, User, UserActivity, AuditLog
 from auth import JWTManager, jwt_required
 import logging
 import utils as password_utils
+from werkzeug.exceptions import BadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,13 @@ def register_auth_routes(app):
         """JWT-based login endpoint"""
         try:
             # Get JSON data
-            data = request.get_json() or {}
+            try:
+                data = request.get_json() or {}
+            except BadRequest:
+                return jsonify({
+                    'error': 'Invalid JSON payload',
+                    'code': 'INVALID_JSON'
+                }), 400
 
             # Basic validation
             employee_number = data.get('employee_number')

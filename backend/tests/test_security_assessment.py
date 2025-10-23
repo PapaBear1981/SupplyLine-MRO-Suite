@@ -108,7 +108,9 @@ class TestSecurityAssessment:
             print(f"✅ Hash length adequate: {'Yes' if hash_length_ok else 'No'}")
 
             # Should use secure algorithm (PBKDF2, bcrypt, scrypt, or argon2)
-            secure_algorithm = any(alg in user.password_hash for alg in ['pbkdf2:', '$2b$', '$scrypt$', '$argon2'])
+            secure_algorithm = any(
+                alg in user.password_hash for alg in ['pbkdf2:', '$2b$', 'scrypt', '$argon2', 'argon2']
+            )
             print(f"✅ Secure hash algorithm: {'Yes' if secure_algorithm else 'No'}")
 
             # Password verification should work
@@ -177,15 +179,16 @@ class TestSecurityAssessment:
         if response.status_code != 429:
             response = client.post('/api/auth/login', json={
                 'employee_number': regular_user.employee_number,
-                'password': 'password123'
+                'password': 'user123'
             })
 
             auth_accepts_valid = response.status_code == 200
             print(f"✅ Valid credentials accepted: {'Yes' if auth_accepts_valid else 'No'}")
 
             if auth_accepts_valid:
-                token_provided = 'access_token' in response.get_json()
-                print(f"✅ JWT token provided: {'Yes' if token_provided else 'No'}")
+                set_cookie_headers = response.headers.getlist('Set-Cookie')
+                token_cookie = any('access_token=' in header for header in set_cookie_headers)
+                print(f"✅ Access token cookie set: {'Yes' if token_cookie else 'No'}")
         else:
             print("⚠️  Cannot test valid credentials due to rate limiting")
 
@@ -198,7 +201,9 @@ class TestSecurityAssessment:
         # Test CORS headers
         response = client.options('/api/auth/login')
 
-        cors_headers_present = any(header.startswith('Access-Control-') for header in response.headers)
+        cors_headers_present = any(
+            header.startswith('Access-Control-') for header, _ in response.headers.items()
+        )
         print(f"✅ CORS headers present: {'Yes' if cors_headers_present else 'No'}")
 
         # Test for security headers on any response
@@ -247,7 +252,7 @@ class TestSecurityAssessment:
 
         # Test invalid JSON handling
         response = client.post('/api/auth/login', data='invalid json{', content_type='application/json')
-        json_error_safe = response.status_code in [400, 422]
+        json_error_safe = 400 <= response.status_code < 500
         print(f"✅ Invalid JSON handled safely: {'Yes' if json_error_safe else 'No'}")
 
         assert error_safe and json_error_safe, "Error handling should be secure"

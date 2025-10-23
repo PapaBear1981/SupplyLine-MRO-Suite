@@ -84,7 +84,7 @@ def register_kit_message_routes(app):
             db.or_(
                 KitMessage.sender_id == user_id,
                 KitMessage.recipient_id == user_id,
-                KitMessage.recipient_id is None  # Broadcast messages
+                KitMessage.recipient_id.is_(None)  # Broadcast messages
             )
         )
 
@@ -111,7 +111,7 @@ def register_kit_message_routes(app):
             query = KitMessage.query.filter(
                 db.or_(
                     KitMessage.recipient_id == user_id,
-                    KitMessage.recipient_id is None  # Broadcast messages
+                    KitMessage.recipient_id.is_(None)  # Broadcast messages
                 )
             )
 
@@ -209,9 +209,9 @@ def register_kit_message_routes(app):
         count = KitMessage.query.filter(
             db.or_(
                 KitMessage.recipient_id == user_id,
-                KitMessage.recipient_id is None
+                KitMessage.recipient_id.is_(None)
             ),
-            KitMessage.is_read is False
+            KitMessage.is_read.is_(False)
         ).count()
 
         return jsonify({'unread_count': count}), 200
