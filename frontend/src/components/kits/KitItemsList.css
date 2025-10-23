@@ -5,7 +5,7 @@
 }
 
 .clickable-row:hover {
-  background-color: #f8f9fa !important;
+  background-color: var(--bs-secondary-bg) !important;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
