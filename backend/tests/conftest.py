@@ -135,9 +135,11 @@ def jwt_manager(app):
 def admin_user(db_session):
     """Create admin user for testing"""
     # Use ADMIN001 to match backend/conftest.py and avoid conflicts
+    # Delete any existing admin user (in case app initialization created one)
     existing = User.query.filter_by(employee_number='ADMIN001').first()
     if existing:
-        return existing
+        db_session.delete(existing)
+        db_session.commit()
 
     user = User(
         name='Test Admin',
@@ -154,9 +156,11 @@ def admin_user(db_session):
 @pytest.fixture
 def test_user(db_session):
     """Alias for regular_user to support tests that use test_user fixture"""
+    # Delete any existing user to ensure clean state
     existing = User.query.filter_by(employee_number='USER001').first()
     if existing:
-        return existing
+        db_session.delete(existing)
+        db_session.commit()
 
     user = User(
         name='Test User',
