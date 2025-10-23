@@ -12,6 +12,7 @@ Note: Dashboard (/dashboard) is accessible to all authenticated users by default
 import sys
 import os
 import io
+import secrets
 
 # Add parent directory to path to import models
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,8 +25,27 @@ from app import create_app  # noqa: E402
 from models import db, Permission, Role, RolePermission  # noqa: E402
 
 
+def _ensure_security_defaults():
+    """Ensure required security configuration is present for the migration."""
+    # Mark the environment as testing so Config.validate_security_config
+    # will allow programmatic defaults. This prevents CI/CD runs from
+    # failing when SECRET_KEY/JWT_SECRET_KEY are not provided explicitly.
+    os.environ.setdefault("FLASK_ENV", "testing")
+
+    # Generate ephemeral secrets if they are missing. These values are
+    # only used for the lifetime of this migration process and do not
+    # persist beyond it.
+    if not os.environ.get("SECRET_KEY"):
+        os.environ["SECRET_KEY"] = secrets.token_urlsafe(64)
+
+    if not os.environ.get("JWT_SECRET_KEY"):
+        os.environ["JWT_SECRET_KEY"] = secrets.token_urlsafe(64)
+
+
 def run_migration():
     """Add page access permissions to the database"""
+    _ensure_security_defaults()
+
     app = create_app()
     
     with app.app_context():
