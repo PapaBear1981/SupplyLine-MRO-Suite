@@ -1879,6 +1879,11 @@ def register_routes(app):
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
+        # Validate password confirmation if provided
+        if 'confirm_password' in data:
+            if data.get('password') != data.get('confirm_password'):
+                return jsonify({'error': 'Password and confirmation do not match'}), 400
+
         # Check if employee number already exists in users or registration requests
         if User.query.filter_by(employee_number=data['employee_number']).first():
             return jsonify({'error': 'Employee number already registered'}), 400

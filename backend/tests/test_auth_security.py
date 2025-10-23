@@ -30,16 +30,16 @@ class TestJWTSecurity:
         """Test that invalid JWT tokens are rejected"""
         # Test with invalid token
         headers = {'Authorization': 'Bearer invalid_token'}
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 401
 
         # Test with malformed token
         headers = {'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.invalid'}
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 401
 
         # Test with no token
-        response = client.get('/api/user/profile')
+        response = client.get('/api/auth/user')
         assert response.status_code == 401
 
     def test_jwt_token_expiration(self, client, regular_user):
@@ -58,7 +58,7 @@ class TestJWTSecurity:
         )
 
         headers = {'Authorization': f'Bearer {expired_token}'}
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 401
 
         data = response.get_json()
@@ -75,7 +75,7 @@ class TestJWTSecurity:
         tampered_token = token[:-1] + ('a' if token[-1] != 'a' else 'b')
 
         headers = {'Authorization': f'Bearer {tampered_token}'}
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 401
 
     def test_jwt_algorithm_confusion(self, client, regular_user):
@@ -91,7 +91,7 @@ class TestJWTSecurity:
         none_token = jwt.encode(payload, '', algorithm='none')
 
         headers = {'Authorization': f'Bearer {none_token}'}
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 401
 
     def test_password_expiry_requires_change(self, client, db_session, regular_user):
@@ -114,12 +114,16 @@ class TestJWTSecurity:
 
     def test_password_reuse_blocked_on_change(self, client, app, db_session, regular_user):
         """Users should not be able to reuse previous passwords."""
-        # Generate token using JWTManager
-        with app.app_context():
-            tokens = JWTManager.generate_tokens(regular_user)
-            access_token = tokens['access_token']
+        # Login to get initial token
+        login_response = client.post('/api/auth/login', json={
+            'employee_number': regular_user.employee_number,
+            'password': 'user123'
+        })
+        assert login_response.status_code == 200
 
-        headers = {'Authorization': f'Bearer {access_token}'}
+        # Extract token from cookie
+        token1 = extract_token_from_cookie(login_response)
+        headers = {'Authorization': f'Bearer {token1}'}
 
         # Change to a new password
         first_change_payload = {
@@ -129,6 +133,14 @@ class TestJWTSecurity:
         response = client.put('/api/user/password', json=first_change_payload, headers=headers)
         assert response.status_code == 200
 
+        # Login again with new password to get fresh token
+        login_response2 = client.post('/api/auth/login', json={
+            'employee_number': regular_user.employee_number,
+            'password': 'NewPassword123!'
+        })
+        token2 = extract_token_from_cookie(login_response2)
+        headers = {'Authorization': f'Bearer {token2}'}
+
         # Change again to build history
         second_change_payload = {
             'current_password': 'NewPassword123!',
@@ -136,6 +148,14 @@ class TestJWTSecurity:
         }
         response = client.put('/api/user/password', json=second_change_payload, headers=headers)
         assert response.status_code == 200
+
+        # Login again with newest password
+        login_response3 = client.post('/api/auth/login', json={
+            'employee_number': regular_user.employee_number,
+            'password': 'AnotherPassword123!'
+        })
+        token3 = extract_token_from_cookie(login_response3)
+        headers = {'Authorization': f'Bearer {token3}'}
 
         # Attempt to reuse a previous password from history
         reuse_payload = {
@@ -246,7 +266,7 @@ class TestSessionSecurity:
         # All tokens should be valid (unless there's a session limit)
         for token in [token1, token2, token3]:
             headers = {'Authorization': f'Bearer {token}'}
-            response = client.get('/api/user/profile', headers=headers)
+            response = client.get('/api/auth/user', headers=headers)
             assert response.status_code == 200
 
     def test_logout_token_invalidation(self, client, app, regular_user):
@@ -259,7 +279,7 @@ class TestSessionSecurity:
         headers = {'Authorization': f'Bearer {token}'}
 
         # Verify token works
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         assert response.status_code == 200
 
         # Logout
@@ -268,6 +288,6 @@ class TestSessionSecurity:
 
         # Token should no longer work (if blacklisting is implemented)
         # Note: This test may pass if token blacklisting isn't implemented
-        response = client.get('/api/user/profile', headers=headers)
+        response = client.get('/api/auth/user', headers=headers)
         # This might be 200 if blacklisting isn't implemented, which is acceptable
         # but should be documented as a potential security improvement
