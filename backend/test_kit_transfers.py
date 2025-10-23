@@ -1,5 +1,9 @@
 """
 Comprehensive test script for kit-to-kit transfers
+
+Required environment variables:
+- TEST_EMPLOYEE_NUMBER: Employee number for authentication
+- TEST_PASSWORD: Password for authentication
 """
 import sys
 import os
@@ -10,11 +14,17 @@ import json
 
 BASE_URL = "http://localhost:5000/api"
 
-# Login credentials
+# Login credentials from environment variables
 LOGIN_DATA = {
-    "employee_number": "ADMIN001",
-    "password": "Caden1234!"
+    "employee_number": os.getenv("TEST_EMPLOYEE_NUMBER", ""),
+    "password": os.getenv("TEST_PASSWORD", "")
 }
+
+if not LOGIN_DATA["employee_number"] or not LOGIN_DATA["password"]:
+    raise RuntimeError(
+        "TEST_EMPLOYEE_NUMBER and TEST_PASSWORD environment variables must be set. "
+        "Example: export TEST_EMPLOYEE_NUMBER=ADMIN001 TEST_PASSWORD=yourpassword"
+    )
 
 def login():
     """Login and get auth token"""

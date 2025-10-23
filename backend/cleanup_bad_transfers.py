@@ -33,12 +33,24 @@ def main():
         
         if bad_items:
             print(f"\nFound {len(bad_items)} bad kit items to remove")
-            for item in bad_items:
-                print(f"  Removing KitItem {item.id} from Kit {item.kit_id}")
-                db.session.delete(item)
-            
-            db.session.commit()
-            print("\nCleanup complete!")
+
+            # Confirmation prompt
+            response = input("Proceed with deletion? (yes/no): ")
+            if response.lower() != 'yes':
+                print("Cleanup cancelled")
+                return
+
+            try:
+                for item in bad_items:
+                    print(f"  Removing KitItem {item.id} from Kit {item.kit_id}")
+                    db.session.delete(item)
+
+                db.session.commit()
+                print("\nCleanup complete!")
+            except Exception as e:
+                db.session.rollback()
+                print(f"\n✗ Cleanup failed: {e}")
+                sys.exit(1)
         else:
             print("\nNo bad kit items found - database is clean!")
         

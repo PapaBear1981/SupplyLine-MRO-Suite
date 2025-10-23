@@ -33,11 +33,16 @@ def fix_swapped_values():
     
     try:
         # Find records where quantity appears to be a string (unit) and unit appears to be a number
+        # Use GLOB for pattern matching in SQLite (LIKE doesn't support character classes)
         cursor.execute("""
             SELECT id, part_number, description, quantity, unit
             FROM kit_expendables
-            WHERE CAST(quantity AS TEXT) NOT LIKE '%[0-9]%'
-               OR (CAST(unit AS TEXT) GLOB '*[0-9]*' AND CAST(unit AS TEXT) NOT GLOB '*[a-zA-Z]*')
+            WHERE
+              -- quantity looks non-numeric (contains letters)
+              CAST(quantity AS TEXT) GLOB '*[A-Za-z]*'
+              OR
+              -- unit looks numeric (contains digits but no letters)
+              (CAST(unit AS TEXT) GLOB '*[0-9]*' AND CAST(unit AS TEXT) NOT GLOB '*[A-Za-z]*')
         """)
         
         swapped_records = cursor.fetchall()

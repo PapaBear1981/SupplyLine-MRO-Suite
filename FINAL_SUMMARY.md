@@ -170,10 +170,9 @@ The system is ready for comprehensive manual testing using the checklist in `TES
 - ✅ Frontend: Running on http://localhost:5173
 - ✅ Database: Clean and ready for testing
 
-## Login Credentials
+## Login
 
-- Employee Number: ADMIN001
-- Password: Caden1234!
+- Use test credentials from your secure secret store or environment variables (see project README)
 
 ## Support
 

@@ -404,6 +404,9 @@ def register_kit_transfer_routes(app):
             else:
                 # For non-expendables from kits, transfer.item_id is the underlying Tool/Chemical ID
                 # We need to find the KitItem by filtering on kit_id, item_type, and item_id
+                # Note: Using .first() assumes quantity is fungible across all KitItems with the same
+                # underlying ID. This is acceptable because tools/chemicals are tracked by their
+                # serial/lot numbers, not by individual KitItem records.
                 source_item = KitItem.query.filter_by(
                     kit_id=transfer.from_location_id,
                     item_type=transfer.item_type,

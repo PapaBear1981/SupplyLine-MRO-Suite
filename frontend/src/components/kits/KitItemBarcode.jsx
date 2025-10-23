@@ -25,14 +25,17 @@ const KitItemBarcode = ({ show, onHide, item }) => {
         setError(null);
         try {
           let response;
-          
+
+          // Use item_id (the underlying entity ID) instead of id (the kit-item row ID)
+          const entityId = item.item_id ?? item.id;
+
           // Determine item type and fetch appropriate barcode data
           if (item.item_type === 'tool' || item.source === 'item') {
-            // For tools, use the tool barcode endpoint
-            response = await api.get(`/tools/${item.id}/barcode`);
+            // For tools, use the tool barcode endpoint with the underlying entity ID
+            response = await api.get(`/tools/${entityId}/barcode`);
           } else if (item.item_type === 'chemical' || item.source === 'expendable') {
-            // For chemicals/expendables, use the chemical barcode endpoint
-            response = await api.get(`/chemicals/${item.id}/barcode`);
+            // For chemicals/expendables, use the chemical barcode endpoint with the underlying entity ID
+            response = await api.get(`/chemicals/${entityId}/barcode`);
           } else {
             throw new Error('Unknown item type');
           }
@@ -59,7 +62,12 @@ const KitItemBarcode = ({ show, onHide, item }) => {
   const handlePrint = (type, containerRef) => {
     if (!containerRef.current || !barcodeData || !item) return;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups to print labels.');
+      return;
+    }
+    try { printWindow.opener = null; } catch (e) { /* ignore */ }
     const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
 
     // Generate CSS for selected label size

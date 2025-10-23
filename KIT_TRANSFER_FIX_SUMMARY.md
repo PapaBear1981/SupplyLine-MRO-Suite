@@ -108,9 +108,7 @@ To test the fix:
    - Backend: http://localhost:5000
    - Frontend: http://localhost:5173
 
-2. **Login** with credentials:
-   - Employee Number: ADMIN001
-   - Password: Caden1234!
+2. **Login** using test credentials from your secret manager or `.env` (see README)
 
 3. **Test kit-to-kit transfer**:
    - Navigate to Kit Boeing 737 - 001
