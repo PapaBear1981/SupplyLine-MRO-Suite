@@ -34,6 +34,27 @@ const PASSWORD_SELECTOR = [
 ].join(', ');
 
 const LOGIN_BUTTON_SELECTOR = 'button[type="submit"], button:has-text("Sign In"), button:has-text("Login")';
+const LOGIN_SUCCESS_URL_PATTERN = /\/(?:$|dashboard(?:[\/?#]|$))/;
+const LOGIN_ERROR_SELECTOR = [
+  '.login-alert.login-alert-danger',
+  '.login-alert-danger',
+  '.alert-danger',
+  '.error-message',
+  '[data-testid="login-error"]',
+  '[role="alert"]'
+].join(', ');
+
+async function getLoginErrorDetails(page) {
+  const errorLocator = page.locator(LOGIN_ERROR_SELECTOR).filter({ hasText: /.+/ }).first();
+  const isVisible = await errorLocator.isVisible().catch(() => false);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  const text = await errorLocator.textContent().catch(() => null);
+  return text?.trim() || null;
+}
 
 async function waitForAuthStatus(page) {
   const statusResponse = await page.request.get('/api/auth/status');
@@ -94,11 +115,49 @@ export async function login(page, user = TEST_USERS.admin, options = {}) {
   await submitButton.click();
 
   // Wait for navigation to complete (login redirects to dashboard or home)
-  await page.waitForURL(/\/$|\/dashboard/, { timeout: 60000, waitUntil: 'networkidle' });
+  try {
+    await page.waitForURL(LOGIN_SUCCESS_URL_PATTERN, { timeout: 120000 });
+  } catch (error) {
+    const loginError = await getLoginErrorDetails(page);
+    const details = [
+      'Login did not redirect to the dashboard within the allotted time.',
+      loginError ? `UI error message: "${loginError}".` : null,
+      `Original error: ${error.message}`
+    ].filter(Boolean).join(' ');
+    throw new Error(details);
+  }
+
+  await page.waitForLoadState('networkidle').catch(() => {});
 
   // Verify authentication succeeded by checking auth status
-  await waitForAuthStatus(page);
-  await fetchCurrentUser(page);
+  try {
+    await expect
+      .poll(async () => {
+        try {
+          const status = await waitForAuthStatus(page);
+          if (!status?.authenticated) {
+            return null;
+          }
+          await fetchCurrentUser(page);
+          return 'authenticated';
+        } catch {
+          return null;
+        }
+      }, {
+        message: 'Expected to confirm authenticated session via auth endpoints after login.',
+        timeout: 60000,
+        intervals: [500, 1000, 2000, 4000, 6000]
+      })
+      .toBe('authenticated');
+  } catch (error) {
+    const loginError = await getLoginErrorDetails(page);
+    const details = [
+      'Login navigation completed but authentication APIs did not confirm the session.',
+      loginError ? `UI error message: "${loginError}".` : null,
+      `Details: ${error.message}`
+    ].filter(Boolean).join(' ');
+    throw new Error(details);
+  }
 
   if (navigateToDashboard) {
     await ensureOnDashboard(page);
