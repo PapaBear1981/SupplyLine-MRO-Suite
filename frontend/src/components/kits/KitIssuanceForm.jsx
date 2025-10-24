@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Modal, Button, Form, Alert, Row, Col, Badge } from 'react-bootstrap';
 import { FaBox, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
-import { issueFromKit, fetchKitItems } from '../../store/kitsSlice';
+import { issueFromKit } from '../../store/kitsSlice';
+import KitItemBarcode from './KitItemBarcode';
 
 const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
   const dispatch = useDispatch();
   const { kitItems, loading, error } = useSelector((state) => state.kits);
-  
+
   const [formData, setFormData] = useState({
     item_type: '',
     item_id: '',
@@ -16,6 +17,9 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
     work_order: '',
     notes: ''
   });
+
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [issuedItem, setIssuedItem] = useState(null);
   
   const [validated, setValidated] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -90,10 +94,25 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
       .unwrap()
       .then(() => {
         setShowSuccess(true);
-        // Reset form after short delay
+
+        // Find the issued item to show barcode
+        const allItems = [
+          ...(kitItems[kitId]?.items || []).map(item => ({ ...item, source: 'item' })),
+          ...(kitItems[kitId]?.expendables || []).map(exp => ({ ...exp, source: 'expendable' }))
+        ];
+        const itemToIssue = allItems.find(item => item.id === parseInt(formData.item_id));
+
+        if (itemToIssue) {
+          setIssuedItem(itemToIssue);
+        }
+
+        // Show barcode modal after short delay
         setTimeout(() => {
           resetForm();
           onHide();
+          if (itemToIssue) {
+            setShowBarcodeModal(true);
+          }
         }, 1500);
       })
       .catch((err) => {
@@ -129,6 +148,7 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
   };
 
   return (
+    <>
     <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="issuance-modal">
       <Modal.Header closeButton>
         <Modal.Title>
@@ -270,6 +290,14 @@ const KitIssuanceForm = ({ show, onHide, kitId, preSelectedItem = null }) => {
         </Modal.Footer>
       </Form>
     </Modal>
+
+    {/* Barcode Modal - Shows after successful issuance */}
+    <KitItemBarcode
+      show={showBarcodeModal}
+      onHide={() => setShowBarcodeModal(false)}
+      item={issuedItem}
+    />
+    </>
   );
 };
 

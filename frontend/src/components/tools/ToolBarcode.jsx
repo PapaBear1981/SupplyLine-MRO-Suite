@@ -7,7 +7,6 @@ import {
   getToolBarcodeFields
 } from '../../utils/barcodeFormatter';
 import {
-  filterFieldsForLabelSize,
   generatePrintCSS
 } from '../../utils/labelSizeConfig';
 
@@ -61,30 +60,11 @@ const ToolBarcode = ({ show, onHide, tool }) => {
     const printWindow = window.open('', '_blank');
     const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
 
-    // Merge tool data with barcode data for complete information
-    const completeToolData = {
-      ...tool,
-      ...barcodeData,
-      created_at: barcodeData.created_at || tool.created_at
-    };
-
-    // Get all standardized fields
-    const allFields = getToolBarcodeFields(completeToolData, barcodeData.calibration);
-
-    // Filter fields based on label size
-    const fields = filterFieldsForLabelSize(allFields, labelSize);
-
-    // Build field rows HTML
-    const fieldsHTML = fields.map(field =>
-      `<div class="field-row">
-        <div class="field-label">${field.label}:</div>
-        <div class="field-value">${field.value}</div>
-      </div>`
-    ).join('');
-
     // Generate CSS for selected label size
     const printCSS = generatePrintCSS(labelSize, false);
 
+    // The containerRef already contains the complete barcode card with logo, title, code, and fields
+    // We just need to wrap it in the print CSS
     printWindow.document.write(`
       <html>
         <head>
@@ -94,16 +74,7 @@ const ToolBarcode = ({ show, onHide, tool }) => {
           </style>
         </head>
         <body>
-          <div class="label-container">
-            <div class="logo-header">🔧 SupplyLine MRO Suite</div>
-            <div class="title">${tool.tool_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}</div>
-            <div class="code-container">
-              ${containerRef.current.innerHTML}
-            </div>
-            <div class="info-fields">
-              ${fieldsHTML}
-            </div>
-          </div>
+          ${containerRef.current.innerHTML}
           <div style="text-align: center; margin-top: 10px;">
             <button onclick="window.print(); window.close();">Print Label</button>
           </div>

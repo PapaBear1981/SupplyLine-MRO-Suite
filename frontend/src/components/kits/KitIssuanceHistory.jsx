@@ -1,18 +1,35 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Table, Alert, Badge, Spinner } from 'react-bootstrap';
+import { Card, Table, Alert, Badge, Spinner, Pagination } from 'react-bootstrap';
 import { fetchKitIssuances } from '../../store/kitsSlice';
 
 const KitIssuanceHistory = ({ kitId }) => {
   const dispatch = useDispatch();
   const { kitIssuances, loading } = useSelector((state) => state.kits);
   const issuances = kitIssuances[kitId] || [];
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (kitId) {
       dispatch(fetchKitIssuances({ kitId }));
     }
   }, [dispatch, kitId]);
+
+  // Reset to page 1 when issuances change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [issuances]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(issuances.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentIssuances = issuances.slice(startIndex, endIndex);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   if (loading) {
     return (
@@ -58,6 +75,7 @@ const KitIssuanceHistory = ({ kitId }) => {
         </h5>
         <small className="text-muted">
           Total Issuances: {issuances.length}
+          {totalPages > 1 && ` | Page ${currentPage} of ${totalPages}`}
         </small>
       </Card.Header>
       <Card.Body>
@@ -76,7 +94,7 @@ const KitIssuanceHistory = ({ kitId }) => {
               </tr>
             </thead>
             <tbody>
-              {issuances.map((issuance) => (
+              {currentIssuances.map((issuance) => (
                 <tr key={issuance.id}>
                   <td>
                     {issuance.part_number || '-'}
@@ -120,6 +138,57 @@ const KitIssuanceHistory = ({ kitId }) => {
             </tbody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-center mt-3">
+            <Pagination>
+              <Pagination.First
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+              />
+              <Pagination.Prev
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              />
+
+              {[...Array(totalPages)].map((_, index) => {
+                const pageNumber = index + 1;
+                // Show first page, last page, current page, and pages around current
+                if (
+                  pageNumber === 1 ||
+                  pageNumber === totalPages ||
+                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                ) {
+                  return (
+                    <Pagination.Item
+                      key={pageNumber}
+                      active={pageNumber === currentPage}
+                      onClick={() => handlePageChange(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Pagination.Item>
+                  );
+                } else if (
+                  pageNumber === currentPage - 2 ||
+                  pageNumber === currentPage + 2
+                ) {
+                  return <Pagination.Ellipsis key={pageNumber} disabled />;
+                }
+                return null;
+              })}
+
+              <Pagination.Next
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              />
+              <Pagination.Last
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              />
+            </Pagination>
+          </div>
+        )}
       </Card.Body>
     </Card>
   );

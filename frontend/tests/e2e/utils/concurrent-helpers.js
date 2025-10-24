@@ -114,7 +114,6 @@ export async function executeConcurrently(operations) {
  * @returns {Promise<Array<{success: boolean, result: any, error: any, duration: number}>>}
  */
 export async function executeStaggered(operations, staggerMs = 100) {
-  const results = [];
   const startTime = Date.now();
   
   const promises = operations.map(async (operation, index) => {

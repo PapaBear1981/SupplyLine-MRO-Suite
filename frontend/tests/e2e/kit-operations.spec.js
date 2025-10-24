@@ -334,9 +334,6 @@ test.describe('Kit Operations', () => {
         await page.waitForLoadState('networkidle');
 
         // Look for alerts section (KitAlerts component renders on overview tab)
-        const alertsSection = page.locator('.alert');
-        const alertsExist = await alertsSection.count();
-
         // Alerts only show if there are actual alerts for the kit
         // This test passes if we can navigate to the kit detail page - use .first() to avoid strict mode
         await expect(page.locator('h2, h3, h4').first()).toBeVisible();

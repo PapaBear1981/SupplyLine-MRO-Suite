@@ -8,6 +8,7 @@ import tempfile
 from datetime import datetime
 
 import pytest
+from sqlalchemy import text
 
 # Add the backend directory to the Python path
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,20 +107,28 @@ def _db(app):
 
 @pytest.fixture(scope='function')
 def db_session(app, _db):
-    """Create a fresh database session for each test"""
+    """Provide a clean database session for each test."""
     with app.app_context():
-        connection = _db.engine.connect()
-        transaction = connection.begin()
+        try:
+            yield _db.session
+        finally:
+            # Ensure the session itself is in a clean state before truncation.
+            _db.session.rollback()
 
-        # Configure session to use the connection
-        _db.session.configure(bind=connection)
+            # Use a dedicated transaction to wipe all tables so that data
+            # created in one test never bleeds into the next one.
+            engine = _db.engine
+            with engine.begin() as connection:
+                if engine.dialect.name == 'sqlite':
+                    connection.execute(text('PRAGMA foreign_keys = OFF'))
 
-        yield _db.session
+                for table in reversed(_db.metadata.sorted_tables):
+                    connection.execute(table.delete())
 
-        # Rollback transaction and close connection
-        transaction.rollback()
-        connection.close()
-        _db.session.remove()
+                if engine.dialect.name == 'sqlite':
+                    connection.execute(text('PRAGMA foreign_keys = ON'))
+
+            _db.session.remove()
 
 @pytest.fixture
 def client(app, db_session):
@@ -134,18 +143,42 @@ def jwt_manager(app):
 @pytest.fixture
 def admin_user(db_session):
     """Create admin user for testing"""
-    existing = User.query.filter_by(employee_number='ADMTEST001').first()
+    # Use ADMIN001 to match backend/conftest.py and avoid conflicts
+    # Delete any existing admin user (in case app initialization created one)
+    existing = User.query.filter_by(employee_number='ADMIN001').first()
     if existing:
-        return existing
+        db_session.delete(existing)
+        db_session.commit()
 
     user = User(
         name='Test Admin',
-        employee_number='ADMTEST001',
+        employee_number='ADMIN001',
         department='IT',
         is_admin=True,
         is_active=True
     )
     user.set_password('admin123')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+@pytest.fixture
+def test_user(db_session):
+    """Alias for regular_user to support tests that use test_user fixture"""
+    # Delete any existing user to ensure clean state
+    existing = User.query.filter_by(employee_number='USER001').first()
+    if existing:
+        db_session.delete(existing)
+        db_session.commit()
+
+    user = User(
+        name='Test User',
+        employee_number='USER001',
+        department='Engineering',
+        is_admin=False,
+        is_active=True
+    )
+    user.set_password('user123')
     db_session.add(user)
     db_session.commit()
     return user
@@ -238,6 +271,32 @@ def user_auth_headers(client, regular_user, jwt_manager):
     """Get authentication headers for regular user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(regular_user)
+    access_token = tokens['access_token']
+    return {'Authorization': f'Bearer {access_token}'}
+
+@pytest.fixture
+def materials_user(db_session):
+    """Create a Materials department user"""
+    import uuid
+    emp_number = f'MAT{uuid.uuid4().hex[:6]}'
+
+    user = User(
+        name='Materials User',
+        employee_number=emp_number,
+        department='Materials',
+        is_admin=False,
+        is_active=True
+    )
+    user.set_password('materials123')
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+@pytest.fixture
+def auth_headers_materials(client, materials_user, jwt_manager):
+    """Get auth headers for Materials user"""
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(materials_user)
     access_token = tokens['access_token']
     return {'Authorization': f'Bearer {access_token}'}
 

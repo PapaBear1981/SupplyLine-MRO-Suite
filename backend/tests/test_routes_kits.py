@@ -85,14 +85,11 @@ def materials_user(db_session):
 
 
 @pytest.fixture
-def auth_headers_materials(client, materials_user):
+def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
-    response = client.post('/api/auth/login', json={
-        'employee_number': materials_user.employee_number,
-        'password': 'materials123'
-    })
-    data = json.loads(response.data)
-    return {'Authorization': f'Bearer {data["access_token"]}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(materials_user)
+    return {'Authorization': f"Bearer {tokens['access_token']}"}
 
 
 class TestAircraftTypeEndpoints:
@@ -227,9 +224,21 @@ class TestAircraftTypeEndpoints:
 
         assert response.status_code == 403
 
-    def test_deactivate_aircraft_type_admin(self, client, auth_headers_admin, aircraft_type):
+    def test_deactivate_aircraft_type_admin(self, client, auth_headers_admin, db_session):
         """Test deactivating aircraft type as admin"""
-        response = client.delete(f'/api/aircraft-types/{aircraft_type.id}',
+        import uuid
+
+        # Use an aircraft type that is not referenced by active kits to satisfy
+        # the API's validation rules.
+        temp_type = AircraftType(
+            name=f'Temp Type {uuid.uuid4().hex[:6]}',
+            description='Temporary test type',
+            is_active=True
+        )
+        db_session.add(temp_type)
+        db_session.commit()
+
+        response = client.delete(f'/api/aircraft-types/{temp_type.id}',
                                headers=auth_headers_admin)
 
         assert response.status_code == 200
@@ -542,12 +551,17 @@ class TestKitItemEndpoints:
         assert 'items' in data
         assert 'expendables' in data
 
-    def test_add_kit_item_materials_user(self, client, auth_headers_materials, test_kit, test_kit_box, test_tool, db_session):
+    def test_add_kit_item_materials_user(self, client, auth_headers_materials, test_kit, test_kit_box, test_tool, test_warehouse, db_session):
         """Test adding item to kit as Materials user"""
+        # The API now requires that tools originate from an active warehouse.
+        test_tool.warehouse_id = test_warehouse.id
+        db_session.commit()
+
         item_data = {
             'box_id': test_kit_box.id,
             'item_type': 'tool',
             'item_id': test_tool.id,
+            'warehouse_id': test_warehouse.id,
             'quantity': 1,
             'location': 'Box 1',
             'status': 'available'
@@ -588,7 +602,9 @@ class TestKitExpendableEndpoints:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert 'expendables' in data
+        assert isinstance(data['expendables'], list)
 
     def test_add_kit_expendable_materials_user(self, client, auth_headers_materials, test_kit, test_kit_box, db_session):
         """Test adding expendable to kit as Materials user"""
@@ -596,6 +612,7 @@ class TestKitExpendableEndpoints:
             'box_id': test_kit_box.id,
             'part_number': 'EXP-001',
             'description': 'Safety Wire',
+            'lot_number': 'LOT-001',
             'quantity': 100,
             'unit': 'ft',
             'location': 'Box 1',

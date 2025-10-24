@@ -6,7 +6,6 @@ import {
   getChemicalBarcodeFields
 } from '../../utils/barcodeFormatter';
 import {
-  filterFieldsForLabelSize,
   generatePrintCSS
 } from '../../utils/labelSizeConfig';
 
@@ -33,21 +32,11 @@ const ChemicalBarcode = ({ show, onHide, chemical }) => {
 
     const printWindow = window.open('', '_blank');
 
-    // Get all fields and filter based on label size
-    const allFields = getChemicalBarcodeFields(chemical);
-    const fields = filterFieldsForLabelSize(allFields, labelSize);
-
-    // Build field rows HTML
-    const fieldsHTML = fields.map(field =>
-      `<div class="field-row">
-        <div class="field-label">${field.label}:</div>
-        <div class="field-value">${field.value}</div>
-      </div>`
-    ).join('');
-
     // Generate CSS for selected label size
     const printCSS = generatePrintCSS(labelSize, false);
 
+    // The containerRef already contains the complete barcode card with logo, title, code, and fields
+    // We just need to wrap it in the print CSS
     printWindow.document.write(`
       <html>
         <head>
@@ -57,16 +46,7 @@ const ChemicalBarcode = ({ show, onHide, chemical }) => {
           </style>
         </head>
         <body>
-          <div class="label-container">
-            <div class="logo-header">🔧 SupplyLine MRO Suite</div>
-            <div class="title">${chemical.part_number} - ${chemical.lot_number}</div>
-            <div class="code-container">
-              ${barcodeContainerRef.current.innerHTML}
-            </div>
-            <div class="info-fields">
-              ${fieldsHTML}
-            </div>
-          </div>
+          ${barcodeContainerRef.current.innerHTML}
           <div style="text-align: center; margin-top: 10px;">
             <button onclick="window.print(); window.close();">Print Label</button>
           </div>

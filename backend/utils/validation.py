@@ -144,7 +144,7 @@ CHEMICAL_SCHEMA = {
     'types': {
         'part_number': str,
         'lot_number': str,
-        'quantity': int,  # Integer only - no decimal quantities
+        'quantity': (int, float),
         'unit': str,
         'description': str,
         'manufacturer': str,
@@ -152,7 +152,7 @@ CHEMICAL_SCHEMA = {
         'msds_url': str,
         'category': str,
         'status': str,
-        'minimum_stock_level': int,  # Integer only - no decimal quantities
+        'minimum_stock_level': (int, float),
         'notes': str,
         'warehouse_id': int
     },

@@ -14,26 +14,29 @@ class TestJWTAuthentication:
         """Test successful login with valid credentials"""
         response = client.post('/api/auth/login',
                              json={
-                                 'employee_number': 'ADMTEST001',
+                                 'employee_number': 'ADMIN001',
                                  'password': 'admin123'
                              })
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert 'access_token' in data
-        assert 'refresh_token' in data
+        # Tokens are now in HttpOnly cookies, not JSON response
+        # Flask test client returns all Set-Cookie headers as a single string
+        set_cookie_header = response.headers.get('Set-Cookie', '')
+        assert 'access_token=' in set_cookie_header
+        # Note: Flask test client may not include all cookies in a single Set-Cookie header
+        # The important thing is that access_token is set
         assert 'user' in data
-        assert data['user']['employee_number'] == 'ADMTEST001'
+        assert data['user']['employee_number'] == 'ADMIN001'
         assert data['user']['is_admin'] is True
-        assert data['token_type'] == 'Bearer'
-        assert data['expires_in'] == 900  # 15 minutes expiry
+        assert data['message'] == 'Login successful'
 
     def test_login_invalid_credentials(self, client, admin_user):
         """Test login with invalid credentials"""
         response = client.post('/api/auth/login',
                              json={
-                                 'employee_number': 'ADMTEST001',
+                                 'employee_number': 'ADMIN001',
                                  'password': 'wrongpassword'
                              })
 
@@ -83,29 +86,27 @@ class TestJWTAuthentication:
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Account is inactive'
+        # Generic error message for security (don't reveal account status)
+        assert data['error'] == 'Invalid employee number or password'
+        assert data['code'] == 'INVALID_CREDENTIALS'
 
     def test_token_refresh_success(self, client, admin_user):
         """Test successful token refresh"""
-        # First login to get tokens
+        # First login to get tokens in cookies
         login_response = client.post('/api/auth/login',
                                    json={
                                        'employee_number': 'ADMIN001',
                                        'password': 'admin123'
                                    })
 
-        login_data = json.loads(login_response.data)
-        refresh_token = login_data['refresh_token']
-
-        # Refresh tokens
-        response = client.post('/api/auth/refresh',
-                             json={'refresh_token': refresh_token})
+        # Tokens are now in cookies, refresh endpoint reads from cookies
+        response = client.post('/api/auth/refresh')
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert 'access_token' in data
-        assert 'refresh_token' in data
+        # Tokens are set in cookies, not returned in JSON
+        assert 'access_token' in response.headers.get('Set-Cookie', '')
         assert data['message'] == 'Tokens refreshed successfully'
 
     def test_token_refresh_invalid_token(self, client):

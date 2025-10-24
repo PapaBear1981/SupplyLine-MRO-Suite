@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Alert } from 'react-bootstrap';
 import { FaEdit, FaCopy, FaBox, FaExchangeAlt, FaShoppingCart, FaEnvelope, FaChartBar, FaArrowLeft, FaPlus } from 'react-icons/fa';
-import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts, fetchReorderRequests } from '../store/kitsSlice';
+import { fetchKitById, fetchKitItems, fetchKitIssuances, fetchKitAlerts, fetchReorderRequests, fetchKitAnalytics } from '../store/kitsSlice';
 import { fetchKitMessages } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import KitItemsList from '../components/kits/KitItemsList';
@@ -17,19 +17,22 @@ import KitReorderManagement from '../components/kits/KitReorderManagement';
 import AddKitItemModal from '../components/kits/AddKitItemModal';
 import RequestReorderModal from '../components/kits/RequestReorderModal';
 import SendMessageModal from '../components/kits/SendMessageModal';
+import KitAnalyticsModal from '../components/kits/KitAnalyticsModal';
 
 const KitDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { currentKit, loading, error } = useSelector((state) => state.kits);
+  const { currentKit, loading, error, kitAnalytics } = useSelector((state) => state.kits);
   const [activeTab, setActiveTab] = useState('overview');
   const [showIssuanceForm, setShowIssuanceForm] = useState(false);
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [analyticsDays, setAnalyticsDays] = useState(30);
 
   useEffect(() => {
     if (id) {
@@ -48,6 +51,35 @@ const KitDetailPage = () => {
     }
     // Note: 'transfers' tab is handled by KitTransferHistory component's own useEffect
   }, [dispatch, id, activeTab]);
+
+  const kitIdNumber = id ? parseInt(id, 10) : null;
+  const analyticsData = kitIdNumber != null ? kitAnalytics?.dataByKit?.[kitIdNumber] : null;
+  const analyticsLoading = kitIdNumber != null ? kitAnalytics?.loadingByKit?.[kitIdNumber] : false;
+  const analyticsError = kitIdNumber != null ? kitAnalytics?.errorByKit?.[kitIdNumber] : null;
+
+  useEffect(() => {
+    if (showAnalyticsModal && kitIdNumber != null) {
+      dispatch(fetchKitAnalytics({ kitId: kitIdNumber, days: analyticsDays }));
+    }
+  }, [dispatch, showAnalyticsModal, kitIdNumber, analyticsDays]);
+
+  const handleOpenAnalytics = () => {
+    setShowAnalyticsModal(true);
+  };
+
+  const handleCloseAnalytics = () => {
+    setShowAnalyticsModal(false);
+  };
+
+  const handleChangeAnalyticsDays = (value) => {
+    setAnalyticsDays(value);
+  };
+
+  const handleRefreshAnalytics = () => {
+    if (kitIdNumber != null) {
+      dispatch(fetchKitAnalytics({ kitId: kitIdNumber, days: analyticsDays }));
+    }
+  };
 
   if (loading && !currentKit) {
     return <LoadingSpinner />;
@@ -217,7 +249,12 @@ const KitDetailPage = () => {
                 <FaEnvelope className="me-1" />
                 Send Message
               </Button>
-              <Button variant="outline-primary" size="sm" className="mb-2">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                className="mb-2"
+                onClick={handleOpenAnalytics}
+              >
                 <FaChartBar className="me-1" />
                 View Analytics
               </Button>
@@ -318,12 +355,24 @@ const KitDetailPage = () => {
       />
 
       {/* Send Message Modal */}
-      <SendMessageModal
-        show={showMessageModal}
-        onHide={() => setShowMessageModal(false)}
-        kitId={id}
-        kitName={currentKit?.name}
-      />
+     <SendMessageModal
+       show={showMessageModal}
+       onHide={() => setShowMessageModal(false)}
+       kitId={id}
+       kitName={currentKit?.name}
+     />
+
+     <KitAnalyticsModal
+       show={showAnalyticsModal}
+       onHide={handleCloseAnalytics}
+       kitName={currentKit?.name}
+       days={analyticsDays}
+       data={analyticsData}
+       loading={!!analyticsLoading}
+       error={analyticsError}
+       onChangeDays={handleChangeAnalyticsDays}
+       onRefresh={handleRefreshAnalytics}
+     />
     </Container>
   );
 };

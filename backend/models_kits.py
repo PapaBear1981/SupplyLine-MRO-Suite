@@ -185,7 +185,11 @@ class KitExpendable(db.Model):
     part_number = db.Column(db.String(100), nullable=False)
     serial_number = db.Column(db.String(100))
     lot_number = db.Column(db.String(100))
-    tracking_type = db.Column(db.String(20), nullable=False, default='lot')  # lot or serial (never both)
+    # tracking_type reflects how the expendable is tracked. Historically this was limited to
+    # lot/serial, but the workflows (wizard, reorder fulfillment, transfers) frequently create
+    # expendables that are not tracked at all.  To better model that behaviour we allow a
+    # "none" tracking type in addition to the existing options.
+    tracking_type = db.Column(db.String(20), nullable=False, default='none')
     description = db.Column(db.String(500), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     unit = db.Column(db.String(20), nullable=False, default='each')  # each, oz, ml, etc.
@@ -235,18 +239,29 @@ class KitExpendable(db.Model):
         Returns:
             tuple: (is_valid, error_message)
         """
-        if self.tracking_type == 'lot':
+        # Normalise tracking type to ensure comparisons work even if the value was stored in
+        # uppercase or contains unexpected whitespace.
+        tracking_type = (self.tracking_type or 'none').strip().lower()
+        self.tracking_type = tracking_type
+
+        if tracking_type == 'lot':
             if not self.lot_number:
                 return False, "Lot number is required for lot-tracked expendables"
             if self.serial_number:
                 return False, "Items cannot have both lot number and serial number"
-        elif self.tracking_type == 'serial':
+        elif tracking_type == 'serial':
             if not self.serial_number:
                 return False, "Serial number is required for serial-tracked expendables"
             if self.lot_number:
                 return False, "Items cannot have both lot number and serial number"
+        elif tracking_type == 'none':
+            # If an item is untracked we should not persist lot or serial identifiers.
+            if self.lot_number or self.serial_number:
+                return False, "Tracking identifiers should be omitted when tracking_type is 'none'"
         else:
-            return False, f"Invalid tracking_type: {self.tracking_type}. Must be 'lot' or 'serial'"
+            return False, (
+                f"Invalid tracking_type: {self.tracking_type}. Must be 'lot', 'serial', or 'none'"
+            )
 
         return True, None
 

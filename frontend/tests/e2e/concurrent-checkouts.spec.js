@@ -10,7 +10,6 @@ import {
   createConcurrentUsers,
   cleanupConcurrentUsers,
   executeConcurrently,
-  executeStaggered,
   analyzeResults,
   ConcurrencyBarrier,
 } from './utils/concurrent-helpers.js';

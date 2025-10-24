@@ -29,6 +29,17 @@ def get_or_create_aircraft_type(db_session, name):
     return aircraft_type
 
 
+# Counter for generating unique kit names
+_kit_counter = 0
+
+
+def get_unique_kit_name(prefix='Test Kit'):
+    """Helper function to generate unique kit names"""
+    global _kit_counter
+    _kit_counter += 1
+    return f'{prefix} {_kit_counter}'
+
+
 class TestAircraftTypeModel:
     """Test AircraftType model functionality"""
 
@@ -196,7 +207,7 @@ class TestKitBoxModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -206,7 +217,7 @@ class TestKitBoxModel:
 
         box = KitBox(
             kit_id=kit.id,
-            box_number=1,
+            box_number='1',
             box_type='expendable',
             description='Expendable items box'
         )
@@ -216,7 +227,7 @@ class TestKitBoxModel:
 
         assert box.id is not None
         assert box.kit_id == kit.id
-        assert box.box_number == 1
+        assert box.box_number == '1'
         assert box.box_type == 'expendable'
         assert box.description == 'Expendable items box'
         assert box.created_at is not None
@@ -226,7 +237,7 @@ class TestKitBoxModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -239,7 +250,7 @@ class TestKitBoxModel:
         for i, box_type in enumerate(box_types, 1):
             box = KitBox(
                 kit_id=kit.id,
-                box_number=i,
+                box_number=str(i),
                 box_type=box_type,
                 description=f'{box_type.capitalize()} box'
             )
@@ -258,7 +269,7 @@ class TestKitBoxModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -268,7 +279,7 @@ class TestKitBoxModel:
 
         box = KitBox(
             kit_id=kit.id,
-            box_number=1,
+            box_number='1',
             box_type='tooling',
             description='Tooling box'
         )
@@ -276,7 +287,7 @@ class TestKitBoxModel:
         db_session.commit()
 
         # Test relationship
-        assert box.kit.name == 'Test Kit'
+        assert box.kit.name == kit.name
         assert kit.boxes[0].box_type == 'tooling'
 
 
@@ -288,7 +299,7 @@ class TestKitExpendableModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -331,7 +342,7 @@ class TestKitExpendableModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -374,7 +385,7 @@ class TestKitIssuanceModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -427,7 +438,7 @@ class TestKitIssuanceModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -539,7 +550,7 @@ class TestKitTransferModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -620,7 +631,7 @@ class TestKitReorderRequestModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -673,7 +684,7 @@ class TestKitReorderRequestModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -726,7 +737,7 @@ class TestKitReorderRequestModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -783,7 +794,7 @@ class TestKitMessageModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -816,7 +827,7 @@ class TestKitMessageModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id
@@ -844,7 +855,7 @@ class TestKitMessageModel:
         aircraft_type = get_or_create_aircraft_type(db_session, 'Q400')
 
         kit = Kit(
-            name='Test Kit',
+            name=get_unique_kit_name(),
             aircraft_type_id=aircraft_type.id,
             status='active',
             created_by=admin_user.id

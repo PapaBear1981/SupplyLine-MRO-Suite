@@ -118,7 +118,7 @@ def test_calibration_certificate_upload_and_download(
 
     pdf_bytes = b'%PDF-1.4\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF'
     upload_data = {
-        'certificate': (BytesIO(pdf_bytes), 'calibration.pd', 'application/pdf')
+        'certificate': (BytesIO(pdf_bytes), 'calibration.pdf', 'application/pdf')
     }
 
     upload_response = client.post(

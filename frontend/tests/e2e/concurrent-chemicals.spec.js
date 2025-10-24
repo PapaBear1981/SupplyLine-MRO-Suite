@@ -10,7 +10,6 @@ import {
   createConcurrentUsers,
   cleanupConcurrentUsers,
   executeConcurrently,
-  executeStaggered,
   analyzeResults,
   ConcurrencyBarrier,
 } from './utils/concurrent-helpers.js';
@@ -104,7 +103,7 @@ test.describe('Concurrent Chemical Issuance', () => {
             hasError: false,
             hasSuccess: true,
           };
-        } catch (e) {
+        } catch {
           // If it stays on the issue page or shows an error, it failed
           const currentUrl = page.url();
           const stillOnIssuePage = currentUrl.includes('/issue');

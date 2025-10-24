@@ -14,6 +14,7 @@ from models import db, User, UserActivity, AuditLog
 from auth import JWTManager, jwt_required
 import logging
 import utils as password_utils
+from werkzeug.exceptions import BadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,13 @@ def register_auth_routes(app):
         """JWT-based login endpoint"""
         try:
             # Get JSON data
-            data = request.get_json() or {}
+            try:
+                data = request.get_json() or {}
+            except BadRequest:
+                return jsonify({
+                    'error': 'Invalid JSON payload',
+                    'code': 'INVALID_JSON'
+                }), 400
 
             # Basic validation
             employee_number = data.get('employee_number')
@@ -42,8 +49,13 @@ def register_auth_routes(app):
             # Always perform password check even if user doesn't exist to prevent timing attacks
             if not user:
                 # Perform a dummy password check to maintain consistent timing
+                # Use a valid bcrypt hash format (this is a hash of "dummy_password")
                 from werkzeug.security import check_password_hash
-                check_password_hash('$2b$12$dummy.hash.to.prevent.timing.attacks', password)
+                dummy_hash = 'pbkdf2:sha256:600000$dummysalt$dummyhashtopreventtimingattacks1234567890abcdef'
+                try:
+                    check_password_hash(dummy_hash, password)
+                except Exception:
+                    pass  # Ignore any errors from dummy check
 
                 # SECURITY: PII REDACTION - Don't log employee numbers (PII)
                 logger.warning(f"Login attempt for non-existent user from IP: {request.remote_addr}")

@@ -6,11 +6,12 @@ This module provides API endpoints for managing transfers between kits and wareh
 
 from flask import request, jsonify
 from models import db, AuditLog, Chemical, Warehouse, Tool
-from models_kits import Kit, KitItem, KitExpendable, KitTransfer
+from models_kits import Kit, KitItem, KitExpendable, KitTransfer, KitBox
 from datetime import datetime
 from auth import jwt_required, department_required
 from utils.error_handler import handle_errors, ValidationError
 from utils.lot_utils import create_child_chemical
+from utils.transaction_helper import record_transaction
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,284 +26,391 @@ def register_kit_transfer_routes(app):
     @materials_required
     @handle_errors
     def create_transfer():
-        """Initiate and complete a transfer between kits or between kit and warehouse"""
+        """Initiate a transfer. Kit-involving transfers remain pending until explicitly completed."""
         data = request.get_json() or {}
 
-        # Validate required fields
-        required_fields = ['item_type', 'item_id', 'from_location_type', 'from_location_id',
-                          'to_location_type', 'to_location_id', 'quantity']
+        required_fields = [
+            'item_type',
+            'item_id',
+            'from_location_type',
+            'from_location_id',
+            'to_location_type',
+            'to_location_id',
+            'quantity'
+        ]
         for field in required_fields:
             if field not in data:
                 raise ValidationError(f'{field} is required')
 
-        quantity = int(data['quantity'])  # Integer only for chemicals
+        try:
+            quantity = float(data['quantity'])
+        except (TypeError, ValueError):
+            raise ValidationError('Quantity must be a number')
 
-        # Validate locations
-        if data['from_location_type'] not in ['kit', 'warehouse']:
+        if quantity <= 0:
+            raise ValidationError('Quantity must be greater than zero')
+
+        from_type = data['from_location_type']
+        to_type = data['to_location_type']
+
+        if from_type not in {'kit', 'warehouse'}:
             raise ValidationError('Invalid from_location_type')
-        if data['to_location_type'] not in ['kit', 'warehouse']:
+        if to_type not in {'kit', 'warehouse'}:
             raise ValidationError('Invalid to_location_type')
 
-        # Get source item and verify quantity
-        source_item = None
-        source_chemical = None
-        child_chemical = None  # Will be set if we create a child lot
+        # Validate source and destination locations
+        if from_type == 'kit':
+            source_kit = Kit.query.get(data['from_location_id'])
+            if not source_kit:
+                raise ValidationError('Source kit not found')
+        else:
+            source_warehouse = Warehouse.query.get(data['from_location_id'])
+            if not source_warehouse:
+                raise ValidationError('Source warehouse not found')
 
-        if data['from_location_type'] == 'warehouse' and data['item_type'] == 'chemical':
-            # Handle warehouse chemical transfer with potential lot splitting
-            source_chemical = Chemical.query.get(data['item_id'])
-            if not source_chemical:
-                raise ValidationError('Source chemical not found')
+        if to_type == 'kit':
+            dest_kit = Kit.query.get(data['to_location_id'])
+            if not dest_kit:
+                raise ValidationError('Destination kit not found')
+        else:
+            dest_warehouse = Warehouse.query.get(data['to_location_id'])
+            if not dest_warehouse:
+                raise ValidationError('Destination warehouse not found')
 
-            if source_chemical.quantity < quantity:
-                raise ValidationError(f'Insufficient quantity. Available: {source_chemical.quantity} {source_chemical.unit}')
-
-            # Determine destination warehouse ID (None if transferring to kit)
-            dest_warehouse_id = None
-            if data['to_location_type'] == 'warehouse':
-                dest_warehouse_id = data['to_location_id']
-
-            # Check if this is a partial transfer (not the full quantity)
-            is_partial_transfer = quantity < source_chemical.quantity
-
-            logger.info(f"Transfer check: quantity={quantity}, available={source_chemical.quantity}, is_partial={is_partial_transfer}")
-
-            if is_partial_transfer:
-                logger.info(f"Creating child chemical for partial transfer")
-                # Create a child chemical with new lot number
-                # warehouse_id will be None if transferring to kit
-                child_chemical = create_child_chemical(
-                    parent_chemical=source_chemical,
-                    quantity=quantity,
-                    destination_warehouse_id=dest_warehouse_id
-                )
-                db.session.add(child_chemical)
-                logger.info(f"Child chemical created: ID={child_chemical.id}, Lot={child_chemical.lot_number}")
-                # The create_child_chemical function already reduces parent quantity
-            else:
-                logger.info(f"Full transfer - moving entire chemical")
-                # Full transfer - just move the chemical
-                if data['to_location_type'] == 'warehouse':
-                    source_chemical.warehouse_id = dest_warehouse_id
-                else:
-                    # Transferring to kit - set warehouse_id to None
-                    source_chemical.warehouse_id = None
-
-        elif data['from_location_type'] == 'kit':
+        # Validate source item availability
+        if from_type == 'kit':
             if data['item_type'] == 'expendable':
                 source_item = KitExpendable.query.get(data['item_id'])
             else:
                 source_item = KitItem.query.get(data['item_id'])
 
-            if not source_item:
+            if not source_item or source_item.kit_id != data['from_location_id']:
                 raise ValidationError('Source item not found')
 
             if source_item.quantity < quantity:
                 raise ValidationError(f'Insufficient quantity. Available: {source_item.quantity}')
 
-        # Determine the actual item_id to store in the transfer record
-        # For warehouse transfers, use data['item_id'] (the chemical/tool ID)
-        # For kit transfers, use source_item.item_id (the actual chemical/tool ID, not the KitItem ID)
-        if data['from_location_type'] == 'kit' and source_item and data['item_type'] != 'expendable':
-            transfer_item_id = source_item.item_id
-        else:
-            transfer_item_id = data['item_id']
+        elif from_type == 'warehouse':
+            if data['item_type'] == 'chemical':
+                chemical = Chemical.query.get(data['item_id'])
+                if not chemical:
+                    raise ValidationError('Source chemical not found')
+                if chemical.quantity < quantity:
+                    raise ValidationError(f'Insufficient quantity. Available: {chemical.quantity}')
+            elif data['item_type'] == 'tool':
+                tool = Tool.query.get(data['item_id'])
+                if not tool:
+                    raise ValidationError('Tool not found')
+                if tool.warehouse_id != data['from_location_id']:
+                    raise ValidationError('Tool is not in the source warehouse')
+                if quantity != 1:
+                    raise ValidationError('Tool transfers must have a quantity of 1')
 
-        # Create transfer record
+        # Determine the item reference stored in the transfer record.
+        transfer_item_id = data['item_id']
+        if from_type == 'kit' and data['item_type'] != 'expendable':
+            kit_item = KitItem.query.get(data['item_id'])
+            if not kit_item:
+                raise ValidationError('Source item not found')
+            transfer_item_id = kit_item.item_id
+
         transfer = KitTransfer(
             item_type=data['item_type'],
             item_id=transfer_item_id,
-            from_location_type=data['from_location_type'],
+            from_location_type=from_type,
             from_location_id=data['from_location_id'],
-            to_location_type=data['to_location_type'],
+            to_location_type=to_type,
             to_location_id=data['to_location_id'],
             quantity=quantity,
             transferred_by=request.current_user['user_id'],
-            status='completed',  # Changed from 'pending' to 'completed'
-            notes=data.get('notes', ''),
-            completed_date=datetime.now()  # Set completion date
+            notes=data.get('notes', '')
         )
 
-        # Update source location - remove item from source
-        if data['from_location_type'] == 'kit' and source_item:
-            source_item.quantity -= quantity
-            if source_item.quantity <= 0:
-                # Remove the item completely if quantity is 0
-                db.session.delete(source_item)
+        db.session.add(transfer)
+        db.session.flush()
 
-        # Update destination location - add item to destination
-        if data['to_location_type'] == 'kit':
-            dest_kit = Kit.query.get(data['to_location_id'])
+        creation_log = AuditLog(
+            action_type='kit_transfer_created',
+            action_details=(
+                f"Transfer created: {data['item_type']} from {from_type} {data['from_location_id']} "
+                f"to {to_type} {data['to_location_id']}"
+            )
+        )
+        db.session.add(creation_log)
+        db.session.commit()
+
+        auto_complete = from_type == 'warehouse' and to_type == 'warehouse'
+
+        if auto_complete:
+            response_data = _complete_transfer_internal(
+                transfer.id,
+                request.current_user['user_id'],
+                box_id=data.get('box_id')
+            )
+        else:
+            response_data = transfer.to_dict()
+            response_data['lot_split'] = False
+
+        logger.info(
+            'Transfer created',
+            extra={
+                'transfer_id': transfer.id,
+                'from_type': from_type,
+                'to_type': to_type,
+                'auto_complete': auto_complete
+            }
+        )
+
+        return jsonify(response_data), 201
+
+    def _complete_transfer_internal(transfer_id, user_id, box_id=None):
+        """Complete the transfer identified by transfer_id and return its serialized data."""
+        transfer = KitTransfer.query.get_or_404(transfer_id)
+
+        if transfer.status != 'pending':
+            raise ValidationError('Transfer is not in pending status')
+
+        quantity = transfer.quantity
+        if quantity <= 0:
+            raise ValidationError('Transfer quantity must be greater than zero')
+
+        source_item = None
+        source_item_snapshot = {}
+        source_chemical = None
+        child_chemical = None
+
+        if transfer.from_location_type == 'kit':
+            if transfer.item_type == 'expendable':
+                source_item = KitExpendable.query.get(transfer.item_id)
+                if not source_item or source_item.kit_id != transfer.from_location_id:
+                    raise ValidationError('Source item not found')
+                if source_item.quantity < quantity:
+                    raise ValidationError(f'Insufficient quantity. Available: {source_item.quantity}')
+                source_item_snapshot = {
+                    'part_number': source_item.part_number,
+                    'description': source_item.description,
+                    'unit': source_item.unit,
+                    'location': source_item.location,
+                    'serial_number': source_item.serial_number,
+                    'lot_number': source_item.lot_number,
+                    'tracking_type': source_item.tracking_type
+                }
+            else:
+                kit_item = KitItem.query.filter_by(
+                    kit_id=transfer.from_location_id,
+                    item_type=transfer.item_type,
+                    item_id=transfer.item_id
+                ).first()
+                if not kit_item:
+                    raise ValidationError('Source item not found')
+                if kit_item.quantity < quantity:
+                    raise ValidationError(f'Insufficient quantity. Available: {kit_item.quantity}')
+                source_item = kit_item
+                source_item_snapshot = {
+                    'part_number': kit_item.part_number,
+                    'description': kit_item.description,
+                    'serial_number': kit_item.serial_number,
+                    'lot_number': kit_item.lot_number,
+                    'location': kit_item.location,
+                    'item_id': kit_item.item_id,
+                    'item_type': kit_item.item_type
+                }
+        elif transfer.from_location_type == 'warehouse':
+            if transfer.item_type == 'chemical':
+                source_chemical = Chemical.query.get(transfer.item_id)
+                if not source_chemical:
+                    raise ValidationError('Source chemical not found')
+                if source_chemical.quantity < quantity:
+                    raise ValidationError(f'Insufficient quantity. Available: {source_chemical.quantity}')
+
+                dest_warehouse_id = transfer.to_location_id if transfer.to_location_type == 'warehouse' else None
+                is_partial_transfer = quantity < source_chemical.quantity
+
+                if transfer.to_location_type == 'kit' and is_partial_transfer:
+                    child_chemical = create_child_chemical(
+                        parent_chemical=source_chemical,
+                        quantity=quantity,
+                        destination_warehouse_id=dest_warehouse_id
+                    )
+                    db.session.add(child_chemical)
+                    db.session.flush()
+                else:
+                    if transfer.to_location_type == 'warehouse':
+                        source_chemical.warehouse_id = dest_warehouse_id
+                    else:
+                        source_chemical.warehouse_id = None
+
+            elif transfer.item_type == 'tool':
+                tool = Tool.query.get(transfer.item_id)
+                if not tool:
+                    raise ValidationError('Tool not found')
+                if tool.warehouse_id != transfer.from_location_id:
+                    raise ValidationError('Tool is not in the source warehouse')
+                if quantity != 1:
+                    raise ValidationError('Tool transfers must have a quantity of 1')
+
+                if transfer.to_location_type == 'warehouse':
+                    tool.warehouse_id = transfer.to_location_id
+                else:
+                    tool.warehouse_id = None
+
+        if transfer.from_location_type == 'kit' and source_item:
+            source_item.quantity -= quantity
+            if transfer.item_type == 'expendable':
+                if source_item.quantity <= 0:
+                    db.session.delete(source_item)
+            else:
+                if source_item.quantity <= 0:
+                    source_item.status = 'transferred'
+
+        if transfer.to_location_type == 'kit':
+            dest_kit = Kit.query.get(transfer.to_location_id)
             if not dest_kit:
                 raise ValidationError('Destination kit not found')
 
-            # Get destination box - use provided box_id or default to first box
-            dest_box_id = data.get('box_id')
-            if dest_box_id:
-                from models_kits import KitBox
-                dest_box = KitBox.query.filter_by(id=dest_box_id, kit_id=data['to_location_id']).first()
+            dest_box = None
+            if box_id:
+                dest_box = KitBox.query.filter_by(id=box_id, kit_id=transfer.to_location_id).first()
                 if not dest_box:
                     raise ValidationError('Specified box not found in destination kit')
             else:
-                # Fallback to first box if no box_id provided
                 dest_box = dest_kit.boxes.first()
                 if not dest_box:
-                    raise ValidationError('Destination kit has no boxes')
+                    box_type_map = {
+                        'expendable': 'expendable',
+                        'tool': 'tool',
+                        'chemical': 'chemical'
+                    }
+                    dest_box = KitBox(
+                        kit_id=dest_kit.id,
+                        box_number='1',
+                        box_type=box_type_map.get(transfer.item_type, 'general'),
+                        description='Auto-created transfer box'
+                    )
+                    db.session.add(dest_box)
+                    db.session.flush()
 
-            if data['item_type'] == 'expendable':
-                # For expendables, check if same part number exists in destination BOX
-                # Important: We must match on part_number, tracking_type, lot/serial, and unit
-                # to prevent merging items with different tracking identities
+            if transfer.item_type == 'expendable':
                 q = KitExpendable.query.filter_by(
-                    kit_id=data['to_location_id'],
+                    kit_id=transfer.to_location_id,
                     box_id=dest_box.id,
-                    part_number=source_item.part_number if source_item else None,
-                    tracking_type=source_item.tracking_type,
-                    unit=source_item.unit
+                    part_number=source_item_snapshot.get('part_number'),
+                    tracking_type=source_item_snapshot.get('tracking_type', 'none'),
+                    unit=source_item_snapshot.get('unit', 'each')
                 )
 
-                # Match on lot_number or serial_number based on tracking_type
-                if source_item.tracking_type == 'lot':
-                    q = q.filter_by(lot_number=source_item.lot_number, serial_number=None)
-                elif source_item.tracking_type == 'serial':
-                    q = q.filter_by(serial_number=source_item.serial_number, lot_number=None)
+                tracking_type = (source_item_snapshot.get('tracking_type') or 'none').lower()
+                if tracking_type == 'lot':
+                    q = q.filter_by(lot_number=source_item_snapshot.get('lot_number'), serial_number=None)
+                elif tracking_type == 'serial':
+                    q = q.filter_by(serial_number=source_item_snapshot.get('serial_number'), lot_number=None)
                 else:
-                    # For items without tracking, match on None for both
                     q = q.filter_by(lot_number=None, serial_number=None)
 
                 dest_item = q.first()
 
                 if dest_item:
-                    # Add to existing expendable in the same box
                     dest_item.quantity += quantity
                 else:
-                    # Create new expendable in destination kit
-
                     new_expendable = KitExpendable(
-                        kit_id=data['to_location_id'],
+                        kit_id=transfer.to_location_id,
                         box_id=dest_box.id,
-                        part_number=source_item.part_number,
-                        description=source_item.description,
+                        part_number=source_item_snapshot.get('part_number'),
+                        description=source_item_snapshot.get('description', ''),
                         quantity=quantity,
-                        unit=source_item.unit,
-                        location=source_item.location,  # KitExpendable uses 'location', not 'location_in_box'
-                        serial_number=source_item.serial_number,
-                        lot_number=source_item.lot_number,
-                        tracking_type=source_item.tracking_type
+                        unit=source_item_snapshot.get('unit', 'each'),
+                        location=source_item_snapshot.get('location', ''),
+                        serial_number=source_item_snapshot.get('serial_number'),
+                        lot_number=source_item_snapshot.get('lot_number'),
+                        tracking_type=tracking_type
                     )
                     db.session.add(new_expendable)
             else:
-                # For tools/chemicals, determine which item ID to use
-                # If we created a child chemical (from warehouse transfer), use that ID
-                # Otherwise, use the item_id from the source KitItem
-                if child_chemical:
-                    # Warehouse to kit transfer with lot split
-                    item_id_to_add = child_chemical.id
-                elif source_item:
-                    # Kit to kit transfer - use the actual item_id from the source KitItem
-                    item_id_to_add = source_item.item_id
-                else:
-                    # Fallback to data['item_id'] for warehouse to kit full transfer
-                    item_id_to_add = data['item_id']
-
-                # For tools/chemicals, ALWAYS create a new line item
-                # Each lot number or serial number should be tracked separately
-                # Even if the same lot is transferred multiple times, keep them as separate entries
-
-                # Get the actual item to populate fields
-                if data['item_type'] == 'tool':
-                    actual_item = Tool.query.get(item_id_to_add)
+                actual_item_id = source_item_snapshot.get('item_id', transfer.item_id)
+                if transfer.item_type == 'tool':
+                    actual_item = Tool.query.get(actual_item_id)
                     if not actual_item:
                         raise ValidationError('Tool not found')
+                else:
+                    if transfer.item_type == 'chemical' and child_chemical:
+                        actual_item = child_chemical
+                    else:
+                        actual_item = Chemical.query.get(actual_item_id)
+                        if not actual_item:
+                            raise ValidationError('Chemical not found')
 
-                    new_item = KitItem(
-                        kit_id=data['to_location_id'],
-                        box_id=dest_box.id,
-                        item_type=data['item_type'],
-                        item_id=item_id_to_add,
-                        part_number=actual_item.tool_number,
-                        serial_number=actual_item.serial_number,
-                        lot_number=actual_item.lot_number,
-                        description=actual_item.description,
-                        quantity=quantity,
-                        location=source_item.location if source_item else '',
-                        status='available'
-                    )
-                else:  # chemical
-                    actual_item = Chemical.query.get(item_id_to_add)
-                    if not actual_item:
-                        raise ValidationError('Chemical not found')
-
-                    new_item = KitItem(
-                        kit_id=data['to_location_id'],
-                        box_id=dest_box.id,
-                        item_type=data['item_type'],
-                        item_id=item_id_to_add,
-                        part_number=actual_item.part_number,
-                        lot_number=actual_item.lot_number,
-                        description=actual_item.description,
-                        quantity=quantity,
-                        location=source_item.location if source_item else '',
-                        status='available'
-                    )
-
+                new_item = KitItem(
+                    kit_id=transfer.to_location_id,
+                    box_id=dest_box.id,
+                    item_type=transfer.item_type,
+                    item_id=actual_item.id,
+                    part_number=getattr(actual_item, 'part_number', source_item_snapshot.get('part_number')),
+                    serial_number=getattr(actual_item, 'serial_number', source_item_snapshot.get('serial_number')),
+                    lot_number=getattr(actual_item, 'lot_number', source_item_snapshot.get('lot_number')),
+                    description=getattr(actual_item, 'description', source_item_snapshot.get('description', '')),
+                    quantity=quantity,
+                    location=source_item_snapshot.get('location', ''),
+                    status='available'
+                )
                 db.session.add(new_item)
-        elif data['to_location_type'] == 'warehouse':
-            # Handle transfer to warehouse
-            dest_warehouse = Warehouse.query.get(data['to_location_id'])
+
+        elif transfer.to_location_type == 'warehouse':
+            dest_warehouse = Warehouse.query.get(transfer.to_location_id)
             if not dest_warehouse:
                 raise ValidationError('Destination warehouse not found')
 
-            if data['item_type'] == 'chemical':
-                # For chemicals transferred from kit to warehouse
-                # If we have a child_chemical (from partial warehouse->kit->warehouse), use it
-                # Otherwise, we need to handle the chemical from the kit
-                if child_chemical:
-                    # Child chemical already has correct warehouse_id set
-                    pass
-                else:
-                    # Get the chemical being transferred from the kit
-                    if source_item and hasattr(source_item, 'item_id'):
-                        transferred_chemical = Chemical.query.get(source_item.item_id)
-                        if transferred_chemical:
-                            transferred_chemical.warehouse_id = data['to_location_id']
-            elif data['item_type'] == 'tool':
-                # For tools transferred from kit to warehouse
-                if source_item and hasattr(source_item, 'item_id'):
-                    transferred_tool = Tool.query.get(source_item.item_id)
-                    if transferred_tool:
-                        transferred_tool.warehouse_id = data['to_location_id']
+            if transfer.item_type == 'chemical' and source_item and hasattr(source_item, 'item_id'):
+                transferred_chemical = Chemical.query.get(source_item.item_id)
+                if transferred_chemical:
+                    transferred_chemical.warehouse_id = transfer.to_location_id
+            elif transfer.item_type == 'tool' and source_item and hasattr(source_item, 'item_id'):
+                transferred_tool = Tool.query.get(source_item.item_id)
+                if transferred_tool:
+                    transferred_tool.warehouse_id = transfer.to_location_id
 
-        db.session.add(transfer)
+        transfer.status = 'completed'
+        transfer.completed_date = datetime.now()
+
         db.session.commit()
 
-        # Log action
+        if transfer.from_location_type == 'warehouse' and transfer.to_location_type == 'warehouse':
+            from_warehouse = Warehouse.query.get(transfer.from_location_id)
+            to_warehouse = Warehouse.query.get(transfer.to_location_id)
+            if from_warehouse and to_warehouse:
+                record_transaction(
+                    item_type=transfer.item_type,
+                    item_id=transfer.item_id,
+                    transaction_type='transfer',
+                    user_id=user_id,
+                    quantity_change=0,
+                    location_from=from_warehouse.name,
+                    location_to=to_warehouse.name,
+                    notes='Warehouse to warehouse transfer'
+                )
+
         log = AuditLog(
             action_type='kit_transfer_completed',
-            action_details=f'Transfer completed: {data["item_type"]} from {data["from_location_type"]} to {data["to_location_type"]}'
+            action_details=f'Transfer completed: ID {transfer.id}'
         )
         db.session.add(log)
         db.session.commit()
 
-        logger.info(f"Transfer created and completed: ID {transfer.id}")
-
-        # Prepare response with child chemical info if lot was split
-        response_data = transfer.to_dict()
-
-        logger.info(f"Preparing response: child_chemical={child_chemical}, source_chemical={source_chemical}")
-
+        response = transfer.to_dict()
+        response['lot_split'] = bool(child_chemical)
         if child_chemical:
-            logger.info(f"Adding child chemical to response: {child_chemical.lot_number}")
-            response_data['child_chemical'] = child_chemical.to_dict()
-            response_data['lot_split'] = True
-            response_data['parent_lot_number'] = source_chemical.lot_number if source_chemical else None
-        else:
-            logger.info(f"No child chemical - full transfer")
-            response_data['lot_split'] = False
+            response['child_chemical'] = child_chemical.to_dict()
+            response['parent_lot_number'] = source_chemical.lot_number if source_chemical else None
 
-        logger.info(f"Response data keys: {response_data.keys()}")
-        return jsonify(response_data), 201
+        return response
 
+    @app.route('/api/transfers/<int:id>/complete', methods=['PUT'])
+    @materials_required
+    @handle_errors
+    def complete_transfer(id):
+        """Complete a transfer"""
+        data = request.get_json(silent=True) or {}
+        response = _complete_transfer_internal(id, request.current_user['user_id'], box_id=data.get('box_id'))
+        return jsonify(response), 200
     @app.route('/api/transfers', methods=['GET'])
     @jwt_required
     @handle_errors
@@ -346,72 +454,6 @@ def register_kit_transfer_routes(app):
     def get_transfer(id):
         """Get transfer details"""
         transfer = KitTransfer.query.get_or_404(id)
-        return jsonify(transfer.to_dict()), 200
-
-    @app.route('/api/transfers/<int:id>/complete', methods=['PUT'])
-    @materials_required
-    @handle_errors
-    def complete_transfer(id):
-        """Complete a transfer"""
-        transfer = KitTransfer.query.get_or_404(id)
-
-        if transfer.status != 'pending':
-            raise ValidationError('Transfer is not in pending status')
-
-        # Update source location
-        if transfer.from_location_type == 'kit':
-            if transfer.item_type == 'expendable':
-                source_item = KitExpendable.query.get(transfer.item_id)
-            else:
-                source_item = KitItem.query.get(transfer.item_id)
-
-            if source_item:
-                source_item.quantity -= transfer.quantity
-                if source_item.quantity <= 0:
-                    source_item.status = 'transferred'
-
-        # Update destination location
-        if transfer.to_location_type == 'kit':
-            # Check if item already exists in destination kit
-            if transfer.item_type == 'expendable':
-                dest_item = KitExpendable.query.filter_by(
-                    kit_id=transfer.to_location_id,
-                    part_number=source_item.part_number if source_item else None
-                ).first()
-
-                if dest_item:
-                    dest_item.quantity += transfer.quantity
-                else:
-                    # Create new item in destination kit
-                    # This would require additional logic to get box_id
-                    pass
-            else:
-                dest_item = KitItem.query.filter_by(
-                    kit_id=transfer.to_location_id,
-                    item_id=transfer.item_id,
-                    item_type=transfer.item_type
-                ).first()
-
-                if dest_item:
-                    dest_item.quantity += transfer.quantity
-                else:
-                    # Create new item in destination kit
-                    pass
-
-        # Update transfer status
-        transfer.status = 'completed'
-        transfer.completed_date = datetime.now()
-
-        db.session.commit()
-
-        # Log action
-        log = AuditLog(
-            action_type='kit_transfer_completed',
-            action_details=f'Transfer completed: ID {transfer.id}'
-        )
-        db.session.add(log)
-        db.session.commit()
-
         return jsonify(transfer.to_dict()), 200
 
     @app.route('/api/transfers/<int:id>/cancel', methods=['PUT'])

@@ -161,18 +161,22 @@ def register_kit_reorder_routes(app):
         if reorder.status != 'ordered':
             raise ValidationError('Can only fulfill ordered requests')
 
-        # Get box_id from request body
-        data = request.get_json()
+        # Get box_id from request body (optional - default to first box)
+        data = request.get_json(silent=True) or {}
+        from models_kits import KitBox
+
+        box = None
         box_id = data.get('box_id')
 
-        if not box_id:
-            raise ValidationError('box_id is required to fulfill reorder')
-
-        # Verify box belongs to the kit
-        from models_kits import KitBox
-        box = KitBox.query.filter_by(id=box_id, kit_id=reorder.kit_id).first()
-        if not box:
-            raise ValidationError('Invalid box_id for this kit')
+        if box_id:
+            box = KitBox.query.filter_by(id=box_id, kit_id=reorder.kit_id).first()
+            if not box:
+                raise ValidationError('Invalid box_id for this kit')
+        else:
+            box = KitBox.query.filter_by(kit_id=reorder.kit_id).order_by(KitBox.box_number).first()
+            if not box:
+                raise ValidationError('box_id is required to fulfill reorder')
+            box_id = box.id
 
         reorder.status = 'fulfilled'
         reorder.fulfillment_date = datetime.now()
@@ -196,7 +200,8 @@ def register_kit_reorder_routes(app):
                     quantity=reorder.quantity_requested,
                     unit='ea',
                     location=f'Box {box.box_number}',
-                    status='available'
+                    status='available',
+                    tracking_type='none'
                 )
                 db.session.add(expendable)
 

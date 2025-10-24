@@ -70,14 +70,11 @@ def second_user(db_session):
 
 
 @pytest.fixture
-def auth_headers_second(client, second_user):
+def auth_headers_second(client, second_user, jwt_manager):
     """Get auth headers for second user"""
-    response = client.post('/api/auth/login', json={
-        'employee_number': second_user.employee_number,
-        'password': 'second123'
-    })
-    data = json.loads(response.data)
-    return {'Authorization': f'Bearer {data["access_token"]}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(second_user)
+    return {'Authorization': f"Bearer {tokens['access_token']}"}
 
 
 @pytest.fixture

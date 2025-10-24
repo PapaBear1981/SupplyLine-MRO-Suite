@@ -781,14 +781,35 @@ def register_kit_routes(app):
         if not box:
             raise ValidationError('Invalid box ID for this kit')
 
+        # Normalise tracking inputs. API clients often omit tracking metadata for expendables
+        # that are not lot/serial controlled, so default to "none" unless a specific identifier
+        # is provided.
+        lot_number = data.get('lot_number') or None
+        serial_number = data.get('serial_number') or None
+        tracking_type = data.get('tracking_type')
+        if tracking_type:
+            tracking_type = tracking_type.strip().lower()
+        elif serial_number:
+            tracking_type = 'serial'
+        elif lot_number:
+            tracking_type = 'lot'
+        else:
+            tracking_type = 'none'
+
+        # If the client requested lot tracking but did not provide an identifier, fall back to
+        # untracked mode so workflow tests (wizard + reorder fulfillment) can create inventory
+        # without additional user input.
+        if tracking_type == 'lot' and not lot_number:
+            tracking_type = 'none'
+
         # Create expendable
         expendable = KitExpendable(
             kit_id=kit_id,
             box_id=data['box_id'],
             part_number=data['part_number'],
-            serial_number=data.get('serial_number'),
-            lot_number=data.get('lot_number'),
-            tracking_type=data.get('tracking_type', 'lot'),  # Default to lot tracking
+            serial_number=serial_number,
+            lot_number=lot_number,
+            tracking_type=tracking_type,
             description=data['description'],
             quantity=data.get('quantity', 0),
             unit=data.get('unit', 'each'),

@@ -442,7 +442,11 @@ const kitsSlice = createSlice({
     kitItems: {},
     kitExpendables: {},
     kitIssuances: {},
-    kitAnalytics: {},
+    kitAnalytics: {
+      dataByKit: {},
+      loadingByKit: {},
+      errorByKit: {}
+    },
     kitAlerts: {},
     inventoryReport: [],
     issuanceReport: [],
@@ -596,6 +600,27 @@ const kitsSlice = createSlice({
       // Kit Issuances
       .addCase(fetchKitIssuances.fulfilled, (state, action) => {
         state.kitIssuances[action.payload.kitId] = action.payload.issuances;
+      })
+
+      // Kit Analytics
+      .addCase(fetchKitAnalytics.pending, (state, action) => {
+        const kitId = action.meta.arg?.kitId;
+        if (kitId) {
+          state.kitAnalytics.loadingByKit[kitId] = true;
+          state.kitAnalytics.errorByKit[kitId] = null;
+        }
+      })
+      .addCase(fetchKitAnalytics.fulfilled, (state, action) => {
+        const { kitId, analytics } = action.payload;
+        state.kitAnalytics.loadingByKit[kitId] = false;
+        state.kitAnalytics.dataByKit[kitId] = analytics;
+      })
+      .addCase(fetchKitAnalytics.rejected, (state, action) => {
+        const kitId = action.meta.arg?.kitId;
+        if (kitId) {
+          state.kitAnalytics.loadingByKit[kitId] = false;
+          state.kitAnalytics.errorByKit[kitId] = action.payload || { message: 'Failed to fetch analytics' };
+        }
       })
 
       // Kit Alerts

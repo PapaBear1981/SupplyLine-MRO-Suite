@@ -13,7 +13,7 @@ Tests all transfer-related API endpoints including:
 
 import pytest
 import json
-from models import User
+from models import User, Warehouse, Tool, InventoryTransaction
 from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitTransfer
 
 
@@ -26,6 +26,74 @@ def aircraft_type(db_session):
         db_session.add(aircraft_type)
         db_session.commit()
     return aircraft_type
+
+
+@pytest.fixture
+def source_warehouse(db_session, admin_user):
+    """Create a source warehouse for tool transfers"""
+    import uuid
+
+    warehouse = Warehouse(
+        name=f'Source Warehouse {uuid.uuid4().hex[:8]}',
+        warehouse_type='satellite',
+        is_active=True,
+        created_by_id=admin_user.id
+    )
+    db_session.add(warehouse)
+    db_session.commit()
+    return warehouse
+
+
+@pytest.fixture
+def dest_warehouse(db_session, admin_user):
+    """Create a destination warehouse for tool transfers"""
+    import uuid
+
+    warehouse = Warehouse(
+        name=f'Destination Warehouse {uuid.uuid4().hex[:8]}',
+        warehouse_type='satellite',
+        is_active=True,
+        created_by_id=admin_user.id
+    )
+    db_session.add(warehouse)
+    db_session.commit()
+    return warehouse
+
+
+@pytest.fixture
+def warehouse_tool_serial(db_session, source_warehouse):
+    """Create a serial-tracked tool in the source warehouse"""
+    import uuid
+
+    tool = Tool(
+        tool_number=f'SER-{uuid.uuid4().hex[:8]}',
+        serial_number=f'SN-{uuid.uuid4().hex[:8]}',
+        lot_number=None,
+        description='Serial tracked test tool',
+        status='available',
+        warehouse_id=source_warehouse.id
+    )
+    db_session.add(tool)
+    db_session.commit()
+    return tool
+
+
+@pytest.fixture
+def warehouse_tool_lot(db_session, source_warehouse):
+    """Create a lot-tracked tool in the source warehouse"""
+    import uuid
+
+    tool = Tool(
+        tool_number=f'LOT-{uuid.uuid4().hex[:8]}',
+        serial_number='',
+        lot_number=f'LOT-{uuid.uuid4().hex[:6]}',
+        description='Lot tracked test tool',
+        status='available',
+        warehouse_id=source_warehouse.id
+    )
+    db_session.add(tool)
+    db_session.commit()
+    return tool
 
 
 @pytest.fixture
@@ -114,14 +182,12 @@ def materials_user(db_session):
 
 
 @pytest.fixture
-def auth_headers_materials(client, materials_user):
+def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
-    response = client.post('/api/auth/login', json={
-        'employee_number': materials_user.employee_number,
-        'password': 'materials123'
-    })
-    data = json.loads(response.data)
-    return {'Authorization': f'Bearer {data["access_token"]}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(materials_user)
+    access_token = tokens['access_token']
+    return {'Authorization': f'Bearer {access_token}'}
 
 
 @pytest.fixture
@@ -177,7 +243,7 @@ class TestCreateTransfer:
         assert data['status'] == 'pending'
         assert data['notes'] == 'Transfer for remote operation'
 
-    def test_create_transfer_kit_to_warehouse(self, client, auth_headers_materials, test_expendable, source_kit):
+    def test_create_transfer_kit_to_warehouse(self, client, auth_headers_materials, test_expendable, source_kit, dest_warehouse):
         """Test creating kit-to-warehouse transfer"""
         transfer_data = {
             'item_type': 'expendable',
@@ -185,7 +251,7 @@ class TestCreateTransfer:
             'from_location_type': 'kit',
             'from_location_id': source_kit.id,
             'to_location_type': 'warehouse',
-            'to_location_id': 1,
+            'to_location_id': dest_warehouse.id,
             'quantity': 15.0,
             'notes': 'Return to warehouse'
         }
@@ -198,15 +264,15 @@ class TestCreateTransfer:
         data = json.loads(response.data)
 
         assert data['to_location_type'] == 'warehouse'
-        assert data['to_location_id'] == 1
+        assert data['to_location_id'] == dest_warehouse.id
 
-    def test_create_transfer_warehouse_to_kit(self, client, auth_headers_materials, test_expendable, dest_kit):
+    def test_create_transfer_warehouse_to_kit(self, client, auth_headers_materials, test_expendable, dest_kit, source_warehouse):
         """Test creating warehouse-to-kit transfer"""
         transfer_data = {
             'item_type': 'expendable',
             'item_id': test_expendable.id,
             'from_location_type': 'warehouse',
-            'from_location_id': 1,
+            'from_location_id': source_warehouse.id,
             'to_location_type': 'kit',
             'to_location_id': dest_kit.id,
             'quantity': 25.0,
@@ -221,7 +287,102 @@ class TestCreateTransfer:
         data = json.loads(response.data)
 
         assert data['from_location_type'] == 'warehouse'
-        assert data['from_location_id'] == 1
+        assert data['from_location_id'] == source_warehouse.id
+
+    def test_create_transfer_warehouse_to_warehouse_tool_serial(self, client, auth_headers_materials, source_warehouse, dest_warehouse, warehouse_tool_serial):
+        """Transfer a serial-tracked tool between warehouses"""
+        initial_count = InventoryTransaction.query.filter_by(
+            item_type='tool',
+            item_id=warehouse_tool_serial.id
+        ).count()
+
+        transfer_data = {
+            'item_type': 'tool',
+            'item_id': warehouse_tool_serial.id,
+            'from_location_type': 'warehouse',
+            'from_location_id': source_warehouse.id,
+            'to_location_type': 'warehouse',
+            'to_location_id': dest_warehouse.id,
+            'quantity': 1,
+            'notes': 'Move serial tool between warehouses'
+        }
+
+        response = client.post('/api/transfers',
+                               json=transfer_data,
+                               headers=auth_headers_materials)
+
+        assert response.status_code == 201
+        data = json.loads(response.data)
+
+        assert data['item_type'] == 'tool'
+        assert data['quantity'] == 1
+        assert data['from_location_type'] == 'warehouse'
+        assert data['from_location_id'] == source_warehouse.id
+        assert data['to_location_type'] == 'warehouse'
+        assert data['to_location_id'] == dest_warehouse.id
+
+        updated_tool = Tool.query.get(warehouse_tool_serial.id)
+        assert updated_tool.warehouse_id == dest_warehouse.id
+
+        transactions = InventoryTransaction.query.filter_by(
+            item_type='tool',
+            item_id=warehouse_tool_serial.id
+        ).order_by(InventoryTransaction.id.desc()).all()
+        assert len(transactions) == initial_count + 1
+        transaction = transactions[0]
+        assert transaction.transaction_type == 'transfer'
+        assert transaction.location_from == source_warehouse.name
+        assert transaction.location_to == dest_warehouse.name
+        assert transaction.quantity_change == 0
+
+    def test_create_transfer_warehouse_to_warehouse_tool_lot(self, client, auth_headers_materials, source_warehouse, dest_warehouse, warehouse_tool_lot):
+        """Transfer a lot-tracked tool between warehouses"""
+        transfer_data = {
+            'item_type': 'tool',
+            'item_id': warehouse_tool_lot.id,
+            'from_location_type': 'warehouse',
+            'from_location_id': source_warehouse.id,
+            'to_location_type': 'warehouse',
+            'to_location_id': dest_warehouse.id,
+            'quantity': 1,
+            'notes': 'Move lot-tracked tool between warehouses'
+        }
+
+        response = client.post('/api/transfers',
+                               json=transfer_data,
+                               headers=auth_headers_materials)
+
+        assert response.status_code == 201
+        data = json.loads(response.data)
+
+        assert data['item_type'] == 'tool'
+        assert data['quantity'] == 1
+
+        updated_tool = Tool.query.get(warehouse_tool_lot.id)
+        assert updated_tool.warehouse_id == dest_warehouse.id
+        assert updated_tool.lot_number == warehouse_tool_lot.lot_number
+        assert updated_tool.serial_number == warehouse_tool_lot.serial_number
+
+    def test_create_transfer_warehouse_to_warehouse_invalid_quantity(self, client, auth_headers_materials, source_warehouse, dest_warehouse, warehouse_tool_serial):
+        """Warehouse-to-warehouse tool transfer must enforce quantity of 1"""
+        transfer_data = {
+            'item_type': 'tool',
+            'item_id': warehouse_tool_serial.id,
+            'from_location_type': 'warehouse',
+            'from_location_id': source_warehouse.id,
+            'to_location_type': 'warehouse',
+            'to_location_id': dest_warehouse.id,
+            'quantity': 2,
+            'notes': 'Invalid quantity for tool transfer'
+        }
+
+        response = client.post('/api/transfers',
+                               json=transfer_data,
+                               headers=auth_headers_materials)
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'quantity of 1' in data['error']
 
     def test_create_transfer_regular_user_forbidden(self, client, auth_headers_user, test_expendable, source_kit, dest_kit):
         """Test creating transfer as regular user (should fail)"""

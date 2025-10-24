@@ -5,11 +5,9 @@ import jsPDF from 'jspdf';
 import StandardBarcode from '../common/StandardBarcode';
 import {
   generateChemicalBarcodeData,
-  getChemicalBarcodeFields,
-  formatDate
+  getChemicalBarcodeFields
 } from '../../utils/barcodeFormatter';
 import {
-  filterFieldsForLabelSize,
   generatePrintCSS
 } from '../../utils/labelSizeConfig';
 
