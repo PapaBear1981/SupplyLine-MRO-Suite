@@ -99,6 +99,9 @@ def app():
         else:
             os.environ.pop('FLASK_ENV', None)
 
+        # Dispose of the database engine connection to release the file handle on Windows
+        db.engine.dispose()
+
         os.close(db_fd)
         os.unlink(db_path)
 
