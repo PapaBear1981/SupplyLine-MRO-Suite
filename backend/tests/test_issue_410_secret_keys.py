@@ -244,9 +244,15 @@ def test_secrets_work_when_provided():
         os.environ['JWT_SECRET_KEY'] = 'test-jwt-secret-key-for-validation'
         os.environ['FLASK_ENV'] = 'production'
 
+        # Reload config and app modules to pick up new environment variables
+        import importlib
+        import config
+        import app
+        importlib.reload(config)
+        importlib.reload(app)
+        
         # This should work fine
-        from app import create_app
-        app = create_app()
+        app = app.create_app()
 
         assert app.config['SECRET_KEY'] == 'test-secret-key-for-validation'
         assert app.config['JWT_SECRET_KEY'] == 'test-jwt-secret-key-for-validation'
