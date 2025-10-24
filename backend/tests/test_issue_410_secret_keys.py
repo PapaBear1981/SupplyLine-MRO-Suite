@@ -30,7 +30,7 @@ def test_secret_key_required_in_production():
         os.environ['FLASK_ENV'] = 'production'
 
         # Creating app with Config.validate_security_config should raise RuntimeError
-        with pytest.raises(RuntimeError, match='SECRET_KEY must be set in production'):
+        with pytest.raises(RuntimeError, match='SECRET_KEY must be set for production environment'):
             app = Flask(__name__)
             # Don't use from_object since Config class loads from environment at class definition time
             # Instead, manually set TESTING=False to simulate production
@@ -75,7 +75,7 @@ def test_jwt_secret_key_required_in_production():
         os.environ['FLASK_ENV'] = 'production'
 
         # Creating app with Config.validate_security_config should raise RuntimeError
-        with pytest.raises(RuntimeError, match='JWT_SECRET_KEY must be set in production'):
+        with pytest.raises(RuntimeError, match='JWT_SECRET_KEY must be set for production environment'):
             app = Flask(__name__)
             # Don't use from_object since Config class loads from environment at class definition time
             # Instead, manually set config values
@@ -100,6 +100,41 @@ def test_jwt_secret_key_required_in_production():
             os.environ['FLASK_ENV'] = original_flask_env
         elif 'FLASK_ENV' in os.environ:
             del os.environ['FLASK_ENV']
+
+
+def test_secret_key_required_in_staging_like_environment():
+    """Ensure staging-like deployments require explicit secrets."""
+    from flask import Flask
+    from config import Config
+
+    original_env = {
+        'SECRET_KEY': os.environ.get('SECRET_KEY'),
+        'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
+        'FLASK_ENV': os.environ.get('FLASK_ENV'),
+        'ENVIRONMENT': os.environ.get('ENVIRONMENT'),
+    }
+
+    try:
+        for key in ('SECRET_KEY', 'JWT_SECRET_KEY'):
+            if key in os.environ:
+                del os.environ[key]
+        os.environ['FLASK_ENV'] = 'staging'
+        os.environ['ENVIRONMENT'] = 'staging'
+
+        app = Flask(__name__)
+        app.config['TESTING'] = False
+        app.config['SECRET_KEY'] = None
+        app.config['JWT_SECRET_KEY'] = None
+
+        with pytest.raises(RuntimeError, match='SECRET_KEY must be set for staging environment'):
+            Config.validate_security_config(app.config)
+
+    finally:
+        for key, value in original_env.items():
+            if value is not None:
+                os.environ[key] = value
+            elif key in os.environ:
+                del os.environ[key]
 
 
 def test_secrets_allowed_in_testing_mode():
@@ -154,6 +189,45 @@ def test_secrets_allowed_in_testing_mode():
             os.environ['JWT_SECRET_KEY'] = original_jwt_secret
         elif 'JWT_SECRET_KEY' in os.environ:
             del os.environ['JWT_SECRET_KEY']
+
+
+def test_ephemeral_secrets_generated_in_ci_environment():
+    """Ensure CI environments receive generated secrets instead of raising errors."""
+    from flask import Flask
+    from config import Config
+
+    original_env = {
+        'SECRET_KEY': os.environ.get('SECRET_KEY'),
+        'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
+        'FLASK_ENV': os.environ.get('FLASK_ENV'),
+        'CI': os.environ.get('CI'),
+        'GITHUB_ACTIONS': os.environ.get('GITHUB_ACTIONS'),
+    }
+
+    try:
+        for key in ('SECRET_KEY', 'JWT_SECRET_KEY', 'GITHUB_ACTIONS'):
+            if key in os.environ:
+                del os.environ[key]
+        os.environ['FLASK_ENV'] = 'production'
+        os.environ['CI'] = 'true'
+
+        app = Flask(__name__)
+        app.config['TESTING'] = False
+        app.config['SECRET_KEY'] = None
+        app.config['JWT_SECRET_KEY'] = None
+
+        Config.validate_security_config(app.config)
+
+        assert app.config['SECRET_KEY'], 'SECRET_KEY should be generated in CI'
+        assert app.config['JWT_SECRET_KEY'], 'JWT_SECRET_KEY should be generated in CI'
+        assert app.config['SECRET_KEY'] != app.config['JWT_SECRET_KEY'], 'Generated secrets should differ'
+
+    finally:
+        for key, value in original_env.items():
+            if value is not None:
+                os.environ[key] = value
+            elif key in os.environ:
+                del os.environ[key]
 
 
 def test_secrets_work_when_provided():

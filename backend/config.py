@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -177,17 +178,45 @@ class Config:
         # Check if we're in testing mode
         is_testing = os.environ.get('FLASK_ENV') == 'testing' or app_config.get('TESTING', False)
 
-        if not is_testing:
-            if not app_config.get('SECRET_KEY'):
-                raise RuntimeError(
-                    'SECRET_KEY must be set in production. '
-                    'Set the SECRET_KEY environment variable or app.config["SECRET_KEY"]. '
-                    'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
-                )
+        if is_testing:
+            return
 
-            if not app_config.get('JWT_SECRET_KEY'):
-                raise RuntimeError(
-                    'JWT_SECRET_KEY must be set in production. '
-                    'Set the JWT_SECRET_KEY environment variable or app.config["JWT_SECRET_KEY"]. '
-                    'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+        # Determine runtime environment context
+        env_value = (
+            app_config.get('ENV')
+            or os.environ.get('FLASK_ENV')
+            or os.environ.get('ENVIRONMENT')
+            or ''
+        ).strip().lower()
+        truthy_ci_values = {'true', '1', 'yes', 'on'}
+        is_ci = (
+            os.environ.get('CI', '').strip().lower() in truthy_ci_values
+            or os.environ.get('GITHUB_ACTIONS', '').strip().lower() in truthy_ci_values
+        )
+        is_development = (
+            env_value in {'development', 'dev'}
+            or bool(app_config.get('DEBUG'))
+        )
+        env_label = f"{env_value} environment" if env_value else "the current environment"
+
+        def _ensure_key(config_key: str, description: str) -> None:
+            if app_config.get(config_key):
+                return
+
+            if is_ci or is_development:
+                generated_key = secrets.token_urlsafe(64)
+                app_config[config_key] = generated_key
+                print(
+                    f"Generated ephemeral {description} for CI/development environment. "
+                    "Set an explicit value via environment variables for non-development deployments."
                 )
+                return
+
+            raise RuntimeError(
+                f"{config_key} must be set for {env_label} when running outside CI or development. "
+                f'Set the {config_key} environment variable or app.config["{config_key}"]. '
+                'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+            )
+
+        _ensure_key('SECRET_KEY', 'Flask SECRET_KEY')
+        _ensure_key('JWT_SECRET_KEY', 'JWT secret key')
