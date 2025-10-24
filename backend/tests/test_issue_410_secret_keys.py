@@ -156,6 +156,45 @@ def test_secrets_allowed_in_testing_mode():
             del os.environ['JWT_SECRET_KEY']
 
 
+def test_ephemeral_secrets_generated_in_ci_environment():
+    """Ensure CI environments receive generated secrets instead of raising errors."""
+    from flask import Flask
+    from config import Config
+
+    original_env = {
+        'SECRET_KEY': os.environ.get('SECRET_KEY'),
+        'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
+        'FLASK_ENV': os.environ.get('FLASK_ENV'),
+        'CI': os.environ.get('CI'),
+        'GITHUB_ACTIONS': os.environ.get('GITHUB_ACTIONS'),
+    }
+
+    try:
+        for key in ('SECRET_KEY', 'JWT_SECRET_KEY', 'GITHUB_ACTIONS'):
+            if key in os.environ:
+                del os.environ[key]
+        os.environ['FLASK_ENV'] = 'production'
+        os.environ['CI'] = 'true'
+
+        app = Flask(__name__)
+        app.config['TESTING'] = False
+        app.config['SECRET_KEY'] = None
+        app.config['JWT_SECRET_KEY'] = None
+
+        Config.validate_security_config(app.config)
+
+        assert app.config['SECRET_KEY'], 'SECRET_KEY should be generated in CI'
+        assert app.config['JWT_SECRET_KEY'], 'JWT_SECRET_KEY should be generated in CI'
+        assert app.config['SECRET_KEY'] != app.config['JWT_SECRET_KEY'], 'Generated secrets should differ'
+
+    finally:
+        for key, value in original_env.items():
+            if value is not None:
+                os.environ[key] = value
+            elif key in os.environ:
+                del os.environ[key]
+
+
 def test_secrets_work_when_provided():
     """Test that application works correctly when secrets are provided"""
     # Save original environment
