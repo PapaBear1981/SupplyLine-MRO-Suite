@@ -34,7 +34,7 @@ const PASSWORD_SELECTOR = [
 ].join(', ');
 
 const LOGIN_BUTTON_SELECTOR = 'button[type="submit"], button:has-text("Sign In"), button:has-text("Login")';
-const LOGIN_SUCCESS_URL_PATTERN = /\/(?:$|dashboard(?:[\/?#]|$))/;
+const LOGIN_SUCCESS_URL_PATTERN = /\/(?:$|dashboard(?:[/?#]|$))/;
 const LOGIN_ERROR_SELECTOR = [
   '.login-alert.login-alert-danger',
   '.login-alert-danger',
