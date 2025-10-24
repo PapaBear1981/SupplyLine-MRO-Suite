@@ -29,15 +29,16 @@ def test_secret_key_required_in_production():
             del os.environ['JWT_SECRET_KEY']
         os.environ['FLASK_ENV'] = 'production'
 
-        # Creating app with Config.validate_security_config should raise RuntimeError
+        # Test Config.validate_security_config directly with missing keys
         with pytest.raises(RuntimeError, match='SECRET_KEY must be set for production environment'):
-            app = Flask(__name__)
-            # Don't use from_object since Config class loads from environment at class definition time
-            # Instead, manually set TESTING=False to simulate production
-            app.config['TESTING'] = False
-            app.config['SECRET_KEY'] = None  # Explicitly set to None
-            app.config['JWT_SECRET_KEY'] = None  # Explicitly set to None
-            Config.validate_security_config(app.config)
+            test_config = {
+                'TESTING': False,
+                'SECRET_KEY': None,
+                'JWT_SECRET_KEY': None,
+                'FLASK_ENV': 'production',
+                'ENVIRONMENT': 'production'
+            }
+            Config.validate_security_config(test_config)
 
     finally:
         # Restore original environment
@@ -74,15 +75,16 @@ def test_jwt_secret_key_required_in_production():
             del os.environ['JWT_SECRET_KEY']
         os.environ['FLASK_ENV'] = 'production'
 
-        # Creating app with Config.validate_security_config should raise RuntimeError
+        # Test Config.validate_security_config directly with missing JWT key
         with pytest.raises(RuntimeError, match='JWT_SECRET_KEY must be set for production environment'):
-            app = Flask(__name__)
-            # Don't use from_object since Config class loads from environment at class definition time
-            # Instead, manually set config values
-            app.config['TESTING'] = False
-            app.config['SECRET_KEY'] = 'test-secret-for-validation'
-            app.config['JWT_SECRET_KEY'] = None  # Explicitly set to None
-            Config.validate_security_config(app.config)
+            test_config = {
+                'TESTING': False,
+                'SECRET_KEY': 'test-secret-for-validation',
+                'JWT_SECRET_KEY': None,
+                'FLASK_ENV': 'production',
+                'ENVIRONMENT': 'production'
+            }
+            Config.validate_security_config(test_config)
 
     finally:
         # Restore original environment
@@ -121,14 +123,16 @@ def test_secret_key_required_in_staging_like_environment():
         os.environ['FLASK_ENV'] = 'staging'
         os.environ['ENVIRONMENT'] = 'staging'
 
-        app = Flask(__name__)
-        app.config['TESTING'] = False
-        app.config['SECRET_KEY'] = None
-        app.config['JWT_SECRET_KEY'] = None
-
-        # Creating app with Config.validate_security_config should raise RuntimeError
+        # Test Config.validate_security_config directly with missing keys
         with pytest.raises(RuntimeError, match='SECRET_KEY must be set for staging environment'):
-            Config.validate_security_config(app.config)
+            test_config = {
+                'TESTING': False,
+                'SECRET_KEY': None,
+                'JWT_SECRET_KEY': None,
+                'FLASK_ENV': 'staging',
+                'ENVIRONMENT': 'staging'
+            }
+            Config.validate_security_config(test_config)
 
     finally:
         for key, value in original_env.items():
