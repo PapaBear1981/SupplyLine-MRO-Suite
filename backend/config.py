@@ -188,30 +188,34 @@ class Config:
             or os.environ.get('ENVIRONMENT')
             or ''
         ).strip().lower()
-        is_production = env_value in {'production', 'prod'}
         truthy_ci_values = {'true', '1', 'yes', 'on'}
         is_ci = (
             os.environ.get('CI', '').strip().lower() in truthy_ci_values
             or os.environ.get('GITHUB_ACTIONS', '').strip().lower() in truthy_ci_values
         )
-        is_development = env_value in {'development', 'dev'} or bool(app_config.get('DEBUG'))
+        is_development = (
+            env_value in {'development', 'dev'}
+            or bool(app_config.get('DEBUG'))
+        )
+        env_label = f"{env_value} environment" if env_value else "the current environment"
 
         def _ensure_key(config_key: str, description: str) -> None:
             if app_config.get(config_key):
                 return
 
-            if is_production and not is_ci and not is_development:
-                raise RuntimeError(
-                    f"{config_key} must be set in production. "
-                    f'Set the {config_key} environment variable or app.config["{config_key}"]. '
-                    'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+            if is_ci or is_development:
+                generated_key = secrets.token_urlsafe(64)
+                app_config[config_key] = generated_key
+                print(
+                    f"Generated ephemeral {description} for CI/development environment. "
+                    "Set an explicit value via environment variables for non-development deployments."
                 )
+                return
 
-            generated_key = secrets.token_urlsafe(64)
-            app_config[config_key] = generated_key
-            print(
-                f"Generated ephemeral {description} for non-production environment. "
-                "Set an explicit value via environment variables for production deployments."
+            raise RuntimeError(
+                f"{config_key} must be set for {env_label} when running outside CI or development. "
+                f'Set the {config_key} environment variable or app.config["{config_key}"]. '
+                'Generate a secure key using: python -c "import secrets; print(secrets.token_urlsafe(64))"'
             )
 
         _ensure_key('SECRET_KEY', 'Flask SECRET_KEY')
