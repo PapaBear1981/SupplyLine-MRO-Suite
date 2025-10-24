@@ -233,6 +233,7 @@ def register_kit_transfer_routes(app):
                         destination_warehouse_id=dest_warehouse_id
                     )
                     db.session.add(child_chemical)
+                    db.session.flush()
                 else:
                     if transfer.to_location_type == 'warehouse':
                         source_chemical.warehouse_id = dest_warehouse_id
@@ -331,9 +332,12 @@ def register_kit_transfer_routes(app):
                     if not actual_item:
                         raise ValidationError('Tool not found')
                 else:
-                    actual_item = Chemical.query.get(actual_item_id)
-                    if not actual_item:
-                        raise ValidationError('Chemical not found')
+                    if transfer.item_type == 'chemical' and child_chemical:
+                        actual_item = child_chemical
+                    else:
+                        actual_item = Chemical.query.get(actual_item_id)
+                        if not actual_item:
+                            raise ValidationError('Chemical not found')
 
                 new_item = KitItem(
                     kit_id=transfer.to_location_id,
