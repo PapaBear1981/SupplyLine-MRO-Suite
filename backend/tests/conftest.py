@@ -8,6 +8,7 @@ import tempfile
 from datetime import datetime
 
 import pytest
+from sqlalchemy import text
 
 # Add the backend directory to the Python path
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,20 +107,28 @@ def _db(app):
 
 @pytest.fixture(scope='function')
 def db_session(app, _db):
-    """Create a fresh database session for each test"""
+    """Provide a clean database session for each test."""
     with app.app_context():
-        connection = _db.engine.connect()
-        transaction = connection.begin()
+        try:
+            yield _db.session
+        finally:
+            # Ensure the session itself is in a clean state before truncation.
+            _db.session.rollback()
 
-        # Configure session to use the connection
-        _db.session.configure(bind=connection)
+            # Use a dedicated transaction to wipe all tables so that data
+            # created in one test never bleeds into the next one.
+            engine = _db.engine
+            with engine.begin() as connection:
+                if engine.dialect.name == 'sqlite':
+                    connection.execute(text('PRAGMA foreign_keys = OFF'))
 
-        yield _db.session
+                for table in reversed(_db.metadata.sorted_tables):
+                    connection.execute(table.delete())
 
-        # Rollback transaction and close connection
-        transaction.rollback()
-        connection.close()
-        _db.session.remove()
+                if engine.dialect.name == 'sqlite':
+                    connection.execute(text('PRAGMA foreign_keys = ON'))
+
+            _db.session.remove()
 
 @pytest.fixture
 def client(app, db_session):
