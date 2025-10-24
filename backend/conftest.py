@@ -102,6 +102,8 @@ def app():
             os.environ.pop('FLASK_ENV', None)
 
         # Dispose of the database engine connection to release the file handle on Windows
+        # Explicitly close session and dispose engine to prevent Windows PermissionError
+        db.session.close()
         db.engine.dispose()
 
         os.unlink(db_path)
