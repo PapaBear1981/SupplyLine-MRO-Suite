@@ -126,6 +126,7 @@ def test_secret_key_required_in_staging_like_environment():
         app.config['SECRET_KEY'] = None
         app.config['JWT_SECRET_KEY'] = None
 
+        # Creating app with Config.validate_security_config should raise RuntimeError
         with pytest.raises(RuntimeError, match='SECRET_KEY must be set for staging environment'):
             Config.validate_security_config(app.config)
 
@@ -243,15 +244,12 @@ def test_secrets_work_when_provided():
         os.environ['JWT_SECRET_KEY'] = 'test-jwt-secret-key-for-validation'
         os.environ['FLASK_ENV'] = 'production'
 
-        # Force reload of config module
-        if 'config' in sys.modules:
-            del sys.modules['config']
-
         # This should work fine
-        import config
+        from app import create_app
+        app = create_app()
 
-        assert config.Config.SECRET_KEY == 'test-secret-key-for-validation'
-        assert config.Config.JWT_SECRET_KEY == 'test-jwt-secret-key-for-validation'
+        assert app.config['SECRET_KEY'] == 'test-secret-key-for-validation'
+        assert app.config['JWT_SECRET_KEY'] == 'test-jwt-secret-key-for-validation'
 
     finally:
         # Restore original environment
