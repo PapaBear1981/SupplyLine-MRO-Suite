@@ -81,14 +81,14 @@ const KitAnalyticsModal = ({
       backdrop="static"
       className="kit-analytics-modal"
     >
-      <Modal.Header closeButton className="bg-primary text-white py-3">
+      <Modal.Header closeButton className="py-3">
         <Modal.Title className="d-flex align-items-center gap-2">
           <FaChartBar />
           Kit Analytics
         </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body className="bg-light">
+      <Modal.Body>
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
           <div>
             <h4 className="mb-1">{kitName || 'Selected Kit'}</h4>
@@ -215,7 +215,7 @@ const KitAnalyticsModal = ({
             <Row className="g-3">
               <Col lg={6}>
                 <Card className="shadow-sm h-100 border-0">
-                  <Card.Header className="bg-white">
+                  <Card.Header>
                     <FaExchangeAlt className="me-2 text-primary" />
                     Transfer Flow
                   </Card.Header>
@@ -258,7 +258,7 @@ const KitAnalyticsModal = ({
 
               <Col lg={6}>
                 <Card className="shadow-sm h-100 border-0">
-                  <Card.Header className="bg-white">
+                  <Card.Header>
                     <FaBoxOpen className="me-2 text-warning" />
                     Inventory & Reorders
                   </Card.Header>
