@@ -200,7 +200,8 @@ class Config:
         env_label = f"{env_value} environment" if env_value else "the current environment"
 
         def _ensure_key(config_key: str, description: str) -> None:
-            if app_config.get(config_key):
+            key_value = app_config.get(config_key)
+            if key_value is not None and key_value != '':
                 return
 
             if is_ci or is_development:
