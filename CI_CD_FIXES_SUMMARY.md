@@ -54,10 +54,6 @@ Fixed critical issues in the GitHub Actions CI/CD pipeline that were causing tes
 **After**:
 ```yaml
 backend-test:
-  env:
-    FLASK_ENV: testing
-    SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
-    JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
   steps:
     - name: Run all pytest tests
       run: |
@@ -68,7 +64,8 @@ backend-test:
 **Changes**:
 - ✅ Removed `|| true` from all pytest commands (tests now properly fail when they should)
 - ✅ Consolidated redundant test runs into single comprehensive test run
-- ✅ Added required environment variables at job level
+- ✅ **Removed environment variables from job level** - Test fixtures in `conftest.py` handle setting SECRET_KEY and JWT_SECRET_KEY
+- ✅ This allows security validation tests (`test_issue_410_secret_keys.py`) to properly test that the app requires these keys in production
 - ✅ Tests now properly report failures
 
 ### 2. Fixed E2E Test Job (`.github/workflows/ci.yml`)

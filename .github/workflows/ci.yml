@@ -68,10 +68,6 @@ jobs:
     name: Backend Testing
     runs-on: ubuntu-latest
     needs: backend-lint
-    env:
-      FLASK_ENV: testing
-      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
-      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
