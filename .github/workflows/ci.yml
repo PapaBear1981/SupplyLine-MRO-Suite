@@ -153,6 +153,13 @@ jobs:
           nohup python run.py > backend.log 2>&1 &
           echo $! > backend.pid
           sleep 15
+        env:
+          FLASK_ENV: testing
+          FLASK_HOST: 127.0.0.1
+          FLASK_PORT: 5000
+          DATABASE_URL: sqlite:///test.db
+          SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+          JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
 
       - name: Verify backend is running
         run: |
