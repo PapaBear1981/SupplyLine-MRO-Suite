@@ -10,12 +10,14 @@ test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.fill('input[placeholder="Enter employee number"]', TEST_USER.username);
-    await page.fill('input[placeholder="Password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
+    await page.fill('input[placeholder="Enter your employee number"]', TEST_USER.username);
+    await page.fill('input[placeholder="Enter your password"]', TEST_USER.password);
 
-    // Wait for dashboard to load (redirects to root '/')
-    await expect(page).toHaveURL('/');
+    // Submit form and wait for navigation
+    await Promise.all([
+      page.waitForURL('/dashboard', { timeout: 10000 }),
+      page.click('button[type="submit"]')
+    ]);
 
     // Wait for dashboard content to be visible
     await expect(page.locator('[data-testid="dashboard-content"]')).toBeVisible();
