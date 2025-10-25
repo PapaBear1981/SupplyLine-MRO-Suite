@@ -13,15 +13,15 @@ test.describe('Frontend Security Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for login form to be visible
-    await expect(page.locator('input[placeholder="Enter employee number"]')).toBeVisible();
+    await expect(page.locator('#formUsername')).toBeVisible();
 
     // Try XSS payload in employee number field
     const xssPayload = '<script>window.xssExecuted = true;</script>';
-    await page.fill('input[placeholder="Enter employee number"]', xssPayload);
-    await page.fill('input[placeholder="Password"]', 'anypassword');
+    await page.fill('#formUsername', xssPayload);
+    await page.fill('#formPassword', 'anypassword');
 
     // Submit the form
-    await page.click('button[type="submit"]');
+    await page.click('button.login-submit-btn');
 
     // Wait for response
     await page.waitForLoadState('networkidle');
@@ -33,7 +33,7 @@ test.describe('Frontend Security Tests', () => {
     // Check that the input value is stored (browsers don't execute scripts in input values)
     // The input field will contain the raw text, which is expected behavior
     // XSS protection happens when rendering, not in input storage
-    const inputValue = await page.inputValue('input[placeholder="Enter employee number"]');
+    const inputValue = await page.inputValue('#formUsername');
     // The input will contain the script tag as text, which is safe
     expect(inputValue).toBe(xssPayload);
   });
@@ -44,9 +44,9 @@ test.describe('Frontend Security Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Login with valid credentials
-    await page.fill('input[placeholder="Enter employee number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
+    await page.fill('#formUsername', 'USER001');
+    await page.fill('#formPassword', 'user123');
+    await page.click('button.login-submit-btn');
 
     // Wait for potential redirect
     await page.waitForLoadState('networkidle');
@@ -142,11 +142,11 @@ test.describe('Frontend Security Tests', () => {
 
     for (const maliciousInput of maliciousInputs) {
       // Clear and fill the employee number field
-      await page.fill('input[placeholder="Enter employee number"]', '');
-      await page.fill('input[placeholder="Enter employee number"]', maliciousInput);
+      await page.fill('#formUsername', '');
+      await page.fill('#formUsername', maliciousInput);
 
       // Submit the form
-      await page.click('button[type="submit"]');
+      await page.click('button.login-submit-btn');
 
       // Wait for response
       await page.waitForTimeout(600);
@@ -156,7 +156,7 @@ test.describe('Frontend Security Tests', () => {
       expect(xssExecuted).toBeFalsy();
 
       // Check that the page is still functional
-      const isLoginPageStillVisible = await page.locator('input[placeholder="Enter employee number"]').isVisible();
+      const isLoginPageStillVisible = await page.locator('#formUsername').isVisible();
       expect(isLoginPageStillVisible).toBeTruthy();
     }
   });
@@ -172,9 +172,9 @@ test.describe('Frontend Security Tests', () => {
     await expect(page).toHaveURL('/login');
 
     // Login with valid credentials
-    await page.fill('input[placeholder="Enter employee number"]', 'USER001');
-    await page.fill('input[placeholder="Password"]', 'user123');
-    await page.click('button[type="submit"]');
+    await page.fill('#formUsername', 'USER001');
+    await page.fill('#formPassword', 'user123');
+    await page.click('button.login-submit-btn');
 
     // Wait for redirect to dashboard or stay on login if credentials are wrong
     await page.waitForLoadState('networkidle');
@@ -217,11 +217,11 @@ test.describe('Frontend Security Tests', () => {
     // Test with extremely long input
     const veryLongString = 'A'.repeat(10000);
 
-    await page.fill('input[placeholder="Enter employee number"]', veryLongString);
-    await page.fill('input[placeholder="Password"]', veryLongString);
+    await page.fill('#formUsername', veryLongString);
+    await page.fill('#formPassword', veryLongString);
 
     // Submit the form
-    await page.click('button[type="submit"]');
+    await page.click('button.login-submit-btn');
 
     // Wait for response
     await page.waitForLoadState('networkidle');
@@ -232,13 +232,13 @@ test.describe('Frontend Security Tests', () => {
 
     // Check if page is still responsive by looking for the login form
     // Use a more flexible selector
-    const loginFormVisible = await page.locator('form, input[type="text"], input[type="password"]').first().isVisible().catch(() => false);
+    const loginFormVisible = await page.locator('form, #formUsername, #formPassword').first().isVisible().catch(() => false);
     expect(loginFormVisible).toBeTruthy();
 
     // If the input field is still visible, check the value
-    const inputVisible = await page.locator('input[placeholder*="employee" i], input[name="employee_number"]').isVisible().catch(() => false);
+    const inputVisible = await page.locator('#formUsername').isVisible().catch(() => false);
     if (inputVisible) {
-      const actualValue = await page.inputValue('input[placeholder*="employee" i], input[name="employee_number"]');
+      const actualValue = await page.inputValue('#formUsername');
       // The browser may have accepted the long string, which is OK - we just verify no crash
       expect(actualValue).toBeDefined();
     }
