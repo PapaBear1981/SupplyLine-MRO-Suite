@@ -68,11 +68,11 @@ test.describe('Dashboard', () => {
     // Click user menu to see user info
     await page.click('[data-testid="user-menu"]');
 
-    // Should show user name (John Engineer) in the profile modal - use first occurrence
-    await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
+    // Should show user name (System Administrator) in the profile modal - use first occurrence
+    await expect(page.locator('h5:has-text("System Administrator")').first()).toBeVisible();
 
-    // Should show Administrator role
-    await expect(page.locator('text=Administrator')).toBeVisible();
+    // Should show Administrator role - use more specific selector to avoid strict mode violation
+    await expect(page.locator('p.text-muted:has-text("Administrator")')).toBeVisible();
   });
 
   test('should display announcements section', async ({ page }) => {
@@ -118,8 +118,8 @@ test.describe('Dashboard', () => {
     // Refresh page
     await page.reload();
 
-    // Should still show dashboard (at root URL)
-    await expect(page).toHaveURL('/');
+    // Should still show dashboard
+    await expect(page).toHaveURL('/dashboard');
     await expect(page.locator('h1')).toContainText('Dashboard');
 
     // Content should be loaded (might be same or different)

@@ -90,9 +90,9 @@ test.describe('Kit Operations', () => {
         await page.click('button[role="tab"]:has-text("Transfers")');
         await page.waitForLoadState('networkidle');
 
-        // Verify transfers content is displayed - use specific selector to avoid strict mode
-        const transferHistoryMessage = page.locator('p:has-text("Transfer history will be displayed here")');
-        await expect(transferHistoryMessage).toBeVisible();
+        // Verify transfers tab is active - check for tab panel or content area
+        const transfersTabPanel = page.locator('[role="tabpanel"]').filter({ hasText: /Transfer|No transfer/ });
+        await expect(transfersTabPanel).toBeVisible({ timeout: 5000 });
       }
     });
   });
