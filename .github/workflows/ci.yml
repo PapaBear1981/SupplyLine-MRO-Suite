@@ -68,6 +68,10 @@ jobs:
     name: Backend Testing
     runs-on: ubuntu-latest
     needs: backend-lint
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -84,21 +88,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest-github-actions-annotate-failures
-
-      - name: Run pytest (unit tests)
-        run: |
-          cd backend
-          pytest -v -m "unit" --tb=short --color=yes || true
-
-      - name: Run pytest (integration tests)
-        run: |
-          cd backend
-          pytest -v -m "integration" --tb=short --color=yes || true
-
-      - name: Run pytest (auth tests)
-        run: |
-          cd backend
-          pytest -v -m "auth" --tb=short --color=yes || true
 
       - name: Run all pytest tests
         run: |
@@ -118,6 +107,12 @@ jobs:
     name: Frontend E2E Testing
     runs-on: ubuntu-latest
     needs: frontend-lint
+    timeout-minutes: 30
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
+      DATABASE_URL: sqlite:///test.db
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -155,9 +150,6 @@ jobs:
         run: |
           cd backend
           python seed_e2e_test_data.py
-        env:
-          FLASK_ENV: testing
-          DATABASE_URL: sqlite:///test.db
 
       - name: Start backend server
         run: |
@@ -165,11 +157,6 @@ jobs:
           nohup python run.py > backend.log 2>&1 &
           echo $! > backend.pid
           sleep 15
-        env:
-          FLASK_ENV: testing
-          FLASK_HOST: 127.0.0.1
-          FLASK_PORT: 5000
-          DATABASE_URL: sqlite:///test.db
 
       - name: Verify backend is running
         run: |
@@ -188,9 +175,11 @@ jobs:
       - name: Run Playwright E2E tests
         run: |
           cd frontend
-          npx playwright test --project=chromium --reporter=html,json,junit
+          npx playwright test --project=chromium --reporter=list,html,json,junit --max-failures=5
+        timeout-minutes: 15
         env:
           CI: true
+          VITE_API_URL: http://127.0.0.1:5000
 
       - name: Stop backend server
         if: always()
@@ -198,6 +187,14 @@ jobs:
           if [ -f backend/backend.pid ]; then
             kill $(cat backend/backend.pid) || true
           fi
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-logs
+          path: backend/backend.log
+          retention-days: 7
 
       - name: Upload Playwright report
         if: always()
@@ -220,6 +217,10 @@ jobs:
     name: Backend Build Verification
     runs-on: ubuntu-latest
     needs: backend-test
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
