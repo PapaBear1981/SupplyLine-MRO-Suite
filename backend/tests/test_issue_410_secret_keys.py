@@ -20,6 +20,8 @@ def test_secret_key_required_in_production():
     original_secret = os.environ.get('SECRET_KEY')
     original_jwt_secret = os.environ.get('JWT_SECRET_KEY')
     original_flask_env = os.environ.get('FLASK_ENV')
+    original_ci = os.environ.get('CI')
+    original_github_actions = os.environ.get('GITHUB_ACTIONS')
 
     try:
         # Remove secrets and set production mode
@@ -27,6 +29,11 @@ def test_secret_key_required_in_production():
             del os.environ['SECRET_KEY']
         if 'JWT_SECRET_KEY' in os.environ:
             del os.environ['JWT_SECRET_KEY']
+        # Remove CI flags to test actual production behavior
+        if 'CI' in os.environ:
+            del os.environ['CI']
+        if 'GITHUB_ACTIONS' in os.environ:
+            del os.environ['GITHUB_ACTIONS']
         os.environ['FLASK_ENV'] = 'production'
 
         # Test Config.validate_security_config directly with missing keys
@@ -57,6 +64,16 @@ def test_secret_key_required_in_production():
         elif 'FLASK_ENV' in os.environ:
             del os.environ['FLASK_ENV']
 
+        if original_ci:
+            os.environ['CI'] = original_ci
+        elif 'CI' in os.environ:
+            del os.environ['CI']
+
+        if original_github_actions:
+            os.environ['GITHUB_ACTIONS'] = original_github_actions
+        elif 'GITHUB_ACTIONS' in os.environ:
+            del os.environ['GITHUB_ACTIONS']
+
 
 def test_jwt_secret_key_required_in_production():
     """Test that JWT_SECRET_KEY is required when not in testing mode"""
@@ -67,12 +84,19 @@ def test_jwt_secret_key_required_in_production():
     original_secret = os.environ.get('SECRET_KEY')
     original_jwt_secret = os.environ.get('JWT_SECRET_KEY')
     original_flask_env = os.environ.get('FLASK_ENV')
+    original_ci = os.environ.get('CI')
+    original_github_actions = os.environ.get('GITHUB_ACTIONS')
 
     try:
         # Set SECRET_KEY but remove JWT_SECRET_KEY
         os.environ['SECRET_KEY'] = 'test-secret-for-validation'
         if 'JWT_SECRET_KEY' in os.environ:
             del os.environ['JWT_SECRET_KEY']
+        # Remove CI flags to test actual production behavior
+        if 'CI' in os.environ:
+            del os.environ['CI']
+        if 'GITHUB_ACTIONS' in os.environ:
+            del os.environ['GITHUB_ACTIONS']
         os.environ['FLASK_ENV'] = 'production'
 
         # Test Config.validate_security_config directly with missing JWT key
@@ -103,6 +127,16 @@ def test_jwt_secret_key_required_in_production():
         elif 'FLASK_ENV' in os.environ:
             del os.environ['FLASK_ENV']
 
+        if original_ci:
+            os.environ['CI'] = original_ci
+        elif 'CI' in os.environ:
+            del os.environ['CI']
+
+        if original_github_actions:
+            os.environ['GITHUB_ACTIONS'] = original_github_actions
+        elif 'GITHUB_ACTIONS' in os.environ:
+            del os.environ['GITHUB_ACTIONS']
+
 
 def test_secret_key_required_in_staging_like_environment():
     """Ensure staging-like deployments require explicit secrets."""
@@ -114,10 +148,12 @@ def test_secret_key_required_in_staging_like_environment():
         'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
         'FLASK_ENV': os.environ.get('FLASK_ENV'),
         'ENVIRONMENT': os.environ.get('ENVIRONMENT'),
+        'CI': os.environ.get('CI'),
+        'GITHUB_ACTIONS': os.environ.get('GITHUB_ACTIONS'),
     }
 
     try:
-        for key in ('SECRET_KEY', 'JWT_SECRET_KEY'):
+        for key in ('SECRET_KEY', 'JWT_SECRET_KEY', 'CI', 'GITHUB_ACTIONS'):
             if key in os.environ:
                 del os.environ[key]
         os.environ['FLASK_ENV'] = 'staging'
