@@ -91,6 +91,24 @@ jobs:
           find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
+      - name: Debug model columns
+        run: |
+          cd backend
+          python -c "
+          import sys
+          import os
+          sys.path.insert(0, os.getcwd())
+          os.environ['FLASK_ENV'] = 'testing'
+          os.environ['DATABASE_URL'] = 'sqlite:///test.db'
+          from app import create_app
+          from models_kits import KitReorderRequest
+          app = create_app()
+          with app.app_context():
+              print('KitReorderRequest columns:')
+              for col in KitReorderRequest.__table__.columns:
+                  print(f'  - {col.name}: {col.type}')
+          "
+
       - name: Run all pytest tests
         run: |
           cd backend
