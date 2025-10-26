@@ -124,9 +124,11 @@ def run_migration():
         if db_url.startswith('sqlite:///'):
             db_path = db_url.replace('sqlite:///', '')
             if not os.path.isabs(db_path):
-                # Make path absolute relative to backend directory
-                backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                db_path = os.path.join(backend_dir, db_path)
+                # Make path absolute relative to repository root (3 levels up from this file)
+                # migrations -> backend -> repo root
+                repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                db_path = os.path.join(repo_root, db_path)
+            print(f"  Using database at: {db_path}")
         else:
             print(f"  ⚠️  Warning: Non-SQLite database detected. Using ORM queries.")
             db_path = None
