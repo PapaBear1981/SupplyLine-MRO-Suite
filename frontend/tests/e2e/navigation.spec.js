@@ -139,7 +139,7 @@ test.describe('Navigation', () => {
     await page.click('[data-testid="user-menu"]');
 
     // Should show profile modal with user information and logout button - use first occurrence
-    await expect(page.locator('h5:has-text("System Administrator")').first()).toBeVisible();
+    await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
     await expect(page.locator('text=Logout')).toBeVisible();
   });
 
@@ -148,7 +148,7 @@ test.describe('Navigation', () => {
     await page.click('[data-testid="user-menu"]');
 
     // Should show profile modal with user details - use first occurrence
-    await expect(page.locator('h5:has-text("System Administrator")').first()).toBeVisible();
+    await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
     // Profile modal doesn't show employee number, only role - use more specific selector to avoid strict mode violation
     await expect(page.locator('p.text-muted:has-text("Administrator")')).toBeVisible();
 
