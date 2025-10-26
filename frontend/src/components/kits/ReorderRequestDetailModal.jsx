@@ -45,7 +45,8 @@ const ReorderRequestDetailModal = ({
       alert('Please select a box to place the item');
       return;
     }
-    onFulfill(request.id, selectedBox);
+    // Convert selectedBox to integer before sending
+    onFulfill(request.id, parseInt(selectedBox, 10));
   };
 
   const formatDate = (dateString) => {
