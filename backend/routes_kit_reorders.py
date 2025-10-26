@@ -5,7 +5,7 @@ This module provides API endpoints for managing reorder requests for kits.
 """
 
 from flask import request, jsonify, current_app
-from models import db, AuditLog, Tool, Chemical, Warehouse, WarehouseTransfer
+from models import db, AuditLog
 from models_kits import Kit, KitReorderRequest, KitExpendable, KitItem, KitBox
 from datetime import datetime
 from auth import jwt_required, department_required
@@ -200,10 +200,13 @@ def register_kit_reorder_routes(app):
         if reorder.status != 'ordered':
             raise ValidationError('Can only fulfill ordered requests')
 
+        # Import models needed for fulfillment
+        from models import Tool, Chemical, Warehouse, WarehouseTransfer
+        from models_kits import KitBox
+
         # Get box_id from request body (optional - default to first box)
         data = request.get_json(silent=True) or {}
         logger.info(f"Request data: {data}")
-        from models_kits import KitBox
 
         box = None
         box_id = data.get('box_id')
