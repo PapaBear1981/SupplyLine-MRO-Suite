@@ -85,6 +85,12 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest-github-actions-annotate-failures
 
+      - name: Clear Python cache
+        run: |
+          cd backend
+          find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
       - name: Run all pytest tests
         run: |
           cd backend
