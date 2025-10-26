@@ -237,7 +237,9 @@ if __name__ == "__main__":
     is_development = os.environ.get('FLASK_ENV') == 'development'
     
     # B104: Restrict host binding unless explicitly set or in development
-    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0' if is_development else '127.0.0.1')
+    # nosec B104: Binding to 0.0.0.0 is intentional in development/Docker environments
+    # In production, this should be overridden via FLASK_RUN_HOST environment variable
+    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0' if is_development else '127.0.0.1')  # nosec B104
     port = int(os.environ.get('FLASK_RUN_PORT', 5000))
     # B201: Disable debug unless explicitly set or in development
     debug = os.environ.get('FLASK_DEBUG', 'True' if is_development else 'False').lower() in ('true', '1', 'yes')

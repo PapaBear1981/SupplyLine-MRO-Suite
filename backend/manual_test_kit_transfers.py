@@ -28,7 +28,7 @@ if not LOGIN_DATA["employee_number"] or not LOGIN_DATA["password"]:
 
 def login():
     """Login and get auth token"""
-    response = requests.post(f"{BASE_URL}/auth/login", json=LOGIN_DATA)
+    response = requests.post(f"{BASE_URL}/auth/login", json=LOGIN_DATA, timeout=10)
     if response.status_code == 200:
         token = response.json()['access_token']
         print("✓ Logged in successfully")
@@ -46,7 +46,7 @@ def get_headers(token):
 
 def get_kits(token):
     """Get all kits"""
-    response = requests.get(f"{BASE_URL}/kits", headers=get_headers(token))
+    response = requests.get(f"{BASE_URL}/kits", headers=get_headers(token), timeout=10)
     if response.status_code == 200:
         kits = response.json()
         print(f"\n✓ Found {len(kits)} kits:")
@@ -59,7 +59,7 @@ def get_kits(token):
 
 def get_kit_items(token, kit_id):
     """Get items in a kit"""
-    response = requests.get(f"{BASE_URL}/kits/{kit_id}/items", headers=get_headers(token))
+    response = requests.get(f"{BASE_URL}/kits/{kit_id}/items", headers=get_headers(token), timeout=10)
     if response.status_code == 200:
         data = response.json()
         items = data.get('items', [])
@@ -90,9 +90,10 @@ def transfer_item(token, from_kit_id, to_kit_id, item_type, item_id, quantity, b
     if box_id:
         transfer_data["box_id"] = box_id
     
-    response = requests.post(f"{BASE_URL}/transfers", 
-                            headers=get_headers(token), 
-                            json=transfer_data)
+    response = requests.post(f"{BASE_URL}/transfers",
+                            headers=get_headers(token),
+                            json=transfer_data,
+                            timeout=10)
     if response.status_code == 201:
         transfer = response.json()
         print(f"\n✓ Transfer created successfully (ID: {transfer['id']})")

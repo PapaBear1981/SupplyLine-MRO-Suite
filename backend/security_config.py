@@ -178,6 +178,7 @@ AUDIT_CONFIG = {
 }
 
 # File Upload Security
+import tempfile
 FILE_UPLOAD_CONFIG = {
     'max_file_size': 5 * 1024 * 1024,  # 5MB
     'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gi', '.pd', '.doc', '.docx', '.xls', '.xlsx'],
@@ -185,7 +186,8 @@ FILE_UPLOAD_CONFIG = {
     'scan_for_malware': True,
     'quarantine_suspicious': True,
     'upload_path': '/secure/uploads/',
-    'temp_path': '/tmp/uploads/',
+    # Use system temp directory instead of hardcoded /tmp for security
+    'temp_path': tempfile.gettempdir() + '/uploads/',  # nosec B108
 }
 
 # Database Security
