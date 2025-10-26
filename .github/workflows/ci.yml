@@ -146,6 +146,8 @@ jobs:
         run: |
           cd backend
           python seed_e2e_test_data.py
+        env:
+          DATABASE_URL: sqlite:///test.db
 
       - name: Start backend server
         run: |
