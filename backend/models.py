@@ -255,14 +255,23 @@ class User(db.Model):
 
     def get_permissions(self):
         """Get all permissions for this user from all roles"""
-        permissions = set()
-        # Access user_roles directly (not through association proxy)
-        # This ensures we get the actual UserRole objects with their relationships
-        for user_role in self.user_roles:
-            # Access role_permissions directly (not through association proxy)
-            for role_permission in user_role.role.role_permissions:
-                permissions.add(role_permission.permission.name)
-        return list(permissions)
+        # Use explicit SQL query to avoid lazy loading issues
+        # This ensures permissions are loaded even in different contexts (e.g., CI)
+        from sqlalchemy import select
+
+        # Query for all permissions through the user's roles
+        stmt = select(Permission.name).join(
+            RolePermission, Permission.id == RolePermission.permission_id
+        ).join(
+            Role, RolePermission.role_id == Role.id
+        ).join(
+            UserRole, Role.id == UserRole.role_id
+        ).where(
+            UserRole.user_id == self.id
+        ).distinct()
+
+        result = db.session.execute(stmt)
+        return [row[0] for row in result]
 
     def add_role(self, role):
         """Add a role to this user"""
