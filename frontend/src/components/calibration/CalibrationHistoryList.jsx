@@ -203,7 +203,7 @@ const CalibrationHistoryList = () => {
               {calibrations.map((calibration) => (
                 <tr key={calibration.id}>
                   <td>
-                    <Link to={`/tools/${calibration.tool_id}`}>
+                    <Link to={`/tools/${calibration.tool_id}?from=calibrations`}>
                       {calibration.tool_number} - {calibration.serial_number}
                     </Link>
                   </td>
