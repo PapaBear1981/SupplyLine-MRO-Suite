@@ -431,6 +431,7 @@ class KitReorderRequest(db.Model):
     fulfillment_date = db.Column(db.DateTime)
     notes = db.Column(db.String(1000))
     is_automatic = db.Column(db.Boolean, default=False)  # True if auto-generated
+    image_path = db.Column(db.String(500))  # Path to uploaded image for new item requests
 
     # Relationships
     kit = db.relationship('Kit', back_populates='reorder_requests')
@@ -460,6 +461,7 @@ class KitReorderRequest(db.Model):
             'fulfillment_date': self.fulfillment_date.isoformat() if self.fulfillment_date else None,
             'notes': self.notes,
             'is_automatic': self.is_automatic,
+            'image_path': self.image_path,
             'message_count': self.messages.count() if self.messages else 0
         }
 
