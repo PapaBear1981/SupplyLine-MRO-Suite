@@ -12,14 +12,15 @@ def run_migration():
     # Extract the path from the SQLite URL
     if database_url.startswith('sqlite:///'):
         db_path = database_url.replace('sqlite:///', '')
-        # If it's a relative path, make it relative to the backend directory
+        # If it's a relative path, resolve it relative to current working directory
         if not os.path.isabs(db_path):
-            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            db_path = os.path.join(backend_dir, db_path)
+            db_path = os.path.abspath(db_path)
     else:
         # Fallback to default path
         db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
-    
+
+    print(f"Using database at: {db_path}")
+
     # Check if the database exists
     if not os.path.exists(db_path):
         print(f"Database not found at {db_path}")
