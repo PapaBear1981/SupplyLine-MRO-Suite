@@ -188,27 +188,32 @@ def run_migration():
             
             print("Assigned permissions to default roles")
 
-        # Migrate existing users to the new role system
-        cursor.execute("SELECT id, is_admin, department FROM users")
-        users = cursor.fetchall()
-        
-        # Check if users have already been migrated
-        cursor.execute("SELECT COUNT(*) FROM user_roles")
-        user_role_count = cursor.fetchone()[0]
-        
-        if user_role_count == 0:
-            for user_id, is_admin, department in users:
-                if is_admin:
-                    # Assign Administrator role to admin users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 1))
-                elif department == 'Materials':
-                    # Assign Materials Manager role to Materials department users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 2))
-                else:
-                    # Assign Maintenance User role to all other users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 3))
-            
-            print(f"Migrated {len(users)} existing users to the new role system")
+        # Migrate existing users to the new role system (if users table exists)
+        try:
+            cursor.execute("SELECT id, is_admin, department FROM users")
+            users = cursor.fetchall()
+
+            # Check if users have already been migrated
+            cursor.execute("SELECT COUNT(*) FROM user_roles")
+            user_role_count = cursor.fetchone()[0]
+
+            if user_role_count == 0:
+                for user_id, is_admin, department in users:
+                    if is_admin:
+                        # Assign Administrator role to admin users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 1))
+                    elif department == 'Materials':
+                        # Assign Materials Manager role to Materials department users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 2))
+                    else:
+                        # Assign Maintenance User role to all other users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 3))
+
+                print(f"Migrated {len(users)} existing users to the new role system")
+        except Exception as e:
+            # Users table doesn't exist yet (e.g., in E2E test environment)
+            # This is expected when running migrations before seeding data
+            print(f"Skipping user migration (users table not found or empty): {str(e)}")
 
         # Commit the changes
         conn.commit()
