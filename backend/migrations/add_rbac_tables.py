@@ -12,9 +12,11 @@ def run_migration():
     # Extract the path from the SQLite URL
     if database_url.startswith('sqlite:///'):
         db_path = database_url.replace('sqlite:///', '')
-        # If it's a relative path, resolve it relative to current working directory
+        # If it's a relative path, resolve it relative to the repository root
         if not os.path.isabs(db_path):
-            db_path = os.path.abspath(db_path)
+            # Get the repository root (3 levels up from this file: migrations -> backend -> repo root)
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            db_path = os.path.join(repo_root, db_path)
     else:
         # Fallback to default path
         db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
