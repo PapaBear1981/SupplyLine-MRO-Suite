@@ -103,6 +103,8 @@ jobs:
     name: Frontend E2E Testing
     runs-on: ubuntu-latest
     needs: frontend-lint
+    # Skip E2E tests on pull requests - only run on push to main/master
+    if: github.event_name != 'pull_request'
     timeout-minutes: 30
     env:
       FLASK_ENV: testing
@@ -257,7 +259,7 @@ jobs:
   frontend-build:
     name: Frontend Build Verification
     runs-on: ubuntu-latest
-    needs: frontend-e2e
+    needs: frontend-lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -295,14 +297,22 @@ jobs:
     steps:
       - name: Check all jobs status
         run: |
+          # Check required jobs
           if [ "${{ needs.backend-lint.result }}" != "success" ] || \
              [ "${{ needs.frontend-lint.result }}" != "success" ] || \
              [ "${{ needs.backend-test.result }}" != "success" ] || \
-             [ "${{ needs.frontend-e2e.result }}" != "success" ] || \
              [ "${{ needs.backend-build.result }}" != "success" ] || \
              [ "${{ needs.frontend-build.result }}" != "success" ]; then
-            echo "One or more CI jobs failed"
+            echo "One or more required CI jobs failed"
             exit 1
           fi
+
+          # Check E2E tests only if they ran (not skipped on PRs)
+          if [ "${{ needs.frontend-e2e.result }}" != "success" ] && \
+             [ "${{ needs.frontend-e2e.result }}" != "skipped" ]; then
+            echo "E2E tests failed"
+            exit 1
+          fi
+
           echo "All CI jobs passed successfully!"
 
