@@ -23,11 +23,6 @@ def run_migration():
 
     print(f"Using database at: {db_path}")
 
-    # Check if the database exists
-    if not os.path.exists(db_path):
-        print(f"Database not found at {db_path}")
-        return False
-
     try:
         # Connect to the database
         conn = sqlite3.connect(db_path)
