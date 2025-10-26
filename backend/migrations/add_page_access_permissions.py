@@ -23,6 +23,7 @@ if sys.platform == 'win32':
 
 from app import create_app  # noqa: E402
 from models import db, Permission, Role, RolePermission  # noqa: E402
+import sqlite3
 
 
 def _ensure_security_defaults():
@@ -114,72 +115,130 @@ def run_migration():
         # Assign page permissions to roles
         print("\nAssigning page permissions to roles...")
 
-        # Flush the session to ensure all permissions are in the database
-        db.session.flush()
+        # Commit permissions first to ensure they're visible to raw SQL queries
+        db.session.commit()
 
-        # Get roles - use fresh queries to ensure we see committed data
-        db.session.expire_all()  # Clear the session cache
-        admin_role = Role.query.filter_by(name='Administrator').first()
-        materials_manager_role = Role.query.filter_by(name='Materials Manager').first()
-        maintenance_user_role = Role.query.filter_by(name='Maintenance User').first()
-        quality_inspector_role = Role.query.filter_by(name='Quality Inspector').first()
+        # Use raw SQL to query for roles since they were created in a separate process
+        # and SQLAlchemy ORM won't see them due to transaction isolation
+        db_url = os.environ.get('DATABASE_URL', 'sqlite:///database/tools.db')
+        if db_url.startswith('sqlite:///'):
+            db_path = db_url.replace('sqlite:///', '')
+            if not os.path.isabs(db_path):
+                # Make path absolute relative to backend directory
+                backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                db_path = os.path.join(backend_dir, db_path)
+        else:
+            print(f"  ⚠️  Warning: Non-SQLite database detected. Using ORM queries.")
+            db_path = None
 
-        if not admin_role or not materials_manager_role or not maintenance_user_role:
-            print("  ⚠️  Warning: Some default roles not found. Skipping role assignment.")
-            print(f"     admin_role: {admin_role}")
-            print(f"     materials_manager_role: {materials_manager_role}")
-            print(f"     maintenance_user_role: {maintenance_user_role}")
-            print("     You'll need to assign page permissions manually.")
-            return
-        
+        if db_path:
+            # Use raw SQL to get role IDs
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT id, name FROM roles WHERE name IN ('Administrator', 'Materials Manager', 'Maintenance User', 'Quality Inspector')")
+            roles_data = cursor.fetchall()
+            role_map = {name: role_id for role_id, name in roles_data}
+
+            conn.close()
+
+            if len(role_map) < 3:
+                print(f"  ⚠️  Warning: Some default roles not found. Found: {list(role_map.keys())}")
+                print("     You'll need to assign page permissions manually.")
+                return
+
+            print(f"  Found roles: {list(role_map.keys())}")
+        else:
+            # Fallback to ORM queries for non-SQLite databases
+            admin_role = Role.query.filter_by(name='Administrator').first()
+            materials_manager_role = Role.query.filter_by(name='Materials Manager').first()
+            maintenance_user_role = Role.query.filter_by(name='Maintenance User').first()
+            quality_inspector_role = Role.query.filter_by(name='Quality Inspector').first()
+
+            if not admin_role or not materials_manager_role or not maintenance_user_role:
+                print("  ⚠️  Warning: Some default roles not found. Skipping role assignment.")
+                print("     You'll need to assign page permissions manually.")
+                return
+
+            role_map = {
+                'Administrator': admin_role.id,
+                'Materials Manager': materials_manager_role.id,
+                'Maintenance User': maintenance_user_role.id,
+                'Quality Inspector': quality_inspector_role.id if quality_inspector_role else None
+            }
+
         # Administrator gets ALL page permissions
         print("\n  Administrator Role:")
-        for permission in created_permissions:
-            if not any(rp.permission_id == permission.id for rp in admin_role.role_permissions):
-                role_permission = RolePermission(
-                    role_id=admin_role.id,
+        admin_role_id = role_map.get('Administrator')
+        if admin_role_id:
+            for permission in created_permissions:
+                # Check if permission is already assigned
+                existing = RolePermission.query.filter_by(
+                    role_id=admin_role_id,
                     permission_id=permission.id
-                )
-                db.session.add(role_permission)
-                print(f"    ✅ Added: {permission.name}")
-        
+                ).first()
+                if not existing:
+                    role_permission = RolePermission(
+                        role_id=admin_role_id,
+                        permission_id=permission.id
+                    )
+                    db.session.add(role_permission)
+                    print(f"    ✅ Added: {permission.name}")
+
         # Materials Manager gets most pages (everything except admin pages)
         print("\n  Materials Manager Role:")
-        materials_pages = [
-            'page.tools', 'page.checkouts', 'page.my_checkouts', 'page.kits',
-            'page.chemicals', 'page.calibrations', 'page.reports', 
-            'page.scanner', 'page.warehouses', 'page.profile'
-        ]
-        for perm_name in materials_pages:
-            permission = next((p for p in created_permissions if p.name == perm_name), None)
-            if permission and not any(rp.permission_id == permission.id for rp in materials_manager_role.role_permissions):
-                role_permission = RolePermission(
-                    role_id=materials_manager_role.id,
-                    permission_id=permission.id
-                )
-                db.session.add(role_permission)
-                print(f"    ✅ Added: {permission.name}")
-        
+        materials_manager_role_id = role_map.get('Materials Manager')
+        if materials_manager_role_id:
+            materials_pages = [
+                'page.tools', 'page.checkouts', 'page.my_checkouts', 'page.kits',
+                'page.chemicals', 'page.calibrations', 'page.reports',
+                'page.scanner', 'page.warehouses', 'page.profile'
+            ]
+            for perm_name in materials_pages:
+                permission = next((p for p in created_permissions if p.name == perm_name), None)
+                if permission:
+                    # Check if permission is already assigned
+                    existing = RolePermission.query.filter_by(
+                        role_id=materials_manager_role_id,
+                        permission_id=permission.id
+                    ).first()
+                    if not existing:
+                        role_permission = RolePermission(
+                            role_id=materials_manager_role_id,
+                            permission_id=permission.id
+                        )
+                        db.session.add(role_permission)
+                        print(f"    ✅ Added: {permission.name}")
+
         # Maintenance User gets ONLY dashboard, kits, and profile
         # This is the restricted role - can only access their dashboard and kits
         print("\n  Maintenance User Role:")
-        maintenance_pages = [
-            'page.kits',  # Can access kits
-            'page.my_checkouts',  # Can see their own checkouts
-            'page.profile'  # Can access their profile
-        ]
-        for perm_name in maintenance_pages:
-            permission = next((p for p in created_permissions if p.name == perm_name), None)
-            if permission and not any(rp.permission_id == permission.id for rp in maintenance_user_role.role_permissions):
-                role_permission = RolePermission(
-                    role_id=maintenance_user_role.id,
-                    permission_id=permission.id
-                )
-                db.session.add(role_permission)
-                print(f"    ✅ Added: {permission.name}")
-        
+        maintenance_user_role_id = role_map.get('Maintenance User')
+        if maintenance_user_role_id:
+            maintenance_pages = [
+                'page.kits',  # Can access kits
+                'page.my_checkouts',  # Can see their own checkouts
+                'page.profile'  # Can access their profile
+            ]
+            for perm_name in maintenance_pages:
+                permission = next((p for p in created_permissions if p.name == perm_name), None)
+                if permission:
+                    # Check if permission is already assigned
+                    existing = RolePermission.query.filter_by(
+                        role_id=maintenance_user_role_id,
+                        permission_id=permission.id
+                    ).first()
+                    if not existing:
+                        role_permission = RolePermission(
+                            role_id=maintenance_user_role_id,
+                            permission_id=permission.id
+                        )
+                        db.session.add(role_permission)
+                        print(f"    ✅ Added: {permission.name}")
+
         # Quality Inspector gets tools, checkouts, calibrations, reports, scanner, profile
-        if quality_inspector_role:
+        quality_inspector_role_id = role_map.get('Quality Inspector')
+        if quality_inspector_role_id:
             print("\n  Quality Inspector Role:")
             quality_pages = [
                 'page.tools', 'page.checkouts', 'page.my_checkouts',
@@ -187,13 +246,19 @@ def run_migration():
             ]
             for perm_name in quality_pages:
                 permission = next((p for p in created_permissions if p.name == perm_name), None)
-                if permission and not any(rp.permission_id == permission.id for rp in quality_inspector_role.role_permissions):
-                    role_permission = RolePermission(
-                        role_id=quality_inspector_role.id,
+                if permission:
+                    # Check if permission is already assigned
+                    existing = RolePermission.query.filter_by(
+                        role_id=quality_inspector_role_id,
                         permission_id=permission.id
-                    )
-                    db.session.add(role_permission)
-                    print(f"    ✅ Added: {permission.name}")
+                    ).first()
+                    if not existing:
+                        role_permission = RolePermission(
+                            role_id=quality_inspector_role_id,
+                            permission_id=permission.id
+                        )
+                        db.session.add(role_permission)
+                        print(f"    ✅ Added: {permission.name}")
         
         db.session.commit()
         print("\n✅ Page permissions assigned to roles successfully!")
