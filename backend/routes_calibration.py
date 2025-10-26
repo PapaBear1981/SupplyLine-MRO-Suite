@@ -72,20 +72,21 @@ def register_calibration_routes(app):
             threshold_date = now + timedelta(days=days)
 
             # Find tools that require calibration and are due within the specified days
-            # Use the calibration_status field to ensure consistency across the application
+            # Use date-based filtering for consistency and accuracy
             tools = Tool.query.filter(
-                Tool.requires_calibration is True,
+                Tool.requires_calibration == True,
                 Tool.next_calibration_date.isnot(None),
-                Tool.calibration_status == 'due_soon' if days == 30 else
-                    ((Tool.next_calibration_date <= threshold_date) & (Tool.next_calibration_date >= now))
-            ).all()
+                Tool.next_calibration_date >= now,
+                Tool.next_calibration_date <= threshold_date
+            ).order_by(Tool.next_calibration_date.asc()).all()
 
             # Log the query results for debugging
             logger.info(f"Found {len(tools)} tools due for calibration in the next {days} days", extra={
                 'operation': 'get_calibrations_due',
                 'days_ahead': days,
                 'tools_found': len(tools),
-                'tool_ids': [tool.id for tool in tools]
+                'tool_ids': [tool.id for tool in tools],
+                'threshold_date': threshold_date.isoformat()
             })
 
             for tool in tools:
@@ -116,16 +117,27 @@ def register_calibration_routes(app):
             now = datetime.utcnow()
 
             # Find tools that require calibration and are overdue
+            # Order by next_calibration_date ascending (most overdue first)
             tools = Tool.query.filter(
-                Tool.requires_calibration is True,
+                Tool.requires_calibration == True,
                 Tool.next_calibration_date.isnot(None),
                 Tool.next_calibration_date < now
-            ).all()
+            ).order_by(Tool.next_calibration_date.asc()).all()
+
+            logger.info(f"Found {len(tools)} overdue calibrations", extra={
+                'operation': 'get_calibrations_overdue',
+                'tools_found': len(tools),
+                'tool_ids': [tool.id for tool in tools]
+            })
 
             return jsonify([tool.to_dict() for tool in tools]), 200
 
         except Exception as e:
-            print(f"Error getting overdue calibrations: {str(e)}")
+            logger.error("Error getting overdue calibrations", exc_info=True, extra={
+                'operation': 'get_calibrations_overdue',
+                'error_type': type(e).__name__,
+                'error_message': str(e)
+            })
             return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
     # Get calibration history for a specific tool
