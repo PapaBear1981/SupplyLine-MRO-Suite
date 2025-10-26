@@ -255,23 +255,13 @@ class User(db.Model):
 
     def get_permissions(self):
         """Get all permissions for this user from all roles"""
-        # Use explicit query with joins to ensure all permissions are loaded
-        # This avoids lazy loading issues with association proxies
-        from sqlalchemy.orm import joinedload
-
-        # Get user with eagerly loaded roles and their permissions
-        user_with_perms = db.session.query(User).options(
-            joinedload(User.user_roles).joinedload(UserRole.role).joinedload(Role.role_permissions).joinedload(RolePermission.permission)
-        ).filter(User.id == self.id).first()
-
-        if not user_with_perms:
-            return []
-
         permissions = set()
-        for user_role in user_with_perms.user_roles:
+        # Access user_roles directly (not through association proxy)
+        # This ensures we get the actual UserRole objects with their relationships
+        for user_role in self.user_roles:
+            # Access role_permissions directly (not through association proxy)
             for role_permission in user_role.role.role_permissions:
                 permissions.add(role_permission.permission.name)
-
         return list(permissions)
 
     def add_role(self, role):
