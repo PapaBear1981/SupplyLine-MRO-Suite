@@ -47,7 +47,7 @@ const Announcements = () => {
   if (loading) {
     return (
       <Card className="shadow-sm mb-4">
-        <Card.Header className="bg-light">
+        <Card.Header>
           <h4 className="mb-0">Announcements</h4>
         </Card.Header>
         <Card.Body className="text-center p-4">
@@ -62,7 +62,7 @@ const Announcements = () => {
   if (error) {
     return (
       <Card className="shadow-sm mb-4">
-        <Card.Header className="bg-light">
+        <Card.Header>
           <h4 className="mb-0">Announcements</h4>
         </Card.Header>
         <Card.Body>
@@ -92,7 +92,7 @@ const Announcements = () => {
 
   return (
     <Card className="shadow-sm mb-4" data-testid="announcements">
-      <Card.Header className="bg-light d-flex justify-content-between align-items-center">
+      <Card.Header className="d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Announcements</h4>
         <Badge bg="primary" pill>
           {announcements.filter(a => !a.read).length}
@@ -108,7 +108,7 @@ const Announcements = () => {
             {sortedAnnouncements.map((announcement) => (
               <ListGroup.Item
                 key={announcement.id}
-                className={`d-flex flex-column ${!announcement.read ? 'bg-light' : ''}`}
+                className={`d-flex flex-column ${!announcement.read ? 'fw-semibold' : ''}`}
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <div className="fw-bold">{announcement.title}</div>

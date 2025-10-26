@@ -128,19 +128,22 @@ def register_routes(app):
         db.create_all()
 
         # Create admin user if none exists - using secure initialization
-        from utils.admin_init import create_secure_admin
-        success, message, password = create_secure_admin()
-        if success and password:
-            current_app.logger.warning("SECURITY NOTICE: %s", message)
-            # Emit a *single* structured log entry flagged as secret; do not expose raw password.
-            current_app.logger.warning(
-                "INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs"
-            )
-        elif not success:
-            logger.error("Admin user creation failed", extra={
-                'operation': 'admin_initialization',
-                'error_message': message
-            })
+        # Skip in testing mode (admin user is created by test fixtures)
+        is_testing = app.config.get('TESTING', False)
+        if not is_testing:
+            from utils.admin_init import create_secure_admin
+            success, message, password = create_secure_admin()
+            if success and password:
+                current_app.logger.warning("SECURITY NOTICE: %s", message)
+                # Emit a *single* structured log entry flagged as secret; do not expose raw password.
+                current_app.logger.warning(
+                    "INITIAL ADMIN PASSWORD GENERATED – copy from env-var not from logs"
+                )
+            elif not success:
+                logger.error("Admin user creation failed", extra={
+                    'operation': 'admin_initialization',
+                    'error_message': message
+                })
 
     # Register report routes
     register_report_routes(app)
@@ -1875,6 +1878,11 @@ def register_routes(app):
         for field in required_fields:
             if not data.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate password confirmation if provided
+        if 'confirm_password' in data:
+            if data.get('password') != data.get('confirm_password'):
+                return jsonify({'error': 'Password and confirmation do not match'}), 400
 
         # Check if employee number already exists in users or registration requests
         if User.query.filter_by(employee_number=data['employee_number']).first():

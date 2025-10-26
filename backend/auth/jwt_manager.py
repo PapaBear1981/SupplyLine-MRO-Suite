@@ -62,7 +62,7 @@ class JWTManager:
             'jti': secrets.token_hex(16)  # JWT ID for token revocation
         }
 
-        secret_key = current_app.config['SECRET_KEY']
+        secret_key = current_app.config['JWT_SECRET_KEY']
 
         access_token = jwt.encode(access_payload, secret_key, algorithm='HS256')
         refresh_token = jwt.encode(refresh_payload, secret_key, algorithm='HS256')
@@ -89,7 +89,7 @@ class JWTManager:
             Decoded token payload or None if invalid
         """
         try:
-            secret_key = current_app.config['SECRET_KEY']
+            secret_key = current_app.config['JWT_SECRET_KEY']
             payload = jwt.decode(token, secret_key, algorithms=['HS256'])
 
             # Verify token type

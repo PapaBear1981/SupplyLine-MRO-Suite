@@ -3,6 +3,7 @@ Tests for API routes and endpoints
 """
 
 import json
+from datetime import timedelta
 from models import Tool, Chemical, Checkout
 
 
@@ -35,7 +36,11 @@ class TestToolRoutes:
         assert 'pagination' in data
         assert isinstance(data['tools'], list)
         assert len(data['tools']) >= 1
-        assert data['tools'][0]['tool_number'] == 'T001'
+
+        # Results are paginated and may include tools created by other tests,
+        # so verify that our known tool is present anywhere in the payload.
+        tool_numbers = {tool['tool_number'] for tool in data['tools']}
+        assert 'T001' in tool_numbers
 
     def test_get_tools_unauthenticated(self, client, test_tool):
         """Test getting tools list without authentication"""
@@ -119,25 +124,27 @@ class TestToolRoutes:
     def test_checkout_tool(self, client, auth_headers_user, test_tool, db_session):
         """Test checking out a tool"""
         checkout_data = {
+            'tool_id': test_tool.id,
             'expected_return_date': '2024-12-31T23:59:59'
         }
 
-        response = client.post(f'/api/tools/{test_tool.id}/checkout',
-                             json=checkout_data,
-                             headers=auth_headers_user)
+        response = client.post('/api/checkouts',
+                               json=checkout_data,
+                               headers=auth_headers_user)
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert 'checkout_id' in data
-        assert data['message'] == 'Tool checked out successfully'
+        assert 'id' in data
+        assert data['message'].startswith('Tool')
 
         # Verify checkout was created
-        checkout = Checkout.query.filter_by(tool_id=test_tool.id).first()
+        checkout = Checkout.query.get(data['id'])
         assert checkout is not None
+        assert checkout.tool_id == test_tool.id
         assert checkout.return_date is None
 
-    def test_return_tool(self, client, auth_headers_user, test_tool, regular_user, db_session):
+    def test_return_tool(self, client, auth_headers_materials, test_tool, regular_user, db_session):
         """Test returning a tool"""
         # First create a checkout
         checkout = Checkout(
@@ -147,13 +154,15 @@ class TestToolRoutes:
         db_session.add(checkout)
         db_session.commit()
 
-        response = client.post(f'/api/tools/{test_tool.id}/return',
-                             headers=auth_headers_user)
+        response = client.post(f'/api/checkouts/{checkout.id}/return',
+                               headers=auth_headers_materials,
+                               json={})
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['message'] == 'Tool returned successfully'
+        assert data['status'] == 'Returned'
+        assert data['tool_id'] == test_tool.id
 
         # Verify checkout was updated
         db_session.refresh(checkout)
@@ -175,7 +184,11 @@ class TestChemicalRoutes:
         assert 'pagination' in data
         assert isinstance(data['chemicals'], list)
         assert len(data['chemicals']) >= 1
-        assert data['chemicals'][0]['part_number'] == 'C001'
+
+        # Multiple chemicals can exist, so ensure our fixture is represented
+        # instead of relying on list ordering.
+        part_numbers = {chem['part_number'] for chem in data['chemicals']}
+        assert 'C001' in part_numbers
 
     def test_get_chemicals_regular_user(self, client, auth_headers_user, test_chemical):
         """Test getting chemicals as regular user"""
@@ -185,8 +198,7 @@ class TestChemicalRoutes:
         assert response.status_code == 200
         data = json.loads(response.data)
         assert 'chemicals' in data
-        data = json.loads(response.data)
-        assert 'required' in data['error'].lower()
+        assert isinstance(data['chemicals'], list)
 
     def test_create_chemical_materials_user(self, client, auth_headers_materials, db_session, test_warehouse):
         """Test creating chemical as materials user"""
@@ -247,11 +259,15 @@ class TestUserRoutes:
         assert data['name'] == 'Updated Test User'
         assert data['department'] == 'Updated Engineering'
 
-    def test_change_password(self, client, auth_headers_user, regular_user):
+    def test_change_password(self, client, auth_headers_user, regular_user, db_session):
         """Test changing user password"""
+        if regular_user.password_changed_at:
+            regular_user.password_changed_at -= timedelta(seconds=5)
+            db_session.commit()
+
         password_data = {
             'current_password': 'user123',
-            'new_password': 'newpassword123!'
+            'new_password': 'NewPassword123!'
         }
 
         response = client.put('/api/user/password',
@@ -263,11 +279,15 @@ class TestUserRoutes:
 
         assert data['message'] == 'Password changed successfully'
 
-    def test_change_password_wrong_current(self, client, auth_headers_user):
+    def test_change_password_wrong_current(self, client, auth_headers_user, regular_user, db_session):
         """Test changing password with wrong current password"""
+        if regular_user.password_changed_at:
+            regular_user.password_changed_at -= timedelta(seconds=5)
+            db_session.commit()
+
         password_data = {
             'current_password': 'wrongpassword',
-            'new_password': 'newpassword123!'
+            'new_password': 'NewPassword123!'
         }
 
         response = client.put('/api/user/password',

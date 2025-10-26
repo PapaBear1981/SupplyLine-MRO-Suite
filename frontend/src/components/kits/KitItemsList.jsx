@@ -6,6 +6,7 @@ import { fetchKitItems, fetchKitBoxes } from '../../store/kitsSlice';
 import KitIssuanceForm from './KitIssuanceForm';
 import KitTransferForm from './KitTransferForm';
 import ItemDetailModal from '../common/ItemDetailModal';
+import KitItemBarcode from './KitItemBarcode';
 import './KitItemsList.css';
 
 const KitItemsList = ({ kitId }) => {
@@ -21,6 +22,8 @@ const KitItemsList = ({ kitId }) => {
   const [selectedItemForTransfer, setSelectedItemForTransfer] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedItemForDetail, setSelectedItemForDetail] = useState(null);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [selectedItemForBarcode, setSelectedItemForBarcode] = useState(null);
 
   useEffect(() => {
     if (kitId) {
@@ -117,6 +120,11 @@ const KitItemsList = ({ kitId }) => {
     setSelectedItemForTransfer(null);
     // Refresh items after transfer
     dispatch(fetchKitItems({ kitId }));
+  };
+
+  const handleBarcodeClick = (item) => {
+    setSelectedItemForBarcode(item);
+    setShowBarcodeModal(true);
   };
 
   const handleRowClick = (item) => {
@@ -280,6 +288,13 @@ const KitItemsList = ({ kitId }) => {
                       >
                         Transfer
                       </Button>
+                      <Button
+                        variant="outline-secondary"
+                        title="Print Barcode"
+                        onClick={() => handleBarcodeClick(item)}
+                      >
+                        <FaBarcode />
+                      </Button>
                     </ButtonGroup>
                   </td>
                 </tr>
@@ -317,6 +332,13 @@ const KitItemsList = ({ kitId }) => {
           itemId={selectedItemForDetail.itemId}
         />
       )}
+
+      {/* Barcode Modal */}
+      <KitItemBarcode
+        show={showBarcodeModal}
+        onHide={() => setShowBarcodeModal(false)}
+        item={selectedItemForBarcode}
+      />
     </Card>
   );
 };

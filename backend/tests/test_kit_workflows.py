@@ -50,14 +50,12 @@ def materials_user(db_session):
 
 
 @pytest.fixture
-def auth_headers_materials(client, materials_user):
+def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
-    response = client.post('/api/auth/login', json={
-        'employee_number': materials_user.employee_number,
-        'password': 'materials123'
-    })
-    data = json.loads(response.data)
-    return {'Authorization': f'Bearer {data["access_token"]}'}
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(materials_user)
+    access_token = tokens['access_token']
+    return {'Authorization': f'Bearer {access_token}'}
 
 
 class TestCompleteKitCreationWorkflow:

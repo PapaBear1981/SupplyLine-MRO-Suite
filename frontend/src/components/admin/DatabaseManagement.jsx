@@ -187,7 +187,7 @@ const DatabaseManagement = () => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       })
-      .catch(err => setError('Failed to download backup'));
+      .catch(() => setError('Failed to download backup'));
   };
 
   return (

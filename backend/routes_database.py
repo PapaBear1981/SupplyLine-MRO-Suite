@@ -6,6 +6,7 @@ Admin-only access required for all operations.
 """
 
 from flask import request, jsonify, send_file, current_app
+from flask_jwt_extended import current_user
 from functools import wraps
 import logging
 import os
@@ -63,8 +64,8 @@ def register_database_routes(app):
             )
 
             if success:
-                logger.info(f"Manual backup created by {request.current_user.get('user_name', 'Unknown')}", extra={
-                    'user_id': request.current_user.get('user_id'),
+                logger.info(f"Manual backup created by {current_user.name}", extra={
+                    'user_id': current_user.id,
                     'backup_path': backup_path
                 })
 

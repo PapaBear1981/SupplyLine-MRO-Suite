@@ -1,0 +1,308 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  # Backend Linting Job
+  backend-lint:
+    name: Backend Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+          pip install -r backend/requirements.txt
+
+      - name: Run flake8 (critical errors)
+        run: |
+          cd backend
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run flake8 (full check)
+        run: |
+          cd backend
+          flake8 . --count --exit-zero --statistics
+
+  # Frontend Linting Job
+  frontend-lint:
+    name: Frontend Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+  # Backend Testing Job
+  backend-test:
+    name: Backend Testing
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest-github-actions-annotate-failures
+
+      - name: Run all pytest tests
+        run: |
+          cd backend
+          pytest -v --tb=short --color=yes --junitxml=test-results/junit.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/test-results/
+          retention-days: 30
+
+  # Frontend E2E Testing Job
+  frontend-e2e:
+    name: Frontend E2E Testing
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    timeout-minutes: 30
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
+      DATABASE_URL: sqlite:///test.db
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Install Playwright browsers
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Set up Python (for backend)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Initialize test database
+        run: |
+          cd backend
+          python seed_e2e_test_data.py
+        env:
+          DATABASE_URL: sqlite:///test.db
+
+      - name: Start backend server
+        run: |
+          cd backend
+          nohup python run.py > backend.log 2>&1 &
+          echo $! > backend.pid
+          sleep 15
+        env:
+          FLASK_ENV: testing
+          FLASK_HOST: 127.0.0.1
+          FLASK_PORT: 5000
+          DATABASE_URL: sqlite:///test.db
+          SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+          JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
+
+      - name: Verify backend is running
+        run: |
+          for i in {1..10}; do
+            if curl -f http://127.0.0.1:5000/api/health; then
+              echo "Backend is running"
+              exit 0
+            fi
+            echo "Waiting for backend... attempt $i/10"
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat backend/backend.log || true
+          exit 1
+
+      - name: Run Playwright E2E tests
+        run: |
+          cd frontend
+          npx playwright test --project=chromium --reporter=list,html,json,junit --max-failures=5
+        timeout-minutes: 15
+        env:
+          CI: true
+          VITE_API_URL: http://127.0.0.1:5000
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f backend/backend.pid ]; then
+            kill $(cat backend/backend.pid) || true
+          fi
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-logs
+          path: backend/backend.log
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results/
+          retention-days: 30
+
+  # Backend Build Verification Job
+  backend-build:
+    name: Backend Build Verification
+    runs-on: ubuntu-latest
+    needs: backend-test
+    env:
+      FLASK_ENV: testing
+      SECRET_KEY: test-secret-key-for-ci-do-not-use-in-production
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-do-not-use-in-production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Verify Flask application starts
+        run: |
+          cd backend
+          timeout 30s python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from app import create_app
+          app = create_app()
+          print('Flask application created successfully')
+          " || exit 1
+
+  # Frontend Build Verification Job
+  frontend-build:
+    name: Frontend Build Verification
+    runs-on: ubuntu-latest
+    needs: frontend-e2e
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
+
+  # Final status check job
+  ci-success:
+    name: CI Pipeline Success
+    runs-on: ubuntu-latest
+    needs: [backend-lint, frontend-lint, backend-test, frontend-e2e, backend-build, frontend-build]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [ "${{ needs.backend-lint.result }}" != "success" ] || \
+             [ "${{ needs.frontend-lint.result }}" != "success" ] || \
+             [ "${{ needs.backend-test.result }}" != "success" ] || \
+             [ "${{ needs.frontend-e2e.result }}" != "success" ] || \
+             [ "${{ needs.backend-build.result }}" != "success" ] || \
+             [ "${{ needs.frontend-build.result }}" != "success" ]; then
+            echo "One or more CI jobs failed"
+            exit 1
+          fi
+          echo "All CI jobs passed successfully!"
+

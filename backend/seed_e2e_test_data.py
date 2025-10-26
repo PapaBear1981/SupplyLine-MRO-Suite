@@ -443,11 +443,31 @@ def main():
 
                 # Run RBAC tables migration
                 rbac_migration = os.path.join(migrations_dir, 'add_rbac_tables.py')
-                subprocess.run([sys.executable, rbac_migration], check=True, capture_output=True)
+                result = subprocess.run([sys.executable, rbac_migration], capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"RBAC tables migration failed with exit code {result.returncode}")
+                    logger.error(f"STDOUT: {result.stdout}")
+                    logger.error(f"STDERR: {result.stderr}")
+                    raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+                else:
+                    # Log successful output from RBAC tables migration
+                    if result.stdout:
+                        for line in result.stdout.splitlines():
+                            logger.info(f"  {line}")
 
                 # Run page access permissions migration
                 page_perms_migration = os.path.join(migrations_dir, 'add_page_access_permissions.py')
-                subprocess.run([sys.executable, page_perms_migration], check=True, capture_output=True)
+                result = subprocess.run([sys.executable, page_perms_migration], capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"Page access permissions migration failed with exit code {result.returncode}")
+                    logger.error(f"STDOUT: {result.stdout}")
+                    logger.error(f"STDERR: {result.stderr}")
+                    raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+                else:
+                    # Log successful output from page access permissions migration
+                    if result.stdout:
+                        for line in result.stdout.splitlines():
+                            logger.info(f"  {line}")
 
                 logger.info("RBAC migration completed")
             except Exception as e:

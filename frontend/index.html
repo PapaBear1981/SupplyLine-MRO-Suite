@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+      })();
+    </script>
+
     <!-- SEO Meta Tags -->
     <title>SupplyLine MRO Suite - Complete Tool Management Solution</title>
     <meta name="description" content="Streamline your Maintenance, Repair, and Operations with SupplyLine MRO Suite. Track, manage, and optimize your entire tool inventory with enterprise-grade precision." />

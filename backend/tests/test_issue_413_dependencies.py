@@ -4,6 +4,7 @@ Ensures that updated dependencies can be imported and have correct versions
 """
 
 import pytest
+from importlib.metadata import version as get_version
 
 
 def test_flask_version():
@@ -15,9 +16,9 @@ def test_flask_version():
 
 def test_werkzeug_version():
     """Test that Werkzeug is updated to 3.1.3 or higher (fixes CVE-2023-25577, CVE-2023-46136)"""
-    import werkzeug
-    version = tuple(map(int, werkzeug.__version__.split('.')[:3]))
-    assert version >= (3, 1, 3), f"Werkzeug version should be 3.1.3 or higher, got {werkzeug.__version__}"
+    werkzeug_version = get_version('werkzeug')
+    version = tuple(map(int, werkzeug_version.split('.')[:3]))
+    assert version >= (3, 1, 3), f"Werkzeug version should be 3.1.3 or higher, got {werkzeug_version}"
 
 
 def test_sqlalchemy_version():
@@ -159,15 +160,15 @@ def test_no_known_vulnerabilities():
     Test that we're not using versions with known vulnerabilities
     This is a documentation test - actual vulnerability scanning should be done with tools like safety
     """
-    import flask
-    import werkzeug
     import jwt
 
     # Flask 2.2.3 and earlier have known issues - we should be on 3.x
-    assert flask.__version__.startswith('3.'), "Flask should be version 3.x"
+    flask_version = get_version('flask')
+    assert flask_version.startswith('3.'), "Flask should be version 3.x"
 
     # Werkzeug 2.2.3 has CVE-2023-25577 and CVE-2023-46136
-    assert werkzeug.__version__.startswith('3.'), "Werkzeug should be version 3.x"
+    werkzeug_version = get_version('werkzeug')
+    assert werkzeug_version.startswith('3.'), "Werkzeug should be version 3.x"
 
     # PyJWT 2.8.0 and earlier have potential validation bypass issues
     version_parts = jwt.__version__.split('.')

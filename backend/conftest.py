@@ -62,8 +62,10 @@ def app():
     """Create application for testing"""
     # Create a temporary database file
     # B108 Mitigation: Use mkstemp for secure temporary file creation (avoids mktemp race condition).
-    # File descriptor (db_fd) is closed and file (db_path) is unlinked in the 'finally' block.
+    # File descriptor (db_fd) is closed immediately as we only need the path (db_path).
+    # The file (db_path) is unlinked in the 'finally' block.
     db_fd, db_path = tempfile.mkstemp()
+    os.close(db_fd)
 
     # Configure environment for testing before app creation so Config picks it up
     original_db_url = os.environ.get('DATABASE_URL')
@@ -99,7 +101,11 @@ def app():
         else:
             os.environ.pop('FLASK_ENV', None)
 
-        os.close(db_fd)
+        # Dispose of the database engine connection to release the file handle on Windows
+        # Explicitly close session and dispose engine to prevent Windows PermissionError
+        db.session.close()
+        db.engine.dispose()
+
         os.unlink(db_path)
 
 

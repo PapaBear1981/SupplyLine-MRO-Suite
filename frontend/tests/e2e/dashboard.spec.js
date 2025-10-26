@@ -10,12 +10,14 @@ test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     // Login before each test
     await page.goto('/login');
-    await page.fill('input[placeholder="Enter employee number"]', TEST_USER.username);
-    await page.fill('input[placeholder="Password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
+    await page.fill('input[placeholder="Enter your employee number"]', TEST_USER.username);
+    await page.fill('input[placeholder="Enter your password"]', TEST_USER.password);
 
-    // Wait for dashboard to load (redirects to root '/')
-    await expect(page).toHaveURL('/');
+    // Submit form and wait for navigation
+    await Promise.all([
+      page.waitForURL('/dashboard', { timeout: 10000 }),
+      page.click('button[type="submit"]')
+    ]);
 
     // Wait for dashboard content to be visible
     await expect(page.locator('[data-testid="dashboard-content"]')).toBeVisible();
@@ -69,8 +71,8 @@ test.describe('Dashboard', () => {
     // Should show user name (John Engineer) in the profile modal - use first occurrence
     await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
 
-    // Should show Administrator role
-    await expect(page.locator('text=Administrator')).toBeVisible();
+    // Should show Administrator role - use more specific selector to avoid strict mode violation
+    await expect(page.locator('p.text-muted:has-text("Administrator")')).toBeVisible();
   });
 
   test('should display announcements section', async ({ page }) => {
@@ -116,8 +118,8 @@ test.describe('Dashboard', () => {
     // Refresh page
     await page.reload();
 
-    // Should still show dashboard (at root URL)
-    await expect(page).toHaveURL('/');
+    // Should still show dashboard
+    await expect(page).toHaveURL('/dashboard');
     await expect(page.locator('h1')).toContainText('Dashboard');
 
     // Content should be loaded (might be same or different)

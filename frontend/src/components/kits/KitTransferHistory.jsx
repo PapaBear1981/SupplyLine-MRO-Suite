@@ -23,7 +23,8 @@ const KitTransferHistory = ({ kitId }) => {
   }, [transfers]);
 
   // Transfers are already filtered by backend, just sort by date descending
-  const sortedTransfers = [...transfers].sort(
+  // Add defensive check to prevent runtime error if transfers is undefined
+  const sortedTransfers = [...(transfers || [])].sort(
     (a, b) => new Date(b.transfer_date) - new Date(a.transfer_date)
   );
 

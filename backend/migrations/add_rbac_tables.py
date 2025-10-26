@@ -6,13 +6,22 @@ import os
 import sys
 
 def run_migration():
-    # Get the database path
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
-    
-    # Check if the database exists
-    if not os.path.exists(db_path):
-        print(f"Database not found at {db_path}")
-        return False
+    # Get the database path from DATABASE_URL environment variable or use default
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///database/tools.db')
+
+    # Extract the path from the SQLite URL
+    if database_url.startswith('sqlite:///'):
+        db_path = database_url.replace('sqlite:///', '')
+        # If it's a relative path, resolve it relative to the repository root
+        if not os.path.isabs(db_path):
+            # Get the repository root (3 levels up from this file: migrations -> backend -> repo root)
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            db_path = os.path.join(repo_root, db_path)
+    else:
+        # Fallback to default path
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
+
+    print(f"Using database at: {db_path}")
 
     try:
         # Connect to the database
@@ -179,27 +188,32 @@ def run_migration():
             
             print("Assigned permissions to default roles")
 
-        # Migrate existing users to the new role system
-        cursor.execute("SELECT id, is_admin, department FROM users")
-        users = cursor.fetchall()
-        
-        # Check if users have already been migrated
-        cursor.execute("SELECT COUNT(*) FROM user_roles")
-        user_role_count = cursor.fetchone()[0]
-        
-        if user_role_count == 0:
-            for user_id, is_admin, department in users:
-                if is_admin:
-                    # Assign Administrator role to admin users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 1))
-                elif department == 'Materials':
-                    # Assign Materials Manager role to Materials department users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 2))
-                else:
-                    # Assign Maintenance User role to all other users
-                    cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 3))
-            
-            print(f"Migrated {len(users)} existing users to the new role system")
+        # Migrate existing users to the new role system (if users table exists)
+        try:
+            cursor.execute("SELECT id, is_admin, department FROM users")
+            users = cursor.fetchall()
+
+            # Check if users have already been migrated
+            cursor.execute("SELECT COUNT(*) FROM user_roles")
+            user_role_count = cursor.fetchone()[0]
+
+            if user_role_count == 0:
+                for user_id, is_admin, department in users:
+                    if is_admin:
+                        # Assign Administrator role to admin users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 1))
+                    elif department == 'Materials':
+                        # Assign Materials Manager role to Materials department users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 2))
+                    else:
+                        # Assign Maintenance User role to all other users
+                        cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", (user_id, 3))
+
+                print(f"Migrated {len(users)} existing users to the new role system")
+        except Exception as e:
+            # Users table doesn't exist yet (e.g., in E2E test environment)
+            # This is expected when running migrations before seeding data
+            print(f"Skipping user migration (users table not found or empty): {str(e)}")
 
         # Commit the changes
         conn.commit()
