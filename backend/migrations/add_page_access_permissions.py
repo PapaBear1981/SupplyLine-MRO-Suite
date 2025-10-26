@@ -113,15 +113,22 @@ def run_migration():
         
         # Assign page permissions to roles
         print("\nAssigning page permissions to roles...")
-        
-        # Get roles
+
+        # Flush the session to ensure all permissions are in the database
+        db.session.flush()
+
+        # Get roles - use fresh queries to ensure we see committed data
+        db.session.expire_all()  # Clear the session cache
         admin_role = Role.query.filter_by(name='Administrator').first()
         materials_manager_role = Role.query.filter_by(name='Materials Manager').first()
         maintenance_user_role = Role.query.filter_by(name='Maintenance User').first()
         quality_inspector_role = Role.query.filter_by(name='Quality Inspector').first()
-        
+
         if not admin_role or not materials_manager_role or not maintenance_user_role:
             print("  ⚠️  Warning: Some default roles not found. Skipping role assignment.")
+            print(f"     admin_role: {admin_role}")
+            print(f"     materials_manager_role: {materials_manager_role}")
+            print(f"     maintenance_user_role: {maintenance_user_role}")
             print("     You'll need to assign page permissions manually.")
             return
         
