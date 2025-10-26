@@ -75,7 +75,7 @@ const ReorderRequestDetailModal = ({
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
-      <Modal.Header closeButton className="bg-light">
+      <Modal.Header closeButton>
         <Modal.Title>
           <FaShoppingCart className="me-2" />
           Reorder Request Details
@@ -264,7 +264,7 @@ const ReorderRequestDetailModal = ({
         )}
       </Modal.Body>
 
-      <Modal.Footer className="bg-light">
+      <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
           Close
         </Button>
