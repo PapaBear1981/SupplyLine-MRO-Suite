@@ -6,8 +6,19 @@ import os
 import sys
 
 def run_migration():
-    # Get the database path
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
+    # Get the database path from DATABASE_URL environment variable or use default
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///database/tools.db')
+
+    # Extract the path from the SQLite URL
+    if database_url.startswith('sqlite:///'):
+        db_path = database_url.replace('sqlite:///', '')
+        # If it's a relative path, make it relative to the backend directory
+        if not os.path.isabs(db_path):
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(backend_dir, db_path)
+    else:
+        # Fallback to default path
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'database', 'tools.db')
     
     # Check if the database exists
     if not os.path.exists(db_path):
