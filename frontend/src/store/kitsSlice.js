@@ -422,7 +422,28 @@ export const createReorderRequest = createAsyncThunk(
   'kits/createReorderRequest',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/kits/${data.kitId}/reorder`, data);
+      const kitId = data.kitId;
+      let requestData;
+      let config = {};
+
+      // If there's an image, use FormData
+      if (data.image) {
+        const formData = new FormData();
+        Object.keys(data).forEach(key => {
+          if (key !== 'kitId' && key !== 'image') {
+            formData.append(key, data[key]);
+          }
+        });
+        formData.append('image', data.image);
+        requestData = formData;
+        // Don't set Content-Type header - let axios set it automatically with boundary
+      } else {
+        // Otherwise use JSON
+        const { kitId: _, ...rest } = data;
+        requestData = rest;
+      }
+
+      const response = await api.post(`/kits/${kitId}/reorder`, requestData, config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to create reorder request' });
