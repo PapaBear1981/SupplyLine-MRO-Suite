@@ -5,8 +5,8 @@ This module provides API endpoints for managing reorder requests for kits.
 """
 
 from flask import request, jsonify, current_app
-from models import db, AuditLog
-from models_kits import Kit, KitReorderRequest, KitExpendable, KitItem
+from models import db, AuditLog, Tool, Chemical, Warehouse, WarehouseTransfer
+from models_kits import Kit, KitReorderRequest, KitExpendable, KitItem, KitBox
 from datetime import datetime
 from auth import jwt_required, department_required
 from utils.error_handler import handle_errors, ValidationError
@@ -247,8 +247,6 @@ def register_kit_reorder_routes(app):
                 db.session.add(expendable)
 
         elif reorder.item_type in ['tool', 'chemical']:
-            from models import Tool, Chemical, Warehouse, WarehouseTransfer
-
             if reorder.item_id:
                 # Transfer existing item from warehouse to kit
                 # Get the item from warehouse
