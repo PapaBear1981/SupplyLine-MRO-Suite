@@ -4,7 +4,9 @@ const ToolService = {
   // Get all tools
   getAllTools: async () => {
     try {
-      const response = await api.get('/tools');
+      // Request all tools with a high per_page limit to avoid pagination issues
+      // The backend allows up to 500 items per page
+      const response = await api.get('/tools?per_page=500');
       return response.data;
     } catch (error) {
       throw error;

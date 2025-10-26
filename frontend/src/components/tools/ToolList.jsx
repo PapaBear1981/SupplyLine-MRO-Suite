@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Table, Button, Form, InputGroup, Card, Row, Col, Collapse, Badge } from 'react-bootstrap';
+import { Table, Button, Form, InputGroup, Card, Row, Col, Collapse, Badge, Pagination } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { fetchTools } from '../../store/toolsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -37,6 +37,10 @@ const ToolList = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(30);
 
   // Available categories and locations for filtering
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -113,7 +117,13 @@ const ToolList = () => {
 
     // Apply warehouse filter
     if (warehouseFilter) {
-      toolsToDisplay = toolsToDisplay.filter(tool => tool.warehouse_id === parseInt(warehouseFilter));
+      if (warehouseFilter === 'in_kit') {
+        // Show only tools that are in kits (warehouse_id is null)
+        toolsToDisplay = toolsToDisplay.filter(tool => tool.warehouse_id === null || tool.warehouse_id === undefined);
+      } else {
+        // Show only tools in the selected warehouse
+        toolsToDisplay = toolsToDisplay.filter(tool => tool.warehouse_id === parseInt(warehouseFilter));
+      }
     }
 
     // Hide retired tools if the option is selected
@@ -133,7 +143,9 @@ const ToolList = () => {
     });
 
     setFilteredTools(sortedTools);
-  }, [tools, searchQuery, sortConfig, statusFilter, categoryFilter, locationFilter, hideRetired]);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [tools, searchQuery, sortConfig, statusFilter, categoryFilter, locationFilter, warehouseFilter, hideRetired]);
 
 
 
@@ -202,6 +214,71 @@ const ToolList = () => {
   };
 
   const isAdmin = user?.is_admin || user?.department === 'Materials';
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTools.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTools = filteredTools.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of table
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total is less than max
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      // Calculate range around current page
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      // Add ellipsis after first page if needed
+      if (startPage > 2) {
+        pages.push('...');
+      }
+
+      // Add pages around current page
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+
+      // Add ellipsis before last page if needed
+      if (endPage < totalPages - 1) {
+        pages.push('...');
+      }
+
+      // Always show last page
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   return (
     <>
@@ -338,7 +415,8 @@ const ToolList = () => {
                       value={warehouseFilter}
                       onChange={(e) => setWarehouseFilter(e.target.value)}
                     >
-                      <option value="">All Warehouses</option>
+                      <option value="">All Locations</option>
+                      <option value="in_kit">In Kit</option>
                       {warehouses.map(warehouse => (
                         <option key={warehouse.id} value={warehouse.id}>
                           {warehouse.name}
@@ -410,8 +488,8 @@ const ToolList = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTools.length > 0 ? (
-                  filteredTools.map((tool) => (
+                {paginatedTools.length > 0 ? (
+                  paginatedTools.map((tool) => (
                     <tr key={tool.id} data-testid="tool-item">
                       <td>{tool.tool_number}</td>
                       <td>{tool.serial_number}</td>
@@ -536,6 +614,50 @@ const ToolList = () => {
               </tbody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top">
+              <div className="text-muted">
+                <small>
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredTools.length)} of {filteredTools.length} tools
+                </small>
+              </div>
+              <Pagination className="mb-0">
+                <Pagination.First
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                />
+                <Pagination.Prev
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                />
+
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <Pagination.Ellipsis key={`ellipsis-${index}`} disabled />
+                  ) : (
+                    <Pagination.Item
+                      key={page}
+                      active={page === currentPage}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  )
+                ))}
+
+                <Pagination.Next
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                />
+                <Pagination.Last
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                />
+              </Pagination>
+            </div>
+          )}
         </Card.Body>
       </Card>
 
