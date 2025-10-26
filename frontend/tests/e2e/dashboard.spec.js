@@ -68,8 +68,8 @@ test.describe('Dashboard', () => {
     // Click user menu to see user info
     await page.click('[data-testid="user-menu"]');
 
-    // Should show user name (System Administrator) in the profile modal - use first occurrence
-    await expect(page.locator('h5:has-text("System Administrator")').first()).toBeVisible();
+    // Should show user name (John Engineer) in the profile modal - use first occurrence
+    await expect(page.locator('h5:has-text("John Engineer")').first()).toBeVisible();
 
     // Should show Administrator role - use more specific selector to avoid strict mode violation
     await expect(page.locator('p.text-muted:has-text("Administrator")')).toBeVisible();
