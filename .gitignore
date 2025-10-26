@@ -50,6 +50,7 @@ flask_session/
 # Database
 *.db
 *.sqlite3
+database/backups/*.db.gz
 
 # Misc
 .DS_Store
@@ -70,6 +71,8 @@ logs
 *.log.*
 app.log*
 error.log*
+e2e_test_logs*.txt
+security_scan_logs*.txt
 
 # Editor directories and files
 .idea
@@ -82,3 +85,7 @@ error.log*
 final-build/
 installer/
 portable-build/
+
+# Temporary debugging scripts
+check_tool*.py
+backend/check_tools.py
