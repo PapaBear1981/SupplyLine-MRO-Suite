@@ -266,15 +266,18 @@ const KitMobileInterface = () => {
                     <Badge bg="secondary">{item.item_type}</Badge>
                   </div>
                   <div className="d-grid gap-2">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={() => handleIssueItem(item)}
-                      disabled={!item.quantity || item.quantity === 0}
-                    >
-                      <FaBoxOpen className="me-2" />
-                      Issue Item
-                    </Button>
+                    {/* Tools cannot be issued - they must be retired or removed from service */}
+                    {item.item_type !== 'tool' && (
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={() => handleIssueItem(item)}
+                        disabled={!item.quantity || item.quantity === 0}
+                      >
+                        <FaBoxOpen className="me-2" />
+                        Issue Item
+                      </Button>
+                    )}
                     <Button
                       variant="warning"
                       size="lg"

@@ -917,6 +917,10 @@ def register_kit_routes(app):
         if not data.get('quantity'):
             raise ValidationError('Quantity is required')
 
+        # Tools cannot be issued from kits - they must be retired or removed from service
+        if data['item_type'] == 'tool':
+            raise ValidationError('Tools cannot be issued from kits. Tools must be retired or removed from service using the appropriate tool management methods.')
+
         quantity = float(data['quantity'])
 
         # Get the item and update quantity

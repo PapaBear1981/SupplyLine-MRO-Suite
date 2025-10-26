@@ -699,6 +699,57 @@ class TestKitIssuanceEndpoints:
         data = json.loads(response.data)
         assert 'insufficient' in data['error'].lower() or 'not enough' in data['error'].lower()
 
+    def test_issue_tool_from_kit_rejected(self, client, auth_headers_user, test_kit, test_kit_box, db_session):
+        """Test that tools cannot be issued from kits (should fail)"""
+        from models_kits import KitItem
+        from models import Tool
+
+        # Create a tool
+        tool = Tool(
+            tool_number='T-12345',
+            description='Test Tool',
+            category='Hand Tools',
+            condition='Good',
+            location='Test Location',
+            serial_number='SN-12345',
+            status='available'
+        )
+        db_session.add(tool)
+        db_session.flush()
+
+        # Add tool to kit
+        kit_item = KitItem(
+            kit_id=test_kit.id,
+            box_id=test_kit_box.id,
+            item_type='tool',
+            item_id=tool.id,
+            part_number=tool.tool_number,
+            serial_number=tool.serial_number,
+            description=tool.description,
+            quantity=1,
+            status='available'
+        )
+        db_session.add(kit_item)
+        db_session.commit()
+
+        # Attempt to issue the tool
+        issuance_data = {
+            'item_type': 'tool',
+            'item_id': kit_item.id,
+            'quantity': 1,
+            'purpose': 'Maintenance'
+        }
+
+        response = client.post(f'/api/kits/{test_kit.id}/issue',
+                             json=issuance_data,
+                             headers=auth_headers_user)
+
+        # Should be rejected with 400 error
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'tool' in data['error'].lower()
+        assert 'cannot be issued' in data['error'].lower() or 'retired' in data['error'].lower()
+
     def test_get_kit_issuances(self, client, auth_headers_user, test_kit):
         """Test getting kit issuance history"""
         response = client.get(f'/api/kits/{test_kit.id}/issuances', headers=auth_headers_user)

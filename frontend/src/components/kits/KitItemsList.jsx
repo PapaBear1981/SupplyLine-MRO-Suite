@@ -274,13 +274,16 @@ const KitItemsList = ({ kitId }) => {
                   <td>{getStatusBadge(item.status)}</td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <ButtonGroup size="sm">
-                      <Button
-                        variant="outline-primary"
-                        title="Issue"
-                        onClick={() => handleIssueItem(item)}
-                      >
-                        Issue
-                      </Button>
+                      {/* Tools cannot be issued - they must be retired or removed from service */}
+                      {item.item_type !== 'tool' && (
+                        <Button
+                          variant="outline-primary"
+                          title="Issue"
+                          onClick={() => handleIssueItem(item)}
+                        >
+                          Issue
+                        </Button>
+                      )}
                       <Button
                         variant="outline-info"
                         title="Transfer"

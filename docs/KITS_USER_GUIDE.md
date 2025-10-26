@@ -147,10 +147,19 @@ Each item shows:
 
 ## Issuing Items
 
+### Important: Tools Cannot Be Issued
+
+**Tools cannot be issued from kits.** Tools must be managed through the tool management system and can only be:
+- Retired from service
+- Removed from service using appropriate tool management methods
+- Transferred between kits and warehouses
+
+Only **chemicals** and **expendables** can be issued from kits.
+
 ### How to Issue Items from a Kit
 
 1. Navigate to kit detail page
-2. Click **"Issue Items"** button
+2. Click **"Issue Items"** button (only available for chemicals and expendables)
 3. In the issuance form:
    - Select the item to issue
    - Enter quantity
