@@ -19,6 +19,7 @@ const AllCheckouts = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedCheckoutId, setSelectedCheckoutId] = useState(null);
   const [selectedToolInfo, setSelectedToolInfo] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
 
   // Check if user has permission to return tools
   const canReturnTools = user?.is_admin || user?.department === 'Materials';
@@ -45,12 +46,54 @@ const AllCheckouts = () => {
     setShowReturnModal(true);
   };
 
+  const handleSort = (key) => {
+    setSortConfig({
+      key,
+      direction:
+        sortConfig.key === key && sortConfig.direction === 'ascending'
+          ? 'descending'
+          : 'ascending',
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
+  };
+
   if (loading && !checkouts.length) {
     return <LoadingSpinner />;
   }
 
   // Filter active checkouts (not returned)
   const activeCheckouts = checkouts.filter(checkout => !checkout.return_date);
+
+  // Sort active checkouts
+  const sortedCheckouts = [...activeCheckouts].sort((a, b) => {
+    let aValue, bValue;
+
+    if (sortConfig.key === 'checkout_date' || sortConfig.key === 'expected_return_date') {
+      // Date sorting
+      aValue = a[sortConfig.key] ? new Date(a[sortConfig.key]) : new Date(0);
+      bValue = b[sortConfig.key] ? new Date(b[sortConfig.key]) : new Date(0);
+
+      if (sortConfig.direction === 'ascending') {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    } else {
+      // String sorting
+      aValue = (a[sortConfig.key] || '').toString().toLowerCase();
+      bValue = (b[sortConfig.key] || '').toString().toLowerCase();
+
+      if (sortConfig.direction === 'ascending') {
+        return aValue.localeCompare(bValue);
+      } else {
+        return bValue.localeCompare(aValue);
+      }
+    }
+  });
 
   return (
     <>
@@ -85,6 +128,7 @@ const AllCheckouts = () => {
                       <p>This table shows all tools currently checked out across the organization.</p>
                       <p>As an admin or Materials department member, you can return tools on behalf of users.</p>
                       <p>Overdue tools are marked with an "Overdue" badge.</p>
+                      <p><strong>Sorting:</strong> Click on column headers to sort the table. Click again to reverse the sort order.</p>
                     </>
                   }
                   size="sm"
@@ -97,19 +141,31 @@ const AllCheckouts = () => {
               <Table striped bordered hover className="mb-0">
                 <thead className="bg-light">
                   <tr>
-                    <th>Tool Number</th>
-                    <th>Serial Number</th>
-                    <th>Description</th>
-                    <th>Checked Out By</th>
-                    <th>Checkout Date</th>
-                    <th>Expected Return</th>
+                    <th onClick={() => handleSort('tool_number')} className="cursor-pointer">
+                      Tool Number {getSortIcon('tool_number')}
+                    </th>
+                    <th onClick={() => handleSort('serial_number')} className="cursor-pointer">
+                      Serial Number {getSortIcon('serial_number')}
+                    </th>
+                    <th onClick={() => handleSort('description')} className="cursor-pointer">
+                      Description {getSortIcon('description')}
+                    </th>
+                    <th onClick={() => handleSort('user_name')} className="cursor-pointer">
+                      Checked Out By {getSortIcon('user_name')}
+                    </th>
+                    <th onClick={() => handleSort('checkout_date')} className="cursor-pointer">
+                      Checkout Date {getSortIcon('checkout_date')}
+                    </th>
+                    <th onClick={() => handleSort('expected_return_date')} className="cursor-pointer">
+                      Expected Return {getSortIcon('expected_return_date')}
+                    </th>
                     <th>Status</th>
                     {canReturnTools && <th style={{ width: '150px' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {activeCheckouts.length > 0 ? (
-                    activeCheckouts.map((checkout) => (
+                  {sortedCheckouts.length > 0 ? (
+                    sortedCheckouts.map((checkout) => (
                       <tr key={checkout.id}>
                         <td>
                           <Link to={`/tools/${checkout.tool_id}`} className="fw-bold">

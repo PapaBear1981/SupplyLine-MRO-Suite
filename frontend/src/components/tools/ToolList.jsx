@@ -495,14 +495,24 @@ const ToolList = () => {
                       <td>{tool.serial_number}</td>
                       <td>{tool.description || 'N/A'}</td>
                       <td>{tool.category || 'General'}</td>
-                      <td>{tool.location || 'N/A'}</td>
+                      <td>
+                        {tool.warehouse_id ? (
+                          tool.location || 'N/A'
+                        ) : tool.box_number ? (
+                          <Badge bg="secondary">{tool.box_number}</Badge>
+                        ) : (
+                          'N/A'
+                        )}
+                      </td>
                       <td>
                         {tool.warehouse_id ? (
                           <Badge bg="info">
                             {warehouses.find(w => w.id === tool.warehouse_id)?.name || `Warehouse ${tool.warehouse_id}`}
                           </Badge>
+                        ) : tool.kit_name ? (
+                          <Badge bg="secondary">{tool.kit_name}</Badge>
                         ) : (
-                          <Badge bg="secondary">In Kit</Badge>
+                          <Badge bg="warning">Unknown</Badge>
                         )}
                       </td>
                       <td>

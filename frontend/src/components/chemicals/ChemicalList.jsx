@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Form, InputGroup, Button, Badge, Alert } from 'react-bootstrap';
+import { Card, Table, Form, InputGroup, Button, Badge, Alert, Pagination } from 'react-bootstrap';
 import { fetchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ChemicalBarcode from './ChemicalBarcode';
@@ -26,6 +26,13 @@ const ChemicalList = () => {
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedChemical, setSelectedChemical] = useState(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(30);
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({ key: 'part_number', direction: 'ascending' });
 
   // Fetch chemicals and warehouses on component mount
   useEffect(() => {
@@ -74,11 +81,58 @@ const ChemicalList = () => {
 
     // Apply warehouse filter
     if (warehouseFilter) {
-      filtered = filtered.filter((chemical) => chemical.warehouse_id === parseInt(warehouseFilter));
+      if (warehouseFilter === 'kits') {
+        // Show only chemicals in kits (warehouse_id is null and kit_id is not null)
+        filtered = filtered.filter((chemical) => chemical.warehouse_id === null && chemical.kit_id !== null);
+      } else {
+        // Show only chemicals in the selected warehouse
+        filtered = filtered.filter((chemical) => chemical.warehouse_id === parseInt(warehouseFilter));
+      }
     }
 
-    setFilteredChemicals(filtered);
-  }, [chemicals, searchTerm, categoryFilter, statusFilter, warehouseFilter]);
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle special cases for sorting
+      if (sortConfig.key === 'quantity') {
+        // Numeric sort for quantity
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      } else if (sortConfig.key === 'expiration_date') {
+        // Date sort with N/A values at the end
+        if (!aValue || aValue === 'N/A') return 1;
+        if (!bValue || bValue === 'N/A') return -1;
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      } else if (sortConfig.key === 'warehouse_name') {
+        // Sort by warehouse/kit name
+        aValue = a.warehouse_id
+          ? (warehouses.find(w => w.id === a.warehouse_id)?.name || '')
+          : (a.kit_name || '');
+        bValue = b.warehouse_id
+          ? (warehouses.find(w => w.id === b.warehouse_id)?.name || '')
+          : (b.kit_name || '');
+      } else {
+        // String sort (case-insensitive)
+        aValue = (aValue || '').toString().toLowerCase();
+        bValue = (bValue || '').toString().toLowerCase();
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredChemicals(sorted);
+    // Reset to page 1 when filters or sorting change
+    setCurrentPage(1);
+  }, [chemicals, searchTerm, categoryFilter, statusFilter, warehouseFilter, sortConfig, warehouses]);
 
   // Get unique categories for filter dropdown
   const categories = chemicals
@@ -111,6 +165,79 @@ const ChemicalList = () => {
     setCategoryFilter('');
     setStatusFilter('');
     setWarehouseFilter('');
+    setCurrentPage(1);
+  };
+
+  // Sorting handlers
+  const handleSort = (key) => {
+    setSortConfig({
+      key,
+      direction:
+        sortConfig.key === key && sortConfig.direction === 'ascending'
+          ? 'descending'
+          : 'ascending',
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
+  };
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredChemicals.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedChemicals = filteredChemicals.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      if (startPage > 2) {
+        pages.push('...');
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+
+      if (endPage < totalPages - 1) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+
+    return pages;
   };
 
   // Get status badge variant
@@ -157,10 +284,11 @@ const ChemicalList = () => {
     <>
       {showHelp && (
         <HelpContent title="Chemical Inventory" initialOpen={false}>
-          <p>This page displays all active chemicals in the inventory. You can search, filter, and manage chemicals from this view.</p>
+          <p>This page displays all active chemicals in the inventory. You can search, filter, sort, and manage chemicals from this view.</p>
           <ul>
             <li><strong>Search:</strong> Use the search box to find chemicals by part number, lot number, description, or manufacturer.</li>
             <li><strong>Filters:</strong> Filter chemicals by category or status using the dropdown menus.</li>
+            <li><strong>Sort:</strong> Click on any column header to sort the table by that column.</li>
             <li><strong>View:</strong> Click the "View" button to see detailed information about a chemical.</li>
             <li><strong>Issue:</strong> Click the "Issue" button to issue a chemical to a user or department.</li>
             <li><strong>Barcode:</strong> Click the barcode icon to generate and print a barcode for the chemical.</li>
@@ -187,8 +315,13 @@ const ChemicalList = () => {
                   content={
                     <>
                       <p>This table shows all active chemicals in the inventory.</p>
-                      <p>Use the search and filter options to find specific chemicals.</p>
-                      <p>You can view details, issue chemicals, or generate barcodes using the action buttons.</p>
+                      <p>Use the search, filter, and sort options to find specific chemicals.</p>
+                      <ul>
+                        <li>Search for chemicals by part number, lot number, description, or manufacturer</li>
+                        <li>Filter chemicals by category, status, or location</li>
+                        <li>Sort the table by clicking on column headers</li>
+                        <li>View chemical details, issue chemicals, or generate barcodes using the action buttons</li>
+                      </ul>
                     </>
                   }
                   size="sm"
@@ -248,9 +381,10 @@ const ChemicalList = () => {
                 </Tooltip>
               </div>
               <div className="col-md-2">
-                <Tooltip text="Filter by warehouse" placement="top" show={showTooltips}>
+                <Tooltip text="Filter by warehouse or kits" placement="top" show={showTooltips}>
                   <Form.Select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
-                    <option value="">All Warehouses</option>
+                    <option value="">All Locations</option>
+                    <option value="kits">In Kits</option>
                     {warehouses.map((warehouse) => (
                       <option key={warehouse.id} value={warehouse.id}>
                         {warehouse.name}
@@ -271,19 +405,34 @@ const ChemicalList = () => {
               <Table hover bordered className="align-middle">
                 <thead className="bg-light">
                   <tr>
-                    <th>Part Number</th>
-                    <th>Lot Number</th>
+                    <th onClick={() => handleSort('part_number')} className="cursor-pointer">
+                      Part Number {getSortIcon('part_number')}
+                    </th>
+                    <th onClick={() => handleSort('lot_number')} className="cursor-pointer">
+                      Lot Number {getSortIcon('lot_number')}
+                    </th>
                     <th>Description</th>
-                    <th>Manufacturer</th>
-                    <th>Quantity</th>
-                    <th>Warehouse</th>
-                    <th>Expiration Date</th>
+                    <th onClick={() => handleSort('manufacturer')} className="cursor-pointer">
+                      Manufacturer {getSortIcon('manufacturer')}
+                    </th>
+                    <th onClick={() => handleSort('quantity')} className="cursor-pointer">
+                      Quantity {getSortIcon('quantity')}
+                    </th>
+                    <th onClick={() => handleSort('location')} className="cursor-pointer">
+                      Location {getSortIcon('location')}
+                    </th>
+                    <th onClick={() => handleSort('warehouse_name')} className="cursor-pointer">
+                      Warehouse {getSortIcon('warehouse_name')}
+                    </th>
+                    <th onClick={() => handleSort('expiration_date')} className="cursor-pointer">
+                      Expiration Date {getSortIcon('expiration_date')}
+                    </th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredChemicals.map((chemical) => (
+                  {paginatedChemicals.map((chemical) => (
                     <tr key={chemical.id}>
                       <td>{chemical.part_number}</td>
                       <td>{chemical.lot_number}</td>
@@ -294,11 +443,22 @@ const ChemicalList = () => {
                       </td>
                       <td>
                         {chemical.warehouse_id ? (
+                          chemical.location || 'N/A'
+                        ) : chemical.box_number ? (
+                          <Badge bg="secondary">{chemical.box_number}</Badge>
+                        ) : (
+                          'N/A'
+                        )}
+                      </td>
+                      <td>
+                        {chemical.warehouse_id ? (
                           <Badge bg="info">
                             {warehouses.find(w => w.id === chemical.warehouse_id)?.name || `Warehouse ${chemical.warehouse_id}`}
                           </Badge>
+                        ) : chemical.kit_name ? (
+                          <Badge bg="secondary">{chemical.kit_name}</Badge>
                         ) : (
-                          <Badge bg="secondary">In Kit</Badge>
+                          <Badge bg="warning">Unknown</Badge>
                         )}
                       </td>
                       <td>
@@ -361,6 +521,50 @@ const ChemicalList = () => {
                   ))}
                 </tbody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top">
+              <div className="text-muted">
+                <small>
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredChemicals.length)} of {filteredChemicals.length} chemicals
+                </small>
+              </div>
+              <Pagination className="mb-0">
+                <Pagination.First
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                />
+                <Pagination.Prev
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                />
+
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <Pagination.Ellipsis key={`ellipsis-${index}`} disabled />
+                  ) : (
+                    <Pagination.Item
+                      key={page}
+                      active={page === currentPage}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  )
+                ))}
+
+                <Pagination.Next
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                />
+                <Pagination.Last
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                />
+              </Pagination>
             </div>
           )}
         </Card.Body>

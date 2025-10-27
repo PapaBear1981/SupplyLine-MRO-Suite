@@ -4,7 +4,8 @@ const ChemicalService = {
   // Get all chemicals
   getAllChemicals: async () => {
     try {
-      const response = await api.get('/chemicals');
+      // Request all chemicals by setting per_page to max (500)
+      const response = await api.get('/chemicals?per_page=500');
       return response.data;
     } catch (error) {
       console.error('API Error [GET] /chemicals:', error);

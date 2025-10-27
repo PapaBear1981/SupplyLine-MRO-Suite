@@ -139,7 +139,9 @@ def register_kit_transfer_routes(app):
         db.session.add(creation_log)
         db.session.commit()
 
-        auto_complete = from_type == 'warehouse' and to_type == 'warehouse'
+        # Auto-complete transfers from warehouse (to either warehouse or kit)
+        # Kit-to-kit and kit-to-warehouse transfers remain pending for manual completion
+        auto_complete = from_type == 'warehouse'
 
         if auto_complete:
             response_data = _complete_transfer_internal(

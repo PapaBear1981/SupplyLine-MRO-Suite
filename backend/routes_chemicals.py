@@ -128,9 +128,32 @@ def register_chemical_routes(app):
         if chemicals_to_update or archive_logs:
             db.session.commit()
 
+        # Get kit and box information for chemicals
+        from models_kits import KitItem, Kit, KitBox
+        chemical_kit_info = {}
+        kit_items = KitItem.query.filter(
+            KitItem.item_type == 'chemical',
+            KitItem.item_id.in_([c.id for c in chemicals])
+        ).all()
+
+        for kit_item in kit_items:
+            chemical_kit_info[kit_item.item_id] = {
+                'kit_id': kit_item.kit_id,
+                'kit_name': kit_item.kit.name if kit_item.kit else None,
+                'box_id': kit_item.box_id,
+                'box_number': kit_item.box.box_number if kit_item.box else None
+            }
+
         # Serialize after all mutations to ensure client gets updated data
         chemicals_data = [
-            {**c.to_dict(), **({'expiring_soon': True} if getattr(c, 'expiring_soon', False) else {})}
+            {
+                **c.to_dict(),
+                **({'expiring_soon': True} if getattr(c, 'expiring_soon', False) else {}),
+                'kit_id': chemical_kit_info.get(c.id, {}).get('kit_id'),
+                'kit_name': chemical_kit_info.get(c.id, {}).get('kit_name'),
+                'box_id': chemical_kit_info.get(c.id, {}).get('box_id'),
+                'box_number': chemical_kit_info.get(c.id, {}).get('box_number')
+            }
             for c in chemicals
         ]
 

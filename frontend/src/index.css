@@ -60,6 +60,15 @@ code {
   color: var(--bs-body-color);
 }
 
+/* Prevent hover effect on table headers in light mode */
+.table.table-hover thead tr:hover {
+  background-color: var(--bs-light) !important;
+}
+
+.table-hover thead tr:hover {
+  background-color: var(--bs-light) !important;
+}
+
 /* Dark mode table styling */
 [data-bs-theme="dark"] .table thead.bg-light,
 [data-bs-theme="dark"] thead.bg-light {
@@ -74,6 +83,13 @@ code {
 
 [data-bs-theme="dark"] .table td {
   border-color: #495057;
+}
+
+/* Dark mode - Table header hover effect */
+[data-bs-theme="dark"] .table-hover > thead > tr:hover,
+[data-bs-theme="dark"] .table-hover > thead > tr:hover > th {
+  background-color: #2d3139 !important;
+  color: var(--bs-body-color) !important;
 }
 
 /* Navbar styling */

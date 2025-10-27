@@ -833,6 +833,22 @@ def register_routes(app):
             for checkout in active_checkouts:
                 tool_status[checkout.tool_id] = 'checked_out'
 
+            # Get kit and box information for tools
+            from models_kits import KitItem, Kit, KitBox
+            tool_kit_info = {}
+            kit_items = KitItem.query.filter(
+                KitItem.item_type == 'tool',
+                KitItem.item_id.in_([t.id for t in tools])
+            ).all()
+
+            for kit_item in kit_items:
+                tool_kit_info[kit_item.item_id] = {
+                    'kit_id': kit_item.kit_id,
+                    'kit_name': kit_item.kit.name if kit_item.kit else None,
+                    'box_id': kit_item.box_id,
+                    'box_number': kit_item.box.box_number if kit_item.box else None
+                }
+
             tools_data = [{
                 'id': t.id,
                 'tool_number': t.tool_number,
@@ -844,6 +860,10 @@ def register_routes(app):
                 'status': tool_status.get(t.id, getattr(t, 'status', 'available')),  # Use 'available' if status attribute doesn't exist
                 'status_reason': getattr(t, 'status_reason', None) if getattr(t, 'status', 'available') in ['maintenance', 'retired'] else None,
                 'warehouse_id': t.warehouse_id,
+                'kit_id': tool_kit_info.get(t.id, {}).get('kit_id'),
+                'kit_name': tool_kit_info.get(t.id, {}).get('kit_name'),
+                'box_id': tool_kit_info.get(t.id, {}).get('box_id'),
+                'box_number': tool_kit_info.get(t.id, {}).get('box_number'),
                 'created_at': t.created_at.isoformat(),
                 'requires_calibration': getattr(t, 'requires_calibration', False),
                 'calibration_frequency_days': getattr(t, 'calibration_frequency_days', None),

@@ -24,6 +24,7 @@ const KitItemsList = ({ kitId }) => {
   const [selectedItemForDetail, setSelectedItemForDetail] = useState(null);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [selectedItemForBarcode, setSelectedItemForBarcode] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'part_number', direction: 'ascending' });
 
   useEffect(() => {
     if (kitId) {
@@ -61,6 +62,52 @@ const KitItemsList = ({ kitId }) => {
   const getBoxName = (boxId) => {
     const box = boxes.find(b => b.id === boxId);
     return box ? box.box_number : 'Unknown';
+  };
+
+  // Sort filtered items
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    let aValue, bValue;
+
+    if (sortConfig.key === 'box_id') {
+      // Sort by box name
+      aValue = getBoxName(a.box_id).toLowerCase();
+      bValue = getBoxName(b.box_id).toLowerCase();
+    } else if (sortConfig.key === 'quantity') {
+      // Numeric sorting for quantity
+      aValue = parseFloat(a.quantity) || 0;
+      bValue = parseFloat(b.quantity) || 0;
+
+      if (sortConfig.direction === 'ascending') {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    } else {
+      // String sorting for other fields
+      aValue = (a[sortConfig.key] || '').toString().toLowerCase();
+      bValue = (b[sortConfig.key] || '').toString().toLowerCase();
+    }
+
+    if (sortConfig.direction === 'ascending') {
+      return aValue.toString().localeCompare(bValue.toString());
+    } else {
+      return bValue.toString().localeCompare(aValue.toString());
+    }
+  });
+
+  const handleSort = (key) => {
+    setSortConfig({
+      key,
+      direction:
+        sortConfig.key === key && sortConfig.direction === 'ascending'
+          ? 'descending'
+          : 'ascending',
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
   const getTrackingIcon = (item) => {
@@ -222,20 +269,34 @@ const KitItemsList = ({ kitId }) => {
           </div>
         ) : (
           <Table responsive hover>
-            <thead>
+            <thead className="bg-light">
               <tr>
-                <th>Box</th>
-                <th>Part Number</th>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Quantity</th>
-                <th>Location</th>
-                <th>Status</th>
+                <th onClick={() => handleSort('box_id')} className="cursor-pointer">
+                  Box {getSortIcon('box_id')}
+                </th>
+                <th onClick={() => handleSort('part_number')} className="cursor-pointer">
+                  Part Number {getSortIcon('part_number')}
+                </th>
+                <th onClick={() => handleSort('description')} className="cursor-pointer">
+                  Description {getSortIcon('description')}
+                </th>
+                <th onClick={() => handleSort('item_type')} className="cursor-pointer">
+                  Type {getSortIcon('item_type')}
+                </th>
+                <th onClick={() => handleSort('quantity')} className="cursor-pointer">
+                  Quantity {getSortIcon('quantity')}
+                </th>
+                <th onClick={() => handleSort('location')} className="cursor-pointer">
+                  Location {getSortIcon('location')}
+                </th>
+                <th onClick={() => handleSort('status')} className="cursor-pointer">
+                  Status {getSortIcon('status')}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item, index) => (
+              {sortedItems.map((item, index) => (
                 <tr
                   key={`${item.source}-${item.id}-${index}`}
                   className="clickable-row"
