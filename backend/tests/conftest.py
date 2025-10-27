@@ -10,6 +10,7 @@ from datetime import datetime
 import pytest
 from sqlalchemy import text
 
+
 # Add the backend directory to the Python path
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
@@ -25,33 +26,43 @@ UserActivity = None
 AuditLog = None
 JWTManager = None
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def app():
     """Create application for testing"""
     # B108 Mitigation: Use mkstemp for secure temporary file creation (avoids mktemp race condition).
     # File descriptor (db_fd) is closed and file (db_path) is unlinked in the 'finally' block.
     db_fd, db_path = tempfile.mkstemp()
 
-    original_db_url = os.environ.get('DATABASE_URL')
-    original_flask_env = os.environ.get('FLASK_ENV')
-    original_session_type = os.environ.get('SESSION_TYPE')
-    os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
-    os.environ['FLASK_ENV'] = 'testing'
-    os.environ['SESSION_TYPE'] = 'filesystem'
+    original_db_url = os.environ.get("DATABASE_URL")
+    original_flask_env = os.environ.get("FLASK_ENV")
+    original_session_type = os.environ.get("SESSION_TYPE")
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+    os.environ["FLASK_ENV"] = "testing"
+    os.environ["SESSION_TYPE"] = "filesystem"
 
     try:
         global create_app, db, User, Tool, Chemical, UserActivity, AuditLog, JWTManager
         if create_app is None:
             from app import create_app as _create_app
+            from auth import JWTManager as _JWTManager
             from models import (
                 AuditLog as _AuditLog,
+            )
+            from models import (
                 Chemical as _Chemical,
+            )
+            from models import (
                 Tool as _Tool,
+            )
+            from models import (
                 User as _User,
+            )
+            from models import (
                 UserActivity as _UserActivity,
+            )
+            from models import (
                 db as _db,
             )
-            from auth import JWTManager as _JWTManager
 
             create_app = _create_app
             db = _db
@@ -66,38 +77,38 @@ def app():
 
         # Test database configuration
         application.config.update({
-            'DATABASE_URL': f'sqlite:///{db_path}',
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{db_path}',
-            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-            'TESTING': True,
-            'WTF_CSRF_ENABLED': False,
-            'SECRET_KEY': 'test-secret-key',
-            'JWT_SECRET_KEY': 'test-jwt-secret-key',
-            'RATE_LIMITS': {},
-            'SESSION_TYPE': 'filesystem',
+            "DATABASE_URL": f"sqlite:///{db_path}",
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+            "TESTING": True,
+            "WTF_CSRF_ENABLED": False,
+            "SECRET_KEY": "test-secret-key",
+            "JWT_SECRET_KEY": "test-jwt-secret-key",
+            "RATE_LIMITS": {},
+            "SESSION_TYPE": "filesystem",
         })
 
         yield application
     finally:
         if original_db_url is not None:
-            os.environ['DATABASE_URL'] = original_db_url
+            os.environ["DATABASE_URL"] = original_db_url
         else:
-            os.environ.pop('DATABASE_URL', None)
+            os.environ.pop("DATABASE_URL", None)
 
         if original_flask_env is not None:
-            os.environ['FLASK_ENV'] = original_flask_env
+            os.environ["FLASK_ENV"] = original_flask_env
         else:
-            os.environ.pop('FLASK_ENV', None)
+            os.environ.pop("FLASK_ENV", None)
 
         if original_session_type is not None:
-            os.environ['SESSION_TYPE'] = original_session_type
+            os.environ["SESSION_TYPE"] = original_session_type
         else:
-            os.environ.pop('SESSION_TYPE', None)
+            os.environ.pop("SESSION_TYPE", None)
 
         os.close(db_fd)
         os.unlink(db_path)
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def _db(app):
     """Create database for testing"""
     with app.app_context():
@@ -105,7 +116,7 @@ def _db(app):
         yield db
         db.drop_all()
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def db_session(app, _db):
     """Provide a clean database session for each test."""
     with app.app_context():
@@ -119,14 +130,14 @@ def db_session(app, _db):
             # created in one test never bleeds into the next one.
             engine = _db.engine
             with engine.begin() as connection:
-                if engine.dialect.name == 'sqlite':
-                    connection.execute(text('PRAGMA foreign_keys = OFF'))
+                if engine.dialect.name == "sqlite":
+                    connection.execute(text("PRAGMA foreign_keys = OFF"))
 
                 for table in reversed(_db.metadata.sorted_tables):
                     connection.execute(table.delete())
 
-                if engine.dialect.name == 'sqlite':
-                    connection.execute(text('PRAGMA foreign_keys = ON'))
+                if engine.dialect.name == "sqlite":
+                    connection.execute(text("PRAGMA foreign_keys = ON"))
 
             _db.session.remove()
 
@@ -145,19 +156,19 @@ def admin_user(db_session):
     """Create admin user for testing"""
     # Use ADMIN001 to match backend/conftest.py and avoid conflicts
     # Delete any existing admin user (in case app initialization created one)
-    existing = User.query.filter_by(employee_number='ADMIN001').first()
+    existing = User.query.filter_by(employee_number="ADMIN001").first()
     if existing:
         db_session.delete(existing)
         db_session.commit()
 
     user = User(
-        name='Test Admin',
-        employee_number='ADMIN001',
-        department='IT',
+        name="Test Admin",
+        employee_number="ADMIN001",
+        department="IT",
         is_admin=True,
         is_active=True
     )
-    user.set_password('admin123')
+    user.set_password("admin123")
     db_session.add(user)
     db_session.commit()
     return user
@@ -166,19 +177,19 @@ def admin_user(db_session):
 def test_user(db_session):
     """Alias for regular_user to support tests that use test_user fixture"""
     # Delete any existing user to ensure clean state
-    existing = User.query.filter_by(employee_number='USER001').first()
+    existing = User.query.filter_by(employee_number="USER001").first()
     if existing:
         db_session.delete(existing)
         db_session.commit()
 
     user = User(
-        name='Test User',
-        employee_number='USER001',
-        department='Engineering',
+        name="Test User",
+        employee_number="USER001",
+        department="Engineering",
         is_admin=False,
         is_active=True
     )
-    user.set_password('user123')
+    user.set_password("user123")
     db_session.add(user)
     db_session.commit()
     return user
@@ -186,19 +197,19 @@ def test_user(db_session):
 @pytest.fixture
 def regular_user(db_session):
     """Create regular user for testing"""
-    existing = User.query.filter_by(employee_number='USER001').first()
+    existing = User.query.filter_by(employee_number="USER001").first()
     if existing:
         db_session.delete(existing)
         db_session.flush()
 
     user = User(
-        name='Test User',
-        employee_number='USER001',
-        department='Engineering',
+        name="Test User",
+        employee_number="USER001",
+        department="Engineering",
         is_admin=False,
         is_active=True
     )
-    user.set_password('user123')
+    user.set_password("user123")
     db_session.add(user)
     db_session.commit()
     return user
@@ -207,13 +218,13 @@ def regular_user(db_session):
 def test_warehouse(db_session):
     """Create test warehouse for testing"""
     from models import Warehouse
-    existing = Warehouse.query.filter_by(name='Test Warehouse').first()
+    existing = Warehouse.query.filter_by(name="Test Warehouse").first()
     if existing:
         return existing
 
     warehouse = Warehouse(
-        name='Test Warehouse',
-        address='123 Test St',
+        name="Test Warehouse",
+        address="123 Test St",
         is_active=True
     )
     db_session.add(warehouse)
@@ -224,14 +235,14 @@ def test_warehouse(db_session):
 def sample_tool(db_session, admin_user, test_warehouse):
     """Create sample tool for testing"""
     tool = Tool(
-        tool_number='T001',
-        serial_number='S001',
-        description='Test Tool',
-        condition='Good',
-        location='Test Location',
-        category='Testing',
+        tool_number="T001",
+        serial_number="S001",
+        description="Test Tool",
+        condition="Good",
+        location="Test Location",
+        category="Testing",
         warehouse_id=test_warehouse.id,
-        status='available'
+        status="available"
     )
     db_session.add(tool)
     db_session.commit()
@@ -241,15 +252,15 @@ def sample_tool(db_session, admin_user, test_warehouse):
 def sample_chemical(db_session, admin_user, test_warehouse):
     """Create sample chemical for testing"""
     chemical = Chemical(
-        part_number='C001',
-        lot_number='L001',
-        description='Test Chemical',
-        manufacturer='Test Manufacturer',
+        part_number="C001",
+        lot_number="L001",
+        description="Test Chemical",
+        manufacturer="Test Manufacturer",
         quantity=100.0,
-        unit='ml',
-        location='Test Location',
-        category='Testing',
-        status='available',
+        unit="ml",
+        location="Test Location",
+        category="Testing",
+        status="available",
         warehouse_id=test_warehouse.id,
         created_by=admin_user.id,
         created_at=datetime.utcnow()
@@ -263,31 +274,31 @@ def auth_headers(client, admin_user, jwt_manager):
     """Get authentication headers for admin user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(admin_user)
-    access_token = tokens['access_token']
-    return {'Authorization': f'Bearer {access_token}'}
+    access_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {access_token}"}
 
 @pytest.fixture
 def user_auth_headers(client, regular_user, jwt_manager):
     """Get authentication headers for regular user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(regular_user)
-    access_token = tokens['access_token']
-    return {'Authorization': f'Bearer {access_token}'}
+    access_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {access_token}"}
 
 @pytest.fixture
 def materials_user(db_session):
     """Create a Materials department user"""
     import uuid
-    emp_number = f'MAT{uuid.uuid4().hex[:6]}'
+    emp_number = f"MAT{uuid.uuid4().hex[:6]}"
 
     user = User(
-        name='Materials User',
+        name="Materials User",
         employee_number=emp_number,
-        department='Materials',
+        department="Materials",
         is_admin=False,
         is_active=True
     )
-    user.set_password('materials123')
+    user.set_password("materials123")
     db_session.add(user)
     db_session.commit()
     return user
@@ -297,8 +308,8 @@ def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(materials_user)
-    access_token = tokens['access_token']
-    return {'Authorization': f'Bearer {access_token}'}
+    access_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {access_token}"}
 
 @pytest.fixture
 def sample_data(db_session, admin_user, regular_user):
@@ -307,13 +318,13 @@ def sample_data(db_session, admin_user, regular_user):
     tools = []
     for i in range(5):
         tool = Tool(
-            tool_number=f'T{i+2:03d}',
-            serial_number=f'S{i+2:03d}',
-            description=f'Test Tool {i+2}',
-            condition='Good',
-            location=f'Location {i+1}',
-            category='Testing',
-            status='available',
+            tool_number=f"T{i+2:03d}",
+            serial_number=f"S{i+2:03d}",
+            description=f"Test Tool {i+2}",
+            condition="Good",
+            location=f"Location {i+1}",
+            category="Testing",
+            status="available",
             created_by=admin_user.id,
             created_at=datetime.utcnow()
         )
@@ -324,15 +335,15 @@ def sample_data(db_session, admin_user, regular_user):
     chemicals = []
     for i in range(3):
         chemical = Chemical(
-            part_number=f'C{i+2:03d}',
-            lot_number=f'L{i+2:03d}',
-            description=f'Test Chemical {i+2}',
-            manufacturer='Test Manufacturer',
+            part_number=f"C{i+2:03d}",
+            lot_number=f"L{i+2:03d}",
+            description=f"Test Chemical {i+2}",
+            manufacturer="Test Manufacturer",
             quantity=50.0 + (i * 25),
-            unit='ml',
-            location=f'Chemical Storage {i+1}',
-            category='Testing',
-            status='available',
+            unit="ml",
+            location=f"Chemical Storage {i+1}",
+            category="Testing",
+            status="available",
             created_by=admin_user.id,
             created_at=datetime.utcnow()
         )
@@ -341,11 +352,11 @@ def sample_data(db_session, admin_user, regular_user):
 
     # Create some user activities
     activities = []
-    for i, tool in enumerate(tools[:2]):
+    for _i, tool in enumerate(tools[:2]):
         activity = UserActivity(
             user_id=regular_user.id,
-            activity_type='checkout',
-            description=f'Checked out {tool.tool_number}',
+            activity_type="checkout",
+            description=f"Checked out {tool.tool_number}",
             timestamp=datetime.utcnow()
         )
         activities.append(activity)
@@ -354,9 +365,9 @@ def sample_data(db_session, admin_user, regular_user):
     db_session.commit()
 
     return {
-        'tools': tools,
-        'chemicals': chemicals,
-        'activities': activities
+        "tools": tools,
+        "chemicals": chemicals,
+        "activities": activities
     }
 
 # Test utilities
@@ -369,7 +380,7 @@ class TestUtils:
     def assert_json_response(response, expected_status=200):
         """Assert that response is JSON with expected status"""
         assert response.status_code == expected_status
-        assert response.content_type == 'application/json'
+        assert response.content_type == "application/json"
         return response.get_json()
 
     @staticmethod
@@ -377,7 +388,7 @@ class TestUtils:
         """Assert that response is an error with expected status"""
         assert response.status_code == expected_status
         data = response.get_json()
-        assert 'error' in data
+        assert "error" in data
         return data
 
     @staticmethod
@@ -386,11 +397,11 @@ class TestUtils:
         user = User(
             name=name,
             employee_number=employee_number,
-            department='Testing',
+            department="Testing",
             is_admin=is_admin,
             is_active=True
         )
-        user.set_password('test123')
+        user.set_password("test123")
         db_session.add(user)
         db_session.commit()
         return user

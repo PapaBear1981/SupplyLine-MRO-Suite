@@ -3,25 +3,28 @@ Warehouse management routes.
 Handles CRUD operations for warehouses and warehouse inventory.
 """
 
-from flask import Blueprint, request, jsonify
-from auth.jwt_manager import jwt_required
-from models import db, Warehouse, Tool, Chemical, User
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
 from sqlalchemy import or_
 
-warehouses_bp = Blueprint('warehouses', __name__)
+from auth.jwt_manager import jwt_required
+from models import Chemical, Tool, User, Warehouse, db
+
+
+warehouses_bp = Blueprint("warehouses", __name__)
 
 
 def require_admin():
     """Decorator to require admin privileges."""
-    user_id = request.current_user.get('user_id')
+    user_id = request.current_user.get("user_id")
     user = User.query.get(user_id)
     if not user or not user.is_admin:
-        return jsonify({'error': 'Admin privileges required'}), 403
+        return jsonify({"error": "Admin privileges required"}), 403
     return None
 
 
-@warehouses_bp.route('/warehouses', methods=['GET'])
+@warehouses_bp.route("/warehouses", methods=["GET"])
 @jwt_required
 def get_warehouses():
     """
@@ -34,17 +37,17 @@ def get_warehouses():
     """
     try:
         # PERFORMANCE: Add pagination to prevent unbounded dataset returns
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 50, type=int)
 
-        include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
-        warehouse_type = request.args.get('warehouse_type')
+        include_inactive = request.args.get("include_inactive", "false").lower() == "true"
+        warehouse_type = request.args.get("warehouse_type")
 
         # Validate pagination parameters
         if page < 1:
-            return jsonify({'error': 'Page must be >= 1'}), 400
+            return jsonify({"error": "Page must be >= 1"}), 400
         if per_page < 1 or per_page > 200:
-            return jsonify({'error': 'Per page must be between 1 and 200'}), 400
+            return jsonify({"error": "Per page must be between 1 and 200"}), 400
 
         query = Warehouse.query
 
@@ -68,14 +71,14 @@ def get_warehouses():
 
         # Return paginated response
         response = {
-            'warehouses': [w.to_dict(include_counts=True) for w in warehouses],
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': pagination.total,
-                'pages': pagination.pages,
-                'has_next': pagination.has_next,
-                'has_prev': pagination.has_prev
+            "warehouses": [w.to_dict(include_counts=True) for w in warehouses],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+                "has_next": pagination.has_next,
+                "has_prev": pagination.has_prev
             }
         }
 
@@ -83,12 +86,12 @@ def get_warehouses():
 
     except Exception as e:
         import traceback
-        print(f"ERROR in get_warehouses: {str(e)}")
+        print(f"ERROR in get_warehouses: {e!s}")
         print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses', methods=['POST'])
+@warehouses_bp.route("/warehouses", methods=["POST"])
 @jwt_required
 def create_warehouse():
     """
@@ -105,24 +108,24 @@ def create_warehouse():
         data = request.get_json()
 
         # Validate required fields
-        if not data.get('name'):
-            return jsonify({'error': 'Warehouse name is required'}), 400
+        if not data.get("name"):
+            return jsonify({"error": "Warehouse name is required"}), 400
 
         # Check if warehouse with same name already exists
-        existing = Warehouse.query.filter_by(name=data['name']).first()
+        existing = Warehouse.query.filter_by(name=data["name"]).first()
         if existing:
-            return jsonify({'error': 'Warehouse with this name already exists'}), 400
+            return jsonify({"error": "Warehouse with this name already exists"}), 400
 
         # Create warehouse
-        current_user_id = request.current_user.get('user_id')
+        current_user_id = request.current_user.get("user_id")
         warehouse = Warehouse(
-            name=data['name'],
-            address=data.get('address'),
-            city=data.get('city'),
-            state=data.get('state'),
-            zip_code=data.get('zip_code'),
-            country=data.get('country', 'USA'),
-            warehouse_type=data.get('warehouse_type', 'satellite'),
+            name=data["name"],
+            address=data.get("address"),
+            city=data.get("city"),
+            state=data.get("state"),
+            zip_code=data.get("zip_code"),
+            country=data.get("country", "USA"),
+            warehouse_type=data.get("warehouse_type", "satellite"),
             is_active=True,
             created_by_id=current_user_id,
             created_at=datetime.now(),
@@ -133,19 +136,19 @@ def create_warehouse():
         db.session.commit()
 
         return jsonify({
-            'message': 'Warehouse created successfully',
-            'warehouse': warehouse.to_dict()
+            "message": "Warehouse created successfully",
+            "warehouse": warehouse.to_dict()
         }), 201
 
     except Exception as e:
         import traceback
-        print(f"ERROR in create_warehouse: {str(e)}")
+        print(f"ERROR in create_warehouse: {e!s}")
         print(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>', methods=['GET'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>", methods=["GET"])
 @jwt_required
 def get_warehouse(warehouse_id):
     """Get details of a specific warehouse."""
@@ -153,15 +156,15 @@ def get_warehouse(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         return jsonify(warehouse.to_dict()), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>', methods=['PUT'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>", methods=["PUT"])
 @jwt_required
 def update_warehouse(warehouse_id):
     """
@@ -177,49 +180,49 @@ def update_warehouse(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         data = request.get_json()
 
         # Check if new name conflicts with existing warehouse
-        if data.get('name') and data['name'] != warehouse.name:
-            existing = Warehouse.query.filter_by(name=data['name']).first()
+        if data.get("name") and data["name"] != warehouse.name:
+            existing = Warehouse.query.filter_by(name=data["name"]).first()
             if existing:
-                return jsonify({'error': 'Warehouse with this name already exists'}), 400
+                return jsonify({"error": "Warehouse with this name already exists"}), 400
 
         # Update fields
-        if 'name' in data:
-            warehouse.name = data['name']
-        if 'address' in data:
-            warehouse.address = data['address']
-        if 'city' in data:
-            warehouse.city = data['city']
-        if 'state' in data:
-            warehouse.state = data['state']
-        if 'zip_code' in data:
-            warehouse.zip_code = data['zip_code']
-        if 'country' in data:
-            warehouse.country = data['country']
-        if 'warehouse_type' in data:
-            warehouse.warehouse_type = data['warehouse_type']
-        if 'is_active' in data:
-            warehouse.is_active = data['is_active']
+        if "name" in data:
+            warehouse.name = data["name"]
+        if "address" in data:
+            warehouse.address = data["address"]
+        if "city" in data:
+            warehouse.city = data["city"]
+        if "state" in data:
+            warehouse.state = data["state"]
+        if "zip_code" in data:
+            warehouse.zip_code = data["zip_code"]
+        if "country" in data:
+            warehouse.country = data["country"]
+        if "warehouse_type" in data:
+            warehouse.warehouse_type = data["warehouse_type"]
+        if "is_active" in data:
+            warehouse.is_active = data["is_active"]
 
         warehouse.updated_at = datetime.now()
 
         db.session.commit()
 
         return jsonify({
-            'message': 'Warehouse updated successfully',
-            'warehouse': warehouse.to_dict()
+            "message": "Warehouse updated successfully",
+            "warehouse": warehouse.to_dict()
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>', methods=['DELETE'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>", methods=["DELETE"])
 @jwt_required
 def delete_warehouse(warehouse_id):
     """
@@ -235,7 +238,7 @@ def delete_warehouse(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         # Check if warehouse has items
         tools_count = warehouse.tools.count()
@@ -243,7 +246,7 @@ def delete_warehouse(warehouse_id):
 
         if tools_count > 0 or chemicals_count > 0:
             return jsonify({
-                'error': f'Cannot delete warehouse with items. Please transfer {tools_count} tools and {chemicals_count} chemicals first.'
+                "error": f"Cannot delete warehouse with items. Please transfer {tools_count} tools and {chemicals_count} chemicals first."
             }), 400
 
         # Soft delete
@@ -253,16 +256,16 @@ def delete_warehouse(warehouse_id):
         db.session.commit()
 
         return jsonify({
-            'message': 'Warehouse deactivated successfully',
-            'warehouse': warehouse.to_dict()
+            "message": "Warehouse deactivated successfully",
+            "warehouse": warehouse.to_dict()
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>/stats', methods=['GET'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>/stats", methods=["GET"])
 @jwt_required
 def get_warehouse_stats(warehouse_id):
     """Get statistics for a warehouse."""
@@ -270,7 +273,7 @@ def get_warehouse_stats(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         # Debug: Check direct query
         tools_count_direct = Tool.query.filter_by(warehouse_id=warehouse_id).count()
@@ -308,24 +311,24 @@ def get_warehouse_stats(warehouse_id):
         ).group_by(Chemical.status).all()
 
         return jsonify({
-            'warehouse': warehouse.to_dict(),
-            'tools': {
-                'total': tools_count_direct,  # Use direct query instead of relationship
-                'by_category': {cat: count for cat, count in tools_by_category},
-                'by_status': {status: count for status, count in tools_by_status}
+            "warehouse": warehouse.to_dict(),
+            "tools": {
+                "total": tools_count_direct,  # Use direct query instead of relationship
+                "by_category": dict(tools_by_category),
+                "by_status": dict(tools_by_status)
             },
-            'chemicals': {
-                'total': warehouse.chemicals.count(),
-                'by_category': {cat: count for cat, count in chemicals_by_category},
-                'by_status': {status: count for status, count in chemicals_by_status}
+            "chemicals": {
+                "total": warehouse.chemicals.count(),
+                "by_category": dict(chemicals_by_category),
+                "by_status": dict(chemicals_by_status)
             }
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>/tools', methods=['GET'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>/tools", methods=["GET"])
 @jwt_required
 def get_warehouse_tools(warehouse_id):
     """
@@ -341,14 +344,14 @@ def get_warehouse_tools(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         # Get query parameters
-        status = request.args.get('status')
-        category = request.args.get('category')
-        search = request.args.get('search')
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 50))
+        status = request.args.get("status")
+        category = request.args.get("category")
+        search = request.args.get("search")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 50))
 
         # Build query
         query = Tool.query.filter_by(warehouse_id=warehouse_id)
@@ -359,7 +362,7 @@ def get_warehouse_tools(warehouse_id):
         if category:
             query = query.filter_by(category=category)
         if search:
-            search_pattern = f'%{search}%'
+            search_pattern = f"%{search}%"
             query = query.filter(
                 or_(
                     Tool.tool_number.like(search_pattern),
@@ -376,18 +379,18 @@ def get_warehouse_tools(warehouse_id):
         )
 
         return jsonify({
-            'tools': [tool.to_dict() for tool in pagination.items],
-            'total': pagination.total,
-            'page': page,
-            'per_page': per_page,
-            'pages': pagination.pages
+            "tools": [tool.to_dict() for tool in pagination.items],
+            "total": pagination.total,
+            "page": page,
+            "per_page": per_page,
+            "pages": pagination.pages
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>/chemicals', methods=['GET'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>/chemicals", methods=["GET"])
 @jwt_required
 def get_warehouse_chemicals(warehouse_id):
     """
@@ -403,14 +406,14 @@ def get_warehouse_chemicals(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         # Get query parameters
-        status = request.args.get('status')
-        category = request.args.get('category')
-        search = request.args.get('search')
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 50))
+        status = request.args.get("status")
+        category = request.args.get("category")
+        search = request.args.get("search")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 50))
 
         # Build query
         query = Chemical.query.filter_by(warehouse_id=warehouse_id)
@@ -421,7 +424,7 @@ def get_warehouse_chemicals(warehouse_id):
         if category:
             query = query.filter_by(category=category)
         if search:
-            search_pattern = f'%{search}%'
+            search_pattern = f"%{search}%"
             query = query.filter(
                 or_(
                     Chemical.part_number.like(search_pattern),
@@ -438,18 +441,18 @@ def get_warehouse_chemicals(warehouse_id):
         )
 
         return jsonify({
-            'chemicals': [chemical.to_dict() for chemical in pagination.items],
-            'total': pagination.total,
-            'page': page,
-            'per_page': per_page,
-            'pages': pagination.pages
+            "chemicals": [chemical.to_dict() for chemical in pagination.items],
+            "total": pagination.total,
+            "page": page,
+            "per_page": per_page,
+            "pages": pagination.pages
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@warehouses_bp.route('/warehouses/<int:warehouse_id>/inventory', methods=['GET'])
+@warehouses_bp.route("/warehouses/<int:warehouse_id>/inventory", methods=["GET"])
 @jwt_required
 def get_warehouse_inventory(warehouse_id):
     """
@@ -462,20 +465,20 @@ def get_warehouse_inventory(warehouse_id):
         warehouse = Warehouse.query.get(warehouse_id)
 
         if not warehouse:
-            return jsonify({'error': 'Warehouse not found'}), 404
+            return jsonify({"error": "Warehouse not found"}), 404
 
         # Get query parameters
-        item_type = request.args.get('item_type')
-        search = request.args.get('search')
+        item_type = request.args.get("item_type")
+        search = request.args.get("search")
 
         inventory = []
 
         # Get tools
-        if not item_type or item_type == 'tool':
+        if not item_type or item_type == "tool":
             tools_query = Tool.query.filter_by(warehouse_id=warehouse_id)
 
             if search:
-                search_pattern = f'%{search}%'
+                search_pattern = f"%{search}%"
                 tools_query = tools_query.filter(
                     or_(
                         Tool.tool_number.like(search_pattern),
@@ -487,17 +490,17 @@ def get_warehouse_inventory(warehouse_id):
             tools = tools_query.all()
             for tool in tools:
                 tool_dict = tool.to_dict()
-                tool_dict['item_type'] = 'tool'
-                tool_dict['tracking_number'] = tool.serial_number
-                tool_dict['tracking_type'] = 'serial'
+                tool_dict["item_type"] = "tool"
+                tool_dict["tracking_number"] = tool.serial_number
+                tool_dict["tracking_type"] = "serial"
                 inventory.append(tool_dict)
 
         # Get chemicals
-        if not item_type or item_type == 'chemical':
+        if not item_type or item_type == "chemical":
             chemicals_query = Chemical.query.filter_by(warehouse_id=warehouse_id)
 
             if search:
-                search_pattern = f'%{search}%'
+                search_pattern = f"%{search}%"
                 chemicals_query = chemicals_query.filter(
                     or_(
                         Chemical.part_number.like(search_pattern),
@@ -509,19 +512,19 @@ def get_warehouse_inventory(warehouse_id):
             chemicals = chemicals_query.all()
             for chemical in chemicals:
                 chemical_dict = chemical.to_dict()
-                chemical_dict['item_type'] = 'chemical'
-                chemical_dict['tracking_number'] = chemical.lot_number
-                chemical_dict['tracking_type'] = 'lot'
+                chemical_dict["item_type"] = "chemical"
+                chemical_dict["tracking_number"] = chemical.lot_number
+                chemical_dict["tracking_type"] = "lot"
                 inventory.append(chemical_dict)
 
         # Sort by description
-        inventory.sort(key=lambda x: x.get('description', ''))
+        inventory.sort(key=lambda x: x.get("description", ""))
 
         return jsonify({
-            'warehouse': warehouse.to_dict(),
-            'inventory': inventory,
-            'total': len(inventory)
+            "warehouse": warehouse.to_dict(),
+            "inventory": inventory,
+            "total": len(inventory)
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500

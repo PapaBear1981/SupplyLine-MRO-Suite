@@ -1,8 +1,10 @@
-from flask import request, jsonify
-from models import db, Chemical, ChemicalIssuance, User
-from datetime import datetime, timedelta
-from auth import department_required
 import traceback
+from datetime import datetime, timedelta
+
+from flask import jsonify, request
+
+from auth import department_required
+from models import Chemical, ChemicalIssuance, User, db
 
 
 # Helper functions for part number analytics
@@ -17,34 +19,34 @@ def calculate_inventory_stats(chemicals):
 
     for c in chemicals:
         try:
-            is_archived = getattr(c, 'is_archived', False)
+            is_archived = getattr(c, "is_archived", False)
             if is_archived:
                 archived_count += 1
             else:
                 active_count += 1
-                current_inventory += getattr(c, 'quantity', 0)
+                current_inventory += getattr(c, "quantity", 0)
 
             # Collect unique lot numbers
             if c.lot_number:
                 lot_numbers.add(c.lot_number)
         except Exception as e:
-            print(f"Error processing chemical {c.id}: {str(e)}")
+            print(f"Error processing chemical {c.id}: {e!s}")
             # Log the full error with traceback for better debugging
             print(traceback.format_exc())
             # Consider if continuing with default values is appropriate
             active_count += 1  # Default to active
-            current_inventory += getattr(c, 'quantity', 0)
+            current_inventory += getattr(c, "quantity", 0)
 
     # Convert set back to list before returning
     lot_numbers = list(lot_numbers)
     total_count = active_count + archived_count
 
     return {
-        'total_count': total_count,
-        'active_count': active_count,
-        'archived_count': archived_count,
-        'current_inventory': current_inventory,
-        'lot_numbers': lot_numbers
+        "total_count": total_count,
+        "active_count": active_count,
+        "archived_count": archived_count,
+        "current_inventory": current_inventory,
+        "lot_numbers": lot_numbers
     }
 
 
@@ -66,19 +68,19 @@ def calculate_usage_stats(part_number, max_results=1000):
     # Usage by location
     locations = {}
     for i in issuances:
-        loc = getattr(i, 'hangar', 'Unknown')
+        loc = getattr(i, "hangar", "Unknown")
         if loc not in locations:
             locations[loc] = 0
         locations[loc] += i.quantity
 
-    location_list = [{'location': loc, 'quantity': qty} for loc, qty in locations.items()]
+    location_list = [{"location": loc, "quantity": qty} for loc, qty in locations.items()]
 
     # Usage by user - optimize to avoid N+1 query problem
     users = {}
     user_names = {}
 
     # Get all relevant user IDs first
-    user_ids = set(i.user_id for i in issuances)
+    user_ids = {i.user_id for i in issuances}
 
     # Fetch all users in a single query
     all_users = User.query.filter(User.id.in_(user_ids)).all() if user_ids else []
@@ -93,27 +95,27 @@ def calculate_usage_stats(part_number, max_results=1000):
         users[user_id] += i.quantity
 
     user_list = [
-        {'user': user_names.get(user_id, f"User {user_id}"), 'quantity': qty}
+        {"user": user_names.get(user_id, f"User {user_id}"), "quantity": qty}
         for user_id, qty in users.items()
     ]
 
     # Usage over time
     time_data = {}
     for i in issuances:
-        month = i.issue_date.strftime('%Y-%m')
+        month = i.issue_date.strftime("%Y-%m")
         if month not in time_data:
             time_data[month] = 0
         time_data[month] += i.quantity
 
     # Sort time data chronologically
     sorted_months = sorted(time_data.keys())
-    time_list = [{'month': month, 'quantity': time_data[month]} for month in sorted_months]
+    time_list = [{"month": month, "quantity": time_data[month]} for month in sorted_months]
 
     return {
-        'total_issued': total_issued,
-        'by_location': location_list,
-        'by_user': user_list,
-        'over_time': time_list
+        "total_issued": total_issued,
+        "by_location": location_list,
+        "by_user": user_list,
+        "over_time": time_list
     }
 
 
@@ -126,19 +128,19 @@ def calculate_waste_stats(chemicals):
 
     for c in chemicals:
         try:
-            is_archived = getattr(c, 'is_archived', False)
+            is_archived = getattr(c, "is_archived", False)
             if is_archived:
                 archived_count += 1
-                archived_reason = getattr(c, 'archived_reason', '').lower()
+                archived_reason = getattr(c, "archived_reason", "").lower()
                 # Use more defined categories with broader matching patterns
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
+                if any(term in archived_reason for term in ["expir", "outdated", "past date"]):
                     expired_count += 1
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
+                elif any(term in archived_reason for term in ["deplet", "empty", "used up", "consumed", "exhausted"]):
                     depleted_count += 1
                 else:
                     other_archived_count += 1
         except Exception as e:
-            print(f"Error processing waste stats for chemical {c.id}: {str(e)}")
+            print(f"Error processing waste stats for chemical {c.id}: {e!s}")
             print(traceback.format_exc())
 
     # Calculate waste percentage (expired items as percentage of total archived)
@@ -147,10 +149,10 @@ def calculate_waste_stats(chemicals):
         waste_percentage = (expired_count / archived_count) * 100
 
     return {
-        'expired_count': expired_count,
-        'depleted_count': depleted_count,
-        'other_archived_count': other_archived_count,
-        'waste_percentage': round(waste_percentage, 1)
+        "expired_count": expired_count,
+        "depleted_count": depleted_count,
+        "other_archived_count": other_archived_count,
+        "waste_percentage": round(waste_percentage, 1)
     }
 
 
@@ -174,9 +176,9 @@ def calculate_shelf_life_stats(chemicals):
             shelf_life_days_list.append(shelf_life_days)
 
             # For archived chemicals, calculate used life
-            is_archived = getattr(c, 'is_archived', False)
+            is_archived = getattr(c, "is_archived", False)
             if is_archived:
-                archived_date = getattr(c, 'archived_date', None)
+                archived_date = getattr(c, "archived_date", None)
                 if archived_date:
                     used_life_days = (archived_date - c.date_added).days
                     used_life_days_list.append(used_life_days)
@@ -186,34 +188,34 @@ def calculate_shelf_life_stats(chemicals):
                     usage_percentage_list.append(usage_percentage)
         except Exception as e:
             import traceback
-            print(f"Error processing shelf life stats for chemical {c.id}: {str(e)}")
+            print(f"Error processing shelf life stats for chemical {c.id}: {e!s}")
             print(traceback.format_exc())
 
     # Calculate averages
     results = {
-        'avg_shelf_life_days': 0,
-        'avg_used_life_days': 0,
-        'avg_usage_percentage': 0,
+        "avg_shelf_life_days": 0,
+        "avg_used_life_days": 0,
+        "avg_usage_percentage": 0,
     }
 
     if shelf_life_days_list:
-        results['avg_shelf_life_days'] = sum(shelf_life_days_list) / len(shelf_life_days_list)
+        results["avg_shelf_life_days"] = sum(shelf_life_days_list) / len(shelf_life_days_list)
 
     if used_life_days_list:
-        results['avg_used_life_days'] = sum(used_life_days_list) / len(used_life_days_list)
+        results["avg_used_life_days"] = sum(used_life_days_list) / len(used_life_days_list)
 
     if usage_percentage_list:
-        results['avg_usage_percentage'] = sum(usage_percentage_list) / len(usage_percentage_list)
+        results["avg_usage_percentage"] = sum(usage_percentage_list) / len(usage_percentage_list)
 
     return results
 
 # Decorator to check if user is admin or in Materials department
-materials_manager_required = department_required('Materials')
+materials_manager_required = department_required("Materials")
 
 
 def register_chemical_analytics_routes(app):
     # Get waste analytics
-    @app.route('/api/chemicals/waste-analytics', methods=['GET'])
+    @app.route("/api/chemicals/waste-analytics", methods=["GET"])
     @materials_manager_required
     def waste_analytics_route():
         try:
@@ -221,15 +223,14 @@ def register_chemical_analytics_routes(app):
             def categorize_waste(archived_reason):
                 """Categorize waste based on archived reason."""
                 archived_reason = archived_reason.lower() if archived_reason else ""
-                if any(term in archived_reason for term in ['expir', 'outdated', 'past date']):
-                    return 'expired'
-                elif any(term in archived_reason for term in ['deplet', 'empty', 'used up', 'consumed', 'exhausted']):
-                    return 'depleted'
-                else:
-                    return 'other'
+                if any(term in archived_reason for term in ["expir", "outdated", "past date"]):
+                    return "expired"
+                if any(term in archived_reason for term in ["deplet", "empty", "used up", "consumed", "exhausted"]):
+                    return "depleted"
+                return "other"
 
             # Helper function to group chemicals by a dimension
-            def group_by_dimension(chemicals, dimension_getter, dimension_name_default='Unknown'):
+            def group_by_dimension(chemicals, dimension_getter, dimension_name_default="Unknown"):
                 """
                 Group chemicals by a dimension (category, location, part_number)
 
@@ -245,11 +246,11 @@ def register_chemical_analytics_routes(app):
                 for chemical in chemicals:
                     dimension_value = dimension_getter(chemical) or dimension_name_default
                     if dimension_value not in result:
-                        result[dimension_value] = {'total': 0, 'expired': 0, 'depleted': 0, 'other': 0}
+                        result[dimension_value] = {"total": 0, "expired": 0, "depleted": 0, "other": 0}
 
-                    result[dimension_value]['total'] += 1
+                    result[dimension_value]["total"] += 1
 
-                    waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                    waste_category = categorize_waste(getattr(chemical, "archived_reason", ""))
                     result[dimension_value][waste_category] += 1
 
                 return result
@@ -263,18 +264,18 @@ def register_chemical_analytics_routes(app):
                 ]
 
             # Get query parameters
-            timeframe = request.args.get('timeframe', 'month')  # week, month, quarter, year, all
-            part_number = request.args.get('part_number')  # Optional part number filter
+            timeframe = request.args.get("timeframe", "month")  # week, month, quarter, year, all
+            part_number = request.args.get("part_number")  # Optional part number filter
 
             # Determine date range based on timeframe
             end_date = datetime.utcnow()
-            if timeframe == 'week':
+            if timeframe == "week":
                 start_date = end_date - timedelta(days=7)
-            elif timeframe == 'month':
+            elif timeframe == "month":
                 start_date = end_date - timedelta(days=30)
-            elif timeframe == 'quarter':
+            elif timeframe == "quarter":
                 start_date = end_date - timedelta(days=90)
-            elif timeframe == 'year':
+            elif timeframe == "year":
                 start_date = end_date - timedelta(days=365)
             else:  # 'all'
                 start_date = datetime(1970, 1, 1)  # Beginning of time
@@ -300,79 +301,79 @@ def register_chemical_analytics_routes(app):
 
             # Categorize archived chemicals by reason
             for chemical in archived_chemicals:
-                category = categorize_waste(getattr(chemical, 'archived_reason', ''))
-                if category == 'expired':
+                category = categorize_waste(getattr(chemical, "archived_reason", ""))
+                if category == "expired":
                     expired_count += 1
-                elif category == 'depleted':
+                elif category == "depleted":
                     depleted_count += 1
                 else:
                     other_count += 1
 
             # Group by different dimensions
-            categories = group_by_dimension(archived_chemicals, lambda c: c.category, 'Uncategorized')
-            locations = group_by_dimension(archived_chemicals, lambda c: c.location, 'Unknown')
-            part_numbers = group_by_dimension(archived_chemicals, lambda c: c.part_number, 'Unknown')
+            categories = group_by_dimension(archived_chemicals, lambda c: c.category, "Uncategorized")
+            locations = group_by_dimension(archived_chemicals, lambda c: c.location, "Unknown")
+            part_numbers = group_by_dimension(archived_chemicals, lambda c: c.part_number, "Unknown")
 
             # Group by time (month)
             time_data = {}
             for chemical in archived_chemicals:
-                month = chemical.archived_date.strftime('%Y-%m')
+                month = chemical.archived_date.strftime("%Y-%m")
                 if month not in time_data:
-                    time_data[month] = {'expired': 0, 'depleted': 0, 'other': 0}
+                    time_data[month] = {"expired": 0, "depleted": 0, "other": 0}
 
-                waste_category = categorize_waste(getattr(chemical, 'archived_reason', ''))
+                waste_category = categorize_waste(getattr(chemical, "archived_reason", ""))
                 time_data[month][waste_category] += 1
 
             # Convert dictionaries to lists for the response
-            waste_by_category = dict_to_list(categories, 'category')
-            waste_by_location = dict_to_list(locations, 'location')
-            waste_by_part_number = dict_to_list(part_numbers, 'part_number')
+            waste_by_category = dict_to_list(categories, "category")
+            waste_by_location = dict_to_list(locations, "location")
+            waste_by_part_number = dict_to_list(part_numbers, "part_number")
 
             # Sort time data chronologically
             sorted_months = sorted(time_data.keys())
             waste_over_time = [
-                {'month': month, **time_data[month]}
+                {"month": month, **time_data[month]}
                 for month in sorted_months
             ]
 
             # Return the analytics data
             return jsonify({
-                'timeframe': timeframe,
-                'part_number_filter': part_number,
-                'total_archived': total_archived,
-                'expired_count': expired_count,
-                'depleted_count': depleted_count,
-                'other_count': other_count,
-                'waste_by_category': waste_by_category,
-                'waste_by_location': waste_by_location,
-                'waste_by_part_number': waste_by_part_number,
-                'waste_over_time': waste_over_time,
-                'shelf_life_analytics': {
-                    'detailed_data': [],
-                    'averages_by_part_number': []
+                "timeframe": timeframe,
+                "part_number_filter": part_number,
+                "total_archived": total_archived,
+                "expired_count": expired_count,
+                "depleted_count": depleted_count,
+                "other_count": other_count,
+                "waste_by_category": waste_by_category,
+                "waste_by_location": waste_by_location,
+                "waste_by_part_number": waste_by_part_number,
+                "waste_over_time": waste_over_time,
+                "shelf_life_analytics": {
+                    "detailed_data": [],
+                    "averages_by_part_number": []
                 }
             })
         except Exception as e:
-            print(f"Error in waste analytics route: {str(e)}")
-            return jsonify({'error': 'An error occurred while generating waste analytics'}), 500
+            print(f"Error in waste analytics route: {e!s}")
+            return jsonify({"error": "An error occurred while generating waste analytics"}), 500
 
     # Get part number analytics
-    @app.route('/api/chemicals/part-analytics', methods=['GET'])
+    @app.route("/api/chemicals/part-analytics", methods=["GET"])
     @materials_manager_required
     def part_analytics_route():
         try:
             # Get query parameters
-            part_number = request.args.get('part_number')
+            part_number = request.args.get("part_number")
 
             # Part number is required
             if not part_number:
-                return jsonify({'error': 'Part number is required'}), 400
+                return jsonify({"error": "Part number is required"}), 400
 
             # Get all chemicals with this part number (both active and archived)
             all_chemicals = Chemical.query.filter(Chemical.part_number == part_number).all()
 
             if not all_chemicals:
-                return jsonify({'error': f'No chemicals found with part number {part_number}'}), 404
+                return jsonify({"error": f"No chemicals found with part number {part_number}"}), 404
 
             # Calculate all statistics using helper functions
             inventory_stats = calculate_inventory_stats(all_chemicals)
@@ -381,53 +382,53 @@ def register_chemical_analytics_routes(app):
             shelf_life_stats = calculate_shelf_life_stats(all_chemicals)
 
             # Extract lot numbers from inventory stats
-            lot_numbers = inventory_stats.pop('lot_numbers', [])
+            lot_numbers = inventory_stats.pop("lot_numbers", [])
 
             # Return analytics data with real calculations
             return jsonify({
-                'part_number': part_number,
-                'inventory_stats': inventory_stats,
-                'usage_stats': usage_stats,
-                'waste_stats': waste_stats,
-                'shelf_life_stats': {
-                    'detailed_data': [],  # Simplified for now
+                "part_number": part_number,
+                "inventory_stats": inventory_stats,
+                "usage_stats": usage_stats,
+                "waste_stats": waste_stats,
+                "shelf_life_stats": {
+                    "detailed_data": [],  # Simplified for now
                     # Use consistent rounding for all shelf life stats (1 decimal place)
-                    'avg_shelf_life_days': round(shelf_life_stats['avg_shelf_life_days'], 1),
-                    'avg_used_life_days': round(shelf_life_stats['avg_used_life_days'], 1),
-                    'avg_usage_percentage': round(shelf_life_stats['avg_usage_percentage'], 1)
+                    "avg_shelf_life_days": round(shelf_life_stats["avg_shelf_life_days"], 1),
+                    "avg_used_life_days": round(shelf_life_stats["avg_used_life_days"], 1),
+                    "avg_usage_percentage": round(shelf_life_stats["avg_usage_percentage"], 1)
                 },
-                'lot_numbers': lot_numbers
+                "lot_numbers": lot_numbers
             })
         except Exception as e:
             error_traceback = traceback.format_exc()
-            print(f"Error in part analytics route: {str(e)}")
+            print(f"Error in part analytics route: {e!s}")
             print(f"Traceback: {error_traceback}")
-            return jsonify({'error': 'An error occurred while generating part analytics', 'details': str(e)}), 500
+            return jsonify({"error": "An error occurred while generating part analytics", "details": str(e)}), 500
 
     # Get usage analytics
-    @app.route('/api/chemicals/usage-analytics', methods=['GET'])
+    @app.route("/api/chemicals/usage-analytics", methods=["GET"])
     @materials_manager_required
     def chemical_usage_analytics_route():
         try:
             # Get query parameters
-            timeframe = request.args.get('timeframe', 'month')  # week, month, quarter, year, all
-            part_number = request.args.get('part_number')  # Required part number filter
+            timeframe = request.args.get("timeframe", "month")  # week, month, quarter, year, all
+            part_number = request.args.get("part_number")  # Required part number filter
 
             print(f"Usage analytics request received: part_number={part_number}, timeframe={timeframe}")
 
             # Part number is required
             if not part_number:
-                return jsonify({'error': 'Part number is required'}), 400
+                return jsonify({"error": "Part number is required"}), 400
 
             # Determine date range based on timeframe
             end_date = datetime.utcnow()
-            if timeframe == 'week':
+            if timeframe == "week":
                 start_date = end_date - timedelta(days=7)
-            elif timeframe == 'month':
+            elif timeframe == "month":
                 start_date = end_date - timedelta(days=30)
-            elif timeframe == 'quarter':
+            elif timeframe == "quarter":
                 start_date = end_date - timedelta(days=90)
-            elif timeframe == 'year':
+            elif timeframe == "year":
                 start_date = end_date - timedelta(days=365)
             else:  # 'all'
                 start_date = datetime(1970, 1, 1)  # Beginning of time
@@ -436,7 +437,7 @@ def register_chemical_analytics_routes(app):
             all_chemicals = Chemical.query.filter(Chemical.part_number == part_number).all()
 
             if not all_chemicals:
-                return jsonify({'error': f'No chemicals found with part number {part_number}'}), 404
+                return jsonify({"error": f"No chemicals found with part number {part_number}"}), 404
 
             # SIMPLIFIED VERSION - Just return basic data to diagnose the issue
             # Count active and archived chemicals
@@ -446,16 +447,16 @@ def register_chemical_analytics_routes(app):
 
             for c in all_chemicals:
                 try:
-                    is_archived = getattr(c, 'is_archived', False)
+                    is_archived = getattr(c, "is_archived", False)
                     if is_archived:
                         archived_count += 1
                     else:
                         active_count += 1
-                        current_inventory += getattr(c, 'quantity', 0)
+                        current_inventory += getattr(c, "quantity", 0)
                 except Exception as e:
-                    print(f"Error processing chemical {c.id}: {str(e)}")
+                    print(f"Error processing chemical {c.id}: {e!s}")
                     active_count += 1  # Default to active
-                    current_inventory += getattr(c, 'quantity', 0)
+                    current_inventory += getattr(c, "quantity", 0)
 
             total_count = active_count + archived_count
 
@@ -474,12 +475,12 @@ def register_chemical_analytics_routes(app):
                 # Basic location data
                 locations = {}
                 for i in issuances:
-                    loc = getattr(i, 'hangar', 'Unknown')
+                    loc = getattr(i, "hangar", "Unknown")
                     if loc not in locations:
                         locations[loc] = 0
                     locations[loc] += i.quantity
 
-                location_list = [{'location': loc, 'quantity': qty} for loc, qty in locations.items()]
+                location_list = [{"location": loc, "quantity": qty} for loc, qty in locations.items()]
 
                 # Basic user data with actual user names
                 users = {}
@@ -497,17 +498,17 @@ def register_chemical_analytics_routes(app):
                             user_names[user_id] = f"User {user_id}"
                     users[user_id] += i.quantity
 
-                user_list = [{'user': user_names.get(user_id, f"User {user_id}"), 'quantity': qty} for user_id, qty in users.items()]
+                user_list = [{"user": user_names.get(user_id, f"User {user_id}"), "quantity": qty} for user_id, qty in users.items()]
 
                 # Basic time data
                 time_data = {}
                 for i in issuances:
-                    month = i.issue_date.strftime('%Y-%m')
+                    month = i.issue_date.strftime("%Y-%m")
                     if month not in time_data:
                         time_data[month] = 0
                     time_data[month] += i.quantity
 
-                time_list = [{'month': month, 'quantity': qty} for month, qty in time_data.items()]
+                time_list = [{"month": month, "quantity": qty} for month, qty in time_data.items()]
 
                 # Calculate average monthly usage
                 avg_monthly_usage = 0
@@ -533,7 +534,7 @@ def register_chemical_analytics_routes(app):
                             projected_depletion_days = None
 
             except Exception as e:
-                print(f"Error processing issuances: {str(e)}")
+                print(f"Error processing issuances: {e!s}")
                 issuances = []
                 total_issued = 0
                 location_list = []
@@ -544,29 +545,29 @@ def register_chemical_analytics_routes(app):
 
             # Return analytics data with real calculations
             return jsonify({
-                'timeframe': timeframe,
-                'part_number': part_number,
-                'inventory_stats': {
-                    'total_count': total_count,
-                    'active_count': active_count,
-                    'archived_count': archived_count,
-                    'current_inventory': current_inventory
+                "timeframe": timeframe,
+                "part_number": part_number,
+                "inventory_stats": {
+                    "total_count": total_count,
+                    "active_count": active_count,
+                    "archived_count": archived_count,
+                    "current_inventory": current_inventory
                 },
-                'usage_stats': {
-                    'total_issued': total_issued,
-                    'by_location': location_list,
-                    'by_user': user_list,
-                    'over_time': time_list,
-                    'avg_monthly_usage': round(avg_monthly_usage, 2),  # Rounded to 2 decimal places
-                    'projected_depletion_days': projected_depletion_days
+                "usage_stats": {
+                    "total_issued": total_issued,
+                    "by_location": location_list,
+                    "by_user": user_list,
+                    "over_time": time_list,
+                    "avg_monthly_usage": round(avg_monthly_usage, 2),  # Rounded to 2 decimal places
+                    "projected_depletion_days": projected_depletion_days
                 },
-                'efficiency_stats': {
-                    'usage_efficiency_data': []  # Simplified
+                "efficiency_stats": {
+                    "usage_efficiency_data": []  # Simplified
                 }
             })
         except Exception as e:
             import traceback
             error_traceback = traceback.format_exc()
-            print(f"Error in usage analytics route: {str(e)}")
+            print(f"Error in usage analytics route: {e!s}")
             print(f"Traceback: {error_traceback}")
-            return jsonify({'error': 'An error occurred while generating usage analytics', 'details': str(e)}), 500
+            return jsonify({"error": "An error occurred while generating usage analytics", "details": str(e)}), 500

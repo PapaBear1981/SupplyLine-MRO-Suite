@@ -20,15 +20,15 @@ def validate_password_strength(password):
         errors.append("Password must be at least 8 characters long")
 
     # Check for uppercase letters
-    if not re.search(r'[A-Z]', password):
+    if not re.search(r"[A-Z]", password):
         errors.append("Password must contain at least one uppercase letter")
 
     # Check for lowercase letters
-    if not re.search(r'[a-z]', password):
+    if not re.search(r"[a-z]", password):
         errors.append("Password must contain at least one lowercase letter")
 
     # Check for digits
-    if not re.search(r'\d', password):
+    if not re.search(r"\d", password):
         errors.append("Password must contain at least one digit")
 
     # Check for special characters
@@ -72,17 +72,17 @@ def calculate_password_strength(password):
         feedback.append("Add more characters")
 
     # Character variety contribution (up to 50 points)
-    if re.search(r'[A-Z]', password):
+    if re.search(r"[A-Z]", password):
         score += 10
     else:
         feedback.append("Add uppercase letters")
 
-    if re.search(r'[a-z]', password):
+    if re.search(r"[a-z]", password):
         score += 10
     else:
         feedback.append("Add lowercase letters")
 
-    if re.search(r'\d', password):
+    if re.search(r"\d", password):
         score += 10
     else:
         feedback.append("Add numbers")
@@ -100,16 +100,16 @@ def calculate_password_strength(password):
         score += 10
 
     # Determine strength category
-    strength = 'weak'
+    strength = "weak"
     if score >= 80:
-        strength = 'very-strong'
+        strength = "very-strong"
     elif score >= 60:
-        strength = 'strong'
+        strength = "strong"
     elif score >= 40:
-        strength = 'medium'
+        strength = "medium"
 
     return {
-        'score': score,
-        'strength': strength,
-        'feedback': feedback
+        "score": score,
+        "strength": strength,
+        "feedback": feedback
     }

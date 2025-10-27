@@ -1,11 +1,12 @@
 import sqlite3
 
-conn = sqlite3.connect('../database/tools.db')
+
+conn = sqlite3.connect("../database/tools.db")
 cursor = conn.cursor()
 
 cursor.execute("""
-    SELECT id, kit_id, part_number, quantity, unit, minimum_stock_level 
-    FROM kit_expendables 
+    SELECT id, kit_id, part_number, quantity, unit, minimum_stock_level
+    FROM kit_expendables
     WHERE part_number = 'NAS1104-5D'
 """)
 

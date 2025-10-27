@@ -3,6 +3,7 @@ Tests for JWT authentication system
 """
 
 import json
+
 from auth import JWTManager
 from models import User
 
@@ -12,10 +13,10 @@ class TestJWTAuthentication:
 
     def test_login_success(self, client, admin_user, db_session):
         """Test successful login with valid credentials"""
-        response = client.post('/api/auth/login',
+        response = client.post("/api/auth/login",
                              json={
-                                 'employee_number': 'ADMIN001',
-                                 'password': 'admin123'
+                                 "employee_number": "ADMIN001",
+                                 "password": "admin123"
                              })
 
         assert response.status_code == 200
@@ -23,156 +24,156 @@ class TestJWTAuthentication:
 
         # Tokens are now in HttpOnly cookies, not JSON response
         # Flask test client returns all Set-Cookie headers as a single string
-        set_cookie_header = response.headers.get('Set-Cookie', '')
-        assert 'access_token=' in set_cookie_header
+        set_cookie_header = response.headers.get("Set-Cookie", "")
+        assert "access_token=" in set_cookie_header
         # Note: Flask test client may not include all cookies in a single Set-Cookie header
         # The important thing is that access_token is set
-        assert 'user' in data
-        assert data['user']['employee_number'] == 'ADMIN001'
-        assert data['user']['is_admin'] is True
-        assert data['message'] == 'Login successful'
+        assert "user" in data
+        assert data["user"]["employee_number"] == "ADMIN001"
+        assert data["user"]["is_admin"] is True
+        assert data["message"] == "Login successful"
 
     def test_login_invalid_credentials(self, client, admin_user):
         """Test login with invalid credentials"""
-        response = client.post('/api/auth/login',
+        response = client.post("/api/auth/login",
                              json={
-                                 'employee_number': 'ADMIN001',
-                                 'password': 'wrongpassword'
+                                 "employee_number": "ADMIN001",
+                                 "password": "wrongpassword"
                              })
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Invalid employee number or password'
-        assert data['code'] == 'INVALID_CREDENTIALS'
+        assert data["error"] == "Invalid employee number or password"
+        assert data["code"] == "INVALID_CREDENTIALS"
 
     def test_login_nonexistent_user(self, client):
         """Test login with non-existent user"""
-        response = client.post('/api/auth/login',
+        response = client.post("/api/auth/login",
                              json={
-                                 'employee_number': 'NONEXISTENT',
-                                 'password': 'password'
+                                 "employee_number": "NONEXISTENT",
+                                 "password": "password"
                              })
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Invalid employee number or password'
+        assert data["error"] == "Invalid employee number or password"
 
     def test_login_missing_credentials(self, client):
         """Test login with missing credentials"""
-        response = client.post('/api/auth/login', json={})
+        response = client.post("/api/auth/login", json={})
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'Missing employee_number or password' in data['error']
+        assert "Missing employee_number or password" in data["error"]
 
     def test_login_inactive_user(self, client, db_session):
         """Test login with inactive user"""
         user = User(
-            name='Inactive User',
-            employee_number='INACTIVE001',
-            department='Test',
+            name="Inactive User",
+            employee_number="INACTIVE001",
+            department="Test",
             is_admin=False,
             is_active=False
         )
-        user.set_password('password123')
+        user.set_password("password123")
         db_session.add(user)
         db_session.commit()
 
-        response = client.post('/api/auth/login',
+        response = client.post("/api/auth/login",
                              json={
-                                 'employee_number': 'INACTIVE001',
-                                 'password': 'password123'
+                                 "employee_number": "INACTIVE001",
+                                 "password": "password123"
                              })
 
         assert response.status_code == 401
         data = json.loads(response.data)
         # Generic error message for security (don't reveal account status)
-        assert data['error'] == 'Invalid employee number or password'
-        assert data['code'] == 'INVALID_CREDENTIALS'
+        assert data["error"] == "Invalid employee number or password"
+        assert data["code"] == "INVALID_CREDENTIALS"
 
     def test_token_refresh_success(self, client, admin_user):
         """Test successful token refresh"""
         # First login to get tokens in cookies
-        login_response = client.post('/api/auth/login',
+        client.post("/api/auth/login",
                                    json={
-                                       'employee_number': 'ADMIN001',
-                                       'password': 'admin123'
+                                       "employee_number": "ADMIN001",
+                                       "password": "admin123"
                                    })
 
         # Tokens are now in cookies, refresh endpoint reads from cookies
-        response = client.post('/api/auth/refresh')
+        response = client.post("/api/auth/refresh")
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         # Tokens are set in cookies, not returned in JSON
-        assert 'access_token' in response.headers.get('Set-Cookie', '')
-        assert data['message'] == 'Tokens refreshed successfully'
+        assert "access_token" in response.headers.get("Set-Cookie", "")
+        assert data["message"] == "Tokens refreshed successfully"
 
     def test_token_refresh_invalid_token(self, client):
         """Test token refresh with invalid token"""
-        response = client.post('/api/auth/refresh',
-                             json={'refresh_token': 'invalid_token'})
+        response = client.post("/api/auth/refresh",
+                             json={"refresh_token": "invalid_token"})
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Invalid or expired refresh token'
+        assert data["error"] == "Invalid or expired refresh token"
 
     def test_logout_success(self, client, auth_headers_admin):
         """Test successful logout"""
-        response = client.post('/api/auth/logout', headers=auth_headers_admin)
+        response = client.post("/api/auth/logout", headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert data['message'] == 'Logged out successfully'
+        assert data["message"] == "Logged out successfully"
 
     def test_logout_without_token(self, client):
         """Test logout without authentication token"""
-        response = client.post('/api/auth/logout')
+        response = client.post("/api/auth/logout")
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Authentication required'
+        assert data["error"] == "Authentication required"
 
     def test_get_current_user_success(self, client, auth_headers_admin, admin_user):
         """Test getting current user info"""
-        response = client.get('/api/auth/me', headers=auth_headers_admin)
+        response = client.get("/api/auth/me", headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert 'user' in data
-        assert data['user']['employee_number'] == 'ADMIN001'
-        assert data['user']['is_admin'] is True
+        assert "user" in data
+        assert data["user"]["employee_number"] == "ADMIN001"
+        assert data["user"]["is_admin"] is True
 
     def test_get_current_user_without_token(self, client):
         """Test getting current user without token"""
-        response = client.get('/api/auth/me')
+        response = client.get("/api/auth/me")
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Authentication required'
+        assert data["error"] == "Authentication required"
 
     def test_auth_status_authenticated(self, client, auth_headers_admin):
         """Test auth status when authenticated"""
-        response = client.get('/api/auth/status', headers=auth_headers_admin)
+        response = client.get("/api/auth/status", headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['authenticated'] is True
-        assert 'user' in data
-        assert data['user']['employee_number'] == 'ADMIN001'
+        assert data["authenticated"] is True
+        assert "user" in data
+        assert data["user"]["employee_number"] == "ADMIN001"
 
     def test_auth_status_unauthenticated(self, client):
         """Test auth status when not authenticated"""
-        response = client.get('/api/auth/status')
+        response = client.get("/api/auth/status")
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['authenticated'] is False
-        assert data['message'] == 'Not authenticated'
+        assert data["authenticated"] is False
+        assert data["message"] == "Not authenticated"
 
 
 class TestJWTManager:
@@ -183,51 +184,51 @@ class TestJWTManager:
         with app.app_context():
             tokens = JWTManager.generate_tokens(admin_user)
 
-            assert 'access_token' in tokens
-            assert 'refresh_token' in tokens
-            assert 'expires_in' in tokens
-            assert 'token_type' in tokens
-            assert tokens['token_type'] == 'Bearer'
+            assert "access_token" in tokens
+            assert "refresh_token" in tokens
+            assert "expires_in" in tokens
+            assert "token_type" in tokens
+            assert tokens["token_type"] == "Bearer"
 
     def test_verify_access_token(self, app, admin_user):
         """Test access token verification"""
         with app.app_context():
             tokens = JWTManager.generate_tokens(admin_user)
-            access_token = tokens['access_token']
+            access_token = tokens["access_token"]
 
-            payload = JWTManager.verify_token(access_token, 'access')
+            payload = JWTManager.verify_token(access_token, "access")
 
             assert payload is not None
-            assert payload['user_id'] == admin_user.id
-            assert payload['type'] == 'access'
-            assert payload['is_admin'] is True
+            assert payload["user_id"] == admin_user.id
+            assert payload["type"] == "access"
+            assert payload["is_admin"] is True
 
     def test_verify_refresh_token(self, app, admin_user):
         """Test refresh token verification"""
         with app.app_context():
             tokens = JWTManager.generate_tokens(admin_user)
-            refresh_token = tokens['refresh_token']
+            refresh_token = tokens["refresh_token"]
 
-            payload = JWTManager.verify_token(refresh_token, 'refresh')
+            payload = JWTManager.verify_token(refresh_token, "refresh")
 
             assert payload is not None
-            assert payload['user_id'] == admin_user.id
-            assert payload['type'] == 'refresh'
+            assert payload["user_id"] == admin_user.id
+            assert payload["type"] == "refresh"
 
     def test_verify_invalid_token(self, app):
         """Test verification of invalid token"""
         with app.app_context():
-            payload = JWTManager.verify_token('invalid_token', 'access')
+            payload = JWTManager.verify_token("invalid_token", "access")
             assert payload is None
 
     def test_refresh_access_token(self, app, admin_user):
         """Test refreshing access token"""
         with app.app_context():
             tokens = JWTManager.generate_tokens(admin_user)
-            refresh_token = tokens['refresh_token']
+            refresh_token = tokens["refresh_token"]
 
             new_tokens = JWTManager.refresh_access_token(refresh_token)
 
             assert new_tokens is not None
-            assert 'access_token' in new_tokens
-            assert 'refresh_token' in new_tokens
+            assert "access_token" in new_tokens
+            assert "refresh_token" in new_tokens

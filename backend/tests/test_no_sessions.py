@@ -1,15 +1,15 @@
 import pytest
 
+import app as app_module
+import migrate_database_constraints
+import migrate_performance_indexes
+import migrate_reorder_fields
+import migrate_tool_calibration
 from app import create_app
 from config import Config
 from models import db
+from utils import logging_utils, resource_monitor, session_cleanup
 
-import migrate_reorder_fields
-import migrate_tool_calibration
-import migrate_performance_indexes
-import migrate_database_constraints
-import app as app_module
-from utils import session_cleanup, resource_monitor, logging_utils
 
 # Disable migrations for testing
 migrate_reorder_fields.migrate_database = lambda: None
@@ -54,12 +54,9 @@ legacy_routes = [
     ("get", "/auth/status"),
 ]
 
-@pytest.mark.parametrize("method, path", legacy_routes)
+@pytest.mark.parametrize(("method", "path"), legacy_routes)
 def test_legacy_session_routes_disabled(client, method, path):
-    if method == "post":
-        response = client.post(path)
-    else:
-        response = client.get(path)
+    response = client.post(path) if method == "post" else client.get(path)
 
     assert response.status_code in (404, 405)
     assert "Set-Cookie" not in response.headers

@@ -1,0 +1,119 @@
+[tool.ruff]
+# Same line length as flake8
+line-length = 127
+
+# Exclude same directories as flake8
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "instance",
+    "migrations",
+    "flask_session",
+    "*.pyc",
+    ".pytest_cache",
+    "test-results",
+]
+
+# Python version
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable flake8-equivalent rules plus extras
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "W",     # pycodestyle warnings
+    "C90",   # mccabe complexity
+    "I",     # isort (import sorting)
+    "N",     # pep8-naming
+    "UP",    # pyupgrade (modernize Python code)
+    "B",     # flake8-bugbear (find likely bugs)
+    "A",     # flake8-builtins (avoid shadowing builtins)
+    "C4",    # flake8-comprehensions (better list/dict comprehensions)
+    "DTZ",   # flake8-datetimez (enforce timezone-aware datetimes)
+    "T10",   # flake8-debugger (no debugger statements)
+    "EM",    # flake8-errmsg (better error messages)
+    "ISC",   # flake8-implicit-str-concat
+    "ICN",   # flake8-import-conventions
+    "PIE",   # flake8-pie (misc lints)
+    "PT",    # flake8-pytest-style
+    "Q",     # flake8-quotes
+    "RSE",   # flake8-raise (better exception raising)
+    "RET",   # flake8-return (better return statements)
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "ARG",   # flake8-unused-arguments
+    "PTH",   # flake8-use-pathlib
+    "PL",    # pylint
+    "RUF",   # Ruff-specific rules
+]
+
+# Ignore same codes as flake8 plus some Ruff-specific ones
+ignore = [
+    "E501",    # line too long (handled by line-length)
+    "ISC001",  # implicit string concatenation (conflicts with formatter)
+    "COM812",  # trailing comma (conflicts with formatter)
+    "PLC0415", # import outside top-level (common pattern in Flask apps)
+    "EM101",   # raw string in exception (stylistic)
+    "EM102",   # f-string in exception (stylistic)
+    "DTZ005",  # datetime.now without timezone (would require major refactor)
+    "DTZ003",  # datetime.utcnow (would require major refactor)
+    "DTZ001",  # datetime without timezone (would require major refactor)
+    "DTZ006",  # datetime.fromtimestamp without timezone
+    "DTZ007",  # datetime.strptime without timezone
+    "PLW0603", # global statement (used intentionally in some places)
+    "PLR0913", # too many arguments (would require refactoring)
+    "PLR0912", # too many branches (would require refactoring)
+    "PLR0915", # too many statements (would require refactoring)
+    "PLR0911", # too many return statements (would require refactoring)
+    "C901",    # complex function (would require refactoring)
+    "ARG001",  # unused function argument (often needed for interface compatibility)
+    "ARG002",  # unused method argument (often needed for interface compatibility)
+    "A002",    # builtin argument shadowing (common in Flask routes)
+    "PLR2004", # magic value comparison (would require many constants)
+    "PTH",     # use pathlib (would require major refactor from os.path)
+    "RUF012",  # mutable class default (intentional in config classes)
+    "PLW1508", # invalid envvar default (false positive with int defaults)
+    "B904",    # raise without from inside except (stylistic preference)
+    "SIM102",  # collapsible if (sometimes clearer as separate)
+    "SIM105",  # suppressible exception (contextlib.suppress not always clearer)
+    "SIM108",  # ternary operator (sometimes if-else is clearer)
+    "E402",    # module import not at top (intentional in some cases)
+    "A001",    # builtin variable shadowing (common in database code)
+    "PT012",   # pytest.raises with multiple statements (common pattern)
+    "PT018",   # pytest composite assertion (sometimes necessary)
+    "PT019",   # pytest fixture without value (false positive)
+    "PT028",   # pytest parameter with default (intentional)
+    "RUF001",  # ambiguous unicode (false positive)
+    "F811",    # redefinition (will be fixed manually if needed)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.mccabe]
+# Same complexity as flake8
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "models", "routes", "auth", "security", "utils"]
+force-single-line = false
+lines-after-imports = 2
+
+[tool.ruff.lint.per-file-ignores]
+# Test files can have longer lines and unused imports
+"tests/**/*.py" = ["E501", "F401", "ARG001", "PLR2004"]
+# Migration files can have any structure
+"migrations/**/*.py" = ["ALL"]
+# Config files can have any structure
+"config.py" = ["ARG001"]
+"security_config.py" = ["ARG001"]
+# Fix scripts can have any structure (legacy code)
+"fix_*.py" = ["ALL"]
+

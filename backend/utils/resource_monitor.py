@@ -5,10 +5,12 @@ This module provides system resource monitoring to detect memory leaks,
 high resource usage, and potential performance issues.
 """
 
-import psutil
+import logging
 import threading
 import time
-import logging
+
+import psutil
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +37,10 @@ class ResourceMonitor:
 
         # Default thresholds
         self.thresholds = {
-            'memory_percent': 80,
-            'disk_percent': 85,
-            'open_files': 1000,
-            'db_connections': 8
+            "memory_percent": 80,
+            "disk_percent": 85,
+            "open_files": 1000,
+            "db_connections": 8
         }
 
         if thresholds:
@@ -74,13 +76,13 @@ class ResourceMonitor:
         try:
             # Memory usage
             memory = psutil.virtual_memory()
-            if memory.percent > self.thresholds['memory_percent']:
+            if memory.percent > self.thresholds["memory_percent"]:
                 logger.warning("High memory usage detected", extra={
-                    'metric_type': 'memory_usage',
-                    'current_percent': memory.percent,
-                    'threshold_percent': self.thresholds['memory_percent'],
-                    'available_mb': round(memory.available / (1024 * 1024), 1),
-                    'total_mb': round(memory.total / (1024 * 1024), 1)
+                    "metric_type": "memory_usage",
+                    "current_percent": memory.percent,
+                    "threshold_percent": self.thresholds["memory_percent"],
+                    "available_mb": round(memory.available / (1024 * 1024), 1),
+                    "total_mb": round(memory.total / (1024 * 1024), 1)
                 })
 
             # Disk usage (use appropriate path for OS)
@@ -88,35 +90,35 @@ class ResourceMonitor:
             disk_path = None
             try:
                 import os
-                if os.name == 'nt':
+                if os.name == "nt":
                     # On Windows, use the current working directory's drive
                     disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
                 else:
-                    disk_path = '/'
+                    disk_path = "/"
                 disk = psutil.disk_usage(disk_path)
             except Exception as disk_error:
                 logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
                 # Skip disk usage check if it fails
                 disk = None
-            if disk and disk.percent > self.thresholds['disk_percent']:
+            if disk and disk.percent > self.thresholds["disk_percent"]:
                 logger.warning("High disk usage detected", extra={
-                    'metric_type': 'disk_usage',
-                    'current_percent': disk.percent,
-                    'threshold_percent': self.thresholds['disk_percent'],
-                    'free_gb': round(disk.free / (1024 * 1024 * 1024), 1),
-                    'total_gb': round(disk.total / (1024 * 1024 * 1024), 1)
+                    "metric_type": "disk_usage",
+                    "current_percent": disk.percent,
+                    "threshold_percent": self.thresholds["disk_percent"],
+                    "free_gb": round(disk.free / (1024 * 1024 * 1024), 1),
+                    "total_gb": round(disk.total / (1024 * 1024 * 1024), 1)
                 })
 
             # Open files
             try:
                 process = psutil.Process()
                 open_files = len(process.open_files())
-                if open_files > self.thresholds['open_files']:
+                if open_files > self.thresholds["open_files"]:
                     logger.warning("High open file count detected", extra={
-                        'metric_type': 'open_files',
-                        'current_count': open_files,
-                        'threshold_count': self.thresholds['open_files'],
-                        'process_pid': process.pid
+                        "metric_type": "open_files",
+                        "current_count": open_files,
+                        "threshold_count": self.thresholds["open_files"],
+                        "process_pid": process.pid
                     })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
@@ -145,10 +147,10 @@ class ResourceMonitor:
 
             # Log periodic resource stats (debug level)
             logger.debug("Resource check completed", extra={
-                'metric_type': 'resource_check',
-                'memory_percent': memory.percent,
-                'disk_percent': disk.percent if disk else 0,
-                'cpu_percent': psutil.cpu_percent(interval=1)
+                "metric_type": "resource_check",
+                "memory_percent": memory.percent,
+                "disk_percent": disk.percent if disk else 0,
+                "cpu_percent": psutil.cpu_percent(interval=1)
             })
 
         except Exception as e:
@@ -169,20 +171,20 @@ class ResourceMonitor:
             disk_path = None
             try:
                 import os
-                if os.name == 'nt':
+                if os.name == "nt":
                     # On Windows, use the current working directory's drive
                     disk_path = os.path.splitdrive(os.getcwd())[0] + os.sep
                 else:
-                    disk_path = '/'
+                    disk_path = "/"
                 disk = psutil.disk_usage(disk_path)
             except Exception as disk_error:
                 logger.warning(f"Could not get disk usage for path {disk_path if disk_path else 'unknown'}: {disk_error}")
                 # Use mock data if disk usage fails
-                disk = type('MockDisk', (), {
-                    'percent': 0,
-                    'free': 0,
-                    'total': 0,
-                    'used': 0
+                disk = type("MockDisk", (), {
+                    "percent": 0,
+                    "free": 0,
+                    "total": 0,
+                    "used": 0
                 })()
 
             # CPU
@@ -200,36 +202,36 @@ class ResourceMonitor:
                 connections = -1  # Indicate unavailable
 
             return {
-                'memory': {
-                    'percent': memory.percent,
-                    'available_mb': round(memory.available / (1024 * 1024), 1),
-                    'total_mb': round(memory.total / (1024 * 1024), 1),
-                    'used_mb': round(memory.used / (1024 * 1024), 1)
+                "memory": {
+                    "percent": memory.percent,
+                    "available_mb": round(memory.available / (1024 * 1024), 1),
+                    "total_mb": round(memory.total / (1024 * 1024), 1),
+                    "used_mb": round(memory.used / (1024 * 1024), 1)
                 },
-                'disk': {
-                    'percent': disk.percent,
-                    'free_gb': round(disk.free / (1024 * 1024 * 1024), 1),
-                    'total_gb': round(disk.total / (1024 * 1024 * 1024), 1),
-                    'used_gb': round(disk.used / (1024 * 1024 * 1024), 1)
+                "disk": {
+                    "percent": disk.percent,
+                    "free_gb": round(disk.free / (1024 * 1024 * 1024), 1),
+                    "total_gb": round(disk.total / (1024 * 1024 * 1024), 1),
+                    "used_gb": round(disk.used / (1024 * 1024 * 1024), 1)
                 },
-                'cpu': {
-                    'percent': cpu_percent,
-                    'count': cpu_count
+                "cpu": {
+                    "percent": cpu_percent,
+                    "count": cpu_count
                 },
-                'process': {
-                    'open_files': open_files_count,
-                    'connections': connections,
-                    'pid': process.pid
+                "process": {
+                    "open_files": open_files_count,
+                    "connections": connections,
+                    "pid": process.pid
                 },
-                'thresholds': self.thresholds,
-                'timestamp': time.time()
+                "thresholds": self.thresholds,
+                "timestamp": time.time()
             }
 
         except Exception as e:
             logger.error(f"Error getting resource stats: {e}", exc_info=True)
             return {
-                'error': str(e),
-                'timestamp': time.time()
+                "error": str(e),
+                "timestamp": time.time()
             }
 
     def check_health(self):
@@ -241,24 +243,24 @@ class ResourceMonitor:
         """
         stats = self.get_current_stats()
 
-        if 'error' in stats:
+        if "error" in stats:
             return {
-                'healthy': False,
-                'issues': [f"Error getting stats: {stats['error']}"]
+                "healthy": False,
+                "issues": [f"Error getting stats: {stats['error']}"]
             }
 
         issues = []
 
         # Check memory
-        if stats['memory']['percent'] > self.thresholds['memory_percent']:
+        if stats["memory"]["percent"] > self.thresholds["memory_percent"]:
             issues.append(f"High memory usage: {stats['memory']['percent']}%")
 
         # Check disk
-        if stats['disk']['percent'] > self.thresholds['disk_percent']:
+        if stats["disk"]["percent"] > self.thresholds["disk_percent"]:
             issues.append(f"High disk usage: {stats['disk']['percent']}%")
 
         # Check open files
-        if stats['process']['open_files'] > self.thresholds['open_files']:
+        if stats["process"]["open_files"] > self.thresholds["open_files"]:
             issues.append(f"High open file count: {stats['process']['open_files']}")
 
         # Check database connections if available
@@ -267,7 +269,7 @@ class ResourceMonitor:
             conn_stats = get_connection_stats()
             if (
                 isinstance(conn_stats, dict)
-                and 'error' not in conn_stats
+                and "error" not in conn_stats
                 and conn_stats.get("checked_out", 0) > self.thresholds["db_connections"]
             ):
                 issues.append(f"High database connection usage: {conn_stats.get('checked_out')}")
@@ -275,9 +277,9 @@ class ResourceMonitor:
             pass
 
         return {
-            'healthy': len(issues) == 0,
-            'issues': issues,
-            'stats': stats
+            "healthy": len(issues) == 0,
+            "issues": issues,
+            "stats": stats
         }
 
 
@@ -294,8 +296,8 @@ def init_resource_monitoring(app):
     """
     global _resource_monitor
 
-    check_interval = app.config.get('RESOURCE_CHECK_INTERVAL', 60)
-    thresholds = app.config.get('RESOURCE_THRESHOLDS', {})
+    check_interval = app.config.get("RESOURCE_CHECK_INTERVAL", 60)
+    thresholds = app.config.get("RESOURCE_THRESHOLDS", {})
 
     _resource_monitor = ResourceMonitor(check_interval, thresholds)
     _resource_monitor.start_monitoring()
@@ -312,11 +314,11 @@ def get_resource_stats():
     """Get current resource statistics."""
     if _resource_monitor:
         return _resource_monitor.get_current_stats()
-    return {'error': 'Resource monitoring not initialized'}
+    return {"error": "Resource monitoring not initialized"}
 
 
 def check_system_health():
     """Check system health status."""
     if _resource_monitor:
         return _resource_monitor.check_health()
-    return {'healthy': False, 'issues': ['Resource monitoring not initialized']}
+    return {"healthy": False, "issues": ["Resource monitoring not initialized"]}

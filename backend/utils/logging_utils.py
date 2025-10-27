@@ -6,21 +6,23 @@ and correlation ID support for better debugging and monitoring.
 """
 
 import logging
-import uuid
 import time
+import uuid
 from functools import wraps
-from flask import g, request, session, has_request_context
-from typing import Dict, Any, Optional
+from typing import Any
+
+from flask import g, has_request_context, request, session
+
 
 logger = logging.getLogger(__name__)
 
 # Sensitive fields that should be redacted in logs
 # SECURITY: PII and credential fields that must never appear in logs
 SENSITIVE_FIELDS = [
-    'password', 'token', 'secret', 'key', 'auth', 'credential',
-    'pass', 'pwd', 'authorization', 'x-api-key', 'session_id',
-    'reset_code', 'reset_token', 'employee_number', 'email',
-    'ssn', 'social_security', 'credit_card', 'card_number'
+    "password", "token", "secret", "key", "auth", "credential",
+    "pass", "pwd", "authorization", "x-api-key", "session_id",
+    "reset_code", "reset_token", "employee_number", "email",
+    "ssn", "social_security", "credit_card", "card_number"
 ]
 
 
@@ -38,20 +40,19 @@ def sanitize_data(data: Any) -> Any:
         sanitized = {}
         for key, value in data.items():
             if any(field in key.lower() for field in SENSITIVE_FIELDS):
-                sanitized[key] = '***REDACTED***'
+                sanitized[key] = "***REDACTED***"
             else:
                 sanitized[key] = sanitize_data(value)
         return sanitized
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [sanitize_data(item) for item in data]
-    elif isinstance(data, str) and len(data) > 100:
+    if isinstance(data, str) and len(data) > 100:
         # Truncate very long strings to prevent log bloat
-        return data[:100] + '...[truncated]'
-    else:
-        return data
+        return data[:100] + "...[truncated]"
+    return data
 
 
-def get_request_context() -> Dict[str, Any]:
+def get_request_context() -> dict[str, Any]:
     """
     Get current request context for logging.
 
@@ -59,33 +60,33 @@ def get_request_context() -> Dict[str, Any]:
         Dictionary with request context information
     """
     context = {
-        'correlation_id': getattr(g, 'correlation_id', None),
-        'timestamp': time.time()
+        "correlation_id": getattr(g, "correlation_id", None),
+        "timestamp": time.time()
     }
 
     # Add request information if we are in an active request context
     if has_request_context():
         context.update({
-            'method': request.method,
-            'path': request.path,
-            'endpoint': request.endpoint,
-            'ip_address': request.remote_addr,
-            'user_agent': request.headers.get('User-Agent', '')[:100]  # Truncate
+            "method": request.method,
+            "path": request.path,
+            "endpoint": request.endpoint,
+            "ip_address": request.remote_addr,
+            "user_agent": request.headers.get("User-Agent", "")[:100]  # Truncate
         })
 
     # Add user information if available
-    if has_request_context() and 'user_id' in session:
+    if has_request_context() and "user_id" in session:
         context.update({
-            'user_id': session.get('user_id'),
-            'user_name': session.get('name'),
-            'user_department': session.get('department')
+            "user_id": session.get("user_id"),
+            "user_name": session.get("name"),
+            "user_department": session.get("department")
         })
 
     return context
 
 
-def log_business_event(event_type: str, details: Dict[str, Any],
-                      user_id: Optional[int] = None, level: str = 'info') -> None:
+def log_business_event(event_type: str, details: dict[str, Any],
+                      user_id: int | None = None, level: str = "info") -> None:
     """
     Log a business event with structured data.
 
@@ -98,15 +99,15 @@ def log_business_event(event_type: str, details: Dict[str, Any],
     context = get_request_context()
 
     log_data = {
-        'event_type': event_type,
-        'details': sanitize_data(details),
-        'user_id': user_id or (session.get('user_id') if has_request_context() and session else None),
+        "event_type": event_type,
+        "details": sanitize_data(details),
+        "user_id": user_id or (session.get("user_id") if has_request_context() and session else None),
         **context
     }
 
     log_message = f"Business event: {event_type}"
 
-    business_logger = logging.getLogger('business_events')
+    business_logger = logging.getLogger("business_events")
     valid_levels = {"debug", "info", "warning", "error", "critical"}
     chosen_level = level.lower()
     if chosen_level not in valid_levels:
@@ -118,8 +119,8 @@ def log_business_event(event_type: str, details: Dict[str, Any],
     getattr(business_logger, chosen_level)(log_message, extra=log_data)
 
 
-def log_security_event(event_type: str, details: Dict[str, Any],
-                      severity: str = 'warning') -> None:
+def log_security_event(event_type: str, details: dict[str, Any],
+                      severity: str = "warning") -> None:
     """
     Log a security event with enhanced context.
 
@@ -131,21 +132,21 @@ def log_security_event(event_type: str, details: Dict[str, Any],
     context = get_request_context()
 
     log_data = {
-        'event_type': event_type,
-        'details': sanitize_data(details),
-        'security_event': True,
+        "event_type": event_type,
+        "details": sanitize_data(details),
+        "security_event": True,
         **context
     }
 
     log_message = f"Security event: {event_type}"
 
     # Get security logger and log at appropriate level
-    security_logger = logging.getLogger('security_events')
+    security_logger = logging.getLogger("security_events")
     getattr(security_logger, severity.lower())(log_message, extra=log_data)
 
 
 def log_performance_metric(operation: str, duration_ms: float,
-                          details: Optional[Dict[str, Any]] = None) -> None:
+                          details: dict[str, Any] | None = None) -> None:
     """
     Log a performance metric.
 
@@ -157,27 +158,27 @@ def log_performance_metric(operation: str, duration_ms: float,
     context = get_request_context()
 
     log_data = {
-        'metric_type': 'performance',
-        'operation': operation,
-        'duration_ms': round(duration_ms, 2),
-        'details': sanitize_data(details) if details else {},
+        "metric_type": "performance",
+        "operation": operation,
+        "duration_ms": round(duration_ms, 2),
+        "details": sanitize_data(details) if details else {},
         **context
     }
 
     # Determine log level based on duration
     if duration_ms > 5000:  # > 5 seconds
-        level = 'warning'
+        level = "warning"
     elif duration_ms > 1000:  # > 1 second
-        level = 'info'
+        level = "info"
     else:
-        level = 'debug'
+        level = "debug"
 
-    perf_logger = logging.getLogger('performance')
+    perf_logger = logging.getLogger("performance")
     getattr(perf_logger, level)(f"Performance: {operation} took {duration_ms:.2f}ms", extra=log_data)
 
 
 def log_database_operation(operation: str, table: str, duration_ms: float,
-                          affected_rows: Optional[int] = None) -> None:
+                          affected_rows: int | None = None) -> None:
     """
     Log a database operation.
 
@@ -190,15 +191,15 @@ def log_database_operation(operation: str, table: str, duration_ms: float,
     context = get_request_context()
 
     log_data = {
-        'metric_type': 'database',
-        'operation': operation,
-        'table': table,
-        'duration_ms': round(duration_ms, 2),
-        'affected_rows': affected_rows,
+        "metric_type": "database",
+        "operation": operation,
+        "table": table,
+        "duration_ms": round(duration_ms, 2),
+        "affected_rows": affected_rows,
         **context
     }
 
-    db_logger = logging.getLogger('database')
+    db_logger = logging.getLogger("database")
 
     # Use info level for slow queries (>500ms) or warning for very slow (>1000ms)
     if duration_ms > 1000:
@@ -223,14 +224,14 @@ def performance_monitor(operation_name: str):
             try:
                 result = func(*args, **kwargs)
                 duration = (time.time() - start_time) * 1000
-                log_performance_metric(operation_name, duration, {'success': True})
+                log_performance_metric(operation_name, duration, {"success": True})
                 return result
             except Exception as e:
                 duration = (time.time() - start_time) * 1000
                 log_performance_metric(operation_name, duration, {
-                    'success': False,
-                    'error_type': type(e).__name__,
-                    'error_message': str(e)
+                    "success": False,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
                 })
                 raise
         return wrapper
@@ -239,7 +240,7 @@ def performance_monitor(operation_name: str):
 
 def add_correlation_id():
     """Add correlation ID to Flask g object for request tracking."""
-    if not hasattr(g, 'correlation_id'):
+    if not hasattr(g, "correlation_id"):
         g.correlation_id = str(uuid.uuid4())
     return g.correlation_id
 
@@ -249,29 +250,29 @@ def log_request_start():
     correlation_id = add_correlation_id()
     g.start_time = time.time()
 
-    request_logger = logging.getLogger('requests')
+    request_logger = logging.getLogger("requests")
     request_logger.info("Request started", extra={
-        'correlation_id': correlation_id,
-        'method': request.method,
-        'path': request.path,
-        'ip_address': request.remote_addr,
-        'user_id': session.get('user_id') if session else None
+        "correlation_id": correlation_id,
+        "method": request.method,
+        "path": request.path,
+        "ip_address": request.remote_addr,
+        "user_id": session.get("user_id") if session else None
     })
 
 
 def log_request_end(response):
     """Log the end of a request."""
-    if hasattr(g, 'start_time'):
+    if hasattr(g, "start_time"):
         duration = (time.time() - g.start_time) * 1000
 
-        request_logger = logging.getLogger('requests')
+        request_logger = logging.getLogger("requests")
         request_logger.info("Request completed", extra={
-            'correlation_id': getattr(g, 'correlation_id', None),
-            'method': request.method,
-            'path': request.path,
-            'status_code': response.status_code,
-            'duration_ms': round(duration, 2),
-            'user_id': session.get('user_id') if session else None
+            "correlation_id": getattr(g, "correlation_id", None),
+            "method": request.method,
+            "path": request.path,
+            "status_code": response.status_code,
+            "duration_ms": round(duration, 2),
+            "user_id": session.get("user_id") if session else None
         })
 
     return response

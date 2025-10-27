@@ -5,9 +5,11 @@ This module provides helper functions for recording inventory transactions
 across all inventory types (tools, chemicals, expendables).
 """
 
-from models import db, InventoryTransaction, Tool, Chemical
-from models_kits import KitExpendable, KitItem
 import logging
+
+from models import Chemical, InventoryTransaction, Tool, db
+from models_kits import KitExpendable, KitItem
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,26 +37,26 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
     """
     try:
         # Auto-detect lot/serial numbers if not provided
-        lot_number = kwargs.get('lot_number')
-        serial_number = kwargs.get('serial_number')
+        lot_number = kwargs.get("lot_number")
+        serial_number = kwargs.get("serial_number")
 
         if not lot_number and not serial_number:
             # Try to get from the item itself
-            if item_type == 'tool':
+            if item_type == "tool":
                 tool = Tool.query.get(item_id)
                 if tool:
                     lot_number = tool.lot_number
                     serial_number = tool.serial_number
-            elif item_type == 'chemical':
+            elif item_type == "chemical":
                 chemical = Chemical.query.get(item_id)
                 if chemical:
                     lot_number = chemical.lot_number
-            elif item_type == 'expendable':
+            elif item_type == "expendable":
                 expendable = KitExpendable.query.get(item_id)
                 if expendable:
                     lot_number = expendable.lot_number
                     serial_number = expendable.serial_number
-            elif item_type == 'kit_item':
+            elif item_type == "kit_item":
                 kit_item = KitItem.query.get(item_id)
                 if kit_item:
                     lot_number = kit_item.lot_number
@@ -66,11 +68,11 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
             item_id=item_id,
             transaction_type=transaction_type,
             user_id=user_id,
-            quantity_change=kwargs.get('quantity_change'),
-            location_from=kwargs.get('location_from'),
-            location_to=kwargs.get('location_to'),
-            reference_number=kwargs.get('reference_number'),
-            notes=kwargs.get('notes'),
+            quantity_change=kwargs.get("quantity_change"),
+            location_from=kwargs.get("location_from"),
+            location_to=kwargs.get("location_to"),
+            reference_number=kwargs.get("reference_number"),
+            notes=kwargs.get("notes"),
             lot_number=lot_number,
             serial_number=serial_number
         )
@@ -81,7 +83,7 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
         return transaction
 
     except Exception as e:
-        logger.error(f"Error recording transaction: {str(e)}")
+        logger.error(f"Error recording transaction: {e!s}")
         raise
 
 
@@ -92,9 +94,9 @@ def record_tool_checkout(tool_id, user_id, expected_return_date=None, notes=None
         raise ValueError(f"Tool {tool_id} not found")
 
     return record_transaction(
-        item_type='tool',
+        item_type="tool",
         item_id=tool_id,
-        transaction_type='checkout',
+        transaction_type="checkout",
         user_id=user_id,
         quantity_change=-1.0,
         location_from=tool.location,
@@ -111,9 +113,9 @@ def record_tool_return(tool_id, user_id, condition=None, notes=None):
         raise ValueError(f"Tool {tool_id} not found")
 
     return record_transaction(
-        item_type='tool',
+        item_type="tool",
         item_id=tool_id,
-        transaction_type='return',
+        transaction_type="return",
         user_id=user_id,
         quantity_change=1.0,
         location_from=f"Returned by user {user_id}",
@@ -148,9 +150,9 @@ def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpos
     notes = ". ".join(notes_parts) if notes_parts else None
 
     return record_transaction(
-        item_type='chemical',
+        item_type="chemical",
         item_id=chemical_id,
-        transaction_type='issuance',
+        transaction_type="issuance",
         user_id=user_id,
         quantity_change=-quantity,
         location_from=chemical.location,
@@ -165,7 +167,7 @@ def record_kit_item_transfer(item_type, item_id, user_id, from_location, to_loca
     return record_transaction(
         item_type=item_type,
         item_id=item_id,
-        transaction_type='transfer',
+        transaction_type="transfer",
         user_id=user_id,
         quantity_change=quantity,
         location_from=from_location,
@@ -180,7 +182,7 @@ def record_kit_issuance(item_type, item_id, user_id, quantity, work_order=None, 
     return record_transaction(
         item_type=item_type,
         item_id=item_id,
-        transaction_type='kit_issuance',
+        transaction_type="kit_issuance",
         user_id=user_id,
         quantity_change=-quantity,
         reference_number=work_order,
@@ -193,7 +195,7 @@ def record_inventory_adjustment(item_type, item_id, user_id, quantity_change, re
     return record_transaction(
         item_type=item_type,
         item_id=item_id,
-        transaction_type='adjustment',
+        transaction_type="adjustment",
         user_id=user_id,
         quantity_change=quantity_change,
         notes=f"Reason: {reason}. {notes}" if notes else f"Reason: {reason}"
@@ -205,7 +207,7 @@ def record_item_receipt(item_type, item_id, user_id, quantity, location, po_numb
     return record_transaction(
         item_type=item_type,
         item_id=item_id,
-        transaction_type='receipt',
+        transaction_type="receipt",
         user_id=user_id,
         quantity_change=quantity,
         location_to=location,
@@ -230,7 +232,7 @@ def validate_serial_number_uniqueness(part_number, serial_number, item_type, exc
     if not serial_number:
         return True, None
 
-    if item_type == 'tool':
+    if item_type == "tool":
         query = Tool.query.filter_by(
             tool_number=part_number,
             serial_number=serial_number
@@ -241,7 +243,7 @@ def validate_serial_number_uniqueness(part_number, serial_number, item_type, exc
         if query.first():
             return False, f"Serial number {serial_number} already exists for tool number {part_number}"
 
-    elif item_type == 'expendable':
+    elif item_type == "expendable":
         query = KitExpendable.query.filter_by(
             part_number=part_number,
             serial_number=serial_number
@@ -291,19 +293,19 @@ def get_item_detail_with_transactions(item_type, item_id):
     """
     item_data = None
 
-    if item_type == 'tool':
+    if item_type == "tool":
         item = Tool.query.get(item_id)
         if item:
             item_data = item.to_dict()
-    elif item_type == 'chemical':
+    elif item_type == "chemical":
         item = Chemical.query.get(item_id)
         if item:
             item_data = item.to_dict()
-    elif item_type == 'expendable':
+    elif item_type == "expendable":
         item = KitExpendable.query.get(item_id)
         if item:
             item_data = item.to_dict()
-    elif item_type == 'kit_item':
+    elif item_type == "kit_item":
         item = KitItem.query.get(item_id)
         if item:
             item_data = item.to_dict()
@@ -312,7 +314,7 @@ def get_item_detail_with_transactions(item_type, item_id):
         return None
 
     # Add transaction history
-    item_data['transactions'] = get_item_transactions(item_type, item_id)
-    item_data['transaction_count'] = len(item_data['transactions'])
+    item_data["transactions"] = get_item_transactions(item_type, item_id)
+    item_data["transaction_count"] = len(item_data["transactions"])
 
     return item_data

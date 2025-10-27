@@ -9,14 +9,15 @@ This module provides security middleware for request processing including:
 - Request logging and monitoring
 """
 
-import time
 import logging
 import re
+import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from flask import request, jsonify, g
 from functools import wraps
-from typing import Dict
+
+from flask import g, jsonify, request
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,7 @@ class RateLimiter:
         if identifier in self.blocked_ips:
             if now < self.blocked_ips[identifier]:
                 return False
-            else:
-                del self.blocked_ips[identifier]
+            del self.blocked_ips[identifier]
 
         # Clean old requests outside the window
         request_times = self.requests[identifier]
@@ -82,7 +82,7 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def rate_limit(limit: int = 100, window: int = 3600, per: str = 'ip'):
+def rate_limit(limit: int = 100, window: int = 3600, per: str = "ip"):
     """
     Rate limiting decorator
 
@@ -95,8 +95,8 @@ def rate_limit(limit: int = 100, window: int = 3600, per: str = 'ip'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Determine identifier
-            if per == 'user':
-                user_payload = getattr(request, 'current_user', None)
+            if per == "user":
+                user_payload = getattr(request, "current_user", None)
                 identifier = f"user_{user_payload['user_id']}" if user_payload else f"ip_{request.remote_addr}"
             else:
                 identifier = f"ip_{request.remote_addr}"
@@ -105,9 +105,9 @@ def rate_limit(limit: int = 100, window: int = 3600, per: str = 'ip'):
             if not rate_limiter.is_allowed(identifier, limit, window):
                 logger.warning(f"Rate limit exceeded for {identifier}")
                 return jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': 'Too many requests. Please try again later.',
-                    'retry_after': 300
+                    "error": "Rate limit exceeded",
+                    "message": "Too many requests. Please try again later.",
+                    "retry_after": 300
                 }), 429
 
             return f(*args, **kwargs)
@@ -125,35 +125,36 @@ def setup_security_middleware(app):
         # Request size limit (10MB)
         if request.content_length and request.content_length > 10 * 1024 * 1024:
             logger.warning(f"Request too large: {request.content_length} bytes from {request.remote_addr}")
-            return jsonify({'error': 'Request too large'}), 413
+            return jsonify({"error": "Request too large"}), 413
 
         # Log security-relevant requests
-        if request.method in ['POST', 'PUT', 'DELETE']:
+        if request.method in ["POST", "PUT", "DELETE"]:
             logger.info(f"Security log: {request.method} {request.path} from {request.remote_addr}")
 
         # Store request start time for performance monitoring
         g.start_time = time.time()
 
         # Basic request validation
-        if request.is_json and request.content_type != 'application/json':
-            return jsonify({'error': 'Invalid content type'}), 400
+        if request.is_json and request.content_type != "application/json":
+            return jsonify({"error": "Invalid content type"}), 400
+        return None
 
     @app.after_request
     def security_after_request(response):
         """Add security headers to response"""
 
         # Security headers
-        security_headers = app.config.get('SECURITY_HEADERS', {})
+        security_headers = app.config.get("SECURITY_HEADERS", {})
         for header, value in security_headers.items():
             response.headers[header] = value
 
         # Additional security headers
-        response.headers['X-Request-ID'] = getattr(g, 'request_id', 'unknown')
+        response.headers["X-Request-ID"] = getattr(g, "request_id", "unknown")
 
         # Performance monitoring
-        if hasattr(g, 'start_time'):
+        if hasattr(g, "start_time"):
             duration = time.time() - g.start_time
-            response.headers['X-Response-Time'] = f"{duration:.3f}s"
+            response.headers["X-Response-Time"] = f"{duration:.3f}s"
 
             # Log slow requests
             if duration > 2.0:
@@ -168,14 +169,14 @@ def setup_security_middleware(app):
     def request_entity_too_large(error):
         """Handle request too large errors"""
         logger.warning(f"Request entity too large from {request.remote_addr}")
-        return jsonify({'error': 'Request too large'}), 413
+        return jsonify({"error": "Request too large"}), 413
 
     @app.errorhandler(429)
     def rate_limit_exceeded(error):
         """Handle rate limit exceeded errors"""
         return jsonify({
-            'error': 'Rate limit exceeded',
-            'message': 'Too many requests. Please try again later.'
+            "error": "Rate limit exceeded",
+            "message": "Too many requests. Please try again later."
         }), 429
 
 
@@ -185,13 +186,13 @@ class SecurityMonitor:
     def __init__(self):
         self.suspicious_activities = defaultdict(list)
         self.alert_thresholds = {
-            'failed_logins': 5,
-            'invalid_tokens': 10,
-            'sql_injection_attempts': 1,
-            'xss_attempts': 1,
+            "failed_logins": 5,
+            "invalid_tokens": 10,
+            "sql_injection_attempts": 1,
+            "xss_attempts": 1,
         }
 
-    def log_security_event(self, event_type: str, details: Dict, ip_address: str):
+    def log_security_event(self, event_type: str, details: dict, ip_address: str):
         """
         Log security event and check for suspicious patterns
 
@@ -201,10 +202,10 @@ class SecurityMonitor:
             ip_address: Source IP address
         """
         event = {
-            'timestamp': datetime.utcnow(),
-            'type': event_type,
-            'details': details,
-            'ip_address': ip_address
+            "timestamp": datetime.utcnow(),
+            "type": event_type,
+            "details": details,
+            "ip_address": ip_address
         }
 
         self.suspicious_activities[ip_address].append(event)
@@ -213,7 +214,7 @@ class SecurityMonitor:
         cutoff = datetime.utcnow() - timedelta(hours=24)
         self.suspicious_activities[ip_address] = [
             e for e in self.suspicious_activities[ip_address]
-            if e['timestamp'] > cutoff
+            if e["timestamp"] > cutoff
         ]
 
         # Check for suspicious patterns
@@ -228,15 +229,15 @@ class SecurityMonitor:
 
         # Count events by type in the last hour
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-        recent_events = [e for e in events if e['timestamp'] > one_hour_ago]
+        recent_events = [e for e in events if e["timestamp"] > one_hour_ago]
 
         event_counts = defaultdict(int)
         for event in recent_events:
-            event_counts[event['type']] += 1
+            event_counts[event["type"]] += 1
 
         # Check thresholds
         for event_type, count in event_counts.items():
-            threshold = self.alert_thresholds.get(event_type, float('inf'))
+            threshold = self.alert_thresholds.get(event_type, float("inf"))
             if count >= threshold:
                 self._trigger_security_alert(ip_address, event_type, count)
 
@@ -252,7 +253,7 @@ class SecurityMonitor:
 security_monitor = SecurityMonitor()
 
 
-def log_security_event(event_type: str, details: Dict):
+def log_security_event(event_type: str, details: dict):
     """
     Log a security event
 
@@ -284,11 +285,7 @@ def detect_sql_injection(query_string: str) -> bool:
     ]
 
     query_upper = query_string.upper()
-    for pattern in sql_patterns:
-        if re.search(pattern, query_upper, re.IGNORECASE):
-            return True
-
-    return False
+    return any(re.search(pattern, query_upper, re.IGNORECASE) for pattern in sql_patterns)
 
 
 def detect_xss_attempt(input_string: str) -> bool:
@@ -312,11 +309,7 @@ def detect_xss_attempt(input_string: str) -> bool:
         r"<meta[^>]*>",
     ]
 
-    for pattern in xss_patterns:
-        if re.search(pattern, input_string, re.IGNORECASE):
-            return True
-
-    return False
+    return any(re.search(pattern, input_string, re.IGNORECASE) for pattern in xss_patterns)
 
 
 def security_scan_request():
@@ -342,6 +335,6 @@ def security_scan_request():
 
     # Log threats
     for threat in threats_detected:
-        log_security_event('security_threat', {'threat': threat})
+        log_security_event("security_threat", {"threat": threat})
 
     return threats_detected

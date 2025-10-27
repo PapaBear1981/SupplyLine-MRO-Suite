@@ -1,14 +1,18 @@
 """
 Cleanup script to remove bad kit items that point to warehouse chemicals
 """
-import sys
 import os
+import sys
+
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import Flask
-from models import db, Chemical, Tool
-from models_kits import Kit, KitItem, KitExpendable, KitTransfer
+
 from config import Config
+from models import Chemical, db
+from models_kits import KitItem
+
 
 # Create app
 app = Flask(__name__)
@@ -18,11 +22,11 @@ db.init_app(app)
 def main():
     with app.app_context():
         print("\n=== CLEANING UP BAD KIT ITEMS ===")
-        
+
         # Find kit items that point to chemicals still in warehouses
         bad_items = []
-        kit_items = KitItem.query.filter_by(item_type='chemical').all()
-        
+        kit_items = KitItem.query.filter_by(item_type="chemical").all()
+
         for item in kit_items:
             chem = Chemical.query.get(item.item_id)
             if chem and chem.warehouse_id is not None:
@@ -30,13 +34,13 @@ def main():
                       f"Points to Chemical {chem.id} ({chem.part_number} {chem.lot_number}) "
                       f"still in Warehouse {chem.warehouse_id}")
                 bad_items.append(item)
-        
+
         if bad_items:
             print(f"\nFound {len(bad_items)} bad kit items to remove")
 
             # Confirmation prompt
             response = input("Proceed with deletion? (yes/no): ")
-            if response.lower() != 'yes':
+            if response.lower() != "yes":
                 print("Cleanup cancelled")
                 return
 
@@ -53,18 +57,18 @@ def main():
                 sys.exit(1)
         else:
             print("\nNo bad kit items found - database is clean!")
-        
+
         # Show current state
         print("\n=== CURRENT KIT ITEMS ===")
         kit_items = KitItem.query.all()
         for item in kit_items:
-            if item.item_type == 'chemical':
+            if item.item_type == "chemical":
                 chem = Chemical.query.get(item.item_id)
                 if chem:
                     print(f"KitItem {item.id} in Kit {item.kit_id}: "
                           f"Chemical {chem.id} ({chem.part_number} {chem.lot_number}) "
                           f"Warehouse: {chem.warehouse_id}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 

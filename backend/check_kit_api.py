@@ -6,14 +6,15 @@ Required environment variables:
 - ADMIN_EMAIL: Admin email for authentication
 - ADMIN_PASSWORD: Admin password for authentication
 """
-import requests
-import json
 import os
 
+import requests
+
+
 # Configuration from environment variables
-API_URL = os.getenv('API_URL', 'http://localhost:5000')
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+API_URL = os.getenv("API_URL", "http://localhost:5000")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 if not ADMIN_EMAIL or not ADMIN_PASSWORD:
     raise RuntimeError(
@@ -31,7 +32,7 @@ login_data = {
 try:
     response = requests.post(login_url, json=login_data, timeout=10)
     if response.status_code == 200:
-        token = response.json().get('access_token')
+        token = response.json().get("access_token")
         # Mask token in logs for security
         print(f"✓ Login successful, token: {token[:10]}...{token[-5:]}")
 
@@ -45,11 +46,11 @@ try:
             print("\n=== Kit 1 (Boeing 737) Items ===")
             print(f"Total items: {data.get('total_count')}")
             print(f"\nKit Items (tools/chemicals): {len(data.get('items', []))}")
-            for item in data.get('items', []):
+            for item in data.get("items", []):
                 print(f"  - {item.get('part_number')} {item.get('lot_number', '')} - Qty: {item.get('quantity')}")
 
             print(f"\nKit Expendables: {len(data.get('expendables', []))}")
-            for exp in data.get('expendables', []):
+            for exp in data.get("expendables", []):
                 print(f"  - {exp.get('part_number')} {exp.get('lot_number', '')} - Qty: {exp.get('quantity')} {exp.get('unit', '')}")
         else:
             print(f"✗ Failed to get kit items: {response.status_code}")

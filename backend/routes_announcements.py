@@ -1,27 +1,30 @@
-from flask import request, jsonify
-from models import db, Announcement, AnnouncementRead, AuditLog, UserActivity
-from datetime import datetime, timezone
-from auth import JWTManager, jwt_required, admin_required
 import logging
+from datetime import UTC, datetime
+
+from flask import jsonify, request
+
+from auth import JWTManager, admin_required, jwt_required
+from models import Announcement, AnnouncementRead, AuditLog, UserActivity, db
+
 
 logger = logging.getLogger(__name__)
 
 
 def register_announcement_routes(app):
     # Get all announcements
-    @app.route('/api/announcements', methods=['GET'])
+    @app.route("/api/announcements", methods=["GET"])
     def get_announcements():
         try:
             # Get pagination parameters
-            page = request.args.get('page', 1, type=int)
-            limit = request.args.get('limit', 10, type=int)
+            page = request.args.get("page", 1, type=int)
+            limit = request.args.get("limit", 10, type=int)
 
             # Calculate offset
             offset = (page - 1) * limit
 
             # Get filter parameters
-            priority = request.args.get('priority')
-            active_only = request.args.get('active_only', 'true').lower() == 'true'
+            priority = request.args.get("priority")
+            active_only = request.args.get("active_only", "true").lower() == "true"
 
             # Start with base query
             query = Announcement.query
@@ -32,7 +35,7 @@ def register_announcement_routes(app):
 
             if active_only:
                 # Only show active announcements that haven't expired
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 query = query.filter(Announcement.is_active.is_(True))
                 query = query.filter((Announcement.expiration_date.is_(None)) | (Announcement.expiration_date > now))
 
@@ -47,7 +50,7 @@ def register_announcement_routes(app):
 
             # Check if user is logged in via JWT to determine read status
             current_user = JWTManager.get_current_user()
-            user_id = current_user['user_id'] if current_user else None
+            user_id = current_user["user_id"] if current_user else None
 
             read_map = {}
             if user_id:
@@ -65,26 +68,26 @@ def register_announcement_routes(app):
 
                 if user_id:
                     read = read_map.get(announcement.id)
-                    announcement_dict['read'] = read is not None
+                    announcement_dict["read"] = read is not None
                     if read:
-                        announcement_dict['read_at'] = read.read_at.isoformat()
+                        announcement_dict["read_at"] = read.read_at.isoformat()
 
                 result.append(announcement_dict)
 
             return jsonify({
-                'announcements': result,
-                'total': total,
-                'page': page,
-                'limit': limit,
-                'pages': (total + limit - 1) // limit  # Ceiling division
+                "announcements": result,
+                "total": total,
+                "page": page,
+                "limit": limit,
+                "pages": (total + limit - 1) // limit  # Ceiling division
             }), 200
 
         except Exception as e:
-            print(f"Error getting announcements: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error getting announcements: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500
 
     # Get a specific announcement
-    @app.route('/api/announcements/<int:id>', methods=['GET'])
+    @app.route("/api/announcements/<int:id>", methods=["GET"])
     def get_announcement(id):
         try:
             announcement = Announcement.query.get_or_404(id)
@@ -94,7 +97,7 @@ def register_announcement_routes(app):
 
             # Check if user is logged in via JWT
             current_user = JWTManager.get_current_user()
-            user_id = current_user['user_id'] if current_user else None
+            user_id = current_user["user_id"] if current_user else None
             if user_id:
                 # Check if user has read this announcement
                 read = AnnouncementRead.query.filter_by(
@@ -102,23 +105,23 @@ def register_announcement_routes(app):
                     user_id=user_id
                 ).first()
 
-                announcement_dict['read'] = read is not None
+                announcement_dict["read"] = read is not None
                 if read:
-                    announcement_dict['read_at'] = read.read_at.isoformat()
+                    announcement_dict["read_at"] = read.read_at.isoformat()
 
             # If admin, include read statistics
-            if current_user and current_user.get('is_admin', False):
-                announcement_dict['reads'] = [read.to_dict() for read in announcement.reads.all()]
-                announcement_dict['read_count'] = announcement.reads.count()
+            if current_user and current_user.get("is_admin", False):
+                announcement_dict["reads"] = [read.to_dict() for read in announcement.reads.all()]
+                announcement_dict["read_count"] = announcement.reads.count()
 
             return jsonify(announcement_dict), 200
 
         except Exception as e:
-            print(f"Error getting announcement: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error getting announcement: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500
 
     # Create a new announcement (admin only)
-    @app.route('/api/announcements', methods=['POST'])
+    @app.route("/api/announcements", methods=["POST"])
     @admin_required
     def create_announcement():
         try:
@@ -126,27 +129,27 @@ def register_announcement_routes(app):
             data = request.get_json() or {}
 
             # Validate required fields
-            required_fields = ['title', 'content', 'priority']
+            required_fields = ["title", "content", "priority"]
             for field in required_fields:
                 if not data.get(field):
-                    return jsonify({'error': f'Missing required field: {field}'}), 400
+                    return jsonify({"error": f"Missing required field: {field}"}), 400
 
             # Parse expiration date if provided
             expiration_date = None
-            if data.get('expiration_date'):
+            if data.get("expiration_date"):
                 try:
-                    expiration_date = datetime.fromisoformat(data.get('expiration_date').replace('Z', '+00:00'))
+                    expiration_date = datetime.fromisoformat(data.get("expiration_date").replace("Z", "+00:00"))
                 except ValueError:
-                    return jsonify({'error': 'Invalid expiration date format. Use ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)'}), 400
+                    return jsonify({"error": "Invalid expiration date format. Use ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)"}), 400
 
             # Create announcement
             announcement = Announcement(
-                title=data.get('title'),
-                content=data.get('content'),
-                priority=data.get('priority'),
-                created_by=request.current_user['user_id'],
+                title=data.get("title"),
+                content=data.get("content"),
+                priority=data.get("priority"),
+                created_by=request.current_user["user_id"],
                 expiration_date=expiration_date,
-                is_active=data.get('is_active', True)
+                is_active=data.get("is_active", True)
             )
 
             # Save to database
@@ -155,15 +158,15 @@ def register_announcement_routes(app):
 
             # Create audit log
             log = AuditLog(
-                action_type='create_announcement',
+                action_type="create_announcement",
                 action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) created announcement "{announcement.title}" (ID: {announcement.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=request.current_user['user_id'],
-                activity_type='create_announcement',
+                user_id=request.current_user["user_id"],
+                activity_type="create_announcement",
                 description=f'Created announcement "{announcement.title}"',
                 ip_address=request.remote_addr
             )
@@ -174,11 +177,11 @@ def register_announcement_routes(app):
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating announcement: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error creating announcement: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500
 
     # Update an announcement (admin only)
-    @app.route('/api/announcements/<int:id>', methods=['PUT'])
+    @app.route("/api/announcements/<int:id>", methods=["PUT"])
     @admin_required
     def update_announcement(id):
         try:
@@ -189,22 +192,22 @@ def register_announcement_routes(app):
             data = request.get_json() or {}
 
             # Update fields if provided
-            if 'title' in data:
-                announcement.title = data['title']
-            if 'content' in data:
-                announcement.content = data['content']
-            if 'priority' in data:
-                announcement.priority = data['priority']
-            if 'is_active' in data:
-                announcement.is_active = data['is_active']
+            if "title" in data:
+                announcement.title = data["title"]
+            if "content" in data:
+                announcement.content = data["content"]
+            if "priority" in data:
+                announcement.priority = data["priority"]
+            if "is_active" in data:
+                announcement.is_active = data["is_active"]
 
             # Parse expiration date if provided
-            if 'expiration_date' in data:
-                if data['expiration_date']:
+            if "expiration_date" in data:
+                if data["expiration_date"]:
                     try:
-                        announcement.expiration_date = datetime.fromisoformat(data['expiration_date'].replace('Z', '+00:00'))
+                        announcement.expiration_date = datetime.fromisoformat(data["expiration_date"].replace("Z", "+00:00"))
                     except ValueError:
-                        return jsonify({'error': 'Invalid expiration date format. Use ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)'}), 400
+                        return jsonify({"error": "Invalid expiration date format. Use ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)"}), 400
                 else:
                     announcement.expiration_date = None
 
@@ -213,15 +216,15 @@ def register_announcement_routes(app):
 
             # Create audit log
             log = AuditLog(
-                action_type='update_announcement',
+                action_type="update_announcement",
                 action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) updated announcement "{announcement.title}" (ID: {announcement.id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=request.current_user['user_id'],
-                activity_type='update_announcement',
+                user_id=request.current_user["user_id"],
+                activity_type="update_announcement",
                 description=f'Updated announcement "{announcement.title}"',
                 ip_address=request.remote_addr
             )
@@ -232,11 +235,11 @@ def register_announcement_routes(app):
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error updating announcement: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error updating announcement: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500
 
     # Delete an announcement (admin only)
-    @app.route('/api/announcements/<int:id>', methods=['DELETE'])
+    @app.route("/api/announcements/<int:id>", methods=["DELETE"])
     @admin_required
     def delete_announcement(id):
         try:
@@ -255,30 +258,30 @@ def register_announcement_routes(app):
 
             # Create audit log
             log = AuditLog(
-                action_type='delete_announcement',
+                action_type="delete_announcement",
                 action_details=f'User {request.current_user.get("user_name", "Unknown")} (ID: {request.current_user["user_id"]}) deleted announcement "{announcement_title}" (ID: {announcement_id})'
             )
             db.session.add(log)
 
             # Create user activity
             activity = UserActivity(
-                user_id=request.current_user['user_id'],
-                activity_type='delete_announcement',
+                user_id=request.current_user["user_id"],
+                activity_type="delete_announcement",
                 description=f'Deleted announcement "{announcement_title}"',
                 ip_address=request.remote_addr
             )
             db.session.add(activity)
             db.session.commit()
 
-            return jsonify({'message': 'Announcement deleted successfully'}), 200
+            return jsonify({"message": "Announcement deleted successfully"}), 200
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error deleting announcement: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error deleting announcement: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500
 
     # Mark an announcement as read
-    @app.route('/api/announcements/<int:id>/read', methods=['POST'])
+    @app.route("/api/announcements/<int:id>/read", methods=["POST"])
     @jwt_required
     def mark_announcement_read(id):
         try:
@@ -289,25 +292,25 @@ def register_announcement_routes(app):
             # Check if already read
             existing_read = AnnouncementRead.query.filter_by(
                 announcement_id=id,
-                user_id=request.current_user['user_id']
+                user_id=request.current_user["user_id"]
             ).first()
 
             if existing_read:
                 # Already marked as read
-                return jsonify({'message': 'Announcement already marked as read'}), 200
+                return jsonify({"message": "Announcement already marked as read"}), 200
 
             # Create new read record
             read = AnnouncementRead(
                 announcement_id=id,
-                user_id=request.current_user['user_id']
+                user_id=request.current_user["user_id"]
             )
 
             db.session.add(read)
             db.session.commit()
 
-            return jsonify({'message': 'Announcement marked as read'}), 200
+            return jsonify({"message": "Announcement marked as read"}), 200
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error marking announcement as read: {str(e)}")
-            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+            print(f"Error marking announcement as read: {e!s}")
+            return jsonify({"error": f"An error occurred: {e!s}"}), 500

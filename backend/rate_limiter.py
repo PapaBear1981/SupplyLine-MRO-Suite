@@ -8,7 +8,8 @@ the backend from being overwhelmed by too many requests.
 import time
 from functools import wraps
 from threading import Lock
-from flask import request, jsonify
+
+from flask import jsonify, request
 
 
 class RateLimiter:

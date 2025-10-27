@@ -9,11 +9,15 @@ import logging
 import time
 from contextlib import contextmanager
 from functools import wraps
+
 from flask import g
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+
 from models import db
+
 from .logging_utils import log_database_operation
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +43,7 @@ def database_transaction():
         db.session.commit()
 
         duration = (time.time() - start_time) * 1000
-        log_database_operation('TRANSACTION', 'multiple_tables', duration)
+        log_database_operation("TRANSACTION", "multiple_tables", duration)
 
     except Exception as e:
         # Rollback on any exception
@@ -47,10 +51,10 @@ def database_transaction():
 
         duration = (time.time() - start_time) * 1000
         logger.error("Transaction failed, rolled back", extra={
-            'operation': 'database_transaction',
-            'error_type': type(e).__name__,
-            'error_message': str(e),
-            'duration_ms': round(duration, 2)
+            "operation": "database_transaction",
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "duration_ms": round(duration, 2)
         })
 
         raise
@@ -91,12 +95,12 @@ def safe_add_and_commit(obj, operation_name="add_object"):
         db.session.commit()
 
         duration = (time.time() - start_time) * 1000
-        log_database_operation('INSERT', obj.__tablename__, duration, 1)
+        log_database_operation("INSERT", obj.__tablename__, duration, 1)
 
         logger.debug(f"Successfully added {obj.__class__.__name__}", extra={
-            'operation': operation_name,
-            'table': obj.__tablename__,
-            'object_id': getattr(obj, 'id', None)
+            "operation": operation_name,
+            "table": obj.__tablename__,
+            "object_id": getattr(obj, "id", None)
         })
 
         return True
@@ -106,11 +110,11 @@ def safe_add_and_commit(obj, operation_name="add_object"):
 
         duration = (time.time() - start_time) * 1000
         logger.error("Failed to add %s", obj.__class__.__name__, extra={
-            'operation': operation_name,
-            'table': obj.__tablename__,
-            'error_type': type(e).__name__,
-            'error_message': str(e),
-            'duration_ms': round(duration, 2)
+            "operation": operation_name,
+            "table": obj.__tablename__,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "duration_ms": round(duration, 2)
         })
 
         return False
@@ -133,12 +137,12 @@ def safe_update_and_commit(obj, operation_name="update_object"):
         db.session.commit()
 
         duration = (time.time() - start_time) * 1000
-        log_database_operation('UPDATE', obj.__tablename__, duration, 1)
+        log_database_operation("UPDATE", obj.__tablename__, duration, 1)
 
         logger.debug("Successfully updated %s", obj.__class__.__name__, extra={
-            'operation': operation_name,
-            'table': obj.__tablename__,
-            'object_id': getattr(obj, 'id', None)
+            "operation": operation_name,
+            "table": obj.__tablename__,
+            "object_id": getattr(obj, "id", None)
         })
 
         return True
@@ -148,11 +152,11 @@ def safe_update_and_commit(obj, operation_name="update_object"):
 
         duration = (time.time() - start_time) * 1000
         logger.error("Failed to update %s", obj.__class__.__name__, extra={
-            'operation': operation_name,
-            'table': obj.__tablename__,
-            'error_type': type(e).__name__,
-            'error_message': str(e),
-            'duration_ms': round(duration, 2)
+            "operation": operation_name,
+            "table": obj.__tablename__,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "duration_ms": round(duration, 2)
         })
 
         return False
@@ -170,7 +174,7 @@ def safe_delete_and_commit(obj, operation_name="delete_object"):
         bool: True if successful, False otherwise
     """
     start_time = time.time()
-    object_id = getattr(obj, 'id', None)
+    object_id = getattr(obj, "id", None)
     table_name = obj.__tablename__
     class_name = obj.__class__.__name__
 
@@ -179,12 +183,12 @@ def safe_delete_and_commit(obj, operation_name="delete_object"):
         db.session.commit()
 
         duration = (time.time() - start_time) * 1000
-        log_database_operation('DELETE', table_name, duration, 1)
+        log_database_operation("DELETE", table_name, duration, 1)
 
         logger.debug("Successfully deleted %s", class_name, extra={
-            'operation': operation_name,
-            'table': table_name,
-            'object_id': object_id
+            "operation": operation_name,
+            "table": table_name,
+            "object_id": object_id
         })
 
         return True
@@ -194,12 +198,12 @@ def safe_delete_and_commit(obj, operation_name="delete_object"):
 
         duration = (time.time() - start_time) * 1000
         logger.error("Failed to delete %s", class_name, extra={
-            'operation': operation_name,
-            'table': table_name,
-            'object_id': object_id,
-            'error_type': type(e).__name__,
-            'error_message': str(e),
-            'duration_ms': round(duration, 2)
+            "operation": operation_name,
+            "table": table_name,
+            "object_id": object_id,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "duration_ms": round(duration, 2)
         })
 
         return False
@@ -224,12 +228,12 @@ def bulk_insert_with_rollback(model_class, data_list, operation_name="bulk_inser
         db.session.commit()
 
         duration = (time.time() - start_time) * 1000
-        log_database_operation('BULK_INSERT', model_class.__tablename__, duration, len(data_list))
+        log_database_operation("BULK_INSERT", model_class.__tablename__, duration, len(data_list))
 
         logger.info("Successfully bulk inserted %d %s records", len(data_list), model_class.__name__, extra={
-            'operation': operation_name,
-            'table': model_class.__tablename__,
-            'record_count': len(data_list)
+            "operation": operation_name,
+            "table": model_class.__tablename__,
+            "record_count": len(data_list)
         })
 
         return True, len(data_list)
@@ -239,12 +243,12 @@ def bulk_insert_with_rollback(model_class, data_list, operation_name="bulk_inser
 
         duration = (time.time() - start_time) * 1000
         logger.error("Failed to bulk insert %s records", model_class.__name__, extra={
-            'operation': operation_name,
-            'table': model_class.__tablename__,
-            'record_count': len(data_list),
-            'error_type': type(e).__name__,
-            'error_message': str(e),
-            'duration_ms': round(duration, 2)
+            "operation": operation_name,
+            "table": model_class.__tablename__,
+            "record_count": len(data_list),
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "duration_ms": round(duration, 2)
         })
 
         return False, 0
@@ -263,25 +267,25 @@ def get_connection_stats():
 
         # Check if pool has the required methods (not available for NullPool/SingletonThreadPool)
         stats = {}
-        if hasattr(pool, 'size'):
-            stats['pool_size'] = pool.size()
-        if hasattr(pool, 'checkedin'):
-            stats['checked_in'] = pool.checkedin()
-        if hasattr(pool, 'checkedout'):
-            stats['checked_out'] = pool.checkedout()
-        if hasattr(pool, 'overflow'):
-            stats['overflow'] = pool.overflow()
-        if hasattr(pool, 'invalid'):
-            stats['invalid'] = pool.invalid()
+        if hasattr(pool, "size"):
+            stats["pool_size"] = pool.size()
+        if hasattr(pool, "checkedin"):
+            stats["checked_in"] = pool.checkedin()
+        if hasattr(pool, "checkedout"):
+            stats["checked_out"] = pool.checkedout()
+        if hasattr(pool, "overflow"):
+            stats["overflow"] = pool.overflow()
+        if hasattr(pool, "invalid"):
+            stats["invalid"] = pool.invalid()
 
         # Calculate total if we have the required values
-        if 'pool_size' in stats and 'overflow' in stats:
-            stats['total_connections'] = stats['pool_size'] + stats['overflow']
+        if "pool_size" in stats and "overflow" in stats:
+            stats["total_connections"] = stats["pool_size"] + stats["overflow"]
 
         return stats
     except Exception as e:
         logger.error("Error getting connection stats: %s", e)
-        return {'error': str(e)}
+        return {"error": str(e)}
 
 
 def check_database_health():
@@ -300,17 +304,17 @@ def check_database_health():
         connection_stats = get_connection_stats()
 
         return {
-            'healthy': True,
-            'response_time_ms': round(duration, 2),
-            'connection_stats': connection_stats
+            "healthy": True,
+            "response_time_ms": round(duration, 2),
+            "connection_stats": connection_stats
         }
 
     except Exception as e:
         logger.error("Database health check failed: %s", e)
         return {
-            'healthy': False,
-            'error': str(e),
-            'error_type': type(e).__name__
+            "healthy": False,
+            "error": str(e),
+            "error_type": type(e).__name__
         }
 
 
@@ -328,10 +332,10 @@ def db_connection_cleanup():
         yield
     finally:
         # Ensure connection is returned to pool
-        if hasattr(g, 'db_connection'):
+        if hasattr(g, "db_connection"):
             try:
                 g.db_connection.close()
-                delattr(g, 'db_connection')
+                delattr(g, "db_connection")
             except Exception as e:
                 logger.warning("Error closing database connection: %s", e)
 

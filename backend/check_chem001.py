@@ -1,10 +1,11 @@
 import sqlite3
 
-conn = sqlite3.connect('../database/tools.db')
+
+conn = sqlite3.connect("../database/tools.db")
 cursor = conn.cursor()
 
 print("=== All kit_expendables (including quantity 0) ===")
-cursor.execute('SELECT id, kit_id, part_number, lot_number, quantity, unit, status FROM kit_expendables ORDER BY id')
+cursor.execute("SELECT id, kit_id, part_number, lot_number, quantity, unit, status FROM kit_expendables ORDER BY id")
 rows = cursor.fetchall()
 print(f"Total kit_expendables: {len(rows)}")
 for row in rows:

@@ -1,19 +1,19 @@
 """
 Check kit_expendables table for NAS1104-5D records
 """
-import sqlite3
 import os
+import sqlite3
+
 
 def get_db_path():
     """Get the database path"""
-    if os.path.exists('/database'):
-        return os.path.join('/database', 'tools.db')
-    else:
-        return os.path.abspath(os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            'database',
-            'tools.db'
-        ))
+    if os.path.exists("/database"):
+        return os.path.join("/database", "tools.db")
+    return os.path.abspath(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "database",
+        "tools.db"
+    ))
 
 db_path = get_db_path()
 print(f"Database: {db_path}\n")

@@ -5,7 +5,7 @@ This module provides standardized time handling functions to ensure
 consistent time management across the application.
 """
 
-from datetime import datetime, timezone, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 
 def get_utc_now() -> datetime:
@@ -57,7 +57,7 @@ def format_datetime(dt: datetime | None) -> str | None:
 
     # If the datetime is naive, assume it's UTC
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
 
     return dt.isoformat()
 
@@ -78,24 +78,24 @@ def parse_iso_datetime(dt_str: str) -> datetime | None:
     # Handle various formats
     try:
         # Try parsing with timezone info
-        dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
     except ValueError:
         try:
             # Try parsing without timezone info (assume UTC)
             dt = datetime.fromisoformat(dt_str)
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         except ValueError:
             # Last resort, try a more flexible approach
             formats = [
-                '%Y-%m-%dT%H:%M:%S',
-                '%Y-%m-%d %H:%M:%S',
-                '%Y-%m-%d'
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d"
             ]
 
             for fmt in formats:
                 try:
                     dt = datetime.strptime(dt_str, fmt)
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                     break
                 except ValueError:
                     continue

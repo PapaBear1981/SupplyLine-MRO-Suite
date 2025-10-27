@@ -5,10 +5,11 @@ This module provides automatic cleanup of expired session files to prevent
 disk space exhaustion and maintain system performance.
 """
 
+import logging
 import os
 import time
-import logging
 from threading import Thread
+
 
 logger = logging.getLogger(__name__)
 
@@ -124,10 +125,10 @@ class SessionCleaner:
         """
         if not os.path.exists(self.session_dir):
             return {
-                'total_files': 0,
-                'total_size_mb': 0,
-                'oldest_file_age_hours': 0,
-                'directory_exists': False
+                "total_files": 0,
+                "total_size_mb": 0,
+                "oldest_file_age_hours": 0,
+                "directory_exists": False
             }
 
         now = time.time()
@@ -138,7 +139,7 @@ class SessionCleaner:
         try:
             with os.scandir(self.session_dir) as entries:
                 for entry in entries:
-                    if entry.is_file() and (entry.name.startswith('session_') or entry.name.startswith('session:')):
+                    if entry.is_file() and (entry.name.startswith("session_") or entry.name.startswith("session:")):
                         total_files += 1
                         stat_info = entry.stat()
                         total_size += stat_info.st_size
@@ -149,18 +150,18 @@ class SessionCleaner:
         except OSError as e:
             logger.error(f"Error getting session stats: {e}")
             return {
-                'total_files': 0,
-                'total_size_mb': 0,
-                'oldest_file_age_hours': 0,
-                'directory_exists': True,
-                'error': str(e)
+                "total_files": 0,
+                "total_size_mb": 0,
+                "oldest_file_age_hours": 0,
+                "directory_exists": True,
+                "error": str(e)
             }
 
         return {
-            'total_files': total_files,
-            'total_size_mb': round(total_size / (1024 * 1024), 2),
-            'oldest_file_age_hours': round(oldest_age / 3600, 1),
-            'directory_exists': True
+            "total_files": total_files,
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
+            "oldest_file_age_hours": round(oldest_age / 3600, 1),
+            "directory_exists": True
         }
 
 
@@ -177,11 +178,11 @@ def init_session_cleanup(app):
     """
     global _session_cleaner
 
-    session_dir = app.config.get('SESSION_FILE_DIR')
-    max_age = app.config.get('SESSION_MAX_AGE', 86400)
-    cleanup_interval = app.config.get('SESSION_CLEANUP_INTERVAL', 3600)
+    session_dir = app.config.get("SESSION_FILE_DIR")
+    max_age = app.config.get("SESSION_MAX_AGE", 86400)
+    cleanup_interval = app.config.get("SESSION_CLEANUP_INTERVAL", 3600)
 
-    if session_dir and app.config.get('SESSION_TYPE') == 'filesystem':
+    if session_dir and app.config.get("SESSION_TYPE") == "filesystem":
         _session_cleaner = SessionCleaner(session_dir, max_age, cleanup_interval)
         _session_cleaner.start_cleanup_thread()
 
@@ -206,4 +207,4 @@ def get_session_cleanup_stats():
     """Get session cleanup statistics."""
     if _session_cleaner:
         return _session_cleaner.get_session_stats()
-    return {'error': 'Session cleanup not initialized'}
+    return {"error": "Session cleanup not initialized"}

@@ -18,6 +18,6 @@ def migrate_database():
     """
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("This migration has already been applied and is no longer needed.")
     print("All reorder fields are now part of the main database schema.")

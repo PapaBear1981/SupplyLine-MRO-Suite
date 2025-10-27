@@ -1,12 +1,15 @@
-from models import db, Tool, User, Checkout
-from flask import Flask
-from datetime import datetime, timedelta
 import os
+from datetime import datetime, timedelta
+
+from flask import Flask
+
+from models import Checkout, Tool, User, db
+
 
 # Create a minimal Flask app
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), '..', 'database', 'tools.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(os.path.dirname(__file__), "..", "database", "tools.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize the database
 db.init_app(app)
@@ -23,39 +26,39 @@ def seed_database():
         # Create sample tools
         tools = [
             Tool(
-                tool_number='T001',
-                serial_number='SN12345',
-                description='Power Drill - 18V',
-                condition='Good',
-                location='Main Warehouse'
+                tool_number="T001",
+                serial_number="SN12345",
+                description="Power Drill - 18V",
+                condition="Good",
+                location="Main Warehouse"
             ),
             Tool(
-                tool_number='T002',
-                serial_number='SN67890',
+                tool_number="T002",
+                serial_number="SN67890",
                 description='Circular Saw - 7 1/4"',
-                condition='Excellent',
-                location='Tool Room A'
+                condition="Excellent",
+                location="Tool Room A"
             ),
             Tool(
-                tool_number='T003',
-                serial_number='SN11223',
-                description='Hammer - 16oz',
-                condition='Fair',
-                location='Tool Room B'
+                tool_number="T003",
+                serial_number="SN11223",
+                description="Hammer - 16oz",
+                condition="Fair",
+                location="Tool Room B"
             ),
             Tool(
-                tool_number='T004',
-                serial_number='SN44556',
-                description='Impact Driver - 20V',
-                condition='Good',
-                location='Main Warehouse'
+                tool_number="T004",
+                serial_number="SN44556",
+                description="Impact Driver - 20V",
+                condition="Good",
+                location="Main Warehouse"
             ),
             Tool(
-                tool_number='T005',
-                serial_number='SN77889',
-                description='Tape Measure - 25ft',
-                condition='Excellent',
-                location='Tool Room A'
+                tool_number="T005",
+                serial_number="SN77889",
+                description="Tape Measure - 25ft",
+                condition="Excellent",
+                location="Tool Room A"
             )
         ]
 
@@ -65,7 +68,7 @@ def seed_database():
         print(f"Added {len(tools)} tools to the database")
 
         # Get admin user for checkouts
-        admin = User.query.filter_by(employee_number='ADMIN001').first()
+        admin = User.query.filter_by(employee_number="ADMIN001").first()
 
         if admin:
             # Create some checkouts
