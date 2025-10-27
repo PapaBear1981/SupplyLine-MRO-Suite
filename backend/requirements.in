@@ -60,3 +60,6 @@ pytest-flask==1.3.0
 
 # Code Quality and Linting
 ruff==0.14.2
+
+# Static Type Checking
+pyright==1.1.390

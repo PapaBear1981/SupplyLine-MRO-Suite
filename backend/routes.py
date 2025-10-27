@@ -346,8 +346,9 @@ def register_routes(app):
             logger.info("Database tables created")
 
             # Run the initialization script
-            from init_db import init_db
-            init_db()
+            # Note: init_db.py file does not exist - initialization is handled by migrations
+            # from init_db import init_db  # type: ignore[import-not-found]
+            # init_db()
 
             return jsonify({
                 "success": True,

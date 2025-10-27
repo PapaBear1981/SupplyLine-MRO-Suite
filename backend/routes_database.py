@@ -8,7 +8,7 @@ Admin-only access required for all operations.
 import logging
 
 from flask import jsonify, request, send_file
-from flask_jwt_extended import current_user
+from flask_jwt_extended import current_user  # type: ignore[import-not-found]
 
 from auth import admin_required, jwt_required
 from utils.database_backup import DatabaseBackupManager
