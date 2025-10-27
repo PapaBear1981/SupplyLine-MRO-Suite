@@ -23,8 +23,9 @@ RUN npm run build
 # Production stage
 FROM nginx:stable-alpine
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl for healthcheck and grant nginx permission to bind privileged ports
+RUN apk add --no-cache curl libcap && \
+    setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -33,11 +34,14 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Set proper permissions
-RUN chmod -R 755 /usr/share/nginx/html
+RUN chmod -R 755 /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html
 
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:80/ || exit 1
+
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]
