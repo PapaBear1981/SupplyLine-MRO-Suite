@@ -14,7 +14,7 @@ from typing import Any
 from flask import current_app, has_app_context, jsonify, request, session
 from sqlalchemy.exc import SQLAlchemyError
 
-from .logging_utils import get_request_context, log_security_event
+from .logging_utils import get_request_context
 
 
 logger = logging.getLogger(__name__)

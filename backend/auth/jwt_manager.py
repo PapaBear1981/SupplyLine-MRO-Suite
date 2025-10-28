@@ -29,7 +29,7 @@ class JWTManager:
     """JWT Authentication Manager"""
 
     @staticmethod
-    def generate_tokens(user) -> dict[str, str]:
+    def generate_tokens(user) -> dict[str, str | int]:
         """
         Generate access and refresh tokens for user
 
@@ -112,7 +112,7 @@ class JWTManager:
             return None
 
     @staticmethod
-    def refresh_access_token(refresh_token: str) -> dict[str, str] | None:
+    def refresh_access_token(refresh_token: str) -> dict[str, str | int] | None:
         """
         Generate new access token using refresh token
 

@@ -6,7 +6,7 @@ Handles transfers between warehouses and kits.
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required  # type: ignore[import-not-found]
 
 from models import Chemical, Tool, Warehouse, WarehouseTransfer, db
 from models_kits import Kit, KitBox, KitItem

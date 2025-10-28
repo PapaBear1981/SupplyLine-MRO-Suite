@@ -30,7 +30,7 @@ def create_secure_admin():
 
         def _is_strong(pwd: str) -> bool:
             import re
-            return (
+            return bool(
                 len(pwd) >= 12
                 and re.search(r"[A-Z]", pwd)
                 and re.search(r"[a-z]", pwd)
