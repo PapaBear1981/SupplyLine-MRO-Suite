@@ -33,9 +33,14 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy the built files from the build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Set proper permissions
+# Set proper permissions and create nginx cache and runtime directories
 RUN chmod -R 755 /usr/share/nginx/html && \
-    chown -R nginx:nginx /usr/share/nginx/html
+    chown -R nginx:nginx /usr/share/nginx/html && \
+    mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
+             /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp \
+             /var/cache/nginx/scgi_temp /run && \
+    chown -R nginx:nginx /var/cache/nginx /run && \
+    chmod -R 755 /var/cache/nginx /run
 
 EXPOSE 80
 

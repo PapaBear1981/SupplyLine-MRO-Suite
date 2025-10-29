@@ -14,6 +14,7 @@ RUN apt-get update && \
         tzdata \
         gcc \
         g++ \
+        gosu \
         && \
     # Set timezone to UTC
     ln -fs /usr/share/zoneinfo/UTC /etc/localtime && \
@@ -41,7 +42,8 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
     chown -R appuser:appuser /app
 
-USER appuser
+# Don't switch to appuser yet - let entrypoint handle it
+# USER appuser
 
 EXPOSE 5000
 

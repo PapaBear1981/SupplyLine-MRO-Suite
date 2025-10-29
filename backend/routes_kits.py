@@ -1153,6 +1153,62 @@ def register_kit_routes(app):
 
         return jsonify(report), 200
 
+    @app.route("/api/kits/reorders", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def get_reorder_report():
+        """Get reorder report across all kits"""
+        from models_kits import KitReorderRequest
+        from models import User
+
+        # Get filter parameters
+        aircraft_type_id = request.args.get("aircraft_type_id", type=int)
+        kit_id = request.args.get("kit_id", type=int)
+        status = request.args.get("status")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+
+        # Build query
+        query = db.session.query(
+            KitReorderRequest,
+            Kit.name.label("kit_name"),
+            User.username.label("requested_by_name")
+        ).join(
+            Kit, KitReorderRequest.kit_id == Kit.id
+        ).outerjoin(
+            User, KitReorderRequest.requested_by == User.id
+        )
+
+        # Apply filters
+        if aircraft_type_id:
+            query = query.filter(Kit.aircraft_type_id == aircraft_type_id)
+        if kit_id:
+            query = query.filter(KitReorderRequest.kit_id == kit_id)
+        if status:
+            query = query.filter(KitReorderRequest.status == status)
+        if start_date:
+            query = query.filter(KitReorderRequest.requested_date >= start_date)
+        if end_date:
+            query = query.filter(KitReorderRequest.requested_date <= end_date)
+
+        # Order by priority and date
+        query = query.order_by(
+            KitReorderRequest.priority.desc(),
+            KitReorderRequest.requested_date.desc()
+        )
+
+        results = query.all()
+
+        # Format report data
+        report = []
+        for reorder, kit_name, requested_by_name in results:
+            reorder_dict = reorder.to_dict()
+            reorder_dict["kit_name"] = kit_name
+            reorder_dict["requested_by_name"] = requested_by_name
+            report.append(reorder_dict)
+
+        return jsonify(report), 200
+
     @app.route("/api/kits/analytics/utilization", methods=["GET"])
     @jwt_required
     @handle_errors

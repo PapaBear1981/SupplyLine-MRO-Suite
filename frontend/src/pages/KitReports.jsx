@@ -14,7 +14,7 @@ import {
 } from '../store/kitsSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import {
-  FaChartBar, FaBoxes, FaExchangeAlt, FaRedo, FaFileExport, FaCalendar, FaFilter
+  FaChartBar, FaBoxes, FaExchangeAlt, FaRedo, FaFileExport, FaCalendar, FaFilter, FaFilePdf
 } from 'react-icons/fa';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
@@ -29,6 +29,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 // Register ChartJS components
 ChartJS.register(
@@ -125,35 +127,44 @@ const KitReports = () => {
   };
 
   const handleExport = (format) => {
-    // Export functionality - would integrate with backend export endpoint
     let data;
     let filename;
+    let title;
 
     switch (activeTab) {
       case 'inventory':
         data = inventoryReport;
         filename = 'kit-inventory-report';
+        title = 'Kit Inventory Report';
         break;
       case 'issuances':
         data = issuanceReport;
         filename = 'kit-issuance-report';
+        title = 'Kit Issuance Report';
         break;
       case 'transfers':
         data = transferReport;
         filename = 'kit-transfer-report';
+        title = 'Kit Transfer Report';
         break;
       case 'reorders':
         data = reorderReport;
         filename = 'kit-reorder-report';
+        title = 'Kit Reorder Report';
         break;
       default:
         return;
     }
 
+    if (!data || data.length === 0) {
+      alert('No data available to export');
+      return;
+    }
+
     if (format === 'csv') {
       exportToCSV(data, filename);
-    } else if (format === 'json') {
-      exportToJSON(data, filename);
+    } else if (format === 'pdf') {
+      exportToPDF(data, filename, title);
     }
   };
 
@@ -175,14 +186,89 @@ const KitReports = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const exportToJSON = (data, filename) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}.json`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const exportToPDF = (data, filename, title) => {
+    if (!data || data.length === 0) return;
+
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
+
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, 14, 15);
+
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+
+    // Prepare table data based on report type
+    let columns = [];
+    let rows = [];
+
+    switch (activeTab) {
+      case 'inventory':
+        columns = ['Kit Name', 'Aircraft Type', 'Total Items', 'Low Stock Items', 'Boxes', 'Status'];
+        rows = data.map(kit => [
+          kit.kit_name,
+          kit.aircraft_type || 'N/A',
+          kit.total_items,
+          kit.low_stock_items,
+          kit.boxes,
+          kit.low_stock_items === 0 ? 'Good' : kit.low_stock_items < 5 ? 'Warning' : 'Critical'
+        ]);
+        break;
+      case 'issuances':
+        columns = ['Date', 'Item Type', 'Description', 'Quantity', 'Purpose', 'Work Order', 'Issued By'];
+        rows = data.map(issuance => [
+          new Date(issuance.issued_date).toLocaleDateString(),
+          issuance.item_type,
+          issuance.description || 'N/A',
+          issuance.quantity,
+          issuance.purpose || 'N/A',
+          issuance.work_order || 'N/A',
+          issuance.issued_by_name || `User ${issuance.issued_by}`
+        ]);
+        break;
+      case 'transfers':
+        columns = ['Date', 'From', 'To', 'Item Type', 'Quantity', 'Status', 'Transferred By'];
+        rows = data.map(transfer => [
+          new Date(transfer.transfer_date).toLocaleDateString(),
+          transfer.from_location_type === 'kit' ? `Kit ${transfer.from_location_id}` : 'Warehouse',
+          transfer.to_location_type === 'kit' ? `Kit ${transfer.to_location_id}` : 'Warehouse',
+          transfer.item_type,
+          transfer.quantity,
+          transfer.status,
+          transfer.transferred_by_name || `User ${transfer.transferred_by}`
+        ]);
+        break;
+      case 'reorders':
+        columns = ['Date', 'Kit', 'Part Number', 'Description', 'Quantity', 'Priority', 'Status', 'Requested By'];
+        rows = data.map(reorder => [
+          new Date(reorder.requested_date).toLocaleDateString(),
+          reorder.kit_name || `Kit ${reorder.kit_id}`,
+          reorder.part_number,
+          reorder.description,
+          reorder.quantity_requested,
+          reorder.priority,
+          reorder.status,
+          reorder.requested_by_name || `User ${reorder.requested_by}`
+        ]);
+        break;
+      default:
+        return;
+    }
+
+    // Add table
+    doc.autoTable({
+      head: [columns],
+      body: rows,
+      startY: 28,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { top: 28 }
+    });
+
+    // Save the PDF
+    doc.save(`${filename}.pdf`);
   };
 
   const clearFilters = () => {
@@ -315,16 +401,18 @@ const KitReports = () => {
                 variant="success"
                 className="me-2"
                 onClick={() => handleExport('csv')}
+                disabled={loading}
               >
                 <FaFileExport className="me-2" />
                 Export CSV
               </Button>
               <Button
-                variant="info"
-                onClick={() => handleExport('json')}
+                variant="danger"
+                onClick={() => handleExport('pdf')}
+                disabled={loading}
               >
-                <FaFileExport className="me-2" />
-                Export JSON
+                <FaFilePdf className="me-2" />
+                Export PDF
               </Button>
             </Col>
           </Row>
@@ -516,7 +604,7 @@ const KitReports = () => {
               </small>
             </Card.Header>
             <Card.Body>
-              {reorderReport.length === 0 ? (
+              {!reorderReport || reorderReport.length === 0 ? (
                 <Alert variant="info">No reorder data available</Alert>
               ) : (
                 <Table striped bordered hover responsive>
@@ -564,7 +652,7 @@ const KitReports = () => {
                             <Badge bg="danger">Cancelled</Badge>
                           )}
                         </td>
-                        <td>{reorder.requested_by_name || `User ${reorder.requested_by}`}</td>
+                        <td>{reorder.requested_by_name || reorder.requester_name || `User ${reorder.requested_by}`}</td>
                       </tr>
                     ))}
                   </tbody>
