@@ -91,6 +91,41 @@ jobs:
           cd frontend
           npm run lint
 
+  hadolint:
+    name: Dockerfile Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
+      - name: Lint frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+
+  trivy:
+    name: Trivy File Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@v0.22.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          security-checks: vuln,secret,misconfig
+          skip-dirs: frontend/node_modules
+
   # Backend Testing Job
   backend-test:
     name: Backend Testing
@@ -344,7 +379,7 @@ jobs:
   ci-success:
     name: CI Pipeline Success
     runs-on: ubuntu-latest
-    needs: [backend-lint, backend-typecheck, frontend-lint, backend-test, frontend-e2e, backend-build, frontend-build]
+    needs: [backend-lint, backend-typecheck, frontend-lint, hadolint, trivy, backend-test, frontend-e2e, backend-build, frontend-build]
     if: always()
     steps:
       - name: Check all jobs status
@@ -353,6 +388,8 @@ jobs:
           if [ "${{ needs.backend-lint.result }}" != "success" ] || \
              [ "${{ needs.backend-typecheck.result }}" != "success" ] || \
              [ "${{ needs.frontend-lint.result }}" != "success" ] || \
+             [ "${{ needs.hadolint.result }}" != "success" ] || \
+             [ "${{ needs.trivy.result }}" != "success" ] || \
              [ "${{ needs.backend-test.result }}" != "success" ] || \
              [ "${{ needs.backend-build.result }}" != "success" ] || \
              [ "${{ needs.frontend-build.result }}" != "success" ]; then
