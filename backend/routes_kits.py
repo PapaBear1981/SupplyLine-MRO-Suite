@@ -539,13 +539,15 @@ def register_kit_routes(app):
     @handle_errors
     def get_kit_items(kit_id):
         """Get all items in a kit with optional filtering"""
+        from models import Expendable
+
         kit = Kit.query.get_or_404(kit_id)
 
         box_id = request.args.get("box_id", type=int)
         item_type = request.args.get("item_type")
         status = request.args.get("status")
 
-        # Get kit items (filter out items with quantity 0)
+        # Get all kit items (filter out items with quantity 0)
         items_query = kit.items.filter(KitItem.quantity > 0)
         if box_id:
             items_query = items_query.filter_by(box_id=box_id)
@@ -554,22 +556,65 @@ def register_kit_routes(app):
         if status:
             items_query = items_query.filter_by(status=status)
 
-        items = items_query.all()
+        kit_items = items_query.all()
 
-        # Get expendables (filter out items with quantity 0)
-        expendables_query = kit.expendables.filter(KitExpendable.quantity > 0)
+        # Separate items by type and enrich expendables with full data
+        regular_items = []
+        expendables = []
+
+        for kit_item in kit_items:
+            if kit_item.item_type == 'expendable':
+                # Get the full Expendable record
+                expendable = Expendable.query.get(kit_item.item_id)
+                if expendable:
+                    # Merge KitItem data with Expendable data
+                    exp_dict = {
+                        "id": kit_item.id,  # Use KitItem.id for frontend operations
+                        "kit_item_id": kit_item.id,  # Explicit KitItem ID
+                        "expendable_id": expendable.id,  # Explicit Expendable ID
+                        "item_id": expendable.id,  # For frontend compatibility (same as expendable_id)
+                        "kit_id": kit_item.kit_id,
+                        "box_id": kit_item.box_id,
+                        "box_number": kit_item.box.box_number if kit_item.box else None,
+                        "part_number": expendable.part_number,
+                        "serial_number": expendable.serial_number,
+                        "lot_number": expendable.lot_number,
+                        "description": expendable.description,
+                        "manufacturer": expendable.manufacturer,
+                        "quantity": kit_item.quantity,  # Use KitItem quantity
+                        "unit": expendable.unit,
+                        "location": kit_item.location or expendable.location,
+                        "category": expendable.category,
+                        "status": kit_item.status,
+                        "minimum_stock_level": expendable.minimum_stock_level,
+                        "tracking_type": "serial" if expendable.serial_number else "lot",
+                        "added_date": kit_item.added_date.isoformat() if kit_item.added_date else None,
+                        "last_updated": kit_item.last_updated.isoformat() if kit_item.last_updated else None,
+                        "source": "item",  # Mark as coming from KitItem
+                        "item_type": "expendable"
+                    }
+                    expendables.append(exp_dict)
+            else:
+                regular_items.append(kit_item.to_dict())
+
+        # Also get old KitExpendable records for backward compatibility
+        old_expendables_query = kit.expendables.filter(KitExpendable.quantity > 0)
         if box_id:
-            expendables_query = expendables_query.filter_by(box_id=box_id)
+            old_expendables_query = old_expendables_query.filter_by(box_id=box_id)
         if status:
-            expendables_query = expendables_query.filter_by(status=status)
+            old_expendables_query = old_expendables_query.filter_by(status=status)
 
-        expendables = expendables_query.all()
+        old_expendables = old_expendables_query.all()
+        for old_exp in old_expendables:
+            exp_dict = old_exp.to_dict()
+            exp_dict["source"] = "expendable"  # Mark as coming from old KitExpendable
+            expendables.append(exp_dict)
 
         # Combine results
         result = {
-            "items": [item.to_dict() for item in items],
-            "expendables": [exp.to_dict() for exp in expendables],
-            "total_count": len(items) + len(expendables)
+            "items": regular_items,
+            "expendables": expendables,
+            "total_count": len(regular_items) + len(expendables)
         }
 
         return jsonify(result), 200
@@ -1172,7 +1217,7 @@ def register_kit_routes(app):
         query = db.session.query(
             KitReorderRequest,
             Kit.name.label("kit_name"),
-            User.username.label("requested_by_name")
+            User.name.label("requested_by_name")
         ).join(
             Kit, KitReorderRequest.kit_id == Kit.id
         ).outerjoin(

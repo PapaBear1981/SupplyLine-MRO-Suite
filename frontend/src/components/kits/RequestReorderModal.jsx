@@ -93,16 +93,21 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const form = e.currentTarget;
 
     if (activeTab === 'existing') {
-      // Existing item reorder validation
-      if (form.checkValidity() === false || !selectedItem) {
+      // Existing item reorder validation - only check if item is selected
+      if (!selectedItem) {
         e.stopPropagation();
         setValidated(true);
-        if (!selectedItem) {
-          setSubmitError('Please select an item to reorder');
-        }
+        setSubmitError('Please select an item to reorder');
+        return;
+      }
+
+      // Validate quantity manually
+      if (!quantity || quantity < 1) {
+        e.stopPropagation();
+        setValidated(true);
+        setSubmitError('Quantity must be at least 1');
         return;
       }
 
@@ -110,9 +115,12 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
       setSubmitError(null);
 
       try {
+        // Determine item_type based on source
+        const itemType = selectedItem.source === 'expendable' ? 'expendable' : selectedItem.item_type;
+
         await dispatch(createReorderRequest({
           kitId,
-          item_type: selectedItem.item_type,
+          item_type: itemType,
           item_id: selectedItem.id,
           part_number: selectedItem.part_number,
           description: selectedItem.description,
@@ -134,13 +142,26 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
         }, 1500);
       } catch (err) {
         console.error('Failed to create reorder request:', err);
-        setSubmitError(err.message || 'Failed to create reorder request');
+        // Extract error message from various possible error formats
+        const errorMessage = err?.response?.data?.error
+          || err?.response?.data?.message
+          || err?.message
+          || 'Failed to create reorder request. Please try again.';
+        setSubmitError(errorMessage);
       }
     } else {
-      // New item request validation
-      if (form.checkValidity() === false) {
+      // New item request validation - manual validation
+      if (!newPartNumber || !newDescription || !newReasonNeeded) {
         e.stopPropagation();
         setValidated(true);
+        setSubmitError('Please fill in all required fields');
+        return;
+      }
+
+      if (!newQuantity || newQuantity < 1) {
+        e.stopPropagation();
+        setValidated(true);
+        setSubmitError('Quantity must be at least 1');
         return;
       }
 
@@ -180,7 +201,12 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
         }, 1500);
       } catch (err) {
         console.error('Failed to create new item request:', err);
-        setSubmitError(err.message || 'Failed to create new item request');
+        // Extract error message from various possible error formats
+        const errorMessage = err?.response?.data?.error
+          || err?.response?.data?.message
+          || err?.message
+          || 'Failed to create new item request. Please try again.';
+        setSubmitError(errorMessage);
       }
     }
   };
@@ -264,7 +290,7 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
                           <Form.Check
                             type="radio"
                             name="selectedItem"
-                            checked={selectedItem?.id === item.id}
+                            checked={selectedItem?.id === item.id && selectedItem?.source === item.source}
                             onChange={() => handleItemSelect(item)}
                           />
                         </td>
@@ -313,7 +339,10 @@ const RequestReorderModal = ({ show, onHide, kitId, onSuccess }) => {
                   type="number"
                   min="1"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setQuantity(isNaN(val) || val < 1 ? 1 : val);
+                  }}
                   required
                   placeholder="Enter quantity needed"
                 />

@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Tabs, Tab, Alert } from 'react-bootstrap';
 import StandardBarcode from '../common/StandardBarcode';
-import { generateChemicalBarcodeData, generateToolBarcodeData, getChemicalBarcodeFields, getToolBarcodeFields } from '../../utils/barcodeFormatter';
+import {
+  generateChemicalBarcodeData,
+  generateToolBarcodeData,
+  generateExpendableBarcodeData,
+  getChemicalBarcodeFields,
+  getToolBarcodeFields,
+  getExpendableBarcodeFields
+} from '../../utils/barcodeFormatter';
 import { generatePrintCSS } from '../../utils/labelSizeConfig';
 import api from '../../services/api';
 
@@ -33,9 +40,12 @@ const KitItemBarcode = ({ show, onHide, item }) => {
           if (item.item_type === 'tool' || item.source === 'item') {
             // For tools, use the tool barcode endpoint with the underlying entity ID
             response = await api.get(`/tools/${entityId}/barcode`);
-          } else if (item.item_type === 'chemical' || item.source === 'expendable') {
-            // For chemicals/expendables, use the chemical barcode endpoint with the underlying entity ID
+          } else if (item.item_type === 'chemical') {
+            // For chemicals, use the chemical barcode endpoint with the underlying entity ID
             response = await api.get(`/chemicals/${entityId}/barcode`);
+          } else if (item.item_type === 'expendable' || item.source === 'expendable') {
+            // For expendables, use the expendable barcode endpoint with the underlying entity ID
+            response = await api.get(`/expendables/${entityId}/barcode`);
           } else {
             throw new Error('Unknown item type');
           }
@@ -116,6 +126,8 @@ const KitItemBarcode = ({ show, onHide, item }) => {
     barcodeString = barcodeData.barcode_data;
   } else if (item.item_type === 'tool' || item.source === 'item') {
     barcodeString = generateToolBarcodeData(item);
+  } else if (item.item_type === 'expendable' || item.source === 'expendable') {
+    barcodeString = generateExpendableBarcodeData(item);
   } else {
     barcodeString = generateChemicalBarcodeData(item);
   }
@@ -125,6 +137,8 @@ const KitItemBarcode = ({ show, onHide, item }) => {
   if (barcodeData) {
     if (item.item_type === 'tool' || item.source === 'item') {
       fields = getToolBarcodeFields(completeItemData, barcodeData.calibration);
+    } else if (item.item_type === 'expendable' || item.source === 'expendable') {
+      fields = getExpendableBarcodeFields(completeItemData);
     } else {
       fields = getChemicalBarcodeFields(completeItemData);
     }
@@ -136,6 +150,10 @@ const KitItemBarcode = ({ show, onHide, item }) => {
     title = barcodeData
       ? `${item.part_number || item.tool_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${item.serial_number}`}`
       : `${item.part_number || item.tool_number}`;
+  } else if (item.item_type === 'expendable' || item.source === 'expendable') {
+    title = barcodeData
+      ? `${item.part_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${item.serial_number}`}`
+      : `${item.part_number}`;
   } else {
     title = `${item.part_number} - ${item.lot_number}`;
   }

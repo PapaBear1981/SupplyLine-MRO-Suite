@@ -178,9 +178,10 @@ const KitItemsList = ({ kitId }) => {
     // Determine item type and ID for the detail modal
     let itemType, itemId;
 
-    if (item.source === 'expendable') {
+    if (item.source === 'expendable' || item.item_type === 'expendable') {
       itemType = 'expendable';
-      itemId = item.id;
+      // For expendables, use item_id (the Expendable.id), not id (the KitItem.id)
+      itemId = item.item_id || item.id;
     } else if (item.item_type === 'tool') {
       itemType = 'tool';
       itemId = item.item_id || item.id;

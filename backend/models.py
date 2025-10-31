@@ -421,6 +421,93 @@ class ToolServiceRecord(db.Model):
         }
 
 
+class Expendable(db.Model):
+    """
+    Expendable model for kit-only consumable inventory.
+
+    Expendables are consumable items that are added directly to kits without warehouse management.
+    They are NOT tracked in warehouses - warehouse_id is always None.
+
+    Key characteristics:
+    - Kit-only items (no warehouse tracking)
+    - MUST have EITHER lot number OR serial number (never both, never neither)
+    - Can be transferred between kits
+    - Full audit trail via AuditLog and transaction tracking
+    - Support barcode generation for lot/serial numbers
+    """
+    __tablename__ = "expendables"
+
+    id = db.Column(db.Integer, primary_key=True)
+    part_number = db.Column(db.String(100), nullable=False, index=True)
+    serial_number = db.Column(db.String(100), nullable=True, index=True)  # For serial-tracked expendables
+    lot_number = db.Column(db.String(100), nullable=True, index=True)  # For lot-tracked expendables
+    description = db.Column(db.String(500), nullable=False)
+    manufacturer = db.Column(db.String(200))
+    quantity = db.Column(db.Float, nullable=False, default=0)
+    unit = db.Column(db.String(20), nullable=False, default="each")  # each, oz, ml, ft, etc.
+    location = db.Column(db.String(100))
+    category = db.Column(db.String(100), nullable=True, default="General")
+    status = db.Column(db.String(20), nullable=False, default="available")  # available, low_stock, out_of_stock
+    warehouse_id = db.Column(db.Integer, db.ForeignKey("warehouses.id"), nullable=True, index=True)  # Always None for kit-only expendables
+    date_added = db.Column(db.DateTime, default=get_current_time, nullable=False)
+    minimum_stock_level = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.String(500))
+
+    # Relationships - kept for backward compatibility but warehouse_id should always be None
+    warehouse = db.relationship("Warehouse", back_populates="expendables")
+
+    def __init__(self, **kwargs):
+        """
+        Initialize expendable and validate tracking.
+        Forces warehouse_id to None for kit-only architecture.
+        """
+        # Force warehouse_id to None for kit-only expendables
+        kwargs['warehouse_id'] = None
+        super().__init__(**kwargs)
+        self.validate_tracking()
+
+    def validate_tracking(self):
+        """
+        Validate that EITHER serial number OR lot number is provided (never both, never neither).
+        Raises ValueError if validation fails.
+        """
+        has_serial = bool(self.serial_number and self.serial_number.strip())
+        has_lot = bool(self.lot_number and self.lot_number.strip())
+
+        if not has_serial and not has_lot:
+            raise ValueError("Expendable must have EITHER serial number OR lot number")
+
+        if has_serial and has_lot:
+            raise ValueError("Expendable cannot have both serial number AND lot number")
+
+    def to_dict(self):
+        """Convert expendable to dictionary (excludes warehouse fields for kit-only items)"""
+        return {
+            "id": self.id,
+            "part_number": self.part_number,
+            "serial_number": self.serial_number,
+            "lot_number": self.lot_number,
+            "description": self.description,
+            "manufacturer": self.manufacturer,
+            "quantity": self.quantity,
+            "unit": self.unit,
+            "location": self.location,
+            "category": self.category,
+            "status": self.status,
+            "date_added": self.date_added.isoformat() if self.date_added else None,
+            "minimum_stock_level": self.minimum_stock_level,
+            "notes": self.notes,
+            # Include tracking type for frontend
+            "tracking_type": "serial" if self.serial_number else "lot"
+        }
+
+    def is_low_stock(self):
+        """Check if expendable is at or below minimum stock level"""
+        if not self.minimum_stock_level:
+            return False
+        return self.quantity <= self.minimum_stock_level
+
+
 class Chemical(db.Model):
     __tablename__ = "chemicals"
     id = db.Column(db.Integer, primary_key=True)
@@ -988,7 +1075,7 @@ class LotNumberSequence(db.Model):
 class Warehouse(db.Model):
     """
     Warehouse model for managing physical warehouse locations.
-    Warehouses store tools and chemicals before they are transferred to kits.
+    Warehouses store tools, chemicals, and expendables before they are transferred to kits.
     """
     __tablename__ = "warehouses"
 
@@ -1008,6 +1095,7 @@ class Warehouse(db.Model):
     # Relationships
     tools = db.relationship("Tool", back_populates="warehouse", lazy="dynamic")
     chemicals = db.relationship("Chemical", back_populates="warehouse", lazy="dynamic")
+    expendables = db.relationship("Expendable", back_populates="warehouse", lazy="dynamic")
     created_by = db.relationship("User", foreign_keys=[created_by_id])
 
     def to_dict(self, include_counts=False):
@@ -1031,15 +1119,17 @@ class Warehouse(db.Model):
             try:
                 result["created_by"] = self.created_by.name if self.created_by else None
                 # Use direct queries instead of relationships to ensure accurate counts
-                from models import Chemical, Tool
+                from models import Chemical, Tool, Expendable
                 result["tools_count"] = Tool.query.filter_by(warehouse_id=self.id).count()
                 result["chemicals_count"] = Chemical.query.filter_by(warehouse_id=self.id).count()
+                result["expendables_count"] = Expendable.query.filter_by(warehouse_id=self.id).count()
             except Exception as e:
                 # If queries fail, skip counts
                 print(f"Error getting counts for warehouse {self.id}: {e}")
                 result["created_by"] = None
                 result["tools_count"] = 0
                 result["chemicals_count"] = 0
+                result["expendables_count"] = 0
 
         return result
 
@@ -1048,6 +1138,7 @@ class WarehouseTransfer(db.Model):
     """
     WarehouseTransfer model for tracking item movements between warehouses and kits.
     Provides complete audit trail for inventory transfers.
+    Supports tools, chemicals, and expendables.
     """
     __tablename__ = "warehouse_transfers"
 
@@ -1056,7 +1147,7 @@ class WarehouseTransfer(db.Model):
     to_warehouse_id = db.Column(db.Integer, db.ForeignKey("warehouses.id"), nullable=True, index=True)
     to_kit_id = db.Column(db.Integer, db.ForeignKey("kits.id"), nullable=True, index=True)
     from_kit_id = db.Column(db.Integer, db.ForeignKey("kits.id"), nullable=True, index=True)
-    item_type = db.Column(db.String(50), nullable=False, index=True)  # tool, chemical
+    item_type = db.Column(db.String(50), nullable=False, index=True)  # tool, chemical, expendable
     item_id = db.Column(db.Integer, nullable=False, index=True)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     transfer_date = db.Column(db.DateTime, default=get_current_time, nullable=False, index=True)
