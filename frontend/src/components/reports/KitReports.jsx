@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Container, Row, Col, Card, Form, Button, Table, Badge, Tabs, Tab, Alert
@@ -77,12 +77,8 @@ const KitReports = () => {
     dispatch(fetchAircraftTypes());
   }, [dispatch]);
 
-  // Fetch report data when tab or filters change
-  useEffect(() => {
-    fetchReportData();
-  }, [activeTab, filters]);
-
-  const fetchReportData = () => {
+  // Define fetchReportData with useCallback to avoid dependency issues
+  const fetchReportData = useCallback(() => {
     const reportFilters = {
       aircraft_type_id: filters.aircraftTypeId || undefined,
       kit_id: filters.kitId || undefined,
@@ -114,7 +110,12 @@ const KitReports = () => {
       default:
         break;
     }
-  };
+  }, [activeTab, filters, dispatch]);
+
+  // Fetch report data when tab or filters change
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;

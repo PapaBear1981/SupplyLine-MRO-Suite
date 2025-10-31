@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card, Alert, Button } from 'react-bootstrap';
@@ -64,19 +64,8 @@ const ReportingPage = () => {
     }
   }, [hasKitsPermission, hasReportsPermission, location.state]);
 
-  // Redirect if user doesn't have permission
-  if (!hasAccess) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Fetch report data when report type, timeframe, or filters change
-  useEffect(() => {
-    if (currentReport && timeframe) {
-      fetchReportData();
-    }
-  }, [currentReport, timeframe, filters, dispatch]);
-
-  const fetchReportData = () => {
+  // Define fetchReportData with useCallback to avoid dependency issues
+  const fetchReportData = useCallback(() => {
     switch (currentReport) {
       case 'tool-inventory':
         dispatch(fetchToolInventoryReport(filters));
@@ -128,7 +117,19 @@ const ReportingPage = () => {
       default:
         break;
     }
-  };
+  }, [currentReport, timeframe, filters, dispatch]);
+
+  // Fetch report data when report type, timeframe, or filters change
+  useEffect(() => {
+    if (currentReport && timeframe) {
+      fetchReportData();
+    }
+  }, [currentReport, timeframe, fetchReportData]);
+
+  // Redirect if user doesn't have permission
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleReportTypeChange = (reportType) => {
     dispatch(setReportType(reportType));
