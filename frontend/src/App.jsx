@@ -202,11 +202,11 @@ function App() {
 
 
         <Route path="/reports" element={
-          <PermissionRoute permission="page.reports">
+          <ProtectedRoute requirePermission={null}>
             <MainLayout>
               <ReportingPage />
             </MainLayout>
-          </PermissionRoute>
+          </ProtectedRoute>
         } />
 
         <Route path="/admin/dashboard" element={

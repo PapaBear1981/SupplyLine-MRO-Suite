@@ -14,6 +14,7 @@ import Tooltip from '../components/common/Tooltip';
 import HelpIcon from '../components/common/HelpIcon';
 import HelpContent from '../components/common/HelpContent';
 import { useHelp } from '../context/HelpContext';
+import { hasPermission } from '../components/auth/ProtectedRoute';
 import {
   fetchToolInventoryReport,
   fetchCheckoutHistoryReport,
@@ -39,12 +40,34 @@ const ReportingPage = () => {
 
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState(null);
-  // Set initial activeTab from location state if provided, otherwise default to 'standard-reports'
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
   const { showTooltips, showHelp } = useHelp();
 
-  const isAdmin = user?.is_admin || user?.department === 'Materials';
+  // Check permissions - allow access if user has either page.reports or page.kits
+  const hasReportsPermission = hasPermission(user, 'page.reports');
+  const hasKitsPermission = hasPermission(user, 'page.kits');
+  const hasAccess = hasReportsPermission || hasKitsPermission;
+
+  // Set initial activeTab from location state if provided, otherwise default based on permissions
+  // If user only has kits permission, default to kit-reports; otherwise default to standard-reports
+  const [activeTab, setActiveTab] = useState(() => {
+    // Use location state if available, otherwise default to standard-reports
+    // The useEffect below will adjust if needed based on permissions
+    return location.state?.activeTab || 'standard-reports';
+  });
+
+  // Adjust default tab based on permissions if no location state was provided
+  useEffect(() => {
+    if (!location.state?.activeTab) {
+      const defaultTab = hasKitsPermission && !hasReportsPermission ? 'kit-reports' : 'standard-reports';
+      setActiveTab(defaultTab);
+    }
+  }, [hasKitsPermission, hasReportsPermission, location.state]);
+
+  // Redirect if user doesn't have permission
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Fetch report data when report type, timeframe, or filters change
   useEffect(() => {
@@ -52,11 +75,6 @@ const ReportingPage = () => {
       fetchReportData();
     }
   }, [currentReport, timeframe, filters, dispatch]);
-
-  // Redirect if user doesn't have permission
-  if (!isAdmin) {
-    return <Navigate to="/tools" replace />;
-  }
 
   const fetchReportData = () => {
     switch (currentReport) {
@@ -179,49 +197,57 @@ const ReportingPage = () => {
       )}
 
       <div className="btn-group mb-4">
-        <Tooltip text="View tool inventory and usage reports" placement="top" show={showTooltips}>
-          <Button
-            variant={activeTab === 'standard-reports' ? 'primary' : 'outline-primary'}
-            onClick={() => setActiveTab('standard-reports')}
-          >
-            Tool Reports
-          </Button>
-        </Tooltip>
-        <Tooltip text="View kit inventory, issuances, transfers, and utilization reports" placement="top" show={showTooltips}>
-          <Button
-            variant={activeTab === 'kit-reports' ? 'primary' : 'outline-primary'}
-            onClick={() => setActiveTab('kit-reports')}
-          >
-            Kit Reports
-          </Button>
-        </Tooltip>
-        <Tooltip text="Analyze chemical waste and usage patterns" placement="top" show={showTooltips}>
-          <Button
-            variant={activeTab === 'chemical-analytics' ? 'primary' : 'outline-primary'}
-            onClick={() => setActiveTab('chemical-analytics')}
-          >
-            Chemical Analytics
-          </Button>
-        </Tooltip>
-        <Tooltip text="View calibration status and history reports" placement="top" show={showTooltips}>
-          <Button
-            variant={activeTab === 'calibration-reports' ? 'primary' : 'outline-primary'}
-            onClick={() => setActiveTab('calibration-reports')}
-          >
-            Calibration Reports
-          </Button>
-        </Tooltip>
-        <Tooltip text="Analyze part number usage and trends" placement="top" show={showTooltips}>
-          <Button
-            variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
-            onClick={() => setActiveTab('part-number-analytics')}
-          >
-            Part Number Analytics
-          </Button>
-        </Tooltip>
+        {hasReportsPermission && (
+          <Tooltip text="View tool inventory and usage reports" placement="top" show={showTooltips}>
+            <Button
+              variant={activeTab === 'standard-reports' ? 'primary' : 'outline-primary'}
+              onClick={() => setActiveTab('standard-reports')}
+            >
+              Tool Reports
+            </Button>
+          </Tooltip>
+        )}
+        {hasKitsPermission && (
+          <Tooltip text="View kit inventory, issuances, transfers, and utilization reports" placement="top" show={showTooltips}>
+            <Button
+              variant={activeTab === 'kit-reports' ? 'primary' : 'outline-primary'}
+              onClick={() => setActiveTab('kit-reports')}
+            >
+              Kit Reports
+            </Button>
+          </Tooltip>
+        )}
+        {hasReportsPermission && (
+          <>
+            <Tooltip text="Analyze chemical waste and usage patterns" placement="top" show={showTooltips}>
+              <Button
+                variant={activeTab === 'chemical-analytics' ? 'primary' : 'outline-primary'}
+                onClick={() => setActiveTab('chemical-analytics')}
+              >
+                Chemical Analytics
+              </Button>
+            </Tooltip>
+            <Tooltip text="View calibration status and history reports" placement="top" show={showTooltips}>
+              <Button
+                variant={activeTab === 'calibration-reports' ? 'primary' : 'outline-primary'}
+                onClick={() => setActiveTab('calibration-reports')}
+              >
+                Calibration Reports
+              </Button>
+            </Tooltip>
+            <Tooltip text="Analyze part number usage and trends" placement="top" show={showTooltips}>
+              <Button
+                variant={activeTab === 'part-number-analytics' ? 'primary' : 'outline-primary'}
+                onClick={() => setActiveTab('part-number-analytics')}
+              >
+                Part Number Analytics
+              </Button>
+            </Tooltip>
+          </>
+        )}
       </div>
 
-      {activeTab === 'standard-reports' && (
+      {hasReportsPermission && activeTab === 'standard-reports' && (
         <div className="pt-4">
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-light">
@@ -293,7 +319,7 @@ const ReportingPage = () => {
         </div>
       )}
 
-      {activeTab === 'chemical-analytics' && (
+      {hasReportsPermission && activeTab === 'chemical-analytics' && (
         <div className="pt-4">
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-light">
@@ -328,19 +354,19 @@ const ReportingPage = () => {
         </div>
       )}
 
-      {activeTab === 'calibration-reports' && (
+      {hasReportsPermission && activeTab === 'calibration-reports' && (
         <div className="pt-4">
           <CalibrationReports />
         </div>
       )}
 
-      {activeTab === 'kit-reports' && (
+      {hasKitsPermission && activeTab === 'kit-reports' && (
         <div className="pt-4">
           <KitReports />
         </div>
       )}
 
-      {activeTab === 'part-number-analytics' && (
+      {hasReportsPermission && activeTab === 'part-number-analytics' && (
         <div className="pt-4">
           <PartNumberAnalytics />
         </div>
