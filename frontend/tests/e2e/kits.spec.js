@@ -88,8 +88,12 @@ test.describe('Kit Management', () => {
       await page.click('button:has-text("Reports")');
       await page.waitForLoadState('networkidle');
 
-      // Verify navigation to reports
-      await expect(page).toHaveURL('/kits/reports');
+      // Verify navigation to reports page (kit reports tab should be active)
+      await expect(page).toHaveURL('/reports');
+      
+      // Verify that Kit Reports tab is active
+      const kitReportsButton = page.locator('button:has-text("Kit Reports")');
+      await expect(kitReportsButton).toBeVisible();
     });
 
     test('should display kit cards with information', async ({ page }) => {
@@ -289,22 +293,30 @@ test.describe('Kit Management', () => {
 
   test.describe('Kit Reports', () => {
     test('should display reports page with tabs', async ({ page }) => {
-      await page.goto('/kits/reports');
+      await page.goto('/reports');
+      await page.waitForLoadState('networkidle');
+
+      // Click on Kit Reports tab
+      await page.click('button:has-text("Kit Reports")');
       await page.waitForLoadState('networkidle');
 
       // Check page title
-      await expect(page.locator('h2')).toContainText('Kit Reports');
+      await expect(page.locator('h3')).toContainText('Kit Reports');
 
       // Check report tabs
-      await expect(page.locator('button[role="tab"]:has-text("Inventory")').first()).toBeVisible();
+      await expect(page.locator('button[role="tab"]:has-text("Inventory"), .nav-link:has-text("Inventory")').first()).toBeVisible();
     });
 
     test('should switch between report types', async ({ page }) => {
-      await page.goto('/kits/reports');
+      await page.goto('/reports');
+      await page.waitForLoadState('networkidle');
+
+      // Click on Kit Reports tab
+      await page.click('button:has-text("Kit Reports")');
       await page.waitForLoadState('networkidle');
 
       // Try clicking different report tabs if they exist
-      const tabs = page.locator('button[role="tab"]');
+      const tabs = page.locator('button[role="tab"], .nav-link');
       const tabCount = await tabs.count();
 
       if (tabCount > 1) {

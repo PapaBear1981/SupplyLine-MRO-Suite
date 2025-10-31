@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card, Alert, Button } from 'react-bootstrap';
 import ReportSelector from '../components/reports/ReportSelector';
 import ReportViewer from '../components/reports/ReportViewer';
@@ -9,6 +9,7 @@ import ChemicalWasteAnalytics from '../components/reports/ChemicalWasteAnalytics
 import ChemicalUsageAnalytics from '../components/reports/ChemicalUsageAnalytics';
 import PartNumberAnalytics from '../components/reports/PartNumberAnalytics';
 import CalibrationReports from '../components/reports/CalibrationReports';
+import KitReports from '../components/reports/KitReports';
 import Tooltip from '../components/common/Tooltip';
 import HelpIcon from '../components/common/HelpIcon';
 import HelpContent from '../components/common/HelpContent';
@@ -25,6 +26,7 @@ import ReportService from '../services/reportService';
 
 const ReportingPage = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const {
     currentReport,
@@ -37,7 +39,8 @@ const ReportingPage = () => {
 
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState(null);
-  const [activeTab, setActiveTab] = useState('standard-reports');
+  // Set initial activeTab from location state if provided, otherwise default to 'standard-reports'
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'standard-reports');
   const [chemicalAnalyticsTab, setChemicalAnalyticsTab] = useState('waste');
   const { showTooltips, showHelp } = useHelp();
 
@@ -154,6 +157,7 @@ const ReportingPage = () => {
             {/* The cycle count reports description has been removed due to GitHub Issue #366 */}
             {/* This feature will be restored when the cycle count system is re-enabled */}
             {/* <li><strong>Cycle Count Reports:</strong> Analyze inventory accuracy, discrepancies, performance, and coverage from cycle counting activities.</li> */}
+            <li><strong>Kit Reports:</strong> Generate reports on kit inventory, issuances, transfers, reorders, and utilization.</li>
             <li><strong>Chemical Analytics:</strong> Analyze chemical waste and usage patterns.</li>
             <li><strong>Calibration Reports:</strong> Track calibration status, history, and compliance.</li>
             <li><strong>Part Number Analytics:</strong> Analyze part number usage and trends.</li>
@@ -181,6 +185,14 @@ const ReportingPage = () => {
             onClick={() => setActiveTab('standard-reports')}
           >
             Tool Reports
+          </Button>
+        </Tooltip>
+        <Tooltip text="View kit inventory, issuances, transfers, and utilization reports" placement="top" show={showTooltips}>
+          <Button
+            variant={activeTab === 'kit-reports' ? 'primary' : 'outline-primary'}
+            onClick={() => setActiveTab('kit-reports')}
+          >
+            Kit Reports
           </Button>
         </Tooltip>
         <Tooltip text="Analyze chemical waste and usage patterns" placement="top" show={showTooltips}>
@@ -319,6 +331,12 @@ const ReportingPage = () => {
       {activeTab === 'calibration-reports' && (
         <div className="pt-4">
           <CalibrationReports />
+        </div>
+      )}
+
+      {activeTab === 'kit-reports' && (
+        <div className="pt-4">
+          <KitReports />
         </div>
       )}
 
