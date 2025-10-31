@@ -70,9 +70,18 @@ class SessionManager:
             return False, "Invalid session data"
 
         try:
-            # Check activity timeout (30 minutes)
+            # Check activity timeout using configurable threshold
             last_activity = datetime.fromisoformat(session.get("last_activity", ""))
-            if datetime.utcnow() - last_activity > timedelta(minutes=30):
+            timeout_minutes = current_app.config.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", 30)
+            try:
+                timeout_minutes = int(timeout_minutes)
+            except (TypeError, ValueError):
+                timeout_minutes = 30
+
+            if timeout_minutes < 1:
+                timeout_minutes = 1
+
+            if datetime.utcnow() - last_activity > timedelta(minutes=timeout_minutes):
                 session.clear()
                 return False, "Session timeout due to inactivity"
         except (ValueError, TypeError):

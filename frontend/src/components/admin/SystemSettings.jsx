@@ -1,7 +1,25 @@
-import { useState } from 'react';
-import { Card, Form, Button, Alert } from 'react-bootstrap';
+import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { fetchSecuritySettings, updateSessionTimeout, clearUpdateSuccess } from '../../store/securitySlice';
 
 const SystemSettings = () => {
+  const dispatch = useDispatch();
+  const {
+    sessionTimeoutMinutes,
+    defaultTimeoutMinutes,
+    minTimeoutMinutes,
+    maxTimeoutMinutes,
+    loading: securityLoading,
+    error: securityError,
+    saving: securitySaving,
+    saveError: securitySaveError,
+    updateSuccess,
+    updatedAt,
+    updatedBy,
+    hasLoaded: securityLoaded,
+  } = useSelector((state) => state.security);
+
   const [settings, setSettings] = useState({
     companyName: 'SupplyLine MRO Suite',
     defaultDepartment: 'Maintenance',
@@ -16,6 +34,45 @@ const SystemSettings = () => {
   });
 
   const [saved, setSaved] = useState(false);
+  const [timeoutValue, setTimeoutValue] = useState(String(sessionTimeoutMinutes));
+  const [securityValidationError, setSecurityValidationError] = useState('');
+
+  const formattedUpdatedAt = useMemo(() => {
+    if (!updatedAt) {
+      return null;
+    }
+
+    try {
+      return new Date(updatedAt).toLocaleString();
+    } catch (_error) {
+      return updatedAt;
+    }
+  }, [updatedAt]);
+
+  useEffect(() => {
+    if (!securityLoaded && !securityLoading) {
+      dispatch(fetchSecuritySettings());
+    }
+  }, [dispatch, securityLoaded, securityLoading]);
+
+  useEffect(() => {
+    setTimeoutValue(String(sessionTimeoutMinutes));
+  }, [sessionTimeoutMinutes]);
+
+  useEffect(() => {
+    let timer;
+    if (updateSuccess) {
+      timer = setTimeout(() => {
+        dispatch(clearUpdateSuccess());
+      }, 4000);
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [dispatch, updateSuccess]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -32,6 +89,30 @@ const SystemSettings = () => {
     console.log('Saving settings:', settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleSecuritySubmit = (e) => {
+    e.preventDefault();
+
+    if (securityLoading || !securityLoaded) {
+      return;
+    }
+
+    const minutes = parseInt(timeoutValue, 10);
+    if (Number.isNaN(minutes)) {
+      setSecurityValidationError('Please enter a valid number of minutes.');
+      return;
+    }
+
+    if (minutes < minTimeoutMinutes || minutes > maxTimeoutMinutes) {
+      setSecurityValidationError(
+        `Timeout must be between ${minTimeoutMinutes} and ${maxTimeoutMinutes} minutes.`,
+      );
+      return;
+    }
+
+    setSecurityValidationError('');
+    dispatch(updateSessionTimeout(minutes));
   };
 
   return (
@@ -143,9 +224,89 @@ const SystemSettings = () => {
                 disabled={!settings.enableToolCalibrationAlerts}
               />
             </Form.Group>
-            
+
             <hr className="my-4" />
-            
+
+            <h5 className="mb-3">Security Settings</h5>
+
+            {securityLoading && !securityLoaded && (
+              <Alert variant="info" className="mb-3">
+                Loading security settings...
+              </Alert>
+            )}
+
+            {securityError && !securityLoading && (
+              <Alert variant="danger" className="mb-3">
+                {securityError.error || securityError.message || 'Unable to load security settings.'}
+              </Alert>
+            )}
+
+            {securitySaveError && (
+              <Alert variant="danger" className="mb-3">
+                {securitySaveError.error || securitySaveError.message || 'Failed to update security settings.'}
+              </Alert>
+            )}
+
+            {securityValidationError && (
+              <Alert variant="warning" className="mb-3">
+                {securityValidationError}
+              </Alert>
+            )}
+
+            {updateSuccess && (
+              <Alert variant="success" className="mb-3">
+                Session inactivity timeout updated successfully.
+              </Alert>
+            )}
+
+            <Form.Group className="mb-3">
+              <Form.Label>Session Inactivity Timeout (minutes)</Form.Label>
+              <Form.Control
+                type="number"
+                value={timeoutValue}
+                min={minTimeoutMinutes}
+                max={maxTimeoutMinutes}
+                onChange={(e) => {
+                  setTimeoutValue(e.target.value);
+                  if (securityValidationError) {
+                    setSecurityValidationError('');
+                  }
+                }}
+                disabled={securitySaving || securityLoading || !securityLoaded || !!securityError}
+              />
+              <Form.Text className="text-muted">
+                Current effective timeout: {sessionTimeoutMinutes} minute
+                {sessionTimeoutMinutes === 1 ? '' : 's'}. Allowed range: {minTimeoutMinutes}–
+                {maxTimeoutMinutes} minutes. Default: {defaultTimeoutMinutes} minute
+                {defaultTimeoutMinutes === 1 ? '' : 's'}.
+              </Form.Text>
+            </Form.Group>
+
+            <div className="d-flex align-items-center mb-3">
+              <Button
+                variant="primary"
+                type="button"
+                onClick={handleSecuritySubmit}
+                disabled={securitySaving || securityLoading || !securityLoaded || !!securityError}
+              >
+                {securitySaving ? 'Saving...' : 'Update Security Settings'}
+              </Button>
+              {securitySaving && (
+                <Spinner animation="border" role="status" size="sm" className="ms-2">
+                  <span className="visually-hidden">Saving...</span>
+                </Spinner>
+              )}
+            </div>
+
+            {formattedUpdatedAt && (
+              <p className="text-muted small mb-0">
+                Last updated {formattedUpdatedAt}
+                {updatedBy?.name ? ` by ${updatedBy.name}` : ''}.
+              </p>
+            )}
+
+            <hr className="my-4" />
+
             <h5 className="mb-3">System Logging</h5>
             
             <Form.Group className="mb-3">

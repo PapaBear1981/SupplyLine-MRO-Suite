@@ -148,6 +148,12 @@ const authSlice = createSlice({
       state.passwordChangeRequired = false;
       state.passwordChangeData = null;
     },
+    forceLogout: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.loading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -291,5 +297,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, clearPasswordChangeRequired } = authSlice.actions;
+export const { clearError, clearPasswordChangeRequired, forceLogout } = authSlice.actions;
 export default authSlice.reducer;

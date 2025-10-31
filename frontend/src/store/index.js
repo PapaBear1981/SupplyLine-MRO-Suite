@@ -16,6 +16,7 @@ import kitsReducer from './kitsSlice';
 import kitTransfersReducer from './kitTransfersSlice';
 import kitMessagesReducer from './kitMessagesSlice';
 import departmentsReducer from './departmentsSlice';
+import securityReducer from './securitySlice';
 
 export const store = configureStore({
   reducer: {
@@ -36,6 +37,7 @@ export const store = configureStore({
     kitTransfers: kitTransfersReducer,
     kitMessages: kitMessagesReducer,
     departments: departmentsReducer,
+    security: securityReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
