@@ -116,7 +116,7 @@ const KitsManagement = () => {
             <div>
               <Button
                 variant="success"
-                onClick={() => navigate('/kits/reports')}
+                onClick={() => navigate('/reports', { state: { activeTab: 'kit-reports' } })}
                 className="me-2"
                 data-testid="reports-button"
               >

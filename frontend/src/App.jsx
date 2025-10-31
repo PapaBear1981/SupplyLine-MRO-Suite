@@ -81,7 +81,6 @@ import KitsManagement from './pages/KitsManagement';
 import KitWizard from './components/kits/KitWizard';
 import KitDetailPage from './pages/KitDetailPage';
 import EditKitPage from './pages/EditKitPage';
-import KitReports from './pages/KitReports';
 import KitMobileInterface from './pages/KitMobileInterface';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
@@ -203,11 +202,11 @@ function App() {
 
 
         <Route path="/reports" element={
-          <PermissionRoute permission="page.reports">
+          <ProtectedRoute requirePermission={null}>
             <MainLayout>
               <ReportingPage />
             </MainLayout>
-          </PermissionRoute>
+          </ProtectedRoute>
         } />
 
         <Route path="/admin/dashboard" element={
@@ -385,14 +384,6 @@ function App() {
           <PermissionRoute permission="page.kits">
             <MainLayout>
               <KitDetailPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
-
-        <Route path="/kits/reports" element={
-          <PermissionRoute permission="page.kits">
-            <MainLayout>
-              <KitReports />
             </MainLayout>
           </PermissionRoute>
         } />
