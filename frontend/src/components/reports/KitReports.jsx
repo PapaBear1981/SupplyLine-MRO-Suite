@@ -103,9 +103,7 @@ const KitReports = () => {
         dispatch(fetchReorderReport(reportFilters));
         break;
       case 'utilization':
-        if (filters.kitId) {
-          dispatch(fetchKitUtilization({ kitId: filters.kitId, days: filters.days }));
-        }
+        dispatch(fetchKitUtilization({ kitId: filters.kitId || null, days: filters.days }));
         break;
       default:
         break;
@@ -195,6 +193,280 @@ const KitReports = () => {
       status: '',
       days: 30
     });
+  };
+
+  const selectedKit = filters.kitId
+    ? kits.find((kit) => kit.id === parseInt(filters.kitId, 10))
+    : null;
+  const utilizationScope = utilizationReport?.scope;
+  const utilizationData = utilizationReport?.data;
+  const utilizationLoading = utilizationReport?.loading;
+  const utilizationError = utilizationReport?.error;
+
+  const utilizationSubtitle = filters.kitId
+    ? `Usage statistics and trends for ${selectedKit?.name || 'selected kit'}`
+    : 'Usage statistics and trends across all kits';
+
+  const renderKitUtilizationAnalytics = (data) => (
+    <>
+      <Row className="mb-4">
+        <Col md={3}>
+          <Card className="text-center">
+            <Card.Body>
+              <h6 className="text-muted">Total Issuances</h6>
+              <h2>{data?.issuances?.total || 0}</h2>
+              <small className="text-muted">
+                Avg: {data?.issuances?.average_per_day || 0}/day
+              </small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center">
+            <Card.Body>
+              <h6 className="text-muted">Transfers In</h6>
+              <h2 className="text-success">{data?.transfers?.incoming || 0}</h2>
+              <small className="text-muted">Incoming</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center">
+            <Card.Body>
+              <h6 className="text-muted">Transfers Out</h6>
+              <h2 className="text-danger">{data?.transfers?.outgoing || 0}</h2>
+              <small className="text-muted">Outgoing</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center">
+            <Card.Body>
+              <h6 className="text-muted">Stock Health</h6>
+              <h2>
+                {data?.inventory?.stock_health === 'good' ? (
+                  <Badge bg="success">Good</Badge>
+                ) : data?.inventory?.stock_health === 'warning' ? (
+                  <Badge bg="warning">Warning</Badge>
+                ) : (
+                  <Badge bg="danger">Critical</Badge>
+                )}
+              </h2>
+              <small className="text-muted">
+                {data?.inventory?.low_stock_items || 0} low stock items
+              </small>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row>
+        <Col md={6}>
+          <Card className="mb-3">
+            <Card.Header>Reorder Status</Card.Header>
+            <Card.Body>
+              <Table size="sm">
+                <tbody>
+                  <tr>
+                    <td>Pending Reorders</td>
+                    <td className="text-end">
+                      <Badge bg="warning">{data?.reorders?.pending || 0}</Badge>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Fulfilled Reorders</td>
+                    <td className="text-end">
+                      <Badge bg="success">{data?.reorders?.fulfilled || 0}</Badge>
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={6}>
+          <Card className="mb-3">
+            <Card.Header>Inventory Summary</Card.Header>
+            <Card.Body>
+              <Table size="sm">
+                <tbody>
+                  <tr>
+                    <td>Total Items</td>
+                    <td className="text-end">
+                      <strong>{data?.inventory?.total_items || 0}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Low Stock Items</td>
+                    <td className="text-end">
+                      <Badge bg={data?.inventory?.low_stock_items > 0 ? 'warning' : 'success'}>
+                        {data?.inventory?.low_stock_items || 0}
+                      </Badge>
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </>
+  );
+
+  const renderAllKitsUtilizationAnalytics = (data) => {
+    const summary = data?.summary || {};
+    const totalIssuances = summary.totalIssuances || 0;
+    const totalTransfers = summary.totalTransfers || 0;
+    const activeKits = summary.activeKits || 0;
+    const avgUtilizationValue = Number.isFinite(summary.avgUtilization)
+      ? summary.avgUtilization
+      : 0;
+    const kitsWithActivity = activeKits && avgUtilizationValue
+      ? Math.round((avgUtilizationValue / 100) * activeKits)
+      : 0;
+    const issuancesByKit = [...(data?.issuancesByKit || [])].sort((a, b) => b.value - a.value);
+    const transfersByType = data?.transfersByType || [];
+    const activityOverTime = data?.activityOverTime || [];
+
+    return (
+      <>
+        <Row className="mb-4">
+          <Col md={3}>
+            <Card className="text-center">
+              <Card.Body>
+                <h6 className="text-muted">Total Issuances</h6>
+                <h2>{totalIssuances}</h2>
+                <small className="text-muted">Last {filters.days} days</small>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center">
+              <Card.Body>
+                <h6 className="text-muted">Total Transfers</h6>
+                <h2>{totalTransfers}</h2>
+                <small className="text-muted">Inbound &amp; outbound</small>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center">
+              <Card.Body>
+                <h6 className="text-muted">Active Kits</h6>
+                <h2>{activeKits}</h2>
+                <small className="text-muted">
+                  {kitsWithActivity} kits recorded activity
+                </small>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card className="text-center">
+              <Card.Body>
+                <h6 className="text-muted">Average Utilization</h6>
+                <h2>{avgUtilizationValue.toFixed(1)}%</h2>
+                <small className="text-muted">Across all active kits</small>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col md={6}>
+            <Card className="mb-3">
+              <Card.Header>Issuances by Kit</Card.Header>
+              <Card.Body>
+                {issuancesByKit.length > 0 ? (
+                  <Table size="sm" responsive>
+                    <thead>
+                      <tr>
+                        <th>Kit</th>
+                        <th className="text-end">Issuances</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {issuancesByKit.map((entry, index) => (
+                        <tr key={entry.name || `issuance-${index}`}>
+                          <td>{entry.name || 'Unassigned Kit'}</td>
+                          <td className="text-end">{entry.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <Alert variant="info" className="mb-0">
+                    No issuance activity recorded in this period
+                  </Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6}>
+            <Card className="mb-3">
+              <Card.Header>Transfers by Type</Card.Header>
+              <Card.Body>
+                {transfersByType.length > 0 ? (
+                  <Table size="sm" responsive>
+                    <thead>
+                      <tr>
+                        <th>Transfer Type</th>
+                        <th className="text-end">Transfers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transfersByType.map((entry, index) => (
+                        <tr key={entry.name || `transfer-${index}`}>
+                          <td>{entry.name}</td>
+                          <td className="text-end">{entry.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <Alert variant="info" className="mb-0">
+                    No transfer activity recorded in this period
+                  </Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col>
+            <Card>
+              <Card.Header>Weekly Activity Trend</Card.Header>
+              <Card.Body>
+                {activityOverTime.length > 0 ? (
+                  <Table size="sm" responsive>
+                    <thead>
+                      <tr>
+                        <th>Week</th>
+                        <th className="text-end">Issuances</th>
+                        <th className="text-end">Transfers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activityOverTime.map((entry) => (
+                        <tr key={entry.date}>
+                          <td>{entry.date}</td>
+                          <td className="text-end">{entry.issuances}</td>
+                          <td className="text-end">{entry.transfers}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <Alert variant="info" className="mb-0">
+                    No weekly activity recorded for the selected range
+                  </Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </>
+    );
   };
 
   // Check if user has access
@@ -399,7 +671,7 @@ const KitReports = () => {
               <h5>Kit Issuance Report</h5>
               <small className="text-muted">
                 History of items issued from kits
-                {filters.kitId && ` - ${kits.find(k => k.id === parseInt(filters.kitId))?.name || 'Selected Kit'}`}
+                {filters.kitId && ` - ${selectedKit?.name || 'Selected Kit'}`}
               </small>
             </Card.Header>
             <Card.Body>
@@ -580,129 +852,32 @@ const KitReports = () => {
             <Card.Header>
               <h5>Kit Utilization Analytics</h5>
               <small className="text-muted">
-                Usage statistics and trends for selected kit
-                {filters.kitId && ` - ${kits.find(k => k.id === parseInt(filters.kitId))?.name || 'Selected Kit'}`}
+                {utilizationSubtitle} • Last {filters.days} days
               </small>
             </Card.Header>
             <Card.Body>
-              {!filters.kitId ? (
-                <Alert variant="info">
-                  Please select a kit from the filters above to view utilization analytics
+              {utilizationLoading || utilizationScope === null ? (
+                <div className="py-4">
+                  <LoadingSpinner text="Loading utilization data..." size="sm" />
+                </div>
+              ) : utilizationError ? (
+                <Alert variant="danger" className="mb-0">
+                  {utilizationError.message || 'An error occurred while loading utilization analytics.'}
                 </Alert>
-              ) : !utilizationReport ? (
-                <Alert variant="info">No utilization data available for this kit</Alert>
+              ) : filters.kitId ? (
+                utilizationScope === 'kit' && utilizationData ? (
+                  renderKitUtilizationAnalytics(utilizationData)
+                ) : (
+                  <Alert variant="info" className="mb-0">
+                    No utilization data available for this kit
+                  </Alert>
+                )
+              ) : utilizationScope === 'all' && utilizationData ? (
+                renderAllKitsUtilizationAnalytics(utilizationData)
               ) : (
-                <>
-                  <Row className="mb-4">
-                    <Col md={3}>
-                      <Card className="text-center">
-                        <Card.Body>
-                          <h6 className="text-muted">Total Issuances</h6>
-                          <h2>{utilizationReport.issuances?.total || 0}</h2>
-                          <small className="text-muted">
-                            Avg: {utilizationReport.issuances?.average_per_day || 0}/day
-                          </small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card className="text-center">
-                        <Card.Body>
-                          <h6 className="text-muted">Transfers In</h6>
-                          <h2 className="text-success">
-                            {utilizationReport.transfers?.incoming || 0}
-                          </h2>
-                          <small className="text-muted">Incoming</small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card className="text-center">
-                        <Card.Body>
-                          <h6 className="text-muted">Transfers Out</h6>
-                          <h2 className="text-danger">
-                            {utilizationReport.transfers?.outgoing || 0}
-                          </h2>
-                          <small className="text-muted">Outgoing</small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card className="text-center">
-                        <Card.Body>
-                          <h6 className="text-muted">Stock Health</h6>
-                          <h2>
-                            {utilizationReport.inventory?.stock_health === 'good' ? (
-                              <Badge bg="success">Good</Badge>
-                            ) : utilizationReport.inventory?.stock_health === 'warning' ? (
-                              <Badge bg="warning">Warning</Badge>
-                            ) : (
-                              <Badge bg="danger">Critical</Badge>
-                            )}
-                          </h2>
-                          <small className="text-muted">
-                            {utilizationReport.inventory?.low_stock_items || 0} low stock items
-                          </small>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  </Row>
-
-                  <Row>
-                    <Col md={6}>
-                      <Card className="mb-3">
-                        <Card.Header>Reorder Status</Card.Header>
-                        <Card.Body>
-                          <Table size="sm">
-                            <tbody>
-                              <tr>
-                                <td>Pending Reorders</td>
-                                <td className="text-end">
-                                  <Badge bg="warning">
-                                    {utilizationReport.reorders?.pending || 0}
-                                  </Badge>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Fulfilled Reorders</td>
-                                <td className="text-end">
-                                  <Badge bg="success">
-                                    {utilizationReport.reorders?.fulfilled || 0}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </Table>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={6}>
-                      <Card className="mb-3">
-                        <Card.Header>Inventory Summary</Card.Header>
-                        <Card.Body>
-                          <Table size="sm">
-                            <tbody>
-                              <tr>
-                                <td>Total Items</td>
-                                <td className="text-end">
-                                  <strong>{utilizationReport.inventory?.total_items || 0}</strong>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Low Stock Items</td>
-                                <td className="text-end">
-                                  <Badge bg={utilizationReport.inventory?.low_stock_items > 0 ? 'warning' : 'success'}>
-                                    {utilizationReport.inventory?.low_stock_items || 0}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </Table>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  </Row>
-                </>
+                <Alert variant="info" className="mb-0">
+                  No utilization data available for the selected time period
+                </Alert>
               )}
             </Card.Body>
           </Card>

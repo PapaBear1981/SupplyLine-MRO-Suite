@@ -341,10 +341,16 @@ export const fetchReorderReport = createAsyncThunk(
 
 export const fetchKitUtilization = createAsyncThunk(
   'kits/fetchKitUtilization',
-  async ({ kitId, days = 30 }, { rejectWithValue }) => {
+  async ({ kitId = null, days = 30 } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kits/${kitId}/analytics`, { params: { days } });
-      return response.data;
+      const endpoint = kitId ? `/kits/${kitId}/analytics` : '/kits/analytics/utilization';
+      const response = await api.get(endpoint, { params: { days } });
+
+      return {
+        scope: kitId ? 'kit' : 'all',
+        kitId: kitId ? Number(kitId) : null,
+        data: response.data,
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch kit utilization' });
     }
@@ -473,7 +479,13 @@ const kitsSlice = createSlice({
     issuanceReport: [],
     transferReport: [],
     reorderReport: [],
-    utilizationReport: null,
+    utilizationReport: {
+      scope: null,
+      kitId: null,
+      data: null,
+      loading: false,
+      error: null,
+    },
     reorderRequests: [],
     wizardData: null,
     loading: false,
@@ -688,8 +700,37 @@ const kitsSlice = createSlice({
       .addCase(fetchReorderReport.fulfilled, (state, action) => {
         state.reorderReport = action.payload;
       })
+      .addCase(fetchKitUtilization.pending, (state, action) => {
+        const kitId = action.meta.arg?.kitId ?? null;
+
+        state.error = null;
+        state.utilizationReport = {
+          scope: kitId ? 'kit' : 'all',
+          kitId: kitId ? Number(kitId) : null,
+          data: null,
+          loading: true,
+          error: null,
+        };
+      })
       .addCase(fetchKitUtilization.fulfilled, (state, action) => {
-        state.utilizationReport = action.payload;
+        state.error = null;
+        state.utilizationReport = {
+          ...action.payload,
+          loading: false,
+          error: null,
+        };
+      })
+      .addCase(fetchKitUtilization.rejected, (state, action) => {
+        const kitId = action.meta.arg?.kitId ?? null;
+
+        state.utilizationReport = {
+          scope: kitId ? 'kit' : 'all',
+          kitId: kitId ? Number(kitId) : null,
+          data: null,
+          loading: false,
+          error: action.payload || { message: 'Failed to fetch kit utilization' },
+        };
+        state.error = action.payload || { message: 'Failed to fetch kit utilization' };
       });
   },
 });
