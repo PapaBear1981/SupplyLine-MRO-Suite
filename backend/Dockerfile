@@ -37,18 +37,17 @@ RUN pip install --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Copy entrypoint script and make it executable
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
-    chown -R appuser:appuser /app
+# Create directories and set ownership
+RUN mkdir -p /database /flask_session && \
+    chown -R appuser:appuser /app /database /flask_session && \
+    chmod 755 /database /flask_session
 
-# Don't switch to appuser yet - let entrypoint handle it
-# USER appuser
+# Switch to non-root user
+USER appuser
 
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:5000/api/health || exit 1
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["python", "run.py"]

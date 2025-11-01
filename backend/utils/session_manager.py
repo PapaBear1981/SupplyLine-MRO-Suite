@@ -71,12 +71,10 @@ class SessionManager:
 
         try:
             # Check activity timeout using configurable threshold
+            # Always read from database to ensure consistency across workers
+            from utils.system_settings import get_session_timeout_value
             last_activity = datetime.fromisoformat(session.get("last_activity", ""))
-            timeout_minutes = current_app.config.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", 30)
-            try:
-                timeout_minutes = int(timeout_minutes)
-            except (TypeError, ValueError):
-                timeout_minutes = 30
+            timeout_minutes = get_session_timeout_value()
 
             if timeout_minutes < 1:
                 timeout_minutes = 1

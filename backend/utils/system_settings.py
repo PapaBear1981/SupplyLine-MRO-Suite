@@ -67,9 +67,6 @@ def set_session_timeout_value(minutes: int, user_id: Optional[int] = None, commi
 
     setting.updated_by_id = user_id
 
-    # Update Flask config immediately so new requests respect the change
-    current_app.config["SESSION_INACTIVITY_TIMEOUT_MINUTES"] = minutes
-
     if commit:
         db.session.commit()
 
