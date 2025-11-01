@@ -5,6 +5,7 @@ This module contains security-related configuration settings and policies.
 """
 
 import os
+import tempfile
 
 
 # Security Headers Configuration
@@ -179,9 +180,6 @@ AUDIT_CONFIG = {
 }
 
 # File Upload Security
-import tempfile
-
-
 FILE_UPLOAD_CONFIG = {
     "max_file_size": 5 * 1024 * 1024,  # 5MB
     "allowed_extensions": [".jpg", ".jpeg", ".png", ".gi", ".pd", ".doc", ".docx", ".xls", ".xlsx"],
