@@ -27,6 +27,7 @@ from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_chemicals import register_chemical_routes
 from routes_database import register_database_routes
 from routes_departments import register_department_routes
+from routes_expendables import expendables_bp
 from routes_history import register_history_routes
 from routes_inventory import register_inventory_routes
 from routes_kit_messages import register_kit_message_routes
@@ -36,11 +37,10 @@ from routes_kits import register_kit_routes
 from routes_password_reset import register_password_reset_routes
 from routes_rbac import register_rbac_routes
 from routes_reports import register_report_routes
-from routes_security import register_security_routes
 from routes_scanner import register_scanner_routes
+from routes_security import register_security_routes
 from routes_transfers import transfers_bp
 from routes_warehouses import warehouses_bp
-from routes_expendables import expendables_bp
 from utils.error_handler import ValidationError, handle_errors, log_security_event
 from utils.file_validation import FileValidationError, validate_image_upload
 from utils.password_reset_security import get_password_reset_tracker

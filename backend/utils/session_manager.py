@@ -76,8 +76,7 @@ class SessionManager:
             last_activity = datetime.fromisoformat(session.get("last_activity", ""))
             timeout_minutes = get_session_timeout_value()
 
-            if timeout_minutes < 1:
-                timeout_minutes = 1
+            timeout_minutes = max(timeout_minutes, 1)
 
             if datetime.utcnow() - last_activity > timedelta(minutes=timeout_minutes):
                 session.clear()

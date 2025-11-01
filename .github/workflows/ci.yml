@@ -30,7 +30,7 @@ jobs:
       - name: Run Ruff linting
         run: |
           cd backend
-          ruff check . --output-format=github
+          ruff check . --config pyproject.toml --output-format=github
 
   # Backend Type Checking Job
   backend-typecheck:
