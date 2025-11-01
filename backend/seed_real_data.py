@@ -493,12 +493,12 @@ def main():
         print("\n" + "="*60)
         print("DATABASE SEEDING COMPLETE!")
         print("="*60)
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  • {len(tools)} aircraft tools")
         print(f"  • {len(chemicals)} aircraft chemicals")
         print(f"  • {len(kits)} kits (2 Boeing 737, 2 RJ85, 1 Q400)")
-        print(f"  • Each kit has 9 boxes (4 expendables, 3 tools, 2 consumables)")
-        print(f"  • All kits populated with tools, chemicals, and expendables")
+        print("  • Each kit has 9 boxes (4 expendables, 3 tools, 2 consumables)")
+        print("  • All kits populated with tools, chemicals, and expendables")
         print("\n")
 
 

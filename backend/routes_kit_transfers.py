@@ -10,7 +10,7 @@ from datetime import datetime
 from flask import jsonify, request
 
 from auth import department_required, jwt_required
-from models import AuditLog, Chemical, Expendable, Tool, Warehouse, db
+from models import AuditLog, Chemical, Tool, Warehouse, db
 from models_kits import Kit, KitBox, KitExpendable, KitItem, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
 from utils.lot_utils import create_child_chemical
@@ -346,8 +346,6 @@ def register_kit_transfer_routes(app):
 
             if transfer.item_type == "expendable":
                 # For expendables, create a new KitExpendable in the destination kit
-                expendable_id = source_item_snapshot.get("item_id")
-
                 # Check if there's already a KitExpendable with the same part/lot/serial in the destination kit
                 existing_expendable = KitExpendable.query.filter_by(
                     kit_id=transfer.to_location_id,

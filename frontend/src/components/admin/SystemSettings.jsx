@@ -44,7 +44,7 @@ const SystemSettings = () => {
 
     try {
       return new Date(updatedAt).toLocaleString();
-    } catch (_error) {
+    } catch {
       return updatedAt;
     }
   }, [updatedAt]);
