@@ -17,7 +17,7 @@ import json
 import pytest
 
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance, KitItem
 
 
 @pytest.fixture
@@ -817,6 +817,42 @@ class TestKitAnalyticsEndpoints:
         data = json.loads(response.data)
 
         assert isinstance(data, (list, dict))
+
+    def test_inventory_report_sums_quantities(self, client, auth_headers_user, db_session, test_kit, test_kit_box):
+        """Inventory report should sum item and expendable quantities"""
+        kit_item = KitItem(
+            kit_id=test_kit.id,
+            box_id=test_kit_box.id,
+            item_type="tool",
+            item_id=1,
+            quantity=3,
+            status="available"
+        )
+        expendable = KitExpendable(
+            kit_id=test_kit.id,
+            box_id=test_kit_box.id,
+            part_number="EXP-001",
+            description="Test expendable",
+            tracking_type="none",
+            quantity=2,
+            unit="each",
+            minimum_stock_level=5,
+            status="low_stock"
+        )
+        db_session.add_all([kit_item, expendable])
+        db_session.commit()
+
+        response = client.get("/api/kits/reports/inventory", headers=auth_headers_user)
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+
+        kit_row = next((row for row in data if row.get("kit_id") == test_kit.id), None)
+
+        assert kit_row is not None
+        assert kit_row["total_items"] == 5
+        assert kit_row["low_stock_items"] == 1
+        assert kit_row["boxes"] >= 1
 
 
 class TestKitAlertsEndpoints:

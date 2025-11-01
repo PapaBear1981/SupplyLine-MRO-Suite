@@ -8,6 +8,8 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import jsonify, request
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import joinedload
 
 from auth import admin_required, department_required, jwt_required
 from models import AuditLog, Chemical, Tool, Warehouse, WarehouseTransfer, db
@@ -1178,22 +1180,78 @@ def register_kit_routes(app):
         if aircraft_type_id:
             query = query.filter_by(aircraft_type_id=aircraft_type_id)
 
-        kits = query.all()
+        kits = query.options(joinedload(Kit.aircraft_type)).all()
 
         report = []
+        if not kits:
+            return jsonify(report), 200
+
+        kit_ids = [kit.id for kit in kits]
+
+        item_quantities = dict(
+            db.session.query(
+                KitItem.kit_id,
+                func.coalesce(func.sum(KitItem.quantity), 0)
+            )
+            .filter(KitItem.kit_id.in_(kit_ids))
+            .group_by(KitItem.kit_id)
+            .all()
+        )
+
+        expendable_quantities = dict(
+            db.session.query(
+                KitExpendable.kit_id,
+                func.coalesce(func.sum(KitExpendable.quantity), 0)
+            )
+            .filter(KitExpendable.kit_id.in_(kit_ids))
+            .group_by(KitExpendable.kit_id)
+            .all()
+        )
+
+        low_stock_counts = dict(
+            db.session.query(
+                KitExpendable.kit_id,
+                func.count(KitExpendable.id)
+            )
+            .filter(
+                KitExpendable.kit_id.in_(kit_ids),
+                or_(
+                    and_(
+                        KitExpendable.minimum_stock_level.isnot(None),
+                        KitExpendable.quantity <= KitExpendable.minimum_stock_level
+                    ),
+                    KitExpendable.status.in_(["low_stock", "out_of_stock"])
+                )
+            )
+            .group_by(KitExpendable.kit_id)
+            .all()
+        )
+
+        boxes_counts = dict(
+            db.session.query(
+                KitBox.kit_id,
+                func.count(KitBox.id)
+            )
+            .filter(KitBox.kit_id.in_(kit_ids))
+            .group_by(KitBox.kit_id)
+            .all()
+        )
+
         for kit in kits:
-            total_items = kit.items.count() + kit.expendables.count()
-            low_stock = kit.expendables.filter(
-                KitExpendable.quantity <= KitExpendable.minimum_stock_level
-            ).count()
+            total_items = (item_quantities.get(kit.id) or 0) + (expendable_quantities.get(kit.id) or 0)
+            total_items = float(total_items)
+            total_items_value = int(total_items) if total_items.is_integer() else round(total_items, 2)
+
+            low_stock = int(low_stock_counts.get(kit.id) or 0)
+            boxes = int(boxes_counts.get(kit.id) or 0)
 
             report.append({
                 "kit_id": kit.id,
                 "kit_name": kit.name,
                 "aircraft_type": kit.aircraft_type.name if kit.aircraft_type else None,
-                "total_items": total_items,
+                "total_items": total_items_value,
                 "low_stock_items": low_stock,
-                "boxes": kit.boxes.count()
+                "boxes": boxes
             })
 
         return jsonify(report), 200
