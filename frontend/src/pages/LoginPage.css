@@ -404,6 +404,12 @@
   color: #ff6b6b;
 }
 
+.login-alert-warning {
+  background: rgba(255, 193, 7, 0.12);
+  border-color: #ffc107;
+  color: #ffd666;
+}
+
 .login-alert-success {
   background: rgba(40, 167, 69, 0.1);
   border-color: #28a745;

@@ -355,6 +355,38 @@ class User(db.Model):
         return result
 
 
+class SystemSetting(db.Model):
+    __tablename__ = "system_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    value = db.Column(db.String(512), nullable=False)
+    category = db.Column(db.String(64), nullable=True, index=True)
+    description = db.Column(db.String(255), nullable=True)
+    is_sensitive = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_current_time, onupdate=get_current_time)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    updated_by = db.relationship("User", foreign_keys=[updated_by_id])
+
+    def to_dict(self):
+        return {
+            "key": self.key,
+            "value": self.value,
+            "category": self.category,
+            "description": self.description,
+            "is_sensitive": self.is_sensitive,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "updated_by": {
+                "id": self.updated_by.id,
+                "name": self.updated_by.name,
+                "employee_number": self.updated_by.employee_number,
+            } if self.updated_by else None,
+        }
+
+
 class Checkout(db.Model):
     __tablename__ = "checkouts"
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,110 @@
+{
+    "version": "1.1.390",
+    "time": "1761538144381",
+    "generalDiagnostics": [
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\routes.py",
+            "severity": "error",
+            "message": "Import \"init_db\" could not be resolved",
+            "range": {
+                "start": {
+                    "line": 348,
+                    "character": 17
+                },
+                "end": {
+                    "line": 348,
+                    "character": 24
+                }
+            },
+            "rule": "reportMissingImports"
+        },
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\routes_database.py",
+            "severity": "error",
+            "message": "Import \"flask_jwt_extended\" could not be resolved",
+            "range": {
+                "start": {
+                    "line": 10,
+                    "character": 5
+                },
+                "end": {
+                    "line": 10,
+                    "character": 23
+                }
+            },
+            "rule": "reportMissingImports"
+        },
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\routes_transfers.py",
+            "severity": "error",
+            "message": "Import \"flask_jwt_extended\" could not be resolved",
+            "range": {
+                "start": {
+                    "line": 8,
+                    "character": 5
+                },
+                "end": {
+                    "line": 8,
+                    "character": 23
+                }
+            },
+            "rule": "reportMissingImports"
+        },
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\auth\\jwt_manager.py",
+            "severity": "error",
+            "message": "Type \"dict[str, str | int]\" is not assignable to return type \"dict[str, str]\"\n┬á┬á\"Literal[900]\" is not assignable to \"str\"",
+            "range": {
+                "start": {
+                    "line": 76,
+                    "character": 26
+                },
+                "end": {
+                    "line": 76,
+                    "character": 29
+                }
+            },
+            "rule": "reportReturnType"
+        },
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\utils\\admin_init.py",
+            "severity": "error",
+            "message": "Type \"Match[str] | Literal[False] | None\" is not assignable to return type \"bool\"\n┬á┬áType \"Match[str] | Literal[False] | None\" is not assignable to type \"bool\"\n┬á┬á┬á┬á\"Match[str]\" is not assignable to \"bool\"",
+            "range": {
+                "start": {
+                    "line": 32,
+                    "character": 19
+                },
+                "end": {
+                    "line": 38,
+                    "character": 13
+                }
+            },
+            "rule": "reportReturnType"
+        },
+        {
+            "file": "c:\\Users\\Chris\\Desktop\\SupplyLine_MRO_Suite\\backend\\utils\\error_handler.py",
+            "severity": "error",
+            "message": "Type \"(event_type: str, details: dict[str, Any], severity: str = \"warning\") -> None\" is not assignable to declared type \"(event_type: Unknown, details: Unknown, user_id: Unknown | None = None, ip_address: Unknown | None = None) -> None\"\n┬á┬áType \"(event_type: str, details: dict[str, Any], severity: str = \"warning\") -> None\" is not assignable to type \"(event_type: Unknown, details: Unknown, user_id: Unknown | None = None, ip_address: Unknown | None = None) -> None\"\n┬á┬á┬á┬áFunction accepts too many positional parameters; expected 3 but received 4\n┬á┬á┬á┬á┬á┬áParameter name mismatch: \"user_id\" versus \"severity\"\n┬á┬á┬á┬á┬á┬áParameter 3: type \"Unknown | None\" is incompatible with type \"str\"\n┬á┬á┬á┬á┬á┬á┬á┬áType \"Unknown | None\" is not assignable to type \"str\"\n┬á┬á┬á┬á┬á┬á┬á┬á┬á┬á\"None\" is not assignable to \"str\"",
+            "range": {
+                "start": {
+                    "line": 16,
+                    "character": 48
+                },
+                "end": {
+                    "line": 16,
+                    "character": 66
+                }
+            },
+            "rule": "reportAssignmentType"
+        }
+    ],
+    "summary": {
+        "filesAnalyzed": 84,
+        "errorCount": 6,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 3.335
+    }
+}
+

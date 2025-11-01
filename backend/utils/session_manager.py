@@ -70,9 +70,16 @@ class SessionManager:
             return False, "Invalid session data"
 
         try:
-            # Check activity timeout (30 minutes)
+            # Check activity timeout using configurable threshold
+            # Always read from database to ensure consistency across workers
+            from utils.system_settings import get_session_timeout_value
             last_activity = datetime.fromisoformat(session.get("last_activity", ""))
-            if datetime.utcnow() - last_activity > timedelta(minutes=30):
+            timeout_minutes = get_session_timeout_value()
+
+            if timeout_minutes < 1:
+                timeout_minutes = 1
+
+            if datetime.utcnow() - last_activity > timedelta(minutes=timeout_minutes):
                 session.clear()
                 return False, "Session timeout due to inactivity"
         except (ValueError, TypeError):

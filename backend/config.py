@@ -63,6 +63,9 @@ class Config:
 
     # Session configuration - Enhanced security
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Shorter timeout for security
+    SESSION_INACTIVITY_TIMEOUT_MINUTES = int(
+        os.environ.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", 30)
+    )
 
     # Cookie security settings
     # SECURITY: Set to True in production to require HTTPS for cookies

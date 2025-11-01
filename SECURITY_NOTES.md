@@ -33,6 +33,10 @@ All Bandit security issues have been addressed:
 2. **B113 - Requests without timeout**: Fixed by adding 10-second timeouts to all HTTP requests
 3. **B108 - Hardcoded /tmp directory**: Fixed by using `tempfile.gettempdir()` for cross-platform compatibility
 
+### Session Management
+- Implemented an inactivity auto-logout that defaults to **30 minutes** and is enforced on both the backend session validator and the frontend client.
+- Administrators can adjust the timeout from **Admin Dashboard → System Settings → Security Settings**. Updates are persisted to the database, immediately applied to new requests, and recorded in the audit log for traceability.
+
 ### npm Audit
 - **Vite vulnerability**: Fixed by running `npm audit fix`
 - **xlsx vulnerability**: Documented above with mitigation strategy

@@ -13,6 +13,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [sessionTimeoutMessage, setSessionTimeoutMessage] = useState('');
 
   // Get the redirect path from location state or default to dashboard
   const from = location.state?.from?.pathname || '/';
@@ -31,6 +32,14 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, navigate, from]);
+
+  useEffect(() => {
+    if (location.state?.sessionTimeoutMessage) {
+      setSessionTimeoutMessage(location.state.sessionTimeoutMessage);
+    } else {
+      setSessionTimeoutMessage('');
+    }
+  }, [location.state]);
 
   const handlePasswordChanged = () => {
     // Password was successfully changed
@@ -55,6 +64,11 @@ const LoginPage = () => {
               <p className="login-card-subtitle">Tool Inventory Management System</p>
             </div>
             <div className="login-card-body">
+              {sessionTimeoutMessage && (
+                <div className="login-alert login-alert-warning" role="alert">
+                  {sessionTimeoutMessage}
+                </div>
+              )}
               <LoginForm />
               <div className="login-register-link">
                 <p>

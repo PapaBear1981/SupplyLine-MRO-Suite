@@ -149,6 +149,22 @@ def create_app():
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)
 
+    # Load persisted security settings (e.g., inactivity timeout)
+    try:
+        from utils.system_settings import load_security_settings
+
+        timeout_minutes = load_security_settings(app)
+        logger.info(
+            "Loaded security settings",
+            extra={"session_timeout_minutes": timeout_minutes},
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to load security settings",
+            exc_info=True,
+            extra={"error_message": str(exc)},
+        )
+
     # Log current time information for debugging
     logger.info("Application starting", extra={
         "utc_time": datetime.datetime.now(datetime.UTC).isoformat(),
