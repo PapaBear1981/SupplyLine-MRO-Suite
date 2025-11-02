@@ -309,7 +309,12 @@ export const fetchIssuanceReport = createAsyncThunk(
     try {
       // Use different endpoint based on whether we're fetching for a specific kit or all kits
       const endpoint = kitId ? `/kits/${kitId}/issuances` : '/kits/issuances';
-      const params = kitId ? filters : { ...filters, kit_id: undefined };
+
+      // For all-kits endpoint, pass filters as query params (aircraft_type_id, start_date, end_date)
+      // For specific kit endpoint, pass date filters only (kit is in URL)
+      const params = { ...filters };
+      // Remove kit_id from params since it's either in the URL or we want all kits
+      delete params.kit_id;
 
       const response = await api.get(endpoint, { params });
       return response.data;
