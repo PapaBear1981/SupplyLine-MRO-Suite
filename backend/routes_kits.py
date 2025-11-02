@@ -1173,10 +1173,13 @@ def register_kit_routes(app):
     def get_inventory_report():
         """Get inventory report across all kits"""
         aircraft_type_id = request.args.get("aircraft_type_id", type=int)
+        kit_id = request.args.get("kit_id", type=int)
 
         query = Kit.query.filter_by(status="active")
         if aircraft_type_id:
             query = query.filter_by(aircraft_type_id=aircraft_type_id)
+        if kit_id:
+            query = query.filter_by(id=kit_id)
 
         kits = query.all()
 
@@ -1264,39 +1267,65 @@ def register_kit_routes(app):
         from models_kits import KitIssuance, KitTransfer
 
         days = request.args.get("days", 30, type=int)
+        aircraft_type_id = request.args.get("aircraft_type_id", type=int)
+        kit_id = request.args.get("kit_id", type=int)
         start_date = datetime.now() - timedelta(days=days)
 
-        # Get all active kits
-        kits = Kit.query.filter_by(status="active").all()
+        # Get kits based on filters
+        query = Kit.query.filter(Kit.status != "inactive")
+        if aircraft_type_id:
+            query = query.filter_by(aircraft_type_id=aircraft_type_id)
+        if kit_id:
+            query = query.filter_by(id=kit_id)
 
-        # Issuances by kit
-        issuances_by_kit = db.session.query(
+        kits = query.all()
+        kit_ids = [kit.id for kit in kits]
+
+        # Issuances by kit (filtered by kit_ids)
+        issuances_query = db.session.query(
             Kit.name,
             func.count(KitIssuance.id).label("count")
         ).join(KitIssuance, Kit.id == KitIssuance.kit_id).filter(
             KitIssuance.issued_date >= start_date
-        ).group_by(Kit.name).all()
+        )
+        if kit_ids:
+            issuances_query = issuances_query.filter(Kit.id.in_(kit_ids))
 
+        issuances_by_kit = issuances_query.group_by(Kit.name).all()
         issuances_data = [{"name": name, "value": count} for name, count in issuances_by_kit]
 
-        # Transfers by type
-        kit_to_kit = KitTransfer.query.filter(
+        # Transfers by type (filtered by kit_ids)
+        kit_to_kit_query = KitTransfer.query.filter(
             KitTransfer.from_location_type == "kit",
             KitTransfer.to_location_type == "kit",
             KitTransfer.transfer_date >= start_date
-        ).count()
+        )
+        if kit_ids:
+            kit_to_kit_query = kit_to_kit_query.filter(
+                or_(
+                    KitTransfer.from_location_id.in_(kit_ids),
+                    KitTransfer.to_location_id.in_(kit_ids)
+                )
+            )
+        kit_to_kit = kit_to_kit_query.count()
 
-        kit_to_warehouse = KitTransfer.query.filter(
+        kit_to_warehouse_query = KitTransfer.query.filter(
             KitTransfer.from_location_type == "kit",
             KitTransfer.to_location_type == "warehouse",
             KitTransfer.transfer_date >= start_date
-        ).count()
+        )
+        if kit_ids:
+            kit_to_warehouse_query = kit_to_warehouse_query.filter(KitTransfer.from_location_id.in_(kit_ids))
+        kit_to_warehouse = kit_to_warehouse_query.count()
 
-        warehouse_to_kit = KitTransfer.query.filter(
+        warehouse_to_kit_query = KitTransfer.query.filter(
             KitTransfer.from_location_type == "warehouse",
             KitTransfer.to_location_type == "kit",
             KitTransfer.transfer_date >= start_date
-        ).count()
+        )
+        if kit_ids:
+            warehouse_to_kit_query = warehouse_to_kit_query.filter(KitTransfer.to_location_id.in_(kit_ids))
+        warehouse_to_kit = warehouse_to_kit_query.count()
 
         transfers_data = [
             {"name": "Kit to Kit", "value": kit_to_kit},
@@ -1310,15 +1339,26 @@ def register_kit_routes(app):
             week_start = datetime.now() - timedelta(days=(4-i)*7)
             week_end = week_start + timedelta(days=7)
 
-            week_issuances = KitIssuance.query.filter(
+            week_issuances_query = KitIssuance.query.filter(
                 KitIssuance.issued_date >= week_start,
                 KitIssuance.issued_date < week_end
-            ).count()
+            )
+            if kit_ids:
+                week_issuances_query = week_issuances_query.filter(KitIssuance.kit_id.in_(kit_ids))
+            week_issuances = week_issuances_query.count()
 
-            week_transfers = KitTransfer.query.filter(
+            week_transfers_query = KitTransfer.query.filter(
                 KitTransfer.transfer_date >= week_start,
                 KitTransfer.transfer_date < week_end
-            ).count()
+            )
+            if kit_ids:
+                week_transfers_query = week_transfers_query.filter(
+                    or_(
+                        and_(KitTransfer.from_location_type == "kit", KitTransfer.from_location_id.in_(kit_ids)),
+                        and_(KitTransfer.to_location_type == "kit", KitTransfer.to_location_id.in_(kit_ids))
+                    )
+                )
+            week_transfers = week_transfers_query.count()
 
             weeks.append({
                 "date": f"Week {i+1}",
@@ -1327,20 +1367,34 @@ def register_kit_routes(app):
             })
 
         # Summary stats
-        total_issuances = KitIssuance.query.filter(
+        total_issuances_query = KitIssuance.query.filter(
             KitIssuance.issued_date >= start_date
-        ).count()
+        )
+        if kit_ids:
+            total_issuances_query = total_issuances_query.filter(KitIssuance.kit_id.in_(kit_ids))
+        total_issuances = total_issuances_query.count()
 
-        total_transfers = KitTransfer.query.filter(
+        total_transfers_query = KitTransfer.query.filter(
             KitTransfer.transfer_date >= start_date
-        ).count()
+        )
+        if kit_ids:
+            total_transfers_query = total_transfers_query.filter(
+                or_(
+                    and_(KitTransfer.from_location_type == "kit", KitTransfer.from_location_id.in_(kit_ids)),
+                    and_(KitTransfer.to_location_type == "kit", KitTransfer.to_location_id.in_(kit_ids))
+                )
+            )
+        total_transfers = total_transfers_query.count()
 
         active_kits = len(kits)
 
         # Calculate average utilization (percentage of kits with activity)
-        kits_with_activity = db.session.query(KitIssuance.kit_id).filter(
+        kits_with_activity_query = db.session.query(KitIssuance.kit_id).filter(
             KitIssuance.issued_date >= start_date
-        ).distinct().count()
+        )
+        if kit_ids:
+            kits_with_activity_query = kits_with_activity_query.filter(KitIssuance.kit_id.in_(kit_ids))
+        kits_with_activity = kits_with_activity_query.distinct().count()
 
         avg_utilization = round((kits_with_activity / active_kits * 100) if active_kits > 0 else 0, 1)
 

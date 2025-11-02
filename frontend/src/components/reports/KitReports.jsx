@@ -103,9 +103,11 @@ const KitReports = () => {
         dispatch(fetchReorderReport(reportFilters));
         break;
       case 'utilization':
-        if (filters.kitId) {
-          dispatch(fetchKitUtilization({ kitId: filters.kitId, days: filters.days }));
-        }
+        dispatch(fetchKitUtilization({
+          kitId: filters.kitId || null,
+          aircraftTypeId: filters.aircraftTypeId || null,
+          days: filters.days
+        }));
         break;
       default:
         break;

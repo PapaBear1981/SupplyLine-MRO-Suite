@@ -341,10 +341,23 @@ export const fetchReorderReport = createAsyncThunk(
 
 export const fetchKitUtilization = createAsyncThunk(
   'kits/fetchKitUtilization',
-  async ({ kitId, days = 30 }, { rejectWithValue }) => {
+  async ({ kitId = null, aircraftTypeId = null, days = 30 } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kits/${kitId}/analytics`, { params: { days } });
-      return response.data;
+      const endpoint = kitId ? `/kits/${kitId}/analytics` : '/kits/analytics/utilization';
+      const params = { days };
+
+      // Add filters for the all-kits endpoint
+      if (!kitId) {
+        if (aircraftTypeId) params.aircraft_type_id = aircraftTypeId;
+      }
+
+      const response = await api.get(endpoint, { params });
+
+      return {
+        scope: kitId ? 'kit' : 'all',
+        kitId: kitId ? Number(kitId) : null,
+        data: response.data,
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch kit utilization' });
     }
