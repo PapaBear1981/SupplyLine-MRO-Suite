@@ -277,7 +277,7 @@ def register_kit_reorder_routes(app):
             # Log action
             log = AuditLog(
                 action_type="expendable_added_via_reorder",
-                action_details=f"Added expendable {expendable.part_number} (lot={lot_number}) to kit {kit.name} via reorder request {reorder.id}"
+                action_details=f"Added expendable {expendable.part_number} (lot={lot_number}) to kit {reorder.kit.name} via reorder request {reorder.id}"
             )
             db.session.add(log)
 
