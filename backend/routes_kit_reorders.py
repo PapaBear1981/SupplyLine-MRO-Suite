@@ -206,6 +206,9 @@ def register_kit_reorder_routes(app):
         # Import models needed for fulfillment
         from models import Chemical, Tool, Warehouse, WarehouseTransfer
 
+        # Get the kit for logging purposes
+        kit = Kit.query.get_or_404(reorder.kit_id)
+
         # Get box_id from request body (optional - default to first box)
         data = request.get_json(silent=True) or {}
         logger.info(f"Request data: {data}")
@@ -229,59 +232,79 @@ def register_kit_reorder_routes(app):
 
         # Update or create item based on type
         if reorder.item_type == "expendable":
-            # For expendables, always create a new item with auto-generated lot number
-            # Import here to avoid circular imports
-            from models import Expendable, LotNumberSequence
+            # Check if this is updating an existing expendable or creating a new one
+            if reorder.item_id:
+                # Update existing expendable
+                existing_expendable = KitExpendable.query.get(reorder.item_id)
+                if not existing_expendable:
+                    raise ValidationError("Referenced expendable not found")
 
-            # Auto-generate lot number
-            lot_number = LotNumberSequence.generate_lot_number()
+                existing_expendable.quantity += reorder.quantity_requested
+                existing_expendable.last_updated = datetime.now()
+                # Update status to available when quantity is restored
+                existing_expendable.status = "available"
 
-            logger.info(f"Creating new expendable {reorder.part_number} with lot number {lot_number}")
+                logger.info(f"Updated existing expendable {existing_expendable.id} with additional quantity {reorder.quantity_requested}")
 
-            # Create new Expendable (warehouse_id will be forced to None)
-            expendable = Expendable(
-                part_number=reorder.part_number,
-                serial_number=None,
-                lot_number=lot_number,
-                description=reorder.description or f"Expendable {reorder.part_number}",
-                manufacturer=None,
-                quantity=reorder.quantity_requested,
-                unit="ea",
-                location=f"Box {box.box_number}",
-                category="General",
-                status="available",
-                minimum_stock_level=None,
-                notes=f"Created via reorder request {reorder.id}"
-            )
-            db.session.add(expendable)
-            db.session.flush()  # Get expendable ID
+                # Log action
+                log = AuditLog(
+                    action_type="expendable_quantity_updated_via_reorder",
+                    action_details=f"Updated expendable {existing_expendable.part_number} quantity by {reorder.quantity_requested} via reorder request {reorder.id}"
+                )
+                db.session.add(log)
+            else:
+                # Create new expendable with auto-generated lot number
+                from models import Expendable, LotNumberSequence
 
-            # Create KitItem to link expendable to kit
-            kit_item = KitItem(
-                kit_id=reorder.kit_id,
-                box_id=box_id,
-                item_type="expendable",
-                item_id=expendable.id,
-                part_number=expendable.part_number,
-                serial_number=None,
-                lot_number=expendable.lot_number,
-                description=expendable.description,
-                quantity=expendable.quantity,
-                location=expendable.location,
-                status="available",
-                added_date=datetime.now(),
-                last_updated=datetime.now()
-            )
-            db.session.add(kit_item)
+                # Auto-generate lot number
+                lot_number = LotNumberSequence.generate_lot_number()
 
-            # Log action
-            log = AuditLog(
-                action_type="expendable_added_via_reorder",
-                action_details=f"Added expendable {expendable.part_number} (lot={lot_number}) to kit {reorder.kit.name} via reorder request {reorder.id}"
-            )
-            db.session.add(log)
+                logger.info(f"Creating new expendable {reorder.part_number} with lot number {lot_number}")
 
-            logger.info(f"Created expendable {expendable.id} and kit item for reorder {reorder.id}")
+                # Create new Expendable (warehouse_id will be forced to None)
+                expendable = Expendable(
+                    part_number=reorder.part_number,
+                    serial_number=None,
+                    lot_number=lot_number,
+                    description=reorder.description or f"Expendable {reorder.part_number}",
+                    manufacturer=None,
+                    quantity=reorder.quantity_requested,
+                    unit="ea",
+                    location=f"Box {box.box_number}",
+                    category="General",
+                    status="available",
+                    minimum_stock_level=None,
+                    notes=f"Created via reorder request {reorder.id}"
+                )
+                db.session.add(expendable)
+                db.session.flush()  # Get expendable ID
+
+                # Create KitItem to link expendable to kit
+                kit_item = KitItem(
+                    kit_id=reorder.kit_id,
+                    box_id=box_id,
+                    item_type="expendable",
+                    item_id=expendable.id,
+                    part_number=expendable.part_number,
+                    serial_number=None,
+                    lot_number=expendable.lot_number,
+                    description=expendable.description,
+                    quantity=expendable.quantity,
+                    location=expendable.location,
+                    status="available",
+                    added_date=datetime.now(),
+                    last_updated=datetime.now()
+                )
+                db.session.add(kit_item)
+
+                # Log action
+                log = AuditLog(
+                    action_type="expendable_added_via_reorder",
+                    action_details=f"Added expendable {expendable.part_number} (lot={lot_number}) to kit {reorder.kit.name} via reorder request {reorder.id}"
+                )
+                db.session.add(log)
+
+                logger.info(f"Created expendable {expendable.id} and kit item for reorder {reorder.id}")
 
         elif reorder.item_type in ["tool", "chemical"]:
             if reorder.item_id:

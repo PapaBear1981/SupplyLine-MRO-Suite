@@ -1152,7 +1152,6 @@ class Warehouse(db.Model):
                 result["created_by"] = self.created_by.name if self.created_by else None
                 # Use direct queries instead of relationships to ensure accurate counts
                 from models import Chemical, Expendable, Tool
-
                 result["tools_count"] = Tool.query.filter_by(warehouse_id=self.id).count()
                 result["chemicals_count"] = Chemical.query.filter_by(warehouse_id=self.id).count()
                 result["expendables_count"] = Expendable.query.filter_by(warehouse_id=self.id).count()

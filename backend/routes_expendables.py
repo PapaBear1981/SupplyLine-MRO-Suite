@@ -22,6 +22,7 @@ from models import AuditLog, Expendable, LotNumberSequence, db
 from models_kits import Kit, KitBox, KitItem
 from utils.error_handler import ValidationError, handle_errors
 
+
 logger = logging.getLogger(__name__)
 
 expendables_bp = Blueprint("expendables", __name__)
@@ -291,7 +292,7 @@ def get_expendable_detail(expendable_id):
     expendable = Expendable.query.get_or_404(expendable_id)
 
     # Get all kit items that reference this expendable
-    kit_items = KitItem.query.filter_by(item_type='expendable', item_id=expendable.id).all()
+    kit_items = KitItem.query.filter_by(item_type="expendable", item_id=expendable.id).all()
 
     # Build kit locations list
     kit_locations = []

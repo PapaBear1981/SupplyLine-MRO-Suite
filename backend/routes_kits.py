@@ -563,7 +563,7 @@ def register_kit_routes(app):
         expendables = []
 
         for kit_item in kit_items:
-            if kit_item.item_type == 'expendable':
+            if kit_item.item_type == "expendable":
                 # Get the full Expendable record
                 expendable = Expendable.query.get(kit_item.item_id)
                 if expendable:
@@ -1203,8 +1203,8 @@ def register_kit_routes(app):
     @handle_errors
     def get_reorder_report():
         """Get reorder report across all kits"""
-        from models_kits import KitReorderRequest
         from models import User
+        from models_kits import KitReorderRequest
 
         # Get filter parameters
         aircraft_type_id = request.args.get("aircraft_type_id", type=int)

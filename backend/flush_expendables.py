@@ -2,7 +2,6 @@
 Flush all expendables from the database to prepare for reseeding.
 This script removes all Expendable records and their associated KitItem records.
 """
-
 import os
 import sys
 

@@ -1,10 +1,10 @@
 """Utilities for managing system-level security settings."""
 
-from typing import Optional
 
 from flask import current_app
 
 from models import SystemSetting, db
+
 
 SESSION_TIMEOUT_KEY = "session_inactivity_timeout_minutes"
 DEFAULT_SESSION_TIMEOUT_MINUTES = 30
@@ -12,7 +12,7 @@ MIN_SESSION_TIMEOUT_MINUTES = 5
 MAX_SESSION_TIMEOUT_MINUTES = 240
 
 
-def _coerce_timeout_value(raw_value: Optional[int | str], default: int) -> int:
+def _coerce_timeout_value(raw_value: int | str | None, default: int) -> int:
     """Convert the stored timeout value to a safe integer within bounds."""
     try:
         minutes = int(raw_value)
@@ -25,7 +25,7 @@ def _coerce_timeout_value(raw_value: Optional[int | str], default: int) -> int:
     return minutes
 
 
-def get_session_timeout_value(default: Optional[int] = None) -> int:
+def get_session_timeout_value(default: int | None = None) -> int:
     """Return the configured inactivity timeout, falling back to defaults."""
     if default is None:
         default = int(
@@ -45,7 +45,7 @@ def get_session_timeout_value(default: Optional[int] = None) -> int:
     return _coerce_timeout_value(setting.value, default)
 
 
-def set_session_timeout_value(minutes: int, user_id: Optional[int] = None, commit: bool = True) -> SystemSetting:
+def set_session_timeout_value(minutes: int, user_id: int | None = None, commit: bool = True) -> SystemSetting:
     """Persist the inactivity timeout and optionally commit the change."""
     if minutes < MIN_SESSION_TIMEOUT_MINUTES or minutes > MAX_SESSION_TIMEOUT_MINUTES:
         raise ValueError(

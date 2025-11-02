@@ -6,12 +6,15 @@ import os
 import sys
 from datetime import datetime
 
+
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask
-from models import Tool, Chemical, Warehouse, User, Expendable, LotNumberSequence, db
-from models_kits import AircraftType, Kit, KitBox, KitItem, KitExpendable
+
+from models import Chemical, Expendable, LotNumberSequence, Tool, User, Warehouse, db
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitItem
+
 
 # Create Flask app
 app = Flask(__name__)
@@ -35,7 +38,7 @@ AIRCRAFT_TOOLS = [
     ("AN3-5A", "Bolt Assortment", "AN3 bolts various lengths"),
     ("AN4-10A", "Bolt Assortment", "AN4 bolts various lengths"),
     ("AN5-20A", "Bolt Assortment", "AN5 bolts various lengths"),
-    
+
     # Measuring Tools
     ("MS35769-3", "Dial Indicator 0.001", "Precision dial indicator"),
     ("MS35338-1", "Micrometer 0-1 inch", "Outside micrometer"),
@@ -45,7 +48,7 @@ AIRCRAFT_TOOLS = [
     ("GGG-R-791-12", "Steel Rule 12 inch", "Precision steel rule"),
     ("MS35769-5", "Depth Gauge", "Precision depth gauge"),
     ("MS35338-10", "Telescoping Gauge Set", "Bore measurement gauges"),
-    
+
     # Specialized Tools
     ("BACC13AK3-1", "Swaging Tool", "Cable swaging tool"),
     ("MS25171-10", "Crimping Tool", "Wire terminal crimper"),
@@ -57,7 +60,7 @@ AIRCRAFT_TOOLS = [
     ("MS25171-20", "Countersink Cutter", "100° countersink"),
     ("MS25171-22", "Deburring Tool", "Edge deburring tool"),
     ("MS25171-24", "Reamer Set", "Precision reamers"),
-    
+
     # Inspection Tools
     ("MS25171-30", "Borescope", "Flexible inspection scope"),
     ("MS25171-32", "Magnifying Glass 10x", "Inspection magnifier"),
@@ -66,21 +69,21 @@ AIRCRAFT_TOOLS = [
     ("MS25171-38", "Feeler Gauge Set", "Precision feeler gauges"),
     ("MS25171-40", "Thread Pitch Gauge", "Thread identification"),
     ("MS25171-42", "Radius Gauge Set", "Fillet radius gauges"),
-    
+
     # Power Tools
     ("MS25171-50", "Impact Wrench 1/2", "Pneumatic impact wrench"),
     ("MS25171-52", "Grinder 4 inch", "Angle grinder"),
     ("MS25171-54", "Sander Orbital", "Pneumatic orbital sander"),
     ("MS25171-56", "Polisher 6 inch", "Pneumatic polisher"),
     ("MS25171-58", "Shear Pneumatic", "Sheet metal shear"),
-    
+
     # Electrical Tools
     ("MS25171-60", "Multimeter Digital", "Fluke digital multimeter"),
     ("MS25171-62", "Wire Stripper", "Automatic wire stripper"),
     ("MS25171-64", "Crimper Electrical", "Electrical terminal crimper"),
     ("MS25171-66", "Soldering Iron", "Temperature controlled iron"),
     ("MS25171-68", "Heat Gun", "Variable temperature heat gun"),
-    
+
     # Hydraulic Tools
     ("MS25171-70", "Pressure Gauge 0-3000 PSI", "Hydraulic pressure gauge"),
     ("MS25171-72", "Hydraulic Hand Pump", "Manual hydraulic pump"),
@@ -101,7 +104,7 @@ AIRCRAFT_CHEMICALS = [
     ("MIL-PRF-81309", "Type III Cleaner", "Precision cleaner", "Quart"),
     ("SAE-AMS-1428", "Dry Cleaning Solvent", "Spot remover", "Pint"),
     ("MIL-PRF-32295", "Aqueous Cleaner", "Water-based cleaner", "Gallon"),
-    
+
     # Lubricants
     ("MIL-PRF-23827", "Type I Grease", "General purpose grease", "Tube"),
     ("MIL-PRF-81322", "Type II Grease", "High temp grease", "Tube"),
@@ -111,7 +114,7 @@ AIRCRAFT_CHEMICALS = [
     ("MIL-PRF-83282", "Type III Oil", "Synthetic hydraulic fluid", "Quart"),
     ("MIL-PRF-6085", "Turbine Oil", "Gas turbine lubricant", "Quart"),
     ("MIL-PRF-23699", "Synthetic Oil", "Jet engine oil", "Quart"),
-    
+
     # Sealants
     ("MIL-PRF-81733", "Class A Sealant", "Fuel tank sealant", "Cartridge"),
     ("MIL-PRF-81733", "Class B Sealant", "Faying surface sealant", "Cartridge"),
@@ -119,20 +122,20 @@ AIRCRAFT_CHEMICALS = [
     ("AMS-S-8802", "Polysulfide Sealant", "Two-part sealant", "Kit"),
     ("AMS-3277", "Silicone Sealant", "RTV sealant", "Tube"),
     ("MIL-PRF-46010", "Corrosion Inhibitor", "Protective coating", "Quart"),
-    
+
     # Adhesives
     ("MMM-AF-163-2", "Film Adhesive", "Structural adhesive", "Roll"),
     ("MIL-PRF-25463", "Epoxy Adhesive", "Two-part epoxy", "Kit"),
     ("AMS-3832", "Acrylic Adhesive", "Fast-cure adhesive", "Tube"),
     ("MIL-PRF-46147", "Cyanoacrylate", "Super glue", "Bottle"),
-    
+
     # Paints & Coatings
     ("MIL-PRF-85285", "Type I Primer", "Epoxy primer", "Quart"),
     ("MIL-PRF-85285", "Type II Primer", "Polyurethane primer", "Quart"),
     ("TT-E-489", "Enamel Paint", "Topcoat enamel", "Quart"),
     ("MIL-PRF-23377", "Polyurethane Topcoat", "Exterior paint", "Quart"),
     ("TT-P-645", "Zinc Chromate Primer", "Corrosion resistant", "Pint"),
-    
+
     # Specialty Chemicals
     ("MIL-PRF-16173", "Corrosion Remover", "Rust remover", "Quart"),
     ("MIL-PRF-680", "Penetrating Oil", "Rust penetrant", "Can"),
@@ -141,13 +144,13 @@ AIRCRAFT_CHEMICALS = [
     ("AMS-1424", "Anti-Seize Compound", "Thread lubricant", "Tube"),
     ("MIL-PRF-16173", "Paint Stripper", "Aircraft stripper", "Gallon"),
     ("AMS-3155", "Mold Release", "Composite release", "Can"),
-    
+
     # Inspection Materials
     ("AMS-2644", "Penetrant Dye", "NDT penetrant", "Can"),
     ("AMS-2647", "Developer Powder", "NDT developer", "Can"),
     ("AMS-3155", "Magnetic Particles", "Mag particle inspection", "Can"),
     ("AMS-2644", "Ultrasonic Couplant", "UT gel", "Bottle"),
-    
+
     # Consumables
     ("MIL-PRF-680", "Shop Towels", "Lint-free towels", "Box"),
     ("AMS-3155", "Masking Tape 2 inch", "High-temp tape", "Roll"),
@@ -180,7 +183,7 @@ def clear_existing_data():
 def create_warehouses():
     """Create warehouses if they don't exist."""
     print("Creating warehouses...")
-    
+
     warehouse = Warehouse.query.filter_by(name="Main Warehouse").first()
     if not warehouse:
         warehouse = Warehouse(
@@ -195,26 +198,26 @@ def create_warehouses():
         print("✓ Created Main Warehouse")
     else:
         print("✓ Main Warehouse already exists")
-    
+
     return warehouse
 
 
 def create_aircraft_types():
     """Create aircraft types if they don't exist."""
     print("Creating aircraft types...")
-    
+
     aircraft_types = {}
-    
+
     for name in ["Boeing 737", "RJ85", "Q400"]:
         aircraft_type = AircraftType.query.filter_by(name=name).first()
         if not aircraft_type:
             aircraft_type = AircraftType(name=name)
             db.session.add(aircraft_type)
         aircraft_types[name] = aircraft_type
-    
+
     db.session.commit()
     print(f"✓ Created {len(aircraft_types)} aircraft types")
-    
+
     return aircraft_types
 
 
@@ -493,12 +496,12 @@ def main():
         print("\n" + "="*60)
         print("DATABASE SEEDING COMPLETE!")
         print("="*60)
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  • {len(tools)} aircraft tools")
         print(f"  • {len(chemicals)} aircraft chemicals")
         print(f"  • {len(kits)} kits (2 Boeing 737, 2 RJ85, 1 Q400)")
-        print(f"  • Each kit has 9 boxes (4 expendables, 3 tools, 2 consumables)")
-        print(f"  • All kits populated with tools, chemicals, and expendables")
+        print("  • Each kit has 9 boxes (4 expendables, 3 tools, 2 consumables)")
+        print("  • All kits populated with tools, chemicals, and expendables")
         print("\n")
 
 

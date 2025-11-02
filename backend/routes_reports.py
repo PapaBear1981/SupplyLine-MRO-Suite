@@ -2,7 +2,9 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import jsonify, make_response, request
+from sqlalchemy import func
 
+from auth import department_required
 from models import Checkout, Tool, User, db
 from utils.export_utils import generate_excel_report, generate_pdf_report
 
@@ -26,9 +28,6 @@ def calculate_date_range(timeframe):
     if timeframe == "all":
         return datetime(1970, 1, 1)  # Beginning of time for database purposes
     return now - timedelta(days=30)  # Default to month
-from sqlalchemy import func
-
-from auth import department_required
 
 
 tool_manager_required = department_required("Materials")

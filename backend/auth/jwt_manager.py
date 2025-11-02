@@ -18,11 +18,10 @@ from typing import Any
 import jwt
 from flask import current_app, jsonify, request
 
+from models import User
+
 
 logger = logging.getLogger(__name__)
-
-# Import models at module level to avoid circular imports
-from models import User
 
 
 class JWTManager:

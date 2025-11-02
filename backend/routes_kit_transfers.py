@@ -10,8 +10,8 @@ from datetime import datetime
 from flask import jsonify, request
 
 from auth import department_required, jwt_required
-from models import AuditLog, Chemical, Expendable, Tool, Warehouse, db
-from models_kits import Kit, KitBox, KitItem, KitTransfer
+from models import AuditLog, Chemical, Tool, Warehouse, db
+from models_kits import Kit, KitBox, KitExpendable, KitItem, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
 from utils.lot_utils import create_child_chemical
 from utils.transaction_helper import record_transaction
@@ -82,9 +82,13 @@ def register_kit_transfer_routes(app):
 
         # Validate source item availability
         if from_type == "kit":
-            # For expendables, the item_id refers to the KitItem row (not the Expendable row)
-            # For tools/chemicals, the item_id also refers to the KitItem row
-            source_item = KitItem.query.get(data["item_id"])
+            # For expendables, the item_id refers to KitExpendable
+            # For tools/chemicals, the item_id refers to KitItem
+            source_item = None
+            if data["item_type"] == "expendable":
+                source_item = KitExpendable.query.get(data["item_id"])
+            else:
+                source_item = KitItem.query.get(data["item_id"])
 
             if not source_item or source_item.kit_id != data["from_location_id"]:
                 raise ValidationError("Source item not found")
@@ -115,11 +119,16 @@ def register_kit_transfer_routes(app):
         # Determine the item reference stored in the transfer record.
         transfer_item_id = data["item_id"]
         if from_type == "kit":
-            # For all items from kits (including expendables), get the underlying item_id
-            kit_item = KitItem.query.get(data["item_id"])
-            if not kit_item:
-                raise ValidationError("Source item not found")
-            transfer_item_id = kit_item.item_id
+            # For expendables, use the KitExpendable ID directly
+            # For tools/chemicals, get the underlying item_id from KitItem
+            if data["item_type"] == "expendable":
+                # Expendables use their own ID
+                transfer_item_id = data["item_id"]
+            else:
+                kit_item = KitItem.query.get(data["item_id"])
+                if not kit_item:
+                    raise ValidationError("Source item not found")
+                transfer_item_id = kit_item.item_id
 
         transfer = KitTransfer(
             item_type=data["item_type"],
@@ -146,22 +155,36 @@ def register_kit_transfer_routes(app):
         db.session.add(creation_log)
         db.session.commit()
 
-        # Auto-complete all transfers immediately for instant feedback
-        response_data = _complete_transfer_internal(
-            transfer.id,
-            request.current_user["user_id"],
-            box_id=data.get("box_id")
-        )
+        # Auto-complete warehouse-originated transfers immediately for instant feedback
+        # Kit-to-kit transfers remain pending until explicitly completed
+        if from_type == "warehouse":
+            response_data = _complete_transfer_internal(
+                transfer.id,
+                request.current_user["user_id"],
+                box_id=data.get("box_id")
+            )
 
-        logger.info(
-            "Transfer created and completed",
-            extra={
-                "transfer_id": transfer.id,
-                "from_type": from_type,
-                "to_type": to_type,
-                "auto_complete": True
-            }
-        )
+            logger.info(
+                "Transfer created and completed",
+                extra={
+                    "transfer_id": transfer.id,
+                    "from_type": from_type,
+                    "to_type": to_type,
+                    "auto_complete": True
+                }
+            )
+        else:
+            # Kit-to-kit transfers remain pending
+            response_data = transfer.to_dict()
+            logger.info(
+                "Transfer created (pending)",
+                extra={
+                    "transfer_id": transfer.id,
+                    "from_type": from_type,
+                    "to_type": to_type,
+                    "auto_complete": False
+                }
+            )
 
         return jsonify(response_data), 201
 
@@ -183,33 +206,26 @@ def register_kit_transfer_routes(app):
 
         if transfer.from_location_type == "kit":
             if transfer.item_type == "expendable":
-                # For expendables, transfer.item_id is the Expendable.id (not KitItem.id)
-                expendable = Expendable.query.get(transfer.item_id)
-                if not expendable:
+                # For expendables, transfer.item_id is the KitExpendable.id
+                kit_expendable = KitExpendable.query.get(transfer.item_id)
+                if not kit_expendable:
                     raise ValidationError("Source expendable not found")
 
-                # Find the KitItem that links this expendable to the source kit
-                kit_item = KitItem.query.filter_by(
-                    kit_id=transfer.from_location_id,
-                    item_type="expendable",
-                    item_id=expendable.id
-                ).first()
-
-                if not kit_item:
+                if kit_expendable.kit_id != transfer.from_location_id:
                     raise ValidationError("Source item not found in kit")
-                if kit_item.quantity < quantity:
-                    raise ValidationError(f"Insufficient quantity. Available: {kit_item.quantity}")
+                if kit_expendable.quantity < quantity:
+                    raise ValidationError(f"Insufficient quantity. Available: {kit_expendable.quantity}")
 
-                source_item = kit_item  # Use kit_item for quantity tracking
+                source_item = kit_expendable  # Use kit_expendable for quantity tracking
                 source_item_snapshot = {
-                    "part_number": expendable.part_number,
-                    "description": expendable.description,
-                    "unit": expendable.unit,
-                    "location": expendable.location,
-                    "serial_number": expendable.serial_number,
-                    "lot_number": expendable.lot_number,
-                    "tracking_type": "lot" if expendable.lot_number else "serial",
-                    "item_id": expendable.id
+                    "part_number": kit_expendable.part_number,
+                    "description": kit_expendable.description,
+                    "unit": kit_expendable.unit,
+                    "location": kit_expendable.location,
+                    "serial_number": kit_expendable.serial_number,
+                    "lot_number": kit_expendable.lot_number,
+                    "tracking_type": kit_expendable.tracking_type,
+                    "item_id": kit_expendable.id
                 }
             else:
                 kit_item = KitItem.query.filter_by(
@@ -329,37 +345,35 @@ def register_kit_transfer_routes(app):
                     db.session.flush()
 
             if transfer.item_type == "expendable":
-                # For expendables, just update the KitItem to point to the new kit and box
-                # The Expendable record itself doesn't change
-                expendable_id = source_item_snapshot.get("item_id")
-
-                # Check if there's already a KitItem for this expendable in the destination kit
-                existing_kit_item = KitItem.query.filter_by(
+                # For expendables, create a new KitExpendable in the destination kit
+                # Check if there's already a KitExpendable with the same part/lot/serial in the destination kit
+                existing_expendable = KitExpendable.query.filter_by(
                     kit_id=transfer.to_location_id,
                     box_id=dest_box.id,
-                    item_type="expendable",
-                    item_id=expendable_id
+                    part_number=source_item_snapshot.get("part_number"),
+                    lot_number=source_item_snapshot.get("lot_number"),
+                    serial_number=source_item_snapshot.get("serial_number")
                 ).first()
 
-                if existing_kit_item:
-                    # If it already exists, just add to the quantity
-                    existing_kit_item.quantity += quantity
+                if existing_expendable:
+                    # If it already exists with same identifiers, just add to the quantity
+                    existing_expendable.quantity += quantity
                 else:
-                    # Create a new KitItem linking the expendable to the destination kit
-                    new_kit_item = KitItem(
+                    # Create a new KitExpendable in the destination kit
+                    new_expendable = KitExpendable(
                         kit_id=transfer.to_location_id,
                         box_id=dest_box.id,
-                        item_type="expendable",
-                        item_id=expendable_id,
                         part_number=source_item_snapshot.get("part_number"),
                         description=source_item_snapshot.get("description", ""),
                         quantity=quantity,
+                        unit=source_item_snapshot.get("unit", "ea"),
                         location=source_item_snapshot.get("location", ""),
                         serial_number=source_item_snapshot.get("serial_number"),
                         lot_number=source_item_snapshot.get("lot_number"),
+                        tracking_type=source_item_snapshot.get("tracking_type", "none"),
                         status="available"
                     )
-                    db.session.add(new_kit_item)
+                    db.session.add(new_expendable)
             else:
                 actual_item_id = source_item_snapshot.get("item_id", transfer.item_id)
                 if transfer.item_type == "tool":
