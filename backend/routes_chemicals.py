@@ -355,9 +355,18 @@ def register_chemical_routes(app):
                 purpose=validated_data.get("purpose", "")
             )
 
-            # Update parent status if depleted
+            # Update child chemical after issuance - it's been fully consumed
+            child_chemical.quantity = 0
+            child_chemical.status = "issued"
+
+            # Update parent status and reorder flags
             if chemical.quantity == 0:
                 chemical.status = "depleted"
+            elif chemical.is_low_stock():
+                chemical.status = "low_stock"
+
+            # Update reorder status for parent
+            chemical.update_reorder_status()
 
             # Log the action for child lot creation
             log_child = AuditLog(
