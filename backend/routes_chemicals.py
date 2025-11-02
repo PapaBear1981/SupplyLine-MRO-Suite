@@ -306,6 +306,8 @@ def register_chemical_routes(app):
     @jwt_required
     @handle_errors
     def chemical_issue_route(id):
+        from utils.lot_utils import create_child_chemical
+
         # Get the chemical
         chemical = Chemical.query.get_or_404(id)
 
@@ -330,27 +332,61 @@ def register_chemical_routes(app):
         if quantity > chemical.quantity:
             raise ValidationError(f"Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})")
 
-        # Create issuance record
-        issuance = ChemicalIssuance(
-            chemical_id=chemical.id,
-            user_id=validated_data["user_id"],
-            quantity=quantity,
-            hangar=validated_data["hangar"],
-            purpose=validated_data.get("purpose", "")
-        )
+        # Check if this is a partial issue (doesn't consume entire lot)
+        is_partial_issue = quantity < chemical.quantity
+        child_chemical = None
 
-        # Update chemical quantity
-        chemical.quantity -= quantity
+        if is_partial_issue:
+            # Create a child lot for the issued quantity
+            child_chemical = create_child_chemical(
+                parent_chemical=chemical,
+                quantity=quantity,
+                destination_warehouse_id=chemical.warehouse_id
+            )
+            db.session.add(child_chemical)
+            db.session.flush()  # Flush to get the child chemical ID
 
-        # Update chemical status based on new quantity
-        if chemical.quantity <= 0:
-            chemical.status = "out_of_stock"
-            # Update reorder status
-            chemical.update_reorder_status()
-        elif chemical.is_low_stock():
-            chemical.status = "low_stock"
-            # Update reorder status
-            chemical.update_reorder_status()
+            # Create issuance record for the child lot
+            issuance = ChemicalIssuance(
+                chemical_id=child_chemical.id,
+                user_id=validated_data["user_id"],
+                quantity=quantity,
+                hangar=validated_data["hangar"],
+                purpose=validated_data.get("purpose", "")
+            )
+
+            # Update parent status if depleted
+            if chemical.quantity == 0:
+                chemical.status = "depleted"
+
+            # Log the action for child lot creation
+            log_child = AuditLog(
+                action_type="child_lot_created",
+                action_details=f"Child lot {child_chemical.lot_number} created from {chemical.lot_number}: {quantity} {chemical.unit}"
+            )
+            db.session.add(log_child)
+        else:
+            # Full consumption - issue from original chemical
+            issuance = ChemicalIssuance(
+                chemical_id=chemical.id,
+                user_id=validated_data["user_id"],
+                quantity=quantity,
+                hangar=validated_data["hangar"],
+                purpose=validated_data.get("purpose", "")
+            )
+
+            # Update chemical quantity
+            chemical.quantity -= quantity
+
+            # Update chemical status based on new quantity
+            if chemical.quantity <= 0:
+                chemical.status = "out_of_stock"
+                # Update reorder status
+                chemical.update_reorder_status()
+            elif chemical.is_low_stock():
+                chemical.status = "low_stock"
+                # Update reorder status
+                chemical.update_reorder_status()
 
         db.session.add(issuance)
 
@@ -358,7 +394,7 @@ def register_chemical_routes(app):
         from utils.transaction_helper import record_chemical_issuance
         try:
             record_chemical_issuance(
-                chemical_id=chemical.id,
+                chemical_id=child_chemical.id if child_chemical else chemical.id,
                 user_id=request.current_user.get("user_id"),  # Authenticated user performing the issuance
                 quantity=quantity,
                 hangar=validated_data["hangar"],
@@ -372,7 +408,7 @@ def register_chemical_routes(app):
         # Log the action
         log = AuditLog(
             action_type="chemical_issued",
-            action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} issued: {quantity} {chemical.unit}"
+            action_details=f"Chemical {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number} issued: {quantity} {chemical.unit}"
         )
         db.session.add(log)
 
@@ -381,19 +417,24 @@ def register_chemical_routes(app):
             activity = UserActivity(
                 user_id=request.current_user["user_id"],
                 activity_type="chemical_issued",
-                description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
+                description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number}"
             )
             db.session.add(activity)
 
         db.session.commit()
 
-        logger.info(f"Chemical issued successfully: {chemical.part_number} - {chemical.lot_number}, quantity: {quantity}")
+        logger.info(f"Chemical issued successfully: {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number}, quantity: {quantity}")
 
-        # Return updated chemical and issuance record
-        return jsonify({
+        # Return updated chemical and issuance record, including child lot if created
+        response_data = {
             "chemical": chemical.to_dict(),
             "issuance": issuance.to_dict()
-        })
+        }
+
+        if child_chemical:
+            response_data["child_chemical"] = child_chemical.to_dict()
+
+        return jsonify(response_data)
 
     # Get issuance history for a chemical
     @app.route("/api/chemicals/<int:id>/issuances", methods=["GET"])

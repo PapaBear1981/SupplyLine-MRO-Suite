@@ -5,6 +5,7 @@ import { Form, Button, Card, Alert, Badge } from 'react-bootstrap';
 import { fetchChemicalById, issueChemical } from '../../store/chemicalsSlice';
 import { fetchUsers } from '../../store/usersSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
+import ChemicalBarcode from './ChemicalBarcode';
 
 const ChemicalIssueForm = () => {
   const { id } = useParams();
@@ -22,6 +23,8 @@ const ChemicalIssueForm = () => {
   });
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState(null);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [childChemical, setChildChemical] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -84,8 +87,16 @@ const ChemicalIssueForm = () => {
 
     dispatch(issueChemical({ id, data: formattedData }))
       .unwrap()
-      .then(() => {
-        navigate(`/chemicals/${id}`);
+      .then((response) => {
+        // Check if a child lot was created (partial issue)
+        if (response.child_chemical) {
+          // Show barcode modal for the child lot
+          setChildChemical(response.child_chemical);
+          setShowBarcodeModal(true);
+        } else {
+          // Full consumption - navigate directly back
+          navigate(`/chemicals/${id}`);
+        }
       })
       .catch((err) => {
         console.error('Failed to issue chemical:', err);
@@ -131,12 +142,13 @@ const ChemicalIssueForm = () => {
   };
 
   return (
-    <Card className="shadow-sm">
-      <Card.Header>
-        <h4>Issue Chemical: {currentChemical.part_number} - {currentChemical.lot_number}</h4>
-      </Card.Header>
-      <Card.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
+    <>
+      <Card className="shadow-sm">
+        <Card.Header>
+          <h4>Issue Chemical: {currentChemical.part_number} - {currentChemical.lot_number}</h4>
+        </Card.Header>
+        <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
 
         <div className="mb-4">
           <h5>Chemical Information</h5>
@@ -254,6 +266,20 @@ const ChemicalIssueForm = () => {
         </Form>
       </Card.Body>
     </Card>
+
+    {/* Barcode modal for child lot */}
+    {childChemical && (
+      <ChemicalBarcode
+        show={showBarcodeModal}
+        onHide={() => {
+          setShowBarcodeModal(false);
+          // Navigate back to the parent chemical detail page after closing modal
+          navigate(`/chemicals/${id}`);
+        }}
+        chemical={childChemical}
+      />
+    )}
+    </>
   );
 };
 
