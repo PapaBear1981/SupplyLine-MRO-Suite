@@ -41,6 +41,8 @@ from routes_scanner import register_scanner_routes
 from routes_security import register_security_routes
 from routes_transfers import transfers_bp
 from routes_warehouses import warehouses_bp
+from routes_expendables import expendables_bp
+from routes_barcode import barcode_bp
 from utils.error_handler import ValidationError, handle_errors, log_security_event
 from utils.file_validation import FileValidationError, validate_image_upload
 from utils.password_reset_security import get_password_reset_tracker
@@ -217,6 +219,9 @@ def register_routes(app):
 
     # Register expendables routes (kit-only consumables)
     app.register_blueprint(expendables_bp, url_prefix="/api")
+
+    # Register barcode label generation routes
+    app.register_blueprint(barcode_bp)
 
     # Register database management routes
     register_database_routes(app)

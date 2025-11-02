@@ -5,6 +5,7 @@ import { FaExchangeAlt, FaCheckCircle, FaWarehouse, FaBox, FaSearch } from 'reac
 import { createTransfer } from '../../store/kitTransfersSlice';
 import { fetchKits, fetchKitItems } from '../../store/kitsSlice';
 import api from '../../services/api';
+import KitItemBarcode from './KitItemBarcode';
 
 const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = null }) => {
   const dispatch = useDispatch();
@@ -44,6 +45,10 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
   const [warehouseItems, setWarehouseItems] = useState([]);
   const [loadingWarehouseItems, setLoadingWarehouseItems] = useState(false);
   const [warehouseSearchTerm, setWarehouseSearchTerm] = useState('');
+
+  // Barcode modal state for kit-to-kit expendable transfers
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [transferredItem, setTransferredItem] = useState(null);
 
   // Load source kit information when sourceKitId is provided
   useEffect(() => {
@@ -133,7 +138,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     } else if (formData.from_location_type === 'warehouse' && formData.from_location_id) {
       loadWarehouseItems(formData.from_location_id, warehouseSearchTerm);
     }
-  }, [formData.from_location_type, formData.from_location_id, dispatch]);
+  }, [formData.from_location_type, formData.from_location_id, dispatch, warehouseSearchTerm]);
 
   // Debounced search for warehouse items
   useEffect(() => {
@@ -144,7 +149,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
 
       return () => clearTimeout(timer);
     }
-  }, [warehouseSearchTerm]);
+  }, [formData.from_location_type, formData.from_location_id, warehouseSearchTerm]);
 
   // Pre-select item if provided
   useEffect(() => {
@@ -237,11 +242,51 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
 
     dispatch(createTransfer(transferData))
       .unwrap()
-      .then(() => {
+      .then((transferResponse) => {
+        const isKitToKit =
+          formData.from_location_type === 'kit' && formData.to_location_type === 'kit';
+        const transferItemType = transferResponse?.item_type || formData.item_type;
+        const isExpendableTransfer = transferItemType === 'expendable';
+        const shouldShowBarcode = isKitToKit && isExpendableTransfer;
+
+        let barcodeItem = null;
+        if (shouldShowBarcode) {
+          const baseItem = selectedItem || preSelectedItem || {};
+          const destinationKitId = parseInt(formData.to_location_id);
+          const destinationBoxId = formData.box_id ? parseInt(formData.box_id) : baseItem.box_id;
+          const transferredQuantity = parseFloat(formData.quantity) || transferResponse.quantity;
+
+          barcodeItem = {
+            ...baseItem,
+            item_type: 'expendable',
+            source: 'expendable',
+            item_id:
+              baseItem.item_id || baseItem.expendable_id || transferResponse.item_id || baseItem.id,
+            kit_item_id: baseItem.kit_item_id || baseItem.id,
+            kit_id: destinationKitId,
+            box_id: destinationBoxId,
+            quantity: transferredQuantity,
+            part_number: baseItem.part_number || transferResponse.part_number,
+            description: baseItem.description || transferResponse.description,
+            lot_number: baseItem.lot_number || transferResponse.lot_number,
+            serial_number: baseItem.serial_number || transferResponse.serial_number,
+            tracking_type:
+              baseItem.tracking_type || (transferResponse.serial_number ? 'serial' : 'lot')
+          };
+          if (barcodeItem.item_id) {
+            setTransferredItem(barcodeItem);
+          } else {
+            barcodeItem = null;
+          }
+        }
+
         setShowSuccess(true);
         setTimeout(() => {
           resetForm();
           onHide();
+          if (shouldShowBarcode && barcodeItem) {
+            setShowBarcodeModal(true);
+          }
         }, 1500);
       })
       .catch((err) => {
@@ -272,6 +317,8 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
 
   const handleClose = () => {
     resetForm();
+    setTransferredItem(null);
+    setShowBarcodeModal(false);
     onHide();
   };
 
@@ -310,7 +357,8 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
   };
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="transfer-modal">
+    <>
+      <Modal show={show} onHide={handleClose} size="lg" centered backdrop="static" data-testid="transfer-modal">
       <Modal.Header closeButton>
         <Modal.Title>
           <FaExchangeAlt className="me-2" />
@@ -608,7 +656,17 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
           </Button>
         </Modal.Footer>
       </Form>
-    </Modal>
+      </Modal>
+
+      <KitItemBarcode
+        show={showBarcodeModal}
+        onHide={() => {
+          setShowBarcodeModal(false);
+          setTransferredItem(null);
+        }}
+        item={transferredItem}
+      />
+    </>
   );
 };
 

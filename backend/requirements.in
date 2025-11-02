@@ -46,6 +46,13 @@ psycopg2-binary==2.9.10
 # Updated from 4.0.4 to 4.2.5 for security patches
 reportlab==4.2.5
 
+# Professional PDF Label Generation
+WeasyPrint==63.1
+
+# Barcode Generation
+segno==1.6.1  # QR codes and other 2D barcodes
+python-barcode==0.15.1  # 1D barcodes (CODE128, EAN, etc.)
+
 # Excel File Handling
 # Updated from 3.1.2 to 3.1.5 for security patches
 openpyxl==3.1.5
