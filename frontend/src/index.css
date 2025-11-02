@@ -386,6 +386,13 @@ code {
   color: var(--bs-body-color);
 }
 
+/* Dark mode - Item info section */
+[data-bs-theme="dark"] .item-info-section {
+  background-color: var(--bs-dark) !important;
+  border-color: var(--bs-border-color) !important;
+  color: var(--bs-body-color) !important;
+}
+
 [data-bs-theme="light"] {
   --bs-body-bg: #f8f9fa;
   --bs-body-color: #212529;

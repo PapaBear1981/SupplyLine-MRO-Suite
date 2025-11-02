@@ -15,6 +15,13 @@ RUN apt-get update && \
         gcc \
         g++ \
         gosu \
+        # WeasyPrint dependencies
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libpangocairo-1.0-0 \
+        libgdk-pixbuf-2.0-0 \
+        libffi-dev \
+        shared-mime-info \
         && \
     # Set timezone to UTC
     ln -fs /usr/share/zoneinfo/UTC /etc/localtime && \

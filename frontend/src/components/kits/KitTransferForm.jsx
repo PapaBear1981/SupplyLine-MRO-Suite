@@ -138,7 +138,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
     } else if (formData.from_location_type === 'warehouse' && formData.from_location_id) {
       loadWarehouseItems(formData.from_location_id, warehouseSearchTerm);
     }
-  }, [formData.from_location_type, formData.from_location_id, dispatch]);
+  }, [formData.from_location_type, formData.from_location_id, dispatch, warehouseSearchTerm]);
 
   // Debounced search for warehouse items
   useEffect(() => {
@@ -149,7 +149,7 @@ const KitTransferForm = ({ show, onHide, sourceKitId = null, preSelectedItem = n
 
       return () => clearTimeout(timer);
     }
-  }, [warehouseSearchTerm]);
+  }, [formData.from_location_type, formData.from_location_id, warehouseSearchTerm]);
 
   // Pre-select item if provided
   useEffect(() => {

@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { Modal, Button, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
-import api from '../../services/api';
-import StandardBarcode from '../common/StandardBarcode';
+import { useState } from 'react';
+import { Modal, Button, Form, Tabs, Tab, Alert, Spinner } from 'react-bootstrap';
+import { FaPrint, FaDownload } from 'react-icons/fa';
 import {
-  generateToolBarcodeData,
-  getToolBarcodeFields
-} from '../../utils/barcodeFormatter';
-import {
-  generatePrintCSS
-} from '../../utils/labelSizeConfig';
+  generateToolLabel,
+  printPdfLabel,
+  downloadPdfLabel,
+  LABEL_SIZES,
+  CODE_TYPES,
+} from '../../utils/barcodeService';
 
 /**
  * Component for displaying and printing a tool barcode and QR code
@@ -19,155 +18,163 @@ import {
  * @param {Object} props.tool - The tool data to generate barcode/QR code for
  */
 const ToolBarcode = ({ show, onHide, tool }) => {
-  const barcodeContainerRef = useRef(null);
-  const qrCodeContainerRef = useRef(null);
-
-  const [barcodeData, setBarcodeData] = useState(null);
+  const [labelSize, setLabelSize] = useState('4x6');
+  const [codeType, setCodeType] = useState('barcode');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [labelSize, setLabelSize] = useState('4x6');
 
-  // Fetch barcode data including calibration information
-  useEffect(() => {
-    const fetchBarcodeData = async () => {
-      if (show && tool) {
-        setLoading(true);
-        setError(null);
-        try {
-          const response = await api.get(`/tools/${tool.id}/barcode`);
-          setBarcodeData(response.data);
-        } catch (err) {
-          console.error('Error fetching barcode data:', err);
-          setError('Failed to load barcode data');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
+  // Handle print button click
+  const handlePrint = async () => {
+    if (!tool) return;
 
-    fetchBarcodeData();
-  }, [show, tool]);
+    setLoading(true);
+    setError(null);
 
-  // Handle label size change
-  const handleLabelSizeChange = (newSize) => {
-    setLabelSize(newSize);
+    try {
+      const pdfBlob = await generateToolLabel(
+        tool.id,
+        labelSize,
+        codeType
+      );
+      printPdfLabel(pdfBlob, `tool-${tool.tool_number}-label.pdf`);
+    } catch (err) {
+      console.error('Error printing label:', err);
+      setError('Failed to generate label. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Generic print function to handle both barcode and QR code printing
-  const handlePrint = (type, containerRef) => {
-    if (!containerRef.current || !barcodeData || !tool) return;
+  // Handle download button click
+  const handleDownload = async () => {
+    if (!tool) return;
 
-    const printWindow = window.open('', '_blank');
-    const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
+    setLoading(true);
+    setError(null);
 
-    // Generate CSS for selected label size
-    const printCSS = generatePrintCSS(labelSize, false);
-
-    // The containerRef already contains the complete barcode card with logo, title, code, and fields
-    // We just need to wrap it in the print CSS
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Tool ${typeCapitalized} - ${tool.tool_number}</title>
-          <style>
-            ${printCSS}
-          </style>
-        </head>
-        <body>
-          ${containerRef.current.innerHTML}
-          <div style="text-align: center; margin-top: 10px;">
-            <button onclick="window.print(); window.close();">Print Label</button>
-          </div>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
+    try {
+      const pdfBlob = await generateToolLabel(
+        tool.id,
+        labelSize,
+        codeType
+      );
+      downloadPdfLabel(pdfBlob, `tool-${tool.tool_number}-label.pdf`);
+    } catch (err) {
+      console.error('Error downloading label:', err);
+      setError('Failed to generate label. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // Handle print button click for barcode
-  const handlePrintBarcode = () => handlePrint('barcode', barcodeContainerRef);
-
-  // Handle print button click for QR code
-  const handlePrintQRCode = () => handlePrint('qr code', qrCodeContainerRef);
 
   if (!tool) return null;
-
-  // Prepare data for StandardBarcode component
-  const completeToolData = barcodeData ? {
-    ...tool,
-    ...barcodeData,
-    created_at: barcodeData.created_at || tool.created_at
-  } : tool;
-
-  const barcodeString = barcodeData ? barcodeData.barcode_data : generateToolBarcodeData(tool);
-  const fields = barcodeData ? getToolBarcodeFields(completeToolData, barcodeData.calibration) : [];
-  const title = barcodeData
-    ? `${tool.tool_number} - ${barcodeData.lot_number ? `LOT: ${barcodeData.lot_number}` : `S/N: ${tool.serial_number}`}`
-    : `${tool.tool_number}`;
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>Tool Identification</Modal.Title>
+        <Modal.Title>Tool Barcode Label</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {loading && (
-          <div className="text-center p-4">
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-            <p className="mt-2">Loading barcode data...</p>
-          </div>
-        )}
-
         {error && (
-          <Alert variant="danger">
+          <Alert variant="danger" dismissible onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {!loading && !error && barcodeData && (
-          <Tabs defaultActiveKey="barcode" id="tool-code-tabs" className="mb-3">
-            <Tab eventKey="barcode" title="Barcode">
-              <StandardBarcode
-                type="barcode"
-                barcodeData={barcodeString}
-                title={title}
-                fields={fields}
-                containerRef={barcodeContainerRef}
-                onLabelSizeChange={handleLabelSizeChange}
-              />
-              <div className="text-center mt-3">
-                <Button variant="primary" onClick={handlePrintBarcode}>
-                  <i className="bi bi-printer me-2"></i>
-                  Print Barcode Label
-                </Button>
-              </div>
-            </Tab>
+        <div className="mb-4">
+          <h5 className="mb-3">Label Configuration</h5>
 
-            <Tab eventKey="qrcode" title="QR Code">
-              <StandardBarcode
-                type="qrcode"
-                qrUrl={barcodeData.qr_url}
-                title={title}
-                fields={fields}
-                containerRef={qrCodeContainerRef}
-                onLabelSizeChange={handleLabelSizeChange}
-              />
-              <div className="text-center mt-3">
-                <Button variant="primary" onClick={handlePrintQRCode}>
-                  <i className="bi bi-printer me-2"></i>
-                  Print QR Code Label
-                </Button>
+          {/* Label Size Selection */}
+          <Form.Group className="mb-3">
+            <Form.Label>Label Size</Form.Label>
+            <Form.Select
+              value={labelSize}
+              onChange={(e) => setLabelSize(e.target.value)}
+              disabled={loading}
+            >
+              {Object.values(LABEL_SIZES).map((size) => (
+                <option key={size.id} value={size.id}>
+                  {size.name} - {size.description}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+
+          {/* Code Type Selection */}
+          <Form.Group className="mb-3">
+            <Form.Label>Code Type</Form.Label>
+            <Tabs
+              activeKey={codeType}
+              onSelect={(k) => setCodeType(k)}
+              className="mb-3"
+            >
+              {Object.values(CODE_TYPES).map((type) => (
+                <Tab
+                  key={type.id}
+                  eventKey={type.id}
+                  title={type.name}
+                  disabled={loading}
+                >
+                  <p className="text-muted small">{type.description}</p>
+                </Tab>
+              ))}
+            </Tabs>
+          </Form.Group>
+
+          {/* Item Information */}
+          <div className="border rounded p-3 item-info-section">
+            <h6 className="mb-2">Item Information</h6>
+            <div className="row">
+              <div className="col-md-6">
+                <strong>Tool Number:</strong> {tool.tool_number}
               </div>
-            </Tab>
-          </Tabs>
-        )}
+              <div className="col-md-6">
+                <strong>Serial/Lot:</strong> {tool.serial_number || tool.lot_number || 'N/A'}
+              </div>
+              <div className="col-12 mt-2">
+                <strong>Description:</strong> {tool.description || 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+        <Button variant="secondary" onClick={onHide} disabled={loading}>
           Close
+        </Button>
+        <Button
+          variant="info"
+          onClick={handleDownload}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FaDownload className="me-2" />
+              Download PDF
+            </>
+          )}
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handlePrint}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FaPrint className="me-2" />
+              Print Label
+            </>
+          )}
         </Button>
       </Modal.Footer>
     </Modal>
