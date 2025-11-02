@@ -305,9 +305,13 @@ export const fetchInventoryReport = createAsyncThunk(
 
 export const fetchIssuanceReport = createAsyncThunk(
   'kits/fetchIssuanceReport',
-  async ({ kitId, filters = {} }, { rejectWithValue }) => {
+  async ({ kitId = null, filters = {} }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kits/${kitId}/issuances`, { params: filters });
+      // Use different endpoint based on whether we're fetching for a specific kit or all kits
+      const endpoint = kitId ? `/kits/${kitId}/issuances` : '/kits/issuances';
+      const params = kitId ? filters : { ...filters, kit_id: undefined };
+
+      const response = await api.get(endpoint, { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch issuance report' });

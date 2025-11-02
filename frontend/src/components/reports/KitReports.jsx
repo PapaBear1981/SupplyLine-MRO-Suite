@@ -92,9 +92,11 @@ const KitReports = () => {
         dispatch(fetchInventoryReport(reportFilters));
         break;
       case 'issuances':
-        if (filters.kitId) {
-          dispatch(fetchIssuanceReport({ kitId: filters.kitId, filters: reportFilters }));
-        }
+        // Fetch issuances for specific kit or all kits based on filter
+        dispatch(fetchIssuanceReport({
+          kitId: filters.kitId || null,
+          filters: reportFilters
+        }));
         break;
       case 'transfers':
         dispatch(fetchTransferReport(reportFilters));
@@ -405,17 +407,16 @@ const KitReports = () => {
               </small>
             </Card.Header>
             <Card.Body>
-              {!filters.kitId ? (
+              {issuanceReport.length === 0 ? (
                 <Alert variant="info">
-                  Please select a kit from the filters above to view issuance history
+                  No issuance data available {filters.kitId ? 'for this kit' : 'for the selected filters'}
                 </Alert>
-              ) : issuanceReport.length === 0 ? (
-                <Alert variant="info">No issuance data available for this kit</Alert>
               ) : (
                 <Table striped bordered hover responsive>
                   <thead>
                     <tr>
                       <th>Date</th>
+                      {!filters.kitId && <th>Kit</th>}
                       <th>Item Type</th>
                       <th>Description</th>
                       <th>Quantity</th>
@@ -428,6 +429,7 @@ const KitReports = () => {
                     {issuanceReport.map((issuance) => (
                       <tr key={issuance.id}>
                         <td>{new Date(issuance.issued_date).toLocaleDateString()}</td>
+                        {!filters.kitId && <td>{issuance.kit_name || `Kit ${issuance.kit_id}`}</td>}
                         <td>
                           <Badge bg="secondary">{issuance.item_type}</Badge>
                         </td>

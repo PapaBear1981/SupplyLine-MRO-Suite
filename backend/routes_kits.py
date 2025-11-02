@@ -1055,11 +1055,48 @@ def register_kit_routes(app):
 
         return jsonify(issuance.to_dict()), 201
 
+    @app.route("/api/kits/issuances", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def get_all_kit_issuances():
+        """Get issuance history across all kits or filtered by parameters"""
+        from models_kits import KitIssuance
+
+        # Optional filtering
+        kit_id = request.args.get("kit_id", type=int)
+        aircraft_type_id = request.args.get("aircraft_type_id", type=int)
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+
+        # Start with base query joining Kit for filtering and kit_name
+        query = db.session.query(KitIssuance).join(Kit, KitIssuance.kit_id == Kit.id)
+
+        # Apply filters
+        if kit_id:
+            query = query.filter(KitIssuance.kit_id == kit_id)
+        if aircraft_type_id:
+            query = query.filter(Kit.aircraft_type_id == aircraft_type_id)
+        if start_date:
+            query = query.filter(KitIssuance.issued_date >= start_date)
+        if end_date:
+            query = query.filter(KitIssuance.issued_date <= end_date)
+
+        issuances = query.order_by(KitIssuance.issued_date.desc()).all()
+
+        # Convert to dict and add kit_name
+        result = []
+        for issuance in issuances:
+            issuance_dict = issuance.to_dict()
+            issuance_dict['kit_name'] = issuance.kit.name if issuance.kit else None
+            result.append(issuance_dict)
+
+        return jsonify(result), 200
+
     @app.route("/api/kits/<int:kit_id>/issuances", methods=["GET"])
     @jwt_required
     @handle_errors
     def get_kit_issuances(kit_id):
-        """Get issuance history for a kit"""
+        """Get issuance history for a specific kit"""
         from models_kits import KitIssuance
 
         Kit.query.get_or_404(kit_id)
