@@ -21,6 +21,7 @@ import {
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChemicalBarcode from '../components/chemicals/ChemicalBarcode';
 import ChemicalReturnHistory from '../components/chemicals/ChemicalReturnHistory';
+import './ChemicalReturnPage.css';
 
 const ChemicalReturnPage = () => {
   const { id } = useParams();
@@ -306,7 +307,9 @@ const ChemicalReturnPage = () => {
                     </p>
                     <p className="mb-1">
                       <strong>Remaining to Return:</strong>{' '}
-                      {remainingQuantity ?? '—'}
+                      <span className={`badge ${remainingQuantity === 0 ? 'bg-success' : 'bg-warning text-dark'} quantity-badge`}>
+                        {remainingQuantity ?? '—'}
+                      </span>
                     </p>
                   </Col>
                 </Row>
@@ -316,16 +319,28 @@ const ChemicalReturnPage = () => {
                     <Col md={4}>
                       <Form.Group controlId="returnQuantity">
                         <Form.Label>Quantity to Return*</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="quantity"
-                          value={formData.quantity}
-                          min={1}
-                          max={remainingQuantity ?? undefined}
-                          disabled={returnSubmitting || remainingQuantity === 0}
-                          required
-                          onChange={handleFormChange}
-                        />
+                        <InputGroup>
+                          <Form.Control
+                            type="number"
+                            name="quantity"
+                            value={formData.quantity}
+                            min={1}
+                            max={remainingQuantity ?? undefined}
+                            disabled={returnSubmitting || remainingQuantity === 0}
+                            required
+                            onChange={handleFormChange}
+                          />
+                          {remainingQuantity > 0 && (
+                            <Button
+                              variant="outline-primary"
+                              onClick={() => setFormData({ ...formData, quantity: remainingQuantity.toString() })}
+                              disabled={returnSubmitting}
+                              title="Return all remaining quantity"
+                            >
+                              All
+                            </Button>
+                          )}
+                        </InputGroup>
                         <Form.Control.Feedback type="invalid">
                           Please enter a valid quantity.
                         </Form.Control.Feedback>
@@ -378,24 +393,41 @@ const ChemicalReturnPage = () => {
                     </Col>
                   </Row>
 
-                  <div className="d-flex justify-content-end mt-4">
-                    <Button
-                      type="submit"
-                      variant="success"
-                      disabled={returnSubmitting || remainingQuantity === 0}
-                    >
-                      {returnSubmitting ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Recording Return...
-                        </>
-                      ) : (
-                        <>
-                          <FaBarcode className="me-2" />
-                          Complete Return
-                        </>
-                      )}
-                    </Button>
+                  <div className="d-flex justify-content-between align-items-center mt-4">
+                    {remainingQuantity > 0 && (
+                      <Button
+                        variant="outline-secondary"
+                        className="btn-return-all"
+                        onClick={() => {
+                          setFormData({ ...formData, quantity: remainingQuantity.toString() });
+                          // Scroll to quantity field to show the change
+                          document.getElementById('returnQuantity')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        disabled={returnSubmitting}
+                      >
+                        <FaUndo className="me-2" />
+                        Return All ({remainingQuantity})
+                      </Button>
+                    )}
+                    <div className="ms-auto">
+                      <Button
+                        type="submit"
+                        variant="success"
+                        disabled={returnSubmitting || remainingQuantity === 0}
+                      >
+                        {returnSubmitting ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-2" />
+                            Recording Return...
+                          </>
+                        ) : (
+                          <>
+                            <FaBarcode className="me-2" />
+                            Complete Return
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </Form>
               </Card.Body>
