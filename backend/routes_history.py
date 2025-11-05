@@ -12,7 +12,17 @@ from flask import jsonify, request
 from sqlalchemy import and_, or_
 
 from auth import jwt_required
-from models import AuditLog, Checkout, Chemical, ChemicalIssuance, InventoryTransaction, Tool, Warehouse, WarehouseTransfer
+from models import (
+    AuditLog,
+    Checkout,
+    Chemical,
+    ChemicalIssuance,
+    ChemicalReturn,
+    InventoryTransaction,
+    Tool,
+    Warehouse,
+    WarehouseTransfer,
+)
 from models_kits import Kit, KitExpendable, KitIssuance, KitItem, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
 
@@ -485,6 +495,29 @@ def _build_item_history(item, item_type, identifier, tracking_number):
                     "quantity": issuance.quantity,
                     "hangar": issuance.hangar,
                     "purpose": issuance.purpose
+                }
+            })
+
+        returns = ChemicalReturn.query.filter_by(chemical_id=item.id).order_by(ChemicalReturn.return_date.asc()).all()
+
+        for chem_return in returns:
+            from models import User
+
+            user = User.query.get(chem_return.returned_by_id)
+
+            history_events.append({
+                "event_type": "return",
+                "timestamp": chem_return.return_date.isoformat() if chem_return.return_date else None,
+                "description": (
+                    f'Returned {chem_return.quantity} {item.unit} to '
+                    f'{chem_return.warehouse.name if chem_return.warehouse else chem_return.location or "Unknown Location"}'
+                ),
+                "user": user.name if user else "Unknown User",
+                "details": {
+                    "quantity": chem_return.quantity,
+                    "warehouse": chem_return.warehouse.name if chem_return.warehouse else None,
+                    "location": chem_return.location,
+                    "notes": chem_return.notes,
                 }
             })
 

@@ -90,6 +90,39 @@ const ChemicalService = {
     }
   },
 
+  // Lookup issued chemical for returns
+  lookupChemicalReturn: async (payload) => {
+    try {
+      const response = await api.post('/chemicals/returns/lookup', payload);
+      return response.data;
+    } catch (error) {
+      console.error('API Error [POST] /chemicals/returns/lookup:', error);
+      throw error;
+    }
+  },
+
+  // Submit a chemical return
+  returnChemical: async (id, data) => {
+    try {
+      const response = await api.post(`/chemicals/${id}/return`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [POST] /chemicals/${id}/return:`, error);
+      throw error;
+    }
+  },
+
+  // Get chemical return history
+  getChemicalReturns: async (id) => {
+    try {
+      const response = await api.get(`/chemicals/${id}/returns`);
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [GET] /chemicals/${id}/returns:`, error);
+      throw error;
+    }
+  },
+
   // Get all issuances
   getAllIssuances: async (filters = {}) => {
     try {

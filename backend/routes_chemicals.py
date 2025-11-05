@@ -5,7 +5,16 @@ from flask import current_app, jsonify, request
 from sqlalchemy.orm import joinedload
 
 from auth import department_required, jwt_required
-from models import AuditLog, Chemical, ChemicalIssuance, User, UserActivity, db
+from models import (
+    AuditLog,
+    Chemical,
+    ChemicalIssuance,
+    ChemicalReturn,
+    User,
+    UserActivity,
+    Warehouse,
+    db,
+)
 from utils.error_handler import ValidationError, handle_errors
 from utils.validation import validate_lot_number_format, validate_schema, validate_warehouse_id
 
@@ -444,6 +453,230 @@ def register_chemical_routes(app):
             response_data["child_chemical"] = child_chemical.to_dict()
 
         return jsonify(response_data)
+
+    def _parse_chemical_barcode(code):
+        """Parse a chemical barcode into part and lot numbers."""
+        if not code or not isinstance(code, str):
+            raise ValidationError("Barcode value is required")
+
+        parts = code.split("-")
+        if len(parts) < 2:
+            raise ValidationError("Unable to parse barcode. Please scan a chemical label")
+
+        if len(parts) >= 3:
+            lot_number = parts[-2]
+            part_number = "-".join(parts[:-2])
+        else:
+            lot_number = parts[-1]
+            part_number = parts[0]
+
+        if not part_number or not lot_number:
+            raise ValidationError("Invalid barcode data")
+
+        return part_number, lot_number
+
+    # Lookup issued chemical information for returns
+    @app.route("/api/chemicals/returns/lookup", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def chemical_return_lookup():
+        data = request.get_json() or {}
+
+        chemical_id = data.get("chemical_id")
+        code = data.get("code")
+
+        if not chemical_id and not code:
+            raise ValidationError("Chemical ID or barcode is required")
+
+        if chemical_id:
+            chemical = Chemical.query.get_or_404(chemical_id)
+        else:
+            part_number, lot_number = _parse_chemical_barcode(code)
+            chemical = Chemical.query.filter_by(
+                part_number=part_number,
+                lot_number=lot_number,
+            ).first()
+            if not chemical:
+                raise ValidationError("No chemical found for the provided barcode")
+
+        issuance = (
+            ChemicalIssuance.query.filter_by(chemical_id=chemical.id)
+            .order_by(ChemicalIssuance.issue_date.desc())
+            .first()
+        )
+
+        if not issuance:
+            raise ValidationError("This lot does not have any issuance history")
+
+        returns = (
+            ChemicalReturn.query.filter_by(issuance_id=issuance.id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        total_returned = sum(ret.quantity for ret in returns)
+        remaining_quantity = max(issuance.quantity - total_returned, 0)
+
+        response = {
+            "chemical": chemical.to_dict(),
+            "issuance": issuance.to_dict(),
+            "returns": [ret.to_dict() for ret in returns],
+            "remaining_quantity": remaining_quantity,
+            "default_warehouse_id": chemical.warehouse_id,
+            "default_location": chemical.location,
+        }
+
+        return jsonify(response)
+
+    # Process a chemical return
+    @app.route("/api/chemicals/<int:id>/return", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def chemical_return_route(id):
+        chemical = Chemical.query.get_or_404(id)
+        data = request.get_json() or {}
+
+        issuance_id = data.get("issuance_id")
+        if not issuance_id:
+            raise ValidationError("Issuance ID is required")
+
+        issuance = ChemicalIssuance.query.get(issuance_id)
+        if not issuance or issuance.chemical_id != chemical.id:
+            raise ValidationError("Issuance does not match the selected chemical")
+
+        quantity = data.get("quantity")
+        try:
+            quantity = int(quantity)
+        except (TypeError, ValueError):
+            raise ValidationError("Quantity must be a whole number")
+
+        if quantity <= 0:
+            raise ValidationError("Quantity must be greater than zero")
+
+        total_returned = sum(ret.quantity for ret in issuance.returns)
+        remaining_quantity = issuance.quantity - total_returned
+
+        if quantity > remaining_quantity:
+            raise ValidationError(
+                f"Cannot return more than the outstanding issued quantity ({remaining_quantity})"
+            )
+
+        warehouse_id = data.get("warehouse_id", chemical.warehouse_id)
+        warehouse = None
+        if warehouse_id:
+            warehouse = Warehouse.query.get(warehouse_id)
+            if not warehouse:
+                raise ValidationError("Selected warehouse does not exist")
+            if not warehouse.is_active:
+                raise ValidationError("Selected warehouse is inactive")
+
+        location = data.get("location") or chemical.location
+        notes = data.get("notes")
+
+        chemical.quantity = (chemical.quantity or 0) + quantity
+        chemical.location = location
+        chemical.warehouse_id = warehouse_id
+
+        if chemical.quantity > 0:
+            chemical.status = "available"
+        if chemical.minimum_stock_level and chemical.quantity <= chemical.minimum_stock_level:
+            chemical.status = "low_stock"
+
+        try:
+            if hasattr(chemical, "needs_reorder") and chemical.quantity is not None:
+                if chemical.quantity > 0 and (
+                    not chemical.minimum_stock_level or chemical.quantity > chemical.minimum_stock_level
+                ):
+                    chemical.needs_reorder = False
+                    if hasattr(chemical, "reorder_status"):
+                        chemical.reorder_status = "not_needed"
+        except Exception:
+            logger.exception("Failed to reset reorder state after return")
+
+        try:
+            chemical.update_reorder_status()
+        except Exception:
+            logger.exception("Failed to update reorder status after return")
+
+        chemical_return = ChemicalReturn(
+            chemical_id=chemical.id,
+            issuance_id=issuance.id,
+            returned_by_id=request.current_user.get("user_id"),
+            quantity=quantity,
+            warehouse_id=warehouse_id,
+            location=location,
+            notes=notes,
+        )
+
+        db.session.add(chemical_return)
+
+        from utils.transaction_helper import record_chemical_return
+
+        try:
+            record_chemical_return(
+                chemical_id=chemical.id,
+                user_id=request.current_user.get("user_id"),
+                quantity=quantity,
+                location_from=issuance.hangar,
+                location_to=location or (warehouse.name if warehouse else None),
+                notes=notes,
+            )
+        except Exception as exc:
+            logger.exception("Error recording chemical return transaction: %s", exc)
+
+        log = AuditLog(
+            action_type="chemical_returned",
+            action_details=(
+                f"Chemical {chemical.part_number} - {chemical.lot_number} returned: {quantity} {chemical.unit}"
+            ),
+        )
+        db.session.add(log)
+
+        if hasattr(request, "current_user"):
+            activity = UserActivity(
+                user_id=request.current_user.get("user_id"),
+                activity_type="chemical_returned",
+                description=(
+                    f"Returned {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
+                ),
+            )
+            db.session.add(activity)
+
+        db.session.commit()
+
+        returns = (
+            ChemicalReturn.query.filter_by(issuance_id=issuance.id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        total_returned = sum(ret.quantity for ret in returns)
+        remaining_quantity = max(issuance.quantity - total_returned, 0)
+
+        response = {
+            "chemical": chemical.to_dict(),
+            "return": chemical_return.to_dict(),
+            "issuance": issuance.to_dict(),
+            "returns": [ret.to_dict() for ret in returns],
+            "remaining_quantity": remaining_quantity,
+        }
+
+        return jsonify(response), 201
+
+    # Get return history for a chemical
+    @app.route("/api/chemicals/<int:id>/returns", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_returns_route(id):
+        Chemical.query.get_or_404(id)
+
+        returns = (
+            ChemicalReturn.query.filter_by(chemical_id=id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        return jsonify([ret.to_dict() for ret in returns])
 
     # Get issuance history for a chemical
     @app.route("/api/chemicals/<int:id>/issuances", methods=["GET"])

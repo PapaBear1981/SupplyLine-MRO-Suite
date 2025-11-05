@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Card, Row, Col, Badge, Alert, Tab, Tabs, Form, Modal } from 'react-bootstrap';
-import { fetchChemicalById, fetchChemicalIssuances, archiveChemical } from '../store/chemicalsSlice';
+import {
+  fetchChemicalById,
+  fetchChemicalIssuances,
+  fetchChemicalReturns,
+  archiveChemical,
+} from '../store/chemicalsSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChemicalIssuanceHistory from '../components/chemicals/ChemicalIssuanceHistory';
+import ChemicalReturnHistory from '../components/chemicals/ChemicalReturnHistory';
 import ChemicalBarcode from '../components/chemicals/ChemicalBarcode';
 import ConfirmModal from '../components/common/ConfirmModal';
 
@@ -12,7 +18,15 @@ const ChemicalDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { currentChemical, loading, error, issuances, issuanceLoading } = useSelector((state) => state.chemicals);
+  const {
+    currentChemical,
+    loading,
+    error,
+    issuances,
+    issuanceLoading,
+    returns,
+    returnsLoading,
+  } = useSelector((state) => state.chemicals);
   const { user } = useSelector((state) => state.auth);
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
 
@@ -26,6 +40,7 @@ const ChemicalDetailPage = () => {
     if (id) {
       dispatch(fetchChemicalById(id));
       dispatch(fetchChemicalIssuances(id));
+      dispatch(fetchChemicalReturns(id));
     }
   }, [dispatch, id]);
 
@@ -120,6 +135,12 @@ const ChemicalDetailPage = () => {
                 Issue Chemical
               </Button>
               <Button
+                variant="outline-success"
+                onClick={() => navigate(`/chemicals/${id}/return`)}
+              >
+                Return Chemical
+              </Button>
+              <Button
                 variant="info"
                 onClick={() => setShowBarcodeModal(true)}
               >
@@ -210,9 +231,14 @@ const ChemicalDetailPage = () => {
       <Tabs defaultActiveKey="issuances" className="mb-3">
         <Tab eventKey="issuances" title="Issuance History">
           <ChemicalIssuanceHistory
-            chemicalId={id}
             issuances={issuances[id] || []}
             loading={issuanceLoading}
+          />
+        </Tab>
+        <Tab eventKey="returns" title="Return History">
+          <ChemicalReturnHistory
+            returns={returns[id] || []}
+            loading={returnsLoading}
           />
         </Tab>
       </Tabs>

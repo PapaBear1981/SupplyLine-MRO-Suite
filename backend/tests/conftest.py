@@ -256,14 +256,12 @@ def sample_chemical(db_session, admin_user, test_warehouse):
         lot_number="L001",
         description="Test Chemical",
         manufacturer="Test Manufacturer",
-        quantity=100.0,
+        quantity=100,
         unit="ml",
         location="Test Location",
         category="Testing",
         status="available",
         warehouse_id=test_warehouse.id,
-        created_by=admin_user.id,
-        created_at=datetime.utcnow()
     )
     db_session.add(chemical)
     db_session.commit()

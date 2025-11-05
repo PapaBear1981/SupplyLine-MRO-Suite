@@ -228,6 +228,94 @@ class TestChemicalRoutes:
         chemical = Chemical.query.filter_by(part_number="C002").first()
         assert chemical is not None
 
+    def test_lookup_return_context(self, client, auth_headers, sample_chemical, regular_user):
+        """Lookup issued chemical details for return workflow"""
+        issue_payload = {
+            "quantity": 10,
+            "hangar": "Line A",
+            "purpose": "Testing",
+            "user_id": regular_user.id,
+        }
+
+        issue_response = client.post(
+            f"/api/chemicals/{sample_chemical.id}/issue",
+            json=issue_payload,
+            headers=auth_headers,
+        )
+
+        assert issue_response.status_code == 200
+        issued_data = json.loads(issue_response.data)
+        child_chemical = issued_data.get("child_chemical")
+
+        assert child_chemical is not None
+
+        lookup_response = client.post(
+            "/api/chemicals/returns/lookup",
+            json={"chemical_id": child_chemical["id"]},
+            headers=auth_headers,
+        )
+
+        assert lookup_response.status_code == 200
+        lookup_data = json.loads(lookup_response.data)
+
+        assert lookup_data["remaining_quantity"] == 10
+        assert lookup_data["default_warehouse_id"] == sample_chemical.warehouse_id
+        assert lookup_data["issuance"]["id"] == issued_data["issuance"]["id"]
+
+    def test_return_partial_quantity(self, client, auth_headers, sample_chemical, regular_user):
+        """Return a portion of an issued chemical lot"""
+        issue_payload = {
+            "quantity": 10,
+            "hangar": "Line A",
+            "purpose": "Testing",
+            "user_id": regular_user.id,
+        }
+
+        issue_response = client.post(
+            f"/api/chemicals/{sample_chemical.id}/issue",
+            json=issue_payload,
+            headers=auth_headers,
+        )
+
+        issued_data = json.loads(issue_response.data)
+        child_chemical = issued_data["child_chemical"]
+        issuance_id = issued_data["issuance"]["id"]
+
+        return_payload = {
+            "issuance_id": issuance_id,
+            "quantity": 4,
+            "warehouse_id": sample_chemical.warehouse_id,
+            "location": "Line A Storage",
+            "notes": "Partial return",
+        }
+
+        return_response = client.post(
+            f"/api/chemicals/{child_chemical['id']}/return",
+            json=return_payload,
+            headers=auth_headers,
+        )
+
+        assert return_response.status_code == 201
+        return_data = json.loads(return_response.data)
+
+        assert return_data["remaining_quantity"] == 6
+        assert return_data["return"]["quantity"] == 4
+
+        updated_child = Chemical.query.get(child_chemical["id"])
+        assert updated_child.quantity == 4
+        assert updated_child.location == "Line A Storage"
+
+        history_response = client.get(
+            f"/api/chemicals/{child_chemical['id']}/returns",
+            headers=auth_headers,
+        )
+
+        assert history_response.status_code == 200
+        history = json.loads(history_response.data)
+
+        assert len(history) == 1
+        assert history[0]["notes"] == "Partial return"
+
 
 class TestUserRoutes:
     """Test user management routes"""
