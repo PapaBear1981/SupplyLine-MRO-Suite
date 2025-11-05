@@ -135,12 +135,6 @@ const ChemicalDetailPage = () => {
                 Issue Chemical
               </Button>
               <Button
-                variant="outline-success"
-                onClick={() => navigate(`/chemicals/${id}/return`)}
-              >
-                Return Chemical
-              </Button>
-              <Button
                 variant="info"
                 onClick={() => setShowBarcodeModal(true)}
               >

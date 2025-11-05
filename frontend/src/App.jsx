@@ -72,7 +72,6 @@ import ChemicalDetailPage from './pages/ChemicalDetailPage';
 import NewChemicalPage from './pages/NewChemicalPage';
 import EditChemicalPage from './pages/EditChemicalPage';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
-import ChemicalReturnPage from './pages/ChemicalReturnPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import CalibrationManagement from './pages/CalibrationManagement';
 import ToolCalibrationForm from './pages/ToolCalibrationForm';
@@ -286,22 +285,6 @@ function App() {
           <PermissionRoute permission="page.chemicals">
             <MainLayout>
               <ChemicalIssuePage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
-
-        <Route path="/chemicals/:id/return" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <ChemicalReturnPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
-
-        <Route path="/chemicals/return" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <ChemicalReturnPage />
             </MainLayout>
           </PermissionRoute>
         } />
