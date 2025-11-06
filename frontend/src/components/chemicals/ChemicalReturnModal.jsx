@@ -11,7 +11,7 @@ import {
   Row,
   Spinner,
 } from 'react-bootstrap';
-import { FaBarcode, FaSearch, FaUndo, FaTimes } from 'react-icons/fa';
+import { FaBarcode, FaSearch, FaUndo, FaTimes, FaKeyboard } from 'react-icons/fa';
 import api from '../../services/api';
 import {
   fetchChemicalReturns,
@@ -36,7 +36,10 @@ const ChemicalReturnModal = ({ show, onHide }) => {
     returnsLoading,
   } = useSelector((state) => state.chemicals);
 
+  const [entryMode, setEntryMode] = useState('barcode'); // 'barcode' or 'manual'
   const [barcodeValue, setBarcodeValue] = useState('');
+  const [partNumber, setPartNumber] = useState('');
+  const [lotNumber, setLotNumber] = useState('');
   const [warehouses, setWarehouses] = useState([]);
   const [warehousesLoading, setWarehousesLoading] = useState(false);
   const [warehousesError, setWarehousesError] = useState(null);
@@ -97,10 +100,21 @@ const ChemicalReturnModal = ({ show, onHide }) => {
 
   const handleLookup = (event) => {
     event.preventDefault();
-    if (!barcodeValue.trim()) {
-      return;
+
+    if (entryMode === 'barcode') {
+      if (!barcodeValue.trim()) {
+        return;
+      }
+      dispatch(lookupChemicalReturn({ code: barcodeValue.trim() }));
+    } else {
+      // Manual entry mode
+      if (!partNumber.trim() || !lotNumber.trim()) {
+        return;
+      }
+      // Construct barcode from part number and lot number
+      const constructedBarcode = `${partNumber.trim()}-${lotNumber.trim()}`;
+      dispatch(lookupChemicalReturn({ code: constructedBarcode }));
     }
-    dispatch(lookupChemicalReturn({ code: barcodeValue.trim() }));
   };
 
   const handleFormChange = (event) => {
@@ -150,6 +164,8 @@ const ChemicalReturnModal = ({ show, onHide }) => {
 
   const handleReset = () => {
     setBarcodeValue('');
+    setPartNumber('');
+    setLotNumber('');
     setFormData({ quantity: '', warehouse_id: '', location: '', notes: '' });
     setValidated(false);
   };
@@ -193,36 +209,99 @@ const ChemicalReturnModal = ({ show, onHide }) => {
             <Col lg={returnLookup ? 4 : 12}>
               <Card className="shadow-sm h-100 scan-card">
                 <Card.Header className="bg-light">
-                  <h5 className="mb-0">
-                    <FaBarcode className="me-2" /> Scan Issued Lot
-                  </h5>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">
+                      <FaBarcode className="me-2" /> Lookup Issued Lot
+                    </h5>
+                    <div className="btn-group btn-group-sm" role="group">
+                      <Button
+                        variant={entryMode === 'barcode' ? 'primary' : 'outline-primary'}
+                        onClick={() => setEntryMode('barcode')}
+                        size="sm"
+                      >
+                        <FaBarcode className="me-1" /> Barcode
+                      </Button>
+                      <Button
+                        variant={entryMode === 'manual' ? 'primary' : 'outline-primary'}
+                        onClick={() => setEntryMode('manual')}
+                        size="sm"
+                      >
+                        <FaKeyboard className="me-1" /> Manual
+                      </Button>
+                    </div>
+                  </div>
                 </Card.Header>
                 <Card.Body>
                   <Form onSubmit={handleLookup}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Barcode or Lot Code</Form.Label>
-                      <InputGroup>
-                        <InputGroup.Text>
-                          <FaSearch />
-                        </InputGroup.Text>
-                        <Form.Control
-                          type="text"
-                          value={barcodeValue}
-                          placeholder="Scan or enter barcode"
-                          onChange={(event) => setBarcodeValue(event.target.value)}
-                          disabled={returnLookupLoading}
-                          autoFocus
-                        />
-                      </InputGroup>
-                      <Form.Text className="text-muted">
-                        Use a scanner to populate this field automatically.
-                      </Form.Text>
-                    </Form.Group>
+                    {entryMode === 'barcode' ? (
+                      <Form.Group className="mb-3">
+                        <Form.Label>Barcode or Lot Code</Form.Label>
+                        <InputGroup>
+                          <InputGroup.Text>
+                            <FaSearch />
+                          </InputGroup.Text>
+                          <Form.Control
+                            type="text"
+                            value={barcodeValue}
+                            placeholder="Scan or enter barcode"
+                            onChange={(event) => setBarcodeValue(event.target.value)}
+                            disabled={returnLookupLoading}
+                            autoFocus
+                          />
+                        </InputGroup>
+                        <Form.Text className="text-muted">
+                          Use a scanner to populate this field automatically.
+                        </Form.Text>
+                      </Form.Group>
+                    ) : (
+                      <>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Part Number</Form.Label>
+                          <InputGroup>
+                            <InputGroup.Text>
+                              <FaKeyboard />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              value={partNumber}
+                              placeholder="Enter part number (e.g., AMS-1424)"
+                              onChange={(event) => setPartNumber(event.target.value)}
+                              disabled={returnLookupLoading}
+                              autoFocus
+                            />
+                          </InputGroup>
+                          <Form.Text className="text-muted">
+                            Enter the chemical part number.
+                          </Form.Text>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Lot Number</Form.Label>
+                          <InputGroup>
+                            <InputGroup.Text>
+                              <FaKeyboard />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              value={lotNumber}
+                              placeholder="Enter lot number (e.g., LOT-251102-0001-A)"
+                              onChange={(event) => setLotNumber(event.target.value)}
+                              disabled={returnLookupLoading}
+                            />
+                          </InputGroup>
+                          <Form.Text className="text-muted">
+                            Enter the lot number exactly as shown on the label.
+                          </Form.Text>
+                        </Form.Group>
+                      </>
+                    )}
                     <div className="d-flex justify-content-between">
                       <Button
                         type="submit"
                         variant="primary"
-                        disabled={returnLookupLoading || !barcodeValue.trim()}
+                        disabled={
+                          returnLookupLoading ||
+                          (entryMode === 'barcode' ? !barcodeValue.trim() : (!partNumber.trim() || !lotNumber.trim()))
+                        }
                         className="action-button"
                       >
                         {returnLookupLoading ? (
