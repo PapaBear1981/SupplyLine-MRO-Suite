@@ -60,8 +60,6 @@ def app():
                 User as _User,
                 UserActivity as _UserActivity,
                 UserRole as _UserRole,
-            )
-            from models import (
                 db as _db,
             )
 

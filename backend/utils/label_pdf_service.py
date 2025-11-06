@@ -18,7 +18,7 @@ from .label_config import get_label_template_context
 def _get_weasyprint():
     """Lazy import WeasyPrint to avoid GTK dependency issues."""
     try:
-        from weasyprint import HTML, CSS
+        from weasyprint import CSS, HTML  # noqa: I001
         return HTML, CSS
     except (ImportError, OSError) as e:
         raise RuntimeError(
