@@ -52,29 +52,13 @@ def app():
             from auth import JWTManager as _JWTManager
             from models import (
                 AuditLog as _AuditLog,
-            )
-            from models import (
                 Chemical as _Chemical,
-            )
-            from models import (
-                Tool as _Tool,
-            )
-            from models import (
-                User as _User,
-            )
-            from models import (
-                UserActivity as _UserActivity,
-            )
-            from models import (
                 Permission as _Permission,
-            )
-            from models import (
                 Role as _Role,
-            )
-            from models import (
                 RolePermission as _RolePermission,
-            )
-            from models import (
+                Tool as _Tool,
+                User as _User,
+                UserActivity as _UserActivity,
                 UserRole as _UserRole,
             )
             from models import (

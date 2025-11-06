@@ -6,14 +6,10 @@ Jinja2 templates and WeasyPrint. Supports multiple label sizes and item types.
 """
 
 import os
-from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING
+from typing import Any, Literal
 
 from flask import current_app
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-
-# Lazy import WeasyPrint to avoid GTK dependency issues on Windows during testing
-if TYPE_CHECKING:
-    from weasyprint import CSS, HTML
 
 from .barcode_service import generate_barcode_for_label, generate_qr_code_for_label
 from .label_config import get_label_template_context
@@ -113,9 +109,14 @@ def generate_label_pdf(
         html_content = template.render(**context)
 
         # Generate PDF using WeasyPrint (lazy loaded)
-        HTML, CSS = _get_weasyprint()
-        html = HTML(string=html_content)
-        return html.write_pdf()
+        html_class, _ = _get_weasyprint()
+        html = html_class(string=html_content)
+        pdf_bytes = html.write_pdf()
+
+        if pdf_bytes is None:
+            raise RuntimeError("PDF generation returned None")
+
+        return pdf_bytes
 
     except Exception as e:
         raise RuntimeError(f"Failed to generate label PDF: {e!s}") from e
