@@ -17,22 +17,21 @@ class TestLoginRateLimiting:
 
         for attempt in range(max_attempts):
             login_data = {
-                'employee_number': test_user.employee_number,
-                'password': 'wrongpassword'
+                "employee_number": test_user.employee_number,
+                "password": "wrongpassword"
             }
 
-            response = client.post('/api/auth/login', json=login_data)
+            response = client.post("/api/auth/login", json=login_data)
 
             if response.status_code == 429:  # Rate limited
                 # Rate limiting is working
                 assert attempt >= 3, "Rate limiting should kick in after a few attempts"
                 break
-            elif response.status_code == 401:  # Unauthorized (normal failed login)
+            if response.status_code == 401:  # Unauthorized (normal failed login)
                 failed_attempts += 1
                 continue
-            else:
-                # Unexpected response
-                assert False, f"Unexpected response code: {response.status_code}"
+            # Unexpected response
+            raise AssertionError(f"Unexpected response code: {response.status_code}")
 
         # If we made it through all attempts without rate limiting,
         # that might be acceptable but should be documented
@@ -44,10 +43,10 @@ class TestLoginRateLimiting:
         # Make several failed attempts to trigger rate limiting
         for _ in range(5):
             login_data = {
-                'employee_number': test_user.employee_number,
-                'password': 'wrongpassword'
+                "employee_number": test_user.employee_number,
+                "password": "wrongpassword"
             }
-            response = client.post('/api/auth/login', json=login_data)
+            response = client.post("/api/auth/login", json=login_data)
 
             if response.status_code == 429:
                 # Rate limited - now test if it resets
@@ -58,10 +57,10 @@ class TestLoginRateLimiting:
 
         # Try a valid login
         login_data = {
-            'employee_number': test_user.employee_number,
-            'password': 'user123'  # Correct password for test_user fixture
+            "employee_number": test_user.employee_number,
+            "password": "user123"  # Correct password for test_user fixture
         }
-        response = client.post('/api/auth/login', json=login_data)
+        response = client.post("/api/auth/login", json=login_data)
 
         # Should be able to login with correct credentials
         # (unless rate limit window is longer than our wait time)
@@ -72,19 +71,18 @@ class TestLoginRateLimiting:
         # Make many failed login attempts
         for attempt in range(15):
             login_data = {
-                'employee_number': test_user.employee_number,
-                'password': 'wrongpassword'
+                "employee_number": test_user.employee_number,
+                "password": "wrongpassword"
             }
-            response = client.post('/api/auth/login', json=login_data)
+            response = client.post("/api/auth/login", json=login_data)
 
             # Check if account gets locked
             if response.status_code == 423:  # Locked
                 assert attempt >= 5, "Account should lock after several failed attempts"
                 break
-            elif response.status_code in [401, 429]:
+            if response.status_code in [401, 429]:
                 continue
-            else:
-                assert False, f"Unexpected response code: {response.status_code}"
+            raise AssertionError(f"Unexpected response code: {response.status_code}")
 
 
 class TestAPIRateLimiting:
@@ -96,17 +94,16 @@ class TestAPIRateLimiting:
         rate_limited = False
 
         for request_num in range(100):  # Make many requests quickly
-            response = client.get('/api/tools', headers=auth_headers)
+            response = client.get("/api/tools", headers=auth_headers)
 
             if response.status_code == 429:  # Rate limited
                 rate_limited = True
                 assert request_num >= 10, "Rate limiting should allow reasonable number of requests"
                 break
-            elif response.status_code == 200:
+            if response.status_code == 200:
                 continue
-            else:
-                # Other error codes are acceptable
-                break
+            # Other error codes are acceptable
+            break
 
         # Rate limiting might not be implemented, which is acceptable for internal tools
         if not rate_limited:
@@ -115,10 +112,10 @@ class TestAPIRateLimiting:
     def test_different_endpoints_separate_limits(self, client, auth_headers):
         """Test that different endpoints have separate rate limits"""
         endpoints = [
-            '/api/tools',
-            '/api/chemicals',
-            '/api/checkouts',
-            '/api/user/profile'
+            "/api/tools",
+            "/api/chemicals",
+            "/api/checkouts",
+            "/api/user/profile"
         ]
 
         # Make requests to different endpoints
@@ -138,14 +135,14 @@ class TestAPIRateLimiting:
 
     def test_rate_limit_headers(self, client, auth_headers):
         """Test that rate limit headers are present"""
-        response = client.get('/api/tools', headers=auth_headers)
+        response = client.get("/api/tools", headers=auth_headers)
 
         # Check for common rate limiting headers
         rate_limit_headers = [
-            'X-RateLimit-Limit',
-            'X-RateLimit-Remaining',
-            'X-RateLimit-Reset',
-            'Retry-After'
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset",
+            "Retry-After"
         ]
 
         has_rate_limit_headers = any(header in response.headers for header in rate_limit_headers)
@@ -161,28 +158,28 @@ class TestDDoSProtection:
         """Test handling of unusually large requests"""
         # Create a very large payload
         large_data = {
-            'tool_number': 'LARGE001',
-            'description': 'A' * 100000,  # Very long description
-            'condition': 'Good',
-            'location': 'Test Lab',
-            'category': 'Testing'
+            "tool_number": "LARGE001",
+            "description": "A" * 100000,  # Very long description
+            "condition": "Good",
+            "location": "Test Lab",
+            "category": "Testing"
         }
 
-        response = client.post('/api/tools', json=large_data, headers=auth_headers)
+        response = client.post("/api/tools", json=large_data, headers=auth_headers)
 
         # Should reject or handle large requests gracefully
         assert response.status_code in [400, 413, 422], "Should reject overly large requests"
 
     def test_concurrent_request_handling(self, client, auth_headers):
         """Test handling of many concurrent requests"""
-        import threading
         import queue
+        import threading
 
         results = queue.Queue()
 
         def make_request():
             try:
-                response = client.get('/api/tools', headers=auth_headers)
+                response = client.get("/api/tools", headers=auth_headers)
                 results.put(response.status_code)
             except Exception as e:
                 results.put(f"Error: {e}")
@@ -205,7 +202,7 @@ class TestDDoSProtection:
 
         # Most requests should succeed or be rate limited
         successful_requests = sum(1 for code in status_codes if code == 200)
-        rate_limited_requests = sum(1 for code in status_codes if code == 429)
+        sum(1 for code in status_codes if code == 429)
         error_requests = sum(1 for code in status_codes if isinstance(code, str))
 
         # Should handle concurrent requests without crashing
@@ -216,22 +213,22 @@ class TestDDoSProtection:
         """Test handling of malformed requests"""
         malformed_requests = [
             # Invalid JSON
-            ('POST', '/api/tools', 'invalid json{'),
+            ("POST", "/api/tools", "invalid json{"),
             # Missing content type
-            ('POST', '/api/tools', '{"valid": "json"}'),
+            ("POST", "/api/tools", '{"valid": "json"}'),
             # Empty body
-            ('POST', '/api/tools', ''),
+            ("POST", "/api/tools", ""),
             # Null bytes
-            ('POST', '/api/tools', '\x00\x01\x02'),
+            ("POST", "/api/tools", "\x00\x01\x02"),
         ]
 
         for method, endpoint, data in malformed_requests:
-            if method == 'POST':
+            if method == "POST":
                 response = client.post(
                     endpoint,
                     data=data,
                     headers=auth_headers,
-                    content_type='application/json'
+                    content_type="application/json"
                 )
 
             # Should handle malformed requests gracefully
@@ -252,20 +249,18 @@ class TestResourceExhaustion:
 
         for i in range(100):
             tool_data = {
-                'tool_number': f'MEM{i:03d}',
-                'description': f'Memory test tool {i}',
-                'condition': 'Good',
-                'location': 'Test Lab',
-                'category': 'Testing'
+                "tool_number": f"MEM{i:03d}",
+                "description": f"Memory test tool {i}",
+                "condition": "Good",
+                "location": "Test Lab",
+                "category": "Testing"
             }
 
-            response = client.post('/api/tools', json=tool_data, headers=auth_headers)
+            response = client.post("/api/tools", json=tool_data, headers=auth_headers)
 
             if response.status_code in [200, 201]:
                 created_objects += 1
-            elif response.status_code == 429:  # Rate limited
-                break
-            elif response.status_code in [400, 422]:  # Validation error
+            elif response.status_code == 429 or response.status_code in [400, 422]:  # Rate limited
                 break
             else:
                 # Other errors
@@ -282,7 +277,7 @@ class TestResourceExhaustion:
 
         # Make many database-intensive requests
         for _ in range(50):
-            response = client.get('/api/tools?search=test', headers=auth_headers)
+            response = client.get("/api/tools?search=test", headers=auth_headers)
 
             # Should not cause server errors even under load
             assert response.status_code != 500, \

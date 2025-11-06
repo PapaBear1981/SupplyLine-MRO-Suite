@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: {{ page_width }} {{ page_height }};
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            width: {{ page_width }};
+            height: {{ page_height }};
+            margin: 0;
+            padding: {{ padding }};
+            background: white;
+            color: #1a1a1a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .label-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #2c3e50;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        /* Header section */
+        .label-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: {{ header_padding }};
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid #3498db;
+            min-height: 0.5in;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: {{ logo_gap }};
+            flex-shrink: 0;
+        }
+
+        .logo-icon {
+            font-size: {{ logo_size }};
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .company-name {
+            font-size: {{ company_name_size }};
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .label-title {
+            font-size: {{ title_size }};
+            font-weight: 700;
+            text-align: right;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            max-width: 60%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* Content section */
+        .label-content {
+            flex: 1;
+            padding: {{ content_padding }};
+            display: flex;
+            flex-direction: column;
+            gap: {{ content_gap }};
+        }
+
+        /* Barcode section */
+        .barcode-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: {{ barcode_padding }};
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+        }
+
+        .barcode-section svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* QR code specific sizing - keep it compact */
+        .barcode-section svg[viewBox*="0 0"] {
+            max-width: 2in;
+            max-height: 2in;
+        }
+
+        /* Fields section */
+        .fields-section {
+            display: grid;
+            grid-template-columns: repeat({{ fields_columns }}, 1fr);
+            gap: {{ fields_gap }};
+            flex: 1;
+        }
+
+        .field-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: {{ field_padding }};
+            background: #ffffff;
+            border-left: 3px solid #3498db;
+            border-radius: 2px;
+        }
+
+        .field-label {
+            font-size: {{ field_label_size }};
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .field-value {
+            font-size: {{ field_value_size }};
+            font-weight: 500;
+            color: #2c3e50;
+            word-wrap: break-word;
+        }
+
+        /* Warning banner */
+        .warning-banner {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: {{ warning_padding }};
+            text-align: center;
+            font-weight: 700;
+            font-size: {{ warning_size }};
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-radius: 3px;
+            margin-bottom: {{ warning_margin }};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Transfer styling */
+        .transfer-label .label-header {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            border-bottom-color: #f39c12;
+        }
+
+        .transfer-label .field-item {
+            border-left-color: #f39c12;
+        }
+
+        /* Footer section */
+        .label-footer {
+            padding: {{ footer_padding }};
+            background: #ecf0f1;
+            border-top: 2px solid #bdc3c7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: {{ footer_size }};
+            color: #7f8c8d;
+        }
+
+        .footer-note {
+            font-style: italic;
+        }
+
+        .footer-date {
+            font-weight: 600;
+        }
+
+        /* Print optimizations */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="label-container {% if is_transfer %}transfer-label{% endif %}">
+        <!-- Header -->
+        <div class="label-header">
+            {% if not hide_logo %}
+            <div class="logo-section">
+                <div class="logo-icon">⚙</div>
+                <div class="company-name">SupplyLine MRO</div>
+            </div>
+            {% endif %}
+            {% if not hide_title %}
+            <div class="label-title">{{ item_title }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Content -->
+        <div class="label-content">
+            <!-- Warning Banner (if applicable) -->
+            {% if warning_text %}
+            <div class="warning-banner">
+                ⚠ {{ warning_text }}
+            </div>
+            {% endif %}
+
+            <!-- Barcode -->
+            <div class="barcode-section">
+                {{ barcode_svg|safe }}
+            </div>
+
+            <!-- Fields -->
+            <div class="fields-section">
+                {% for field in fields %}
+                <div class="field-item">
+                    <div class="field-label">{{ field.label }}</div>
+                    <div class="field-value">{{ field.value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        {% if show_footer %}
+        <div class="label-footer">
+            <div class="footer-note">{{ footer_note }}</div>
+            <div class="footer-date">{{ generated_date }}</div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

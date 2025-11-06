@@ -13,5 +13,4 @@ def migrate_database():
     This migration was previously used to add database constraints.
     It has been applied to all databases and is no longer needed.
     """
-    pass
 

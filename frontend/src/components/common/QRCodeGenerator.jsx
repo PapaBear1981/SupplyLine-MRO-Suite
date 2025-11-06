@@ -26,9 +26,7 @@ const QRCodeGenerator = ({ show, onHide, data, title, itemDetails, size = 256 })
   // Handle print button click
   const handlePrint = () => {
     if (qrCodeContainerRef.current) {
-      const printWindow = window.open('', '_blank');
-
-      printWindow.document.write(`
+      const printContent = `
         <html>
           <head>
             <title>${title || 'QR Code'}</title>
@@ -54,9 +52,6 @@ const QRCodeGenerator = ({ show, onHide, data, title, itemDetails, size = 256 })
                   margin: 0;
                   padding: 0;
                 }
-                button {
-                  display: none;
-                }
               }
             </style>
           </head>
@@ -67,12 +62,27 @@ const QRCodeGenerator = ({ show, onHide, data, title, itemDetails, size = 256 })
             <div class="item-info">
               ${formatItemDetails(itemDetails)}
             </div>
-            <button onclick="window.print(); window.close();">Print</button>
           </body>
         </html>
-      `);
+      `;
 
-      printWindow.document.close();
+      // Use iframe approach for better browser compatibility
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        iframe.contentWindow.document.write(printContent);
+        iframe.contentWindow.document.close();
+        iframe.contentWindow.print();
+
+        // Clean up after printing
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      };
+
+      iframe.src = 'about:blank';
     }
   };
 

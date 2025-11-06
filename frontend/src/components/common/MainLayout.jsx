@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { FaTools } from 'react-icons/fa';
@@ -8,12 +8,24 @@ import { APP_VERSION } from '../../utils/version';
 import { useHelp } from '../../context/HelpContext';
 import TourGuide from './TourGuide';
 import { hasPermission } from '../auth/ProtectedRoute';
+import { fetchSecuritySettings } from '../../store/securitySlice';
+import useInactivityLogout from '../../hooks/useInactivityLogout';
 
 const MainLayout = ({ children }) => {
+  const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { hasLoaded: securityLoaded, loading: securityLoading } = useSelector((state) => state.security);
   const { showHelp, showTooltips, setShowHelp } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+
+  useInactivityLogout();
+
+  useEffect(() => {
+    if (isAuthenticated && !securityLoaded && !securityLoading) {
+      dispatch(fetchSecuritySettings());
+    }
+  }, [dispatch, isAuthenticated, securityLoaded, securityLoading]);
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -95,12 +107,6 @@ const MainLayout = ({ children }) => {
                 </>
               )}
 
-              {/* Scanner button - available to users with scanner permission */}
-              {user && hasPermission(user, 'page.scanner') && (
-                <Nav.Link as={Link} to="/scanner" className="ms-2 btn btn-outline-light btn-sm">
-                  <i className="bi bi-upc-scan me-1"></i> Scanner
-                </Nav.Link>
-              )}
             </Nav>
             <Nav>
               {/* Help Button */}

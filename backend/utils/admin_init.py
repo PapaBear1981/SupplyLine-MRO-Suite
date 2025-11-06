@@ -4,10 +4,12 @@ Secure Admin Initialization Utility
 This module provides secure admin account creation without hardcoded credentials.
 """
 
+import logging
 import os
 import secrets
-import logging
-from models import db, User
+
+from models import User, db
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ def create_secure_admin():
 
         def _is_strong(pwd: str) -> bool:
             import re
-            return (
+            return bool(
                 len(pwd) >= 12
                 and re.search(r"[A-Z]", pwd)
                 and re.search(r"[a-z]", pwd)
@@ -37,7 +39,7 @@ def create_secure_admin():
             )
 
         # Get admin password from environment variable
-        admin_password = os.environ.get('INITIAL_ADMIN_PASSWORD')
+        admin_password = os.environ.get("INITIAL_ADMIN_PASSWORD")
 
         if not admin_password:
             # Generate a secure random password
@@ -59,9 +61,9 @@ def create_secure_admin():
 
         # Create admin user
         admin = User(
-            name='System Administrator',
-            employee_number='ADMIN001',
-            department='IT',
+            name="System Administrator",
+            employee_number="ADMIN001",
+            department="IT",
             is_admin=True,
             is_active=True
         )
@@ -71,12 +73,12 @@ def create_secure_admin():
         db.session.commit()
 
         logger.info("Secure admin user created successfully")
-        return True, "Admin user created successfully", admin_password if not os.environ.get('INITIAL_ADMIN_PASSWORD') else None
+        return True, "Admin user created successfully", admin_password if not os.environ.get("INITIAL_ADMIN_PASSWORD") else None
 
     except Exception as e:
-        logger.error(f"Error creating admin user: {str(e)}")
+        logger.error(f"Error creating admin user: {e!s}")
         db.session.rollback()
-        return False, f"Error creating admin user: {str(e)}", None
+        return False, f"Error creating admin user: {e!s}", None
 
 
 def validate_admin_setup():
@@ -96,26 +98,26 @@ def validate_admin_setup():
             return False, issues
 
         # Check if using default credentials (security risk)
-        if admin.check_password('admin123'):
+        if admin.check_password("admin123"):
             issues.append("CRITICAL: Admin is using default password 'admin123'")
 
         # Check if force password change is enabled
-        if hasattr(admin, 'force_password_change'):
+        if hasattr(admin, "force_password_change"):
             if not admin.force_password_change:
                 issues.append("CRITICAL: Admin is not forced to change bootstrap password")
         else:
             issues.append("WARNING: Admin user lacks force_password_change attribute")
 
         # Check environment variable setup
-        if not os.environ.get('INITIAL_ADMIN_PASSWORD'):
+        if not os.environ.get("INITIAL_ADMIN_PASSWORD"):
             issues.append("WARNING: INITIAL_ADMIN_PASSWORD environment variable not set")
 
-        is_secure = len([issue for issue in issues if issue.startswith('CRITICAL')]) == 0
+        is_secure = len([issue for issue in issues if issue.startswith("CRITICAL")]) == 0
 
         return is_secure, issues
 
     except Exception as e:
-        issues.append(f"Error validating admin setup: {str(e)}")
+        issues.append(f"Error validating admin setup: {e!s}")
         return False, issues
 
 
@@ -136,7 +138,7 @@ def reset_admin_password():
         admin.set_password(new_password)
 
         # Force password change on next login
-        if hasattr(admin, 'force_password_change'):
+        if hasattr(admin, "force_password_change"):
             admin.force_password_change = True
 
         db.session.commit()
@@ -145,6 +147,6 @@ def reset_admin_password():
         return True, "Admin password reset successfully", new_password
 
     except Exception as e:
-        logger.error(f"Error resetting admin password: {str(e)}")
+        logger.error(f"Error resetting admin password: {e!s}")
         db.session.rollback()
-        return False, f"Error resetting admin password: {str(e)}", None
+        return False, f"Error resetting admin password: {e!s}", None

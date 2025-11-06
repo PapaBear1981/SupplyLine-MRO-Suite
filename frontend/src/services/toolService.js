@@ -4,8 +4,43 @@ const ToolService = {
   // Get all tools
   getAllTools: async () => {
     try {
-      const response = await api.get('/tools');
-      return response.data;
+      // Fetch all tools by handling pagination
+      let allTools = [];
+      let page = 1;
+      let hasMore = true;
+      const perPage = 500; // Maximum allowed by backend
+
+      while (hasMore) {
+        const response = await api.get(`/tools?page=${page}&per_page=${perPage}`);
+        const data = response.data;
+
+        // Handle both array response and paginated response
+        if (Array.isArray(data)) {
+          allTools = allTools.concat(data);
+          hasMore = false; // No pagination info, assume single page
+        } else if (data.tools) {
+          allTools = allTools.concat(data.tools);
+          hasMore = data.pagination && data.pagination.has_next;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log(`Fetched ${allTools.length} total tools across ${page} page(s)`);
+
+      // Return in the same format as backend (with tools array)
+      return {
+        tools: allTools,
+        pagination: {
+          total: allTools.length,
+          page: 1,
+          per_page: allTools.length,
+          pages: 1,
+          has_next: false,
+          has_prev: false
+        }
+      };
     } catch (error) {
       throw error;
     }

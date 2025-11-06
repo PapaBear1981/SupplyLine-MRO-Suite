@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Alert, Badge, Spinner, Pagination } from 'react-bootstrap';
 import { fetchKitIssuances } from '../../store/kitsSlice';
@@ -6,7 +6,7 @@ import { fetchKitIssuances } from '../../store/kitsSlice';
 const KitIssuanceHistory = ({ kitId }) => {
   const dispatch = useDispatch();
   const { kitIssuances, loading } = useSelector((state) => state.kits);
-  const issuances = kitIssuances[kitId] || [];
+  const issuances = useMemo(() => kitIssuances[kitId] || [], [kitIssuances, kitId]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 

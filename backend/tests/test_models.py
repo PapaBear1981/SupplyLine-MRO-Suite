@@ -2,8 +2,9 @@
 Tests for database models
 """
 
-from datetime import datetime, timedelta, timezone
-from models import User, Tool, Chemical, Checkout, Role, Permission, RolePermission
+from datetime import UTC, datetime, timedelta, timezone
+
+from models import Checkout, Chemical, Permission, Role, RolePermission, Tool, User
 
 
 class TestUserModel:
@@ -12,35 +13,35 @@ class TestUserModel:
     def test_create_user(self, db_session):
         """Test creating a user"""
         import time
-        unique_emp_num = f'TEST{int(time.time() * 1000) % 1000000}'
+        unique_emp_num = f"TEST{int(time.time() * 1000) % 1000000}"
 
         user = User(
-            name='Test User',
+            name="Test User",
             employee_number=unique_emp_num,
-            department='Testing',
+            department="Testing",
             is_admin=False,
             is_active=True
         )
-        user.set_password('testpassword123')
+        user.set_password("testpassword123")
 
         db_session.add(user)
         db_session.commit()
 
         assert user.id is not None
-        assert user.name == 'Test User'
+        assert user.name == "Test User"
         assert user.employee_number == unique_emp_num
-        assert user.check_password('testpassword123')
-        assert not user.check_password('wrongpassword')
+        assert user.check_password("testpassword123")
+        assert not user.check_password("wrongpassword")
 
     def test_user_password_hashing(self, db_session):
         """Test password hashing and verification"""
         user = User(
-            name='Password Test',
-            employee_number='PASS001',
-            department='Testing'
+            name="Password Test",
+            employee_number="PASS001",
+            department="Testing"
         )
 
-        password = 'securepassword123!'
+        password = "securepassword123!"
         user.set_password(password)
 
         # Password should be hashed
@@ -49,20 +50,20 @@ class TestUserModel:
 
         # Should verify correctly
         assert user.check_password(password)
-        assert not user.check_password('wrongpassword')
+        assert not user.check_password("wrongpassword")
 
         # History should contain the password that was just set
         assert user.password_histories.count() == 1
-        assert user.is_password_reused('securepassword123!')
+        assert user.is_password_reused("securepassword123!")
 
     def test_user_reset_token(self, db_session):
         """Test password reset token functionality"""
         user = User(
-            name='Reset Test',
-            employee_number='RESET001',
-            department='Testing'
+            name="Reset Test",
+            employee_number="RESET001",
+            department="Testing"
         )
-        user.set_password('test123')
+        user.set_password("test123")
         db_session.add(user)
         db_session.commit()
 
@@ -74,14 +75,14 @@ class TestUserModel:
         assert len(token) >= 32, f"Token should be at least 32 characters, got {len(token)}"
         # Token should contain alphanumeric characters (URL-safe base64)
         import re
-        assert re.match(r'^[A-Za-z0-9_-]+$', token), "Token should be URL-safe alphanumeric"
+        assert re.match(r"^[A-Za-z0-9_-]+$", token), "Token should be URL-safe alphanumeric"
         assert user.reset_token is not None
         assert user.reset_token_expiry is not None
 
         # Verify token
         assert user.check_reset_token(token)
-        assert not user.check_reset_token('123456')
-        assert not user.check_reset_token('wrong_token_12345')
+        assert not user.check_reset_token("123456")
+        assert not user.check_reset_token("wrong_token_12345")
 
         # Clear token
         user.clear_reset_token()
@@ -92,11 +93,11 @@ class TestUserModel:
     def test_user_account_lockout(self, db_session):
         """Test account lockout functionality"""
         user = User(
-            name='Lockout Test',
-            employee_number='LOCKOUT001',
-            department='Testing'
+            name="Lockout Test",
+            employee_number="LOCKOUT001",
+            department="Testing"
         )
-        user.set_password('test123')
+        user.set_password("test123")
         db_session.add(user)
         db_session.commit()
 
@@ -130,21 +131,21 @@ class TestUserModel:
     def test_password_history_limits_reuse(self, db_session):
         """Ensure password history prevents reuse of previous passwords."""
         user = User(
-            name='History Test',
-            employee_number='HIST001',
-            department='Testing'
+            name="History Test",
+            employee_number="HIST001",
+            department="Testing"
         )
-        user.set_password('Password0!')
+        user.set_password("Password0!")
         db_session.add(user)
         db_session.commit()
 
         passwords = [
-            'Password1!',
-            'Password2!',
-            'Password3!',
-            'Password4!',
-            'Password5!',
-            'Password6!'
+            "Password1!",
+            "Password2!",
+            "Password3!",
+            "Password4!",
+            "Password5!",
+            "Password6!"
         ]
 
         for pwd in passwords:
@@ -155,19 +156,19 @@ class TestUserModel:
         assert user.password_histories.count() == 5
 
         # Reusing the most recent password should be blocked
-        assert user.is_password_reused('Password6!')
+        assert user.is_password_reused("Password6!")
 
         # The oldest password should no longer be in history (Password1!)
-        assert not user.is_password_reused('Password1!')
+        assert not user.is_password_reused("Password1!")
 
     def test_password_expiration_flag(self, db_session):
         """Verify password expiration detection."""
         user = User(
-            name='Expiry Test',
-            employee_number='EXP001',
-            department='Testing'
+            name="Expiry Test",
+            employee_number="EXP001",
+            department="Testing"
         )
-        user.set_password('InitialPass1!')
+        user.set_password("InitialPass1!")
         db_session.add(user)
         db_session.commit()
 
@@ -182,31 +183,31 @@ class TestUserModel:
     def test_user_to_dict(self, db_session):
         """Test user serialization"""
         user = User(
-            name='Dict Test',
-            employee_number='DICT001',
-            department='Testing',
+            name="Dict Test",
+            employee_number="DICT001",
+            department="Testing",
             is_admin=True,
             is_active=True
         )
-        user.set_password('test123')
+        user.set_password("test123")
         db_session.add(user)
         db_session.commit()
 
         # Basic serialization
         data = user.to_dict()
 
-        assert data['name'] == 'Dict Test'
-        assert data['employee_number'] == 'DICT001'
-        assert data['department'] == 'Testing'
-        assert data['is_admin'] is True
-        assert data['is_active'] is True
-        assert 'created_at' in data
+        assert data["name"] == "Dict Test"
+        assert data["employee_number"] == "DICT001"
+        assert data["department"] == "Testing"
+        assert data["is_admin"] is True
+        assert data["is_active"] is True
+        assert "created_at" in data
 
         # With lockout info
         data_with_lockout = user.to_dict(include_lockout_info=True)
 
-        assert 'failed_login_attempts' in data_with_lockout
-        assert 'account_locked' in data_with_lockout
+        assert "failed_login_attempts" in data_with_lockout
+        assert "account_locked" in data_with_lockout
 
 
 class TestToolModel:
@@ -215,29 +216,29 @@ class TestToolModel:
     def test_create_tool(self, db_session):
         """Test creating a tool"""
         tool = Tool(
-            tool_number='T001',
-            serial_number='S001',
-            description='Test Tool',
-            condition='Good',
-            location='Lab A',
-            category='Testing',
-            status='available'
+            tool_number="T001",
+            serial_number="S001",
+            description="Test Tool",
+            condition="Good",
+            location="Lab A",
+            category="Testing",
+            status="available"
         )
 
         db_session.add(tool)
         db_session.commit()
 
         assert tool.id is not None
-        assert tool.tool_number == 'T001'
-        assert tool.status == 'available'
+        assert tool.tool_number == "T001"
+        assert tool.status == "available"
         assert tool.created_at is not None
 
     def test_tool_calibration_status(self, db_session):
         """Test tool calibration status updates"""
         tool = Tool(
-            tool_number='T002',
-            serial_number='S002',
-            description='Calibrated Tool',
+            tool_number="T002",
+            serial_number="S002",
+            description="Calibrated Tool",
             requires_calibration=True,
             calibration_frequency_days=365
         )
@@ -247,32 +248,32 @@ class TestToolModel:
         tool.next_calibration_date = future_date
 
         tool.update_calibration_status()
-        assert tool.calibration_status == 'current'
+        assert tool.calibration_status == "current"
 
         # Set next calibration date in near future (due soon)
         soon_date = datetime.now() + timedelta(days=15)
         tool.next_calibration_date = soon_date
 
         tool.update_calibration_status()
-        assert tool.calibration_status == 'due_soon'
+        assert tool.calibration_status == "due_soon"
 
         # Set next calibration date in the past (overdue)
         past_date = datetime.now() - timedelta(days=10)
         tool.next_calibration_date = past_date
 
         tool.update_calibration_status()
-        assert tool.calibration_status == 'overdue'
+        assert tool.calibration_status == "overdue"
 
     def test_tool_to_dict(self, db_session):
         """Test tool serialization"""
         tool = Tool(
-            tool_number='T003',
-            serial_number='S003',
-            description='Serialization Test Tool',
-            condition='Excellent',
-            location='Lab B',
-            category='Testing',
-            status='available'
+            tool_number="T003",
+            serial_number="S003",
+            description="Serialization Test Tool",
+            condition="Excellent",
+            location="Lab B",
+            category="Testing",
+            status="available"
         )
 
         db_session.add(tool)
@@ -280,11 +281,11 @@ class TestToolModel:
 
         data = tool.to_dict()
 
-        assert data['tool_number'] == 'T003'
-        assert data['description'] == 'Serialization Test Tool'
-        assert data['condition'] == 'Excellent'
-        assert data['status'] == 'available'
-        assert 'created_at' in data
+        assert data["tool_number"] == "T003"
+        assert data["description"] == "Serialization Test Tool"
+        assert data["condition"] == "Excellent"
+        assert data["status"] == "available"
+        assert "created_at" in data
 
 
 class TestChemicalModel:
@@ -293,33 +294,33 @@ class TestChemicalModel:
     def test_create_chemical(self, db_session):
         """Test creating a chemical"""
         chemical = Chemical(
-            part_number='C001',
-            lot_number='L001',
-            description='Test Chemical',
-            manufacturer='Test Manufacturer',
+            part_number="C001",
+            lot_number="L001",
+            description="Test Chemical",
+            manufacturer="Test Manufacturer",
             quantity=100.0,
-            unit='ml',
-            location='Storage A',
-            category='Testing',
-            status='available'
+            unit="ml",
+            location="Storage A",
+            category="Testing",
+            status="available"
         )
 
         db_session.add(chemical)
         db_session.commit()
 
         assert chemical.id is not None
-        assert chemical.part_number == 'C001'
+        assert chemical.part_number == "C001"
         assert chemical.quantity == 100.0
-        assert chemical.status == 'available'
+        assert chemical.status == "available"
 
     def test_chemical_expiration(self, db_session):
         """Test chemical expiration functionality"""
         chemical = Chemical(
-            part_number='C002',
-            lot_number='L002',
-            description='Expiring Chemical',
+            part_number="C002",
+            lot_number="L002",
+            description="Expiring Chemical",
             quantity=50.0,
-            unit='ml'
+            unit="ml"
         )
 
         # Set expiration date in the past
@@ -339,11 +340,11 @@ class TestChemicalModel:
     def test_chemical_low_stock(self, db_session):
         """Test chemical low stock detection"""
         chemical = Chemical(
-            part_number='C003',
-            lot_number='L003',
-            description='Low Stock Chemical',
+            part_number="C003",
+            lot_number="L003",
+            description="Low Stock Chemical",
             quantity=5.0,
-            unit='ml',
+            unit="ml",
             minimum_stock_level=10.0
         )
 
@@ -361,7 +362,7 @@ class TestCheckoutModel:
         checkout = Checkout(
             tool_id=test_tool.id,
             user_id=regular_user.id,
-            expected_return_date=datetime.now(timezone.utc) + timedelta(days=7)
+            expected_return_date=datetime.now(UTC) + timedelta(days=7)
         )
 
         db_session.add(checkout)
@@ -380,15 +381,15 @@ class TestRolePermissionModel:
     def test_create_role_with_permissions(self, db_session):
         """Test creating roles with permissions"""
         # Create permissions
-        view_perm = Permission(name='view_tools', description='View tools')
-        manage_perm = Permission(name='manage_tools', description='Manage tools')
+        view_perm = Permission(name="view_tools", description="View tools")
+        manage_perm = Permission(name="manage_tools", description="Manage tools")
 
         db_session.add(view_perm)
         db_session.add(manage_perm)
         db_session.flush()
 
         # Create role
-        admin_role = Role(name='admin', description='Administrator')
+        admin_role = Role(name="admin", description="Administrator")
         db_session.add(admin_role)
         db_session.flush()
 

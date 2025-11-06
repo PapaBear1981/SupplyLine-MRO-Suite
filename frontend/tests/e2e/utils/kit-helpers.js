@@ -276,11 +276,17 @@ export async function getKitAlertCount(page) {
  * @param {string} reportType - Report type (inventory, issuance, transfer, reorder, utilization)
  */
 export async function navigateToKitReport(page, reportType) {
-  await page.goto('/kits/reports');
+  await page.goto('/reports');
+  await page.waitForTimeout(1000);
+  
+  // Click on the Kit Reports tab button
+  const kitReportsButton = page.locator('button:has-text("Kit Reports")');
+  await kitReportsButton.click();
   await page.waitForTimeout(1000);
   
   if (reportType) {
-    const reportTab = page.locator(`.nav-link:has-text("${reportType}")`);
+    // The report tabs are now within the Kit Reports component
+    const reportTab = page.locator(`button:has-text("${reportType}"), .nav-link:has-text("${reportType}")`);
     const tabExists = await reportTab.count();
     if (tabExists > 0) {
       await reportTab.click();

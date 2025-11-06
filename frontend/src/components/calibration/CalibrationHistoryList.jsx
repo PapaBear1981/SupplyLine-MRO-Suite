@@ -172,9 +172,9 @@ const CalibrationHistoryList = () => {
                 className="w-auto"
               >
                 <option value="">All Statuses</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-                <option value="in_progress">In Progress</option>
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="limited">Limited</option>
               </Form.Select>
             </div>
           </div>
@@ -203,7 +203,7 @@ const CalibrationHistoryList = () => {
               {calibrations.map((calibration) => (
                 <tr key={calibration.id}>
                   <td>
-                    <Link to={`/tools/${calibration.tool_id}`}>
+                    <Link to={`/tools/${calibration.tool_id}?from=calibrations`}>
                       {calibration.tool_number} - {calibration.serial_number}
                     </Link>
                   </td>
@@ -214,15 +214,12 @@ const CalibrationHistoryList = () => {
                     <span className={`badge bg-${
                       calibration.calibration_status === 'pass' ? 'success' :
                       calibration.calibration_status === 'fail' ? 'danger' :
-                      calibration.calibration_status === 'limited' ? 'warning' :
-                      calibration.calibration_status === 'completed' ? 'success' :
-                      calibration.calibration_status === 'failed' ? 'danger' : 'warning'
+                      calibration.calibration_status === 'limited' ? 'warning' : 'secondary'
                     }`}>
                       {calibration.calibration_status === 'pass' ? 'Pass' :
                        calibration.calibration_status === 'fail' ? 'Fail' :
                        calibration.calibration_status === 'limited' ? 'Limited' :
-                       calibration.calibration_status === 'completed' ? 'Completed' :
-                       calibration.calibration_status === 'failed' ? 'Failed' : 'In Progress'}
+                       calibration.calibration_status.charAt(0).toUpperCase() + calibration.calibration_status.slice(1)}
                     </span>
                   </td>
                   <td>

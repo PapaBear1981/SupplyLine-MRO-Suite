@@ -3,11 +3,12 @@ Rate limiting utilities for API endpoints
 Provides simple in-memory rate limiting for security-sensitive endpoints
 """
 
-from functools import wraps
-from flask import request, jsonify
-from datetime import datetime, timedelta
-from collections import defaultdict
 import threading
+from collections import defaultdict
+from datetime import datetime, timedelta
+from functools import wraps
+
+from flask import jsonify, request
 
 
 class RateLimiter:
@@ -117,8 +118,8 @@ def rate_limit(limit=5, window=3600, key_func=None):
 
             if is_limited:
                 return jsonify({
-                    'error': 'Too many requests. Please try again later.',
-                    'retry_after': retry_after
+                    "error": "Too many requests. Please try again later.",
+                    "retry_after": retry_after
                 }), 429
 
             return f(*args, **kwargs)

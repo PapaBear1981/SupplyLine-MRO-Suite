@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   Card, Table, Button, Badge, Pagination, 
@@ -46,15 +46,10 @@ const AnnouncementManagement = () => {
   const [page, setPage] = useState(1);
   const limit = 10;
   
-  // Load announcements on component mount and when filters/pagination change
-  useEffect(() => {
-    loadAnnouncements();
-  }, [page, limit, filters, sortField, sortDirection]);
-  
-  const loadAnnouncements = () => {
-    dispatch(fetchAnnouncements({ 
-      page, 
-      limit, 
+  const loadAnnouncements = useCallback(() => {
+    dispatch(fetchAnnouncements({
+      page,
+      limit,
       filters: {
         ...filters,
         sort_by: sortField,
@@ -62,7 +57,12 @@ const AnnouncementManagement = () => {
         search: searchTerm.trim() || undefined
       }
     }));
-  };
+  }, [dispatch, page, limit, filters, sortField, sortDirection, searchTerm]);
+
+  // Load announcements on component mount and when filters/pagination change
+  useEffect(() => {
+    loadAnnouncements();
+  }, [loadAnnouncements]);
   
   // Handle form input changes
   const handleInputChange = (e) => {

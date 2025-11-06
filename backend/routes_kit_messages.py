@@ -4,13 +4,16 @@ Routes for Kit Messaging System
 This module provides API endpoints for messaging between mechanics and stores personnel.
 """
 
-from flask import request, jsonify
-from models import db, AuditLog
-from models_kits import Kit, KitMessage
-from datetime import datetime
-from auth import jwt_required
-from utils.error_handler import handle_errors, ValidationError
 import logging
+from datetime import datetime
+
+from flask import jsonify, request
+
+from auth import jwt_required
+from models import AuditLog, db
+from models_kits import Kit, KitMessage
+from utils.error_handler import ValidationError, handle_errors
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +21,7 @@ logger = logging.getLogger(__name__)
 def register_kit_message_routes(app):
     """Register all kit message routes"""
 
-    @app.route('/api/kits/<int:kit_id>/messages', methods=['POST'])
+    @app.route("/api/kits/<int:kit_id>/messages", methods=["POST"])
     @jwt_required
     @handle_errors
     def send_kit_message(kit_id):
@@ -27,21 +30,21 @@ def register_kit_message_routes(app):
         data = request.get_json() or {}
 
         # Validate required fields
-        if not data.get('subject'):
-            raise ValidationError('Subject is required')
-        if not data.get('message'):
-            raise ValidationError('Message is required')
+        if not data.get("subject"):
+            raise ValidationError("Subject is required")
+        if not data.get("message"):
+            raise ValidationError("Message is required")
 
         # Create message
         message = KitMessage(
             kit_id=kit_id,
-            related_request_id=data.get('related_request_id'),
-            sender_id=request.current_user['user_id'],
-            recipient_id=data.get('recipient_id'),
-            subject=data['subject'],
-            message=data['message'],
-            parent_message_id=data.get('parent_message_id'),
-            attachments=data.get('attachments'),
+            related_request_id=data.get("related_request_id"),
+            sender_id=request.current_user["user_id"],
+            recipient_id=data.get("recipient_id"),
+            subject=data["subject"],
+            message=data["message"],
+            parent_message_id=data.get("parent_message_id"),
+            attachments=data.get("attachments"),
             is_read=False
         )
 
@@ -50,8 +53,8 @@ def register_kit_message_routes(app):
 
         # Log action
         log = AuditLog(
-            action_type='kit_message_sent',
-            action_details=f'Message sent for kit {kit.name}: {message.subject}'
+            action_type="kit_message_sent",
+            action_details=f"Message sent for kit {kit.name}: {message.subject}"
         )
         db.session.add(log)
         db.session.commit()
@@ -59,7 +62,7 @@ def register_kit_message_routes(app):
         logger.info(f"Message sent: ID {message.id}")
         return jsonify(message.to_dict()), 201
 
-    @app.route('/api/kits/<int:kit_id>/messages', methods=['GET'])
+    @app.route("/api/kits/<int:kit_id>/messages", methods=["GET"])
     @jwt_required
     @handle_errors
     def get_kit_messages(kit_id):
@@ -67,8 +70,8 @@ def register_kit_message_routes(app):
         Kit.query.get_or_404(kit_id)
 
         # Optional filtering
-        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
-        related_request_id = request.args.get('related_request_id', type=int)
+        unread_only = request.args.get("unread_only", "false").lower() == "true"
+        related_request_id = request.args.get("related_request_id", type=int)
 
         query = KitMessage.query.filter_by(kit_id=kit_id)
 
@@ -79,7 +82,7 @@ def register_kit_message_routes(app):
             query = query.filter_by(related_request_id=related_request_id)
 
         # Filter by user - show messages sent by or to the current user
-        user_id = request.current_user['user_id']
+        user_id = request.current_user["user_id"]
         query = query.filter(
             db.or_(
                 KitMessage.sender_id == user_id,
@@ -92,16 +95,16 @@ def register_kit_message_routes(app):
 
         return jsonify([msg.to_dict() for msg in messages]), 200
 
-    @app.route('/api/messages', methods=['GET'])
+    @app.route("/api/messages", methods=["GET"])
     @jwt_required
     @handle_errors
     def get_user_messages():
         """Get all messages for the current user"""
-        user_id = request.current_user['user_id']
+        user_id = request.current_user["user_id"]
 
         # Optional filtering
-        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
-        sent = request.args.get('sent', 'false').lower() == 'true'
+        unread_only = request.args.get("unread_only", "false").lower() == "true"
+        sent = request.args.get("sent", "false").lower() == "true"
 
         if sent:
             # Messages sent by user
@@ -122,7 +125,7 @@ def register_kit_message_routes(app):
 
         return jsonify([msg.to_dict() for msg in messages]), 200
 
-    @app.route('/api/messages/<int:id>', methods=['GET'])
+    @app.route("/api/messages/<int:id>", methods=["GET"])
     @jwt_required
     @handle_errors
     def get_message(id):
@@ -130,13 +133,13 @@ def register_kit_message_routes(app):
         message = KitMessage.query.get_or_404(id)
 
         # Verify user has access to this message
-        user_id = request.current_user['user_id']
-        if message.sender_id != user_id and message.recipient_id != user_id and message.recipient_id is not None:
-            raise ValidationError('You do not have access to this message')
+        user_id = request.current_user["user_id"]
+        if user_id not in (message.sender_id, message.recipient_id) and message.recipient_id is not None:
+            raise ValidationError("You do not have access to this message")
 
         return jsonify(message.to_dict(include_replies=True)), 200
 
-    @app.route('/api/messages/<int:id>/read', methods=['PUT'])
+    @app.route("/api/messages/<int:id>/read", methods=["PUT"])
     @jwt_required
     @handle_errors
     def mark_message_read(id):
@@ -144,9 +147,9 @@ def register_kit_message_routes(app):
         message = KitMessage.query.get_or_404(id)
 
         # Verify user is the recipient
-        user_id = request.current_user['user_id']
+        user_id = request.current_user["user_id"]
         if message.recipient_id != user_id and message.recipient_id is not None:
-            raise ValidationError('You can only mark your own messages as read')
+            raise ValidationError("You can only mark your own messages as read")
 
         if not message.is_read:
             message.is_read = True
@@ -155,7 +158,7 @@ def register_kit_message_routes(app):
 
         return jsonify(message.to_dict()), 200
 
-    @app.route('/api/messages/<int:id>/reply', methods=['POST'])
+    @app.route("/api/messages/<int:id>/reply", methods=["POST"])
     @jwt_required
     @handle_errors
     def reply_to_message(id):
@@ -164,12 +167,12 @@ def register_kit_message_routes(app):
         data = request.get_json() or {}
 
         # Validate required fields
-        if not data.get('message'):
-            raise ValidationError('Message is required')
+        if not data.get("message"):
+            raise ValidationError("Message is required")
 
         # Determine recipient (reply to sender of parent message)
         recipient_id = parent_message.sender_id
-        if recipient_id == request.current_user['user_id']:
+        if recipient_id == request.current_user["user_id"]:
             # If replying to own message, send to original recipient
             recipient_id = parent_message.recipient_id
 
@@ -177,12 +180,12 @@ def register_kit_message_routes(app):
         reply = KitMessage(
             kit_id=parent_message.kit_id,
             related_request_id=parent_message.related_request_id,
-            sender_id=request.current_user['user_id'],
+            sender_id=request.current_user["user_id"],
             recipient_id=recipient_id,
             subject=f"Re: {parent_message.subject}",
-            message=data['message'],
+            message=data["message"],
             parent_message_id=id,
-            attachments=data.get('attachments'),
+            attachments=data.get("attachments"),
             is_read=False
         )
 
@@ -191,20 +194,20 @@ def register_kit_message_routes(app):
 
         # Log action
         log = AuditLog(
-            action_type='kit_message_reply',
-            action_details=f'Reply sent to message ID {id}'
+            action_type="kit_message_reply",
+            action_details=f"Reply sent to message ID {id}"
         )
         db.session.add(log)
         db.session.commit()
 
         return jsonify(reply.to_dict()), 201
 
-    @app.route('/api/messages/unread-count', methods=['GET'])
+    @app.route("/api/messages/unread-count", methods=["GET"])
     @jwt_required
     @handle_errors
     def get_unread_count():
         """Get count of unread messages for current user"""
-        user_id = request.current_user['user_id']
+        user_id = request.current_user["user_id"]
 
         count = KitMessage.query.filter(
             db.or_(
@@ -214,9 +217,9 @@ def register_kit_message_routes(app):
             KitMessage.is_read.is_(False)
         ).count()
 
-        return jsonify({'unread_count': count}), 200
+        return jsonify({"unread_count": count}), 200
 
-    @app.route('/api/messages/<int:id>', methods=['DELETE'])
+    @app.route("/api/messages/<int:id>", methods=["DELETE"])
     @jwt_required
     @handle_errors
     def delete_message(id):
@@ -224,13 +227,13 @@ def register_kit_message_routes(app):
         message = KitMessage.query.get_or_404(id)
 
         # Verify user is sender or recipient
-        user_id = request.current_user['user_id']
-        if message.sender_id != user_id and message.recipient_id != user_id:
-            raise ValidationError('You can only delete your own messages')
+        user_id = request.current_user["user_id"]
+        if user_id not in (message.sender_id, message.recipient_id):
+            raise ValidationError("You can only delete your own messages")
 
         # For now, just delete the message
         # In production, you might want to implement soft delete
         db.session.delete(message)
         db.session.commit()
 
-        return jsonify({'message': 'Message deleted successfully'}), 200
+        return jsonify({"message": "Message deleted successfully"}), 200

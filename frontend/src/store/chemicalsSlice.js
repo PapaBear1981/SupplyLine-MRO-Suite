@@ -86,6 +86,42 @@ export const fetchChemicalIssuances = createAsyncThunk(
   }
 );
 
+export const lookupChemicalReturn = createAsyncThunk(
+  'chemicals/lookupReturn',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.lookupChemicalReturn(payload);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to locate issued lot' });
+    }
+  }
+);
+
+export const submitChemicalReturn = createAsyncThunk(
+  'chemicals/submitReturn',
+  async ({ chemicalId, data }, { rejectWithValue }) => {
+    try {
+      const response = await ChemicalService.returnChemical(chemicalId, data);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to complete return' });
+    }
+  }
+);
+
+export const fetchChemicalReturns = createAsyncThunk(
+  'chemicals/fetchReturns',
+  async (id, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getChemicalReturns(id);
+      return { chemicalId: id, returns: data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch returns history' });
+    }
+  }
+);
+
 export const searchChemicals = createAsyncThunk(
   'chemicals/searchChemicals',
   async (query, { rejectWithValue }) => {
@@ -280,6 +316,15 @@ const initialState = {
   issuances: {},
   issuanceLoading: false,
   issuanceError: null,
+  returns: {},
+  returnsLoading: false,
+  returnsError: null,
+  returnLookup: null,
+  returnLookupLoading: false,
+  returnLookupError: null,
+  returnSubmitting: false,
+  returnSubmitError: null,
+  lastReturn: null,
   archivedChemicals: [],
   archivedLoading: false,
   archivedError: null,
@@ -428,6 +473,73 @@ const chemicalsSlice = createSlice({
       .addCase(fetchChemicalIssuances.rejected, (state, action) => {
         state.issuanceLoading = false;
         state.issuanceError = action.payload || { message: 'An error occurred while fetching issuances' };
+      })
+
+      // lookupChemicalReturn
+      .addCase(lookupChemicalReturn.pending, (state) => {
+        state.returnLookupLoading = true;
+        state.returnLookupError = null;
+        state.lastReturn = null;
+      })
+      .addCase(lookupChemicalReturn.fulfilled, (state, action) => {
+        state.returnLookupLoading = false;
+        state.returnLookup = action.payload;
+        const chemicalKey = action.payload?.chemical?.id != null ? String(action.payload.chemical.id) : null;
+        if (chemicalKey) {
+          state.returns[chemicalKey] = action.payload.returns || [];
+        }
+      })
+      .addCase(lookupChemicalReturn.rejected, (state, action) => {
+        state.returnLookupLoading = false;
+        state.returnLookupError = action.payload || { message: 'Failed to locate issued lot' };
+      })
+
+      // submitChemicalReturn
+      .addCase(submitChemicalReturn.pending, (state) => {
+        state.returnSubmitting = true;
+        state.returnSubmitError = null;
+      })
+      .addCase(submitChemicalReturn.fulfilled, (state, action) => {
+        state.returnSubmitting = false;
+        state.lastReturn = action.payload.return;
+        const chemicalKey = action.payload?.chemical?.id != null ? String(action.payload.chemical.id) : null;
+
+        state.returnLookup = {
+          ...state.returnLookup,
+          ...action.payload,
+        };
+
+        if (chemicalKey) {
+          state.currentChemical = action.payload.chemical;
+          state.returns[chemicalKey] = action.payload.returns || [];
+
+          if (state.issuances[chemicalKey]) {
+            state.issuances[chemicalKey] = state.issuances[chemicalKey].map((issuance) =>
+              issuance.id === action.payload.issuance.id ? action.payload.issuance : issuance
+            );
+          }
+        }
+      })
+      .addCase(submitChemicalReturn.rejected, (state, action) => {
+        state.returnSubmitting = false;
+        state.returnSubmitError = action.payload || { message: 'Failed to complete return' };
+      })
+
+      // fetchChemicalReturns
+      .addCase(fetchChemicalReturns.pending, (state) => {
+        state.returnsLoading = true;
+        state.returnsError = null;
+      })
+      .addCase(fetchChemicalReturns.fulfilled, (state, action) => {
+        state.returnsLoading = false;
+        const key = action.payload?.chemicalId != null ? String(action.payload.chemicalId) : null;
+        if (key) {
+          state.returns[key] = action.payload.returns;
+        }
+      })
+      .addCase(fetchChemicalReturns.rejected, (state, action) => {
+        state.returnsLoading = false;
+        state.returnsError = action.payload || { message: 'Failed to fetch returns history' };
       })
 
       // searchChemicals

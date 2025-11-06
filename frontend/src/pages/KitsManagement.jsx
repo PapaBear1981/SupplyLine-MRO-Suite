@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Form, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaSearch, FaExclamationTriangle, FaBox, FaPlane, FaChartBar } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaExclamationTriangle, FaBox, FaPlane } from 'react-icons/fa';
 import { fetchKits, fetchAircraftTypes } from '../store/kitsSlice';
 import { fetchUnreadCount } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -114,15 +114,6 @@ const KitsManagement = () => {
               </p>
             </div>
             <div>
-              <Button
-                variant="success"
-                onClick={() => navigate('/kits/reports')}
-                className="me-2"
-                data-testid="reports-button"
-              >
-                <FaChartBar className="me-2" />
-                Reports
-              </Button>
               <Button
                 variant="primary"
                 onClick={() => navigate('/kits/new')}

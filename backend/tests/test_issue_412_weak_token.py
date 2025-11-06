@@ -5,19 +5,20 @@ Ensures that reset tokens are cryptographically secure and not easily brute-forc
 
 import re
 from datetime import timedelta
+
 from models import User, get_current_time
 
 
 def test_reset_token_is_strong(db_session):
     """Test that reset token is not a simple 6-digit code"""
     user = User(
-        name='Test User',
-        employee_number='TEST001',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST001",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 
@@ -25,26 +26,26 @@ def test_reset_token_is_strong(db_session):
     reset_code = user.generate_reset_token()
 
     # Verify token is NOT a 6-digit code
-    assert not re.match(r'^\d{6}$', reset_code), "Token should not be a 6-digit code"
+    assert not re.match(r"^\d{6}$", reset_code), "Token should not be a 6-digit code"
 
     # Verify token is long enough (at least 32 characters)
     assert len(reset_code) >= 32, f"Token should be at least 32 characters, got {len(reset_code)}"
 
     # Verify token contains alphanumeric characters (not just digits)
-    assert re.search(r'[a-zA-Z]', reset_code), "Token should contain letters"
-    assert re.search(r'[0-9]', reset_code) or re.search(r'[-_]', reset_code), "Token should contain numbers or special chars"
+    assert re.search(r"[a-zA-Z]", reset_code), "Token should contain letters"
+    assert re.search(r"[0-9]", reset_code) or re.search(r"[-_]", reset_code), "Token should contain numbers or special chars"
 
 
 def test_reset_token_entropy(db_session):
     """Test that reset tokens have high entropy (are not predictable)"""
     user = User(
-        name='Test User',
-        employee_number='TEST002',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST002",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 
@@ -74,13 +75,13 @@ def test_reset_token_entropy(db_session):
 def test_reset_token_expiry_reduced(db_session):
     """Test that reset token expiry is reduced from 1 hour to 15 minutes"""
     user = User(
-        name='Test User',
-        employee_number='TEST003',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST003",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 
@@ -110,13 +111,13 @@ def test_reset_token_expiry_reduced(db_session):
 def test_reset_token_url_safe(db_session):
     """Test that reset token is URL-safe (can be used in URLs without encoding)"""
     user = User(
-        name='Test User',
-        employee_number='TEST004',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST004",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 
@@ -125,19 +126,19 @@ def test_reset_token_url_safe(db_session):
 
     # Verify token only contains URL-safe characters
     # URL-safe characters: A-Z, a-z, 0-9, -, _
-    assert re.match(r'^[A-Za-z0-9_-]+$', reset_code), "Token should only contain URL-safe characters"
+    assert re.match(r"^[A-Za-z0-9_-]+$", reset_code), "Token should only contain URL-safe characters"
 
 
 def test_reset_token_verification_still_works(db_session):
     """Test that token verification still works with the new stronger tokens"""
     user = User(
-        name='Test User',
-        employee_number='TEST005',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST005",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 
@@ -149,20 +150,20 @@ def test_reset_token_verification_still_works(db_session):
     assert user.check_reset_token(reset_code) is True
 
     # Verify incorrect token is rejected
-    assert user.check_reset_token('wrong_token') is False
-    assert user.check_reset_token('123456') is False
+    assert user.check_reset_token("wrong_token") is False
+    assert user.check_reset_token("123456") is False
 
 
 def test_reset_token_brute_force_resistance(db_session):
     """Test that the token space is large enough to resist brute force"""
     user = User(
-        name='Test User',
-        employee_number='TEST006',
-        department='Testing',
+        name="Test User",
+        employee_number="TEST006",
+        department="Testing",
         is_admin=False,
         is_active=True
     )
-    user.set_password('password123')
+    user.set_password("password123")
     db_session.add(user)
     db_session.commit()
 

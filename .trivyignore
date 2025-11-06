@@ -1,0 +1,3 @@
+# Known xlsx vulnerabilities documented in SECURITY_NOTES.md and mitigated by export-only usage
+CVE-2023-30533
+CVE-2024-22363

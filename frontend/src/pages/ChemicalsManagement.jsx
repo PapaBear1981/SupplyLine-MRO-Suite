@@ -7,6 +7,7 @@ import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import ReorderManagement from '../components/chemicals/ReorderManagement';
 import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
+import ChemicalReturnModal from '../components/chemicals/ChemicalReturnModal';
 import {
   fetchChemicals,
   fetchArchivedChemicals,
@@ -21,6 +22,7 @@ const ChemicalsManagement = () => {
   const { user } = useSelector((state) => state.auth);
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
   const [activeTab, setActiveTab] = useState('active');
+  const [showReturnModal, setShowReturnModal] = useState(false);
 
   // Fetch data based on active tab
   useEffect(() => {
@@ -46,6 +48,14 @@ const ChemicalsManagement = () => {
         <h1 className="mb-0">Chemical Inventory</h1>
         <div className="d-flex gap-2">
           {user?.is_admin && <BulkImportChemicals />}
+          <Button
+            onClick={() => setShowReturnModal(true)}
+            variant="warning"
+            size="lg"
+          >
+            <i className="bi bi-arrow-return-left me-2"></i>
+            Return Chemical
+          </Button>
           <Button onClick={() => navigate('/chemicals/new')} variant="success" size="lg">
             <i className="bi bi-plus-circle me-2"></i>
             Add New Chemical
@@ -68,6 +78,11 @@ const ChemicalsManagement = () => {
           <ReorderManagement />
         </Tab>
       </Tabs>
+
+      <ChemicalReturnModal
+        show={showReturnModal}
+        onHide={() => setShowReturnModal(false)}
+      />
     </div>
   );
 };

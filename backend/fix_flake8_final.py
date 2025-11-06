@@ -10,14 +10,14 @@ Fixes remaining issues:
 - E711: Comparison to None
 """
 
-import re
 import ast
+import re
 from pathlib import Path
 
 
 def fix_blank_lines_between_defs(content):
     """Fix E302/E305: Add 2 blank lines before top-level function/class definitions"""
-    lines = content.split('\n')
+    lines = content.split("\n")
     fixed_lines = []
     i = 0
 
@@ -26,7 +26,7 @@ def fix_blank_lines_between_defs(content):
         stripped = line.strip()
 
         # Check if this is a top-level function or class definition
-        if (stripped.startswith('def ') or stripped.startswith('class ')) and not line.startswith(' '):
+        if (stripped.startswith(("def ", "class "))) and not line.startswith(" "):
             # Count preceding blank lines
             blank_count = 0
             j = i - 1
@@ -35,44 +35,43 @@ def fix_blank_lines_between_defs(content):
                 j -= 1
 
             # Check if previous non-blank line is a decorator
-            is_after_decorator = j >= 0 and lines[j].strip().startswith('@')
+            is_after_decorator = j >= 0 and lines[j].strip().startswith("@")
 
             # Need 2 blank lines before top-level def/class (unless after decorator or at start)
-            if j >= 0 and not is_after_decorator:
-                if blank_count < 2:
-                    # Add missing blank lines
-                    for _ in range(2 - blank_count):
-                        fixed_lines.append('')
+            if j >= 0 and not is_after_decorator and blank_count < 2:
+                # Add missing blank lines
+                for _ in range(2 - blank_count):
+                    fixed_lines.append("")
 
         fixed_lines.append(line)
         i += 1
 
-    return '\n'.join(fixed_lines)
+    return "\n".join(fixed_lines)
 
 
 def remove_unused_imports(file_path, content):
     """Remove unused imports (F401)"""
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     # Parse to find what's actually used
     try:
         ast.parse(content)
-    except:
+    except SyntaxError:
         return content  # Can't parse, skip
 
     # Common unused imports to remove
     unused_patterns = [
-        (r'^from flask import session$', 'session'),
-        (r'^from flask import jsonify$', 'jsonify'),
-        (r'^from flask import make_response$', 'make_response'),
-        (r'^import sys$', 'sys'),
-        (r'^from datetime import timezone$', 'timezone'),
-        (r'^import time$', 'time'),
-        (r'^from collections import defaultdict$', 'defaultdict'),
-        (r'^import os$', 'os'),
-        (r'^from sqlalchemy import func$', 'func'),
-        (r'^from sqlalchemy import extract$', 'extract'),
-        (r'^from sqlalchemy\.orm import joinedload$', 'joinedload'),
+        (r"^from flask import session$", "session"),
+        (r"^from flask import jsonify$", "jsonify"),
+        (r"^from flask import make_response$", "make_response"),
+        (r"^import sys$", "sys"),
+        (r"^from datetime import timezone$", "timezone"),
+        (r"^import time$", "time"),
+        (r"^from collections import defaultdict$", "defaultdict"),
+        (r"^import os$", "os"),
+        (r"^from sqlalchemy import func$", "func"),
+        (r"^from sqlalchemy import extract$", "extract"),
+        (r"^from sqlalchemy\.orm import joinedload$", "joinedload"),
     ]
 
     fixed_lines = []
@@ -88,48 +87,47 @@ def remove_unused_imports(file_path, content):
         if not should_remove:
             fixed_lines.append(line)
 
-    return '\n'.join(fixed_lines)
+    return "\n".join(fixed_lines)
 
 
 def fix_bare_except(content):
     """Fix E722: Replace bare except with except Exception"""
     # Replace bare except: with except Exception:
-    content = re.sub(r'(\s+)except:\s*$', r'\1except Exception:', content, flags=re.MULTILINE)
-    return content
+    return re.sub(r"(\s+)except:\s*$", r"\1except Exception:", content, flags=re.MULTILINE)
 
 
 def fix_none_comparison(content):
     """Fix E711: Use 'is None' instead of '== None'"""
     # Replace == None with is None
-    content = re.sub(r'==\s*None\b', 'is None', content)
+    content = re.sub(r"==\s*None\b", "is None", content)
     # Replace != None with is not None
-    content = re.sub(r'!=\s*None\b', 'is not None', content)
-    return content
+    return re.sub(r"!=\s*None\b", "is not None", content)
 
 
 def remove_unused_variables(content):
     """Fix F841: Remove or use unused variables"""
-    lines = content.split('\n')
+    lines = content.split("\n")
     fixed_lines = []
 
     for line in lines:
         # Common pattern: except Exception as e: where e is unused
-        if re.search(r'except\s+\w+\s+as\s+e:', line):
+        if re.search(r"except\s+\w+\s+as\s+e:", line):
             # Replace 'as e' with just the exception type
-            line = re.sub(r'(\s+except\s+\w+)\s+as\s+e:', r'\1:', line)
+            fixed_line = re.sub(r"(\s+except\s+\w+)\s+as\s+e:", r"\1:", line)
+            line = fixed_line
 
         # Pattern: variable = something where variable is never used
         # This is harder to detect automatically, so we'll skip for now
 
         fixed_lines.append(line)
 
-    return '\n'.join(fixed_lines)
+    return "\n".join(fixed_lines)
 
 
 def fix_file(file_path):
     """Apply all fixes to a file"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         original_content = content
@@ -143,7 +141,7 @@ def fix_file(file_path):
 
         # Only write if content changed
         if content != original_content:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             return True
         return False
@@ -160,14 +158,14 @@ def main():
     # Directories to process
     dirs_to_process = [
         backend_dir,
-        backend_dir / 'auth',
-        backend_dir / 'security',
-        backend_dir / 'utils',
-        backend_dir / 'tests',
+        backend_dir / "auth",
+        backend_dir / "security",
+        backend_dir / "utils",
+        backend_dir / "tests",
     ]
 
     # Directories to exclude
-    exclude_dirs = {'venv', '__pycache__', '.pytest_cache', 'migrations', 'instance', 'flask_session'}
+    exclude_dirs = {"venv", "__pycache__", ".pytest_cache", "migrations", "instance", "flask_session"}
 
     files_fixed = 0
     files_processed = 0
@@ -176,13 +174,13 @@ def main():
         if not directory.exists():
             continue
 
-        for file_path in directory.rglob('*.py'):
+        for file_path in directory.rglob("*.py"):
             # Skip excluded directories
             if any(excluded in file_path.parts for excluded in exclude_dirs):
                 continue
 
             # Skip the fix scripts themselves
-            if 'fix_flake8' in file_path.name:
+            if "fix_flake8" in file_path.name:
                 continue
 
             files_processed += 1
@@ -193,5 +191,5 @@ def main():
     print(f"\nProcessed {files_processed} files, fixed {files_fixed} files")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

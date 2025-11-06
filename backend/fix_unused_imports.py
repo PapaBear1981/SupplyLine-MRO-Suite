@@ -16,31 +16,31 @@ def run_autoflake():
 
     # autoflake command
     cmd = [
-        sys.executable, '-m', 'autoflake',
-        '--in-place',
-        '--remove-all-unused-imports',
-        '--remove-unused-variables',
-        '--recursive',
-        '--exclude', 'venv,__pycache__,.pytest_cache,migrations,instance,flask_session',
+        sys.executable, "-m", "autoflake",
+        "--in-place",
+        "--remove-all-unused-imports",
+        "--remove-unused-variables",
+        "--recursive",
+        "--exclude", "venv,__pycache__,.pytest_cache,migrations,instance,flask_session",
         str(backend_dir)
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True)
         print(result.stdout)
         if result.stderr:
             print("Errors:", result.stderr)
         return result.returncode == 0
     except FileNotFoundError:
         print("autoflake not installed. Installing...")
-        subprocess.run([sys.executable, '-m', 'pip', 'install', 'autoflake'])
+        subprocess.run([sys.executable, "-m", "pip", "install", "autoflake"], check=False)
         # Try again
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=False, capture_output=True, text=True)
         print(result.stdout)
         return result.returncode == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Running autoflake to remove unused imports and variables...")
     if run_autoflake():
         print("\nSuccess! Unused imports and variables removed.")

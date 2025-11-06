@@ -23,6 +23,7 @@ export const useErrorHandler = (options = {}) => {
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const retryCountRef = useRef(0);
+  const retryRef = useRef(() => {});
   const navigate = useNavigate();
 
   /**
@@ -72,7 +73,7 @@ export const useErrorHandler = (options = {}) => {
     // Auto retry if enabled
     if (autoRetry && errorInfo.retryable && retryCountRef.current < maxRetries) {
       setTimeout(() => {
-        retry();
+        retryRef.current();
       }, retryDelay * Math.pow(2, retryCountRef.current)); // Exponential backoff
     }
 
@@ -109,6 +110,9 @@ export const useErrorHandler = (options = {}) => {
       setIsRetrying(false);
     }
   }, [error, isRetrying, onRetry, clearError, handleError]);
+
+  // Update retry ref
+  retryRef.current = retry;
 
   /**
    * Wrapper for async operations with error handling

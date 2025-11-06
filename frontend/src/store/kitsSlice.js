@@ -305,9 +305,18 @@ export const fetchInventoryReport = createAsyncThunk(
 
 export const fetchIssuanceReport = createAsyncThunk(
   'kits/fetchIssuanceReport',
-  async ({ kitId, filters = {} }, { rejectWithValue }) => {
+  async ({ kitId = null, filters = {} }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kits/${kitId}/issuances`, { params: filters });
+      // Use different endpoint based on whether we're fetching for a specific kit or all kits
+      const endpoint = kitId ? `/kits/${kitId}/issuances` : '/kits/issuances';
+
+      // For all-kits endpoint, pass filters as query params (aircraft_type_id, start_date, end_date)
+      // For specific kit endpoint, pass date filters only (kit is in URL)
+      const params = { ...filters };
+      // Remove kit_id from params since it's either in the URL or we want all kits
+      delete params.kit_id;
+
+      const response = await api.get(endpoint, { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch issuance report' });
@@ -341,10 +350,23 @@ export const fetchReorderReport = createAsyncThunk(
 
 export const fetchKitUtilization = createAsyncThunk(
   'kits/fetchKitUtilization',
-  async ({ kitId, days = 30 }, { rejectWithValue }) => {
+  async ({ kitId = null, aircraftTypeId = null, days = 30 } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kits/${kitId}/analytics`, { params: { days } });
-      return response.data;
+      const endpoint = kitId ? `/kits/${kitId}/analytics` : '/kits/analytics/utilization';
+      const params = { days };
+
+      // Add filters for the all-kits endpoint
+      if (!kitId) {
+        if (aircraftTypeId) params.aircraft_type_id = aircraftTypeId;
+      }
+
+      const response = await api.get(endpoint, { params });
+
+      return {
+        scope: kitId ? 'kit' : 'all',
+        kitId: kitId ? Number(kitId) : null,
+        data: response.data,
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch kit utilization' });
     }
@@ -422,7 +444,28 @@ export const createReorderRequest = createAsyncThunk(
   'kits/createReorderRequest',
   async (data, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/kits/${data.kitId}/reorder`, data);
+      const kitId = data.kitId;
+      let requestData;
+      let config = {};
+
+      // If there's an image, use FormData
+      if (data.image) {
+        const formData = new FormData();
+        Object.keys(data).forEach(key => {
+          if (key !== 'kitId' && key !== 'image') {
+            formData.append(key, data[key]);
+          }
+        });
+        formData.append('image', data.image);
+        requestData = formData;
+        // Don't set Content-Type header - let axios set it automatically with boundary
+      } else {
+        // Otherwise use JSON
+        const { kitId: _, ...rest } = data;
+        requestData = rest;
+      }
+
+      const response = await api.post(`/kits/${kitId}/reorder`, requestData, config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to create reorder request' });

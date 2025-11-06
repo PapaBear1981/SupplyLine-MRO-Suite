@@ -7,9 +7,12 @@ to improve performance and avoid N+1 query problems.
 
 import logging
 from datetime import datetime, timedelta
-from models import db, UserActivity, AuditLog, Tool, Chemical
+
 from sqlalchemy import and_, func
 from sqlalchemy.orm import joinedload
+
+from models import AuditLog, Chemical, Tool, UserActivity, db
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +33,15 @@ def bulk_log_activities(activities):
 
     # Ensure all activities have timestamps
     for activity in activities:
-        if 'timestamp' not in activity:
-            activity['timestamp'] = datetime.utcnow()
+        if "timestamp" not in activity:
+            activity["timestamp"] = datetime.utcnow()
 
     try:
         db.session.bulk_insert_mappings(UserActivity, activities)
         db.session.commit()
         logger.info(f"Bulk logged {len(activities)} user activities")
     except Exception as e:
-        logger.error(f"Error bulk logging activities: {str(e)}")
+        logger.error(f"Error bulk logging activities: {e!s}")
         db.session.rollback()
         raise
 
@@ -58,15 +61,15 @@ def bulk_log_audit_events(audit_logs):
 
     # Ensure all logs have timestamps
     for log in audit_logs:
-        if 'timestamp' not in log:
-            log['timestamp'] = datetime.utcnow()
+        if "timestamp" not in log:
+            log["timestamp"] = datetime.utcnow()
 
     try:
         db.session.bulk_insert_mappings(AuditLog, audit_logs)
         db.session.commit()
         logger.info(f"Bulk logged {len(audit_logs)} audit events")
     except Exception as e:
-        logger.error(f"Error bulk logging audit events: {str(e)}")
+        logger.error(f"Error bulk logging audit events: {e!s}")
         db.session.rollback()
         raise
 
@@ -83,10 +86,10 @@ def bulk_update_tool_calibration_status():
         overdue_count = db.session.query(Tool).filter(
             and_(
                 Tool.next_calibration_date < now,
-                Tool.calibration_status != 'overdue'
+                Tool.calibration_status != "overdue"
             )
         ).update(
-            {Tool.calibration_status: 'overdue'},
+            {Tool.calibration_status: "overdue"},
             synchronize_session=False
         )
 
@@ -95,10 +98,10 @@ def bulk_update_tool_calibration_status():
         due_soon_count = db.session.query(Tool).filter(
             and_(
                 Tool.next_calibration_date.between(now, due_soon_date),
-                Tool.calibration_status != 'due_soon'
+                Tool.calibration_status != "due_soon"
             )
         ).update(
-            {Tool.calibration_status: 'due_soon'},
+            {Tool.calibration_status: "due_soon"},
             synchronize_session=False
         )
 
@@ -106,23 +109,23 @@ def bulk_update_tool_calibration_status():
         current_count = db.session.query(Tool).filter(
             and_(
                 Tool.next_calibration_date > due_soon_date,
-                Tool.calibration_status != 'current'
+                Tool.calibration_status != "current"
             )
         ).update(
-            {Tool.calibration_status: 'current'},
+            {Tool.calibration_status: "current"},
             synchronize_session=False
         )
 
         logger.info(f"Bulk updated calibration status: {overdue_count} overdue, {due_soon_count} due soon, {current_count} current")
 
         return {
-            'overdue': overdue_count,
-            'due_soon': due_soon_count,
-            'current': current_count
+            "overdue": overdue_count,
+            "due_soon": due_soon_count,
+            "current": current_count
         }
 
     except Exception as e:
-        logger.error(f"Error bulk updating tool calibration status: {str(e)}")
+        logger.error(f"Error bulk updating tool calibration status: {e!s}")
         raise
 
 
@@ -137,11 +140,11 @@ def bulk_update_chemical_status():
         expired_count = db.session.query(Chemical).filter(
             and_(
                 Chemical.expiration_date < now,
-                Chemical.status != 'expired',
+                Chemical.status != "expired",
                 Chemical.is_archived.is_(False)
             )
         ).update(
-            {Chemical.status: 'expired'},
+            {Chemical.status: "expired"},
             synchronize_session=False
         )
 
@@ -149,23 +152,23 @@ def bulk_update_chemical_status():
         out_of_stock_count = db.session.query(Chemical).filter(
             and_(
                 Chemical.quantity <= 0,
-                Chemical.status != 'out_of_stock',
+                Chemical.status != "out_of_stock",
                 Chemical.is_archived.is_(False)
             )
         ).update(
-            {Chemical.status: 'out_of_stock'},
+            {Chemical.status: "out_of_stock"},
             synchronize_session=False
         )
 
         logger.info(f"Bulk updated chemical status: {expired_count} expired, {out_of_stock_count} out of stock")
 
         return {
-            'expired': expired_count,
-            'out_of_stock': out_of_stock_count
+            "expired": expired_count,
+            "out_of_stock": out_of_stock_count
         }
 
     except Exception as e:
-        logger.error(f"Error bulk updating chemical status: {str(e)}")
+        logger.error(f"Error bulk updating chemical status: {e!s}")
         raise
 
 
@@ -176,35 +179,35 @@ def get_dashboard_stats_optimized():
     try:
         # Single query to get all counts
         stats = db.session.query(
-            func.count(Tool.id).label('total_tools'),
-            func.sum(func.case([(Tool.status == 'available', 1)], else_=0)).label('available_tools'),
-            func.sum(func.case([(Tool.status == 'checked_out', 1)], else_=0)).label('checked_out_tools'),
-            func.sum(func.case([(Tool.calibration_status == 'overdue', 1)], else_=0)).label('overdue_calibrations')
+            func.count(Tool.id).label("total_tools"),
+            func.sum(func.case([(Tool.status == "available", 1)], else_=0)).label("available_tools"),
+            func.sum(func.case([(Tool.status == "checked_out", 1)], else_=0)).label("checked_out_tools"),
+            func.sum(func.case([(Tool.calibration_status == "overdue", 1)], else_=0)).label("overdue_calibrations")
         ).first()
 
         # Get chemical stats
         chemical_stats = db.session.query(
-            func.count(Chemical.id).label('total_chemicals'),
-            func.sum(func.case([(Chemical.status == 'expired', 1)], else_=0)).label('expired_chemicals'),
-            func.sum(func.case([(Chemical.status == 'low_stock', 1)], else_=0)).label('low_stock_chemicals')
+            func.count(Chemical.id).label("total_chemicals"),
+            func.sum(func.case([(Chemical.status == "expired", 1)], else_=0)).label("expired_chemicals"),
+            func.sum(func.case([(Chemical.status == "low_stock", 1)], else_=0)).label("low_stock_chemicals")
         ).filter(Chemical.is_archived.is_(False)).first()
 
         return {
-            'tools': {
-                'total': stats.total_tools or 0,
-                'available': stats.available_tools or 0,
-                'checked_out': stats.checked_out_tools or 0,
-                'overdue_calibrations': stats.overdue_calibrations or 0
+            "tools": {
+                "total": stats.total_tools or 0,
+                "available": stats.available_tools or 0,
+                "checked_out": stats.checked_out_tools or 0,
+                "overdue_calibrations": stats.overdue_calibrations or 0
             },
-            'chemicals': {
-                'total': chemical_stats.total_chemicals or 0,
-                'expired': chemical_stats.expired_chemicals or 0,
-                'low_stock': chemical_stats.low_stock_chemicals or 0
+            "chemicals": {
+                "total": chemical_stats.total_chemicals or 0,
+                "expired": chemical_stats.expired_chemicals or 0,
+                "low_stock": chemical_stats.low_stock_chemicals or 0
             }
         }
 
     except Exception as e:
-        logger.error(f"Error getting optimized dashboard stats: {str(e)}")
+        logger.error(f"Error getting optimized dashboard stats: {e!s}")
         raise
 
 
@@ -223,17 +226,17 @@ def get_tools_with_relationships(filters=None):
         )
 
         if filters:
-            if 'status' in filters:
-                query = query.filter(Tool.status == filters['status'])
-            if 'category' in filters:
-                query = query.filter(Tool.category == filters['category'])
-            if 'location' in filters:
-                query = query.filter(Tool.location == filters['location'])
+            if "status" in filters:
+                query = query.filter(Tool.status == filters["status"])
+            if "category" in filters:
+                query = query.filter(Tool.category == filters["category"])
+            if "location" in filters:
+                query = query.filter(Tool.location == filters["location"])
 
         return query.all()
 
     except Exception as e:
-        logger.error(f"Error getting tools with relationships: {str(e)}")
+        logger.error(f"Error getting tools with relationships: {e!s}")
         raise
 
 
@@ -250,7 +253,7 @@ def get_chemicals_with_relationships(filters=None):
         )
 
         # Apply archived filter based on show_archived parameter
-        if filters and filters.get('show_archived'):
+        if filters and filters.get("show_archived"):
             # Show archived chemicals - no filter needed
             pass
         else:
@@ -258,15 +261,15 @@ def get_chemicals_with_relationships(filters=None):
             query = query.filter(Chemical.is_archived.is_(False))
 
         if filters:
-            if 'status' in filters:
-                query = query.filter(Chemical.status == filters['status'])
-            if 'category' in filters:
-                query = query.filter(Chemical.category == filters['category'])
+            if "status" in filters:
+                query = query.filter(Chemical.status == filters["status"])
+            if "category" in filters:
+                query = query.filter(Chemical.category == filters["category"])
 
         return query.all()
 
     except Exception as e:
-        logger.error(f"Error getting chemicals with relationships: {str(e)}")
+        logger.error(f"Error getting chemicals with relationships: {e!s}")
         raise
 
 
@@ -278,10 +281,10 @@ def optimize_database_queries():
         results = {}
 
         # Update tool calibration status
-        results['calibration_updates'] = bulk_update_tool_calibration_status()
+        results["calibration_updates"] = bulk_update_tool_calibration_status()
 
         # Update chemical status
-        results['chemical_updates'] = bulk_update_chemical_status()
+        results["chemical_updates"] = bulk_update_chemical_status()
 
         # Commit all changes
         db.session.commit()
@@ -290,6 +293,6 @@ def optimize_database_queries():
         return results
 
     except Exception as e:
-        logger.error(f"Error during database optimization: {str(e)}")
+        logger.error(f"Error during database optimization: {e!s}")
         db.session.rollback()
         raise

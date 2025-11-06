@@ -101,7 +101,7 @@ const CalibrationOverdueList = () => {
                   <div className="d-flex gap-2">
                     <Button
                       as={Link}
-                      to={`/tools/${tool.id}`}
+                      to={`/tools/${tool.id}?from=calibrations`}
                       variant="info"
                       size="sm"
                     >

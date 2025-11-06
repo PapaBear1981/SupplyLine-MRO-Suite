@@ -1,7 +1,7 @@
 {
   "name": "supplyline-mro-suite",
   "private": true,
-  "version": "5.0.0",
+  "version": "5.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -27,7 +27,6 @@
     "chart.js": "^4.4.9",
     "file-saver": "^2.0.5",
     "html5-qrcode": "^2.3.8",
-    "jsbarcode": "^3.11.6",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "prop-types": "^15.8.1",

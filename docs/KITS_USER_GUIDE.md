@@ -147,10 +147,19 @@ Each item shows:
 
 ## Issuing Items
 
+### Important: Tools Cannot Be Issued
+
+**Tools cannot be issued from kits.** Tools must be managed through the tool management system and can only be:
+- Retired from service
+- Removed from service using appropriate tool management methods
+- Transferred between kits and warehouses
+
+Only **chemicals** and **expendables** can be issued from kits.
+
 ### How to Issue Items from a Kit
 
 1. Navigate to kit detail page
-2. Click **"Issue Items"** button
+2. Click **"Issue Items"** button (only available for chemicals and expendables)
 3. In the issuance form:
    - Select the item to issue
    - Enter quantity
@@ -201,17 +210,84 @@ Each item shows:
 
 ### Transfer Status
 
-- **Pending**: Transfer initiated, awaiting completion
+- **Pending**: Transfer initiated, awaiting completion (kit-to-kit transfers only)
 - **Completed**: Transfer finished, inventory updated
 - **Cancelled**: Transfer cancelled before completion
 
 ### Completing a Transfer
 
-Materials department personnel can:
+**Warehouse Transfers**: Auto-complete immediately for instant feedback
+
+**Kit-to-Kit Transfers**: Materials department personnel can:
 1. View pending transfers
 2. Verify physical transfer
 3. Click **"Complete Transfer"**
 4. Inventory is automatically updated
+
+### Barcode Printing After Transfer
+
+After completing a transfer, a barcode printing modal automatically appears:
+1. **Review Transfer Details**: Verify item and destination
+2. **Select Label Options**:
+   - Label Size: 4x6, 3x4, 2x4, or 2x2 inches
+   - Code Type: Barcode or QR Code
+3. **Print Label**: Click "Print" to generate PDF label
+4. **Apply Label**: Print and apply label to transferred item
+
+---
+
+## Managing Expendables (v5.1.0+)
+
+### What Are Expendables?
+
+Expendables are consumable items stored directly in kits without warehouse management:
+- Fasteners (bolts, nuts, screws)
+- O-rings and seals
+- Safety wire
+- Cleaning supplies
+- Disposable items
+- Shop towels
+- Zip ties
+- Tape
+
+### Adding Expendables to Kits
+
+#### Method 1: Direct Addition (Kit-Only)
+1. Go to kit detail page
+2. Click **"Add Expendable"** button
+3. Fill in:
+   - Part Number
+   - Description
+   - Quantity and Unit
+   - Box Location
+   - Lot Number (optional)
+4. Click **"Add"**
+5. Barcode modal appears automatically
+
+#### Method 2: Transfer from Warehouse
+1. Create expendable in warehouse first
+2. Use **"Transfer Items"** to move to kit
+3. Barcode modal appears after transfer
+
+### Issuing Expendables
+
+1. Navigate to kit detail page
+2. Find expendable in Items tab
+3. Click **"Issue"** button
+4. Enter:
+   - Quantity to issue
+   - Work order number
+   - Purpose
+5. Click **"Issue"**
+6. Quantity automatically reduced
+
+### Reordering Expendables
+
+When expendables run low:
+1. Automatic reorder request created
+2. Or manually click **"Request Reorder"**
+3. Materials department fulfills request
+4. Quantity automatically updated
 
 ---
 
@@ -347,6 +423,87 @@ Alerts appear:
 2. **Optimize Stock Levels**: Adjust minimums based on usage
 3. **Clean Up**: Remove obsolete items
 4. **Update Descriptions**: Keep information current
+
+### Barcode Printing (v5.1.0+)
+
+1. **Print Immediately**: Print barcodes when items are added or transferred
+2. **Use Appropriate Size**: Match label size to item/container size
+3. **Protect Labels**: Apply labels to clean, flat surfaces
+4. **Test Scanning**: Verify barcodes scan correctly after printing
+5. **Reprint if Needed**: Damaged labels can be reprinted anytime
+
+---
+
+## Barcode & Label System (v5.1.0+)
+
+### Overview
+
+The barcode system generates professional PDF labels for all kit items with support for multiple label sizes and both 1D barcodes and 2D QR codes.
+
+### Printing Barcodes
+
+#### Automatic Printing
+Barcode modals appear automatically after:
+- Adding new items to kit
+- Transferring items to/from kit
+- Creating child lots from partial chemical issuances
+
+#### Manual Printing
+To print a barcode for any item:
+1. Navigate to kit detail page
+2. Find item in Items tab
+3. Click **"Print Barcode"** button
+4. Select label options
+5. Click **"Print"**
+
+### Label Size Options
+
+- **4x6 inches**: Standard shipping label (default)
+  - Best for: Tools, chemicals with detailed info
+  - Content: Full item details, large barcode/QR code
+
+- **3x4 inches**: Medium label
+  - Best for: Kit boxes, chemical containers
+  - Content: Essential details, medium barcode/QR code
+
+- **2x4 inches**: Compact label
+  - Best for: Small tools, expendables
+  - Content: Key details, compact barcode/QR code
+
+- **2x2 inches**: Minimal label
+  - Best for: Small parts, minimal labeling
+  - Content: Item identifier, small barcode/QR code
+
+### Code Type Options
+
+- **Barcode (1D)**: Traditional linear barcode
+  - Faster scanning
+  - Simple item identification
+  - Works with standard barcode scanners
+
+- **QR Code (2D)**: Two-dimensional QR code
+  - Links to mobile-friendly landing page
+  - More data capacity
+  - Scan with smartphone camera
+
+### QR Code Landing Pages
+
+Scanning a QR code opens a mobile-friendly page with:
+- Complete item details
+- Current location
+- Usage history
+- Calibration information (tools)
+- Expiration date (chemicals)
+- Parent lot lineage (child lots)
+
+### Printing Tips
+
+1. **Select Correct Size**: Match label size to container
+2. **Choose Code Type**: Use barcode for scanning, QR for mobile access
+3. **Print Quality**: Use highest quality printer settings
+4. **Label Stock**: Use quality adhesive label stock
+5. **Apply Carefully**: Place on clean, flat surface
+6. **Test Scanning**: Verify barcode scans before applying
 
 ---
 

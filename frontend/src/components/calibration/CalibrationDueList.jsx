@@ -169,7 +169,7 @@ const CalibrationDueList = () => {
                     <Tooltip text="View tool details" placement="top" show={showTooltips}>
                       <Button
                         as={Link}
-                        to={`/tools/${tool.id}`}
+                        to={`/tools/${tool.id}?from=calibrations`}
                         variant="info"
                         size="sm"
                       >

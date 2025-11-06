@@ -346,7 +346,7 @@ const RolesManagementModal = ({ show, onHide }) => {
       </Modal>
 
       {/* Add Role Modal */}
-      <Modal show={showAddForm} onHide={() => { setShowAddForm(false); resetForm(); }} size="lg">
+      <Modal show={showAddForm} onHide={() => { setShowAddForm(false); resetForm(); }} size="lg" className="roles-management-modal">
         <Modal.Header closeButton>
           <Modal.Title>Add New Role</Modal.Title>
         </Modal.Header>
@@ -411,7 +411,7 @@ const RolesManagementModal = ({ show, onHide }) => {
       </Modal>
 
       {/* Edit Role Details Modal */}
-      <Modal show={showEditDetailsForm} onHide={() => { setShowEditDetailsForm(false); setSelectedRole(null); resetForm(); }} size="lg">
+      <Modal show={showEditDetailsForm} onHide={() => { setShowEditDetailsForm(false); setSelectedRole(null); resetForm(); }} size="lg" className="roles-management-modal">
         <Modal.Header closeButton>
           <Modal.Title>Edit Role: {selectedRole?.name}</Modal.Title>
         </Modal.Header>
@@ -491,6 +491,7 @@ const RolesManagementModal = ({ show, onHide }) => {
         show={showEditPermissionsForm}
         onHide={() => { setShowEditPermissionsForm(false); setSelectedRole(null); resetForm(); }}
         size="lg"
+        className="roles-management-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>
@@ -527,7 +528,7 @@ const RolesManagementModal = ({ show, onHide }) => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteConfirm} onHide={() => { setShowDeleteConfirm(false); setSelectedRole(null); }}>
+      <Modal show={showDeleteConfirm} onHide={() => { setShowDeleteConfirm(false); setSelectedRole(null); }} className="roles-management-modal">
         <Modal.Header closeButton>
           <Modal.Title>
             <FaExclamationTriangle className="text-warning me-2" />

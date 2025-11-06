@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import threading
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import threading
 
 
 @dataclass

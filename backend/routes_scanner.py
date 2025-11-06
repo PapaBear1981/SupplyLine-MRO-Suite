@@ -1,6 +1,8 @@
-from flask import request, jsonify, render_template_string, current_app
-from models import Tool, Chemical, ToolCalibration
 from datetime import datetime
+
+from flask import current_app, jsonify, render_template_string, request
+
+from models import Chemical, Tool, ToolCalibration
 
 
 def register_scanner_routes(app):
@@ -9,25 +11,25 @@ def register_scanner_routes(app):
     """
 
     # Lookup item by barcode/QR code
-    @app.route('/api/scanner/lookup', methods=['POST'])
+    @app.route("/api/scanner/lookup", methods=["POST"])
     def scanner_lookup():
         try:
             data = request.get_json()
 
-            if not data or 'code' not in data:
-                return jsonify({'error': 'No code provided'}), 400
+            if not data or "code" not in data:
+                return jsonify({"error": "No code provided"}), 400
 
-            code = data['code']
+            code = data["code"]
 
             # Parse the code to determine if it's a tool or chemical
             # Format for tools: tool_number-serial_number OR tool_number-LOT-lot_number
             # Format for chemicals: part_number-lot_number-expiration_date
-            parts = code.split('-')
+            parts = code.split("-")
 
             # Try to find a tool first
             if len(parts) >= 2:
                 # Check if it's a lot-tracked tool (format: tool_number-LOT-lot_number)
-                if len(parts) >= 3 and parts[1] == 'LOT':
+                if len(parts) >= 3 and parts[1] == "LOT":
                     tool = Tool.query.filter_by(
                         tool_number=parts[0],
                         lot_number=parts[2]
@@ -35,17 +37,17 @@ def register_scanner_routes(app):
 
                     if tool:
                         return jsonify({
-                            'item_type': 'tool',
-                            'item_id': tool.id,
-                            'item_data': {
-                                'id': tool.id,
-                                'tool_number': tool.tool_number,
-                                'lot_number': tool.lot_number,
-                                'serial_number': tool.serial_number,
-                                'description': tool.description,
-                                'category': tool.category,
-                                'location': tool.location,
-                                'status': tool.status
+                            "item_type": "tool",
+                            "item_id": tool.id,
+                            "item_data": {
+                                "id": tool.id,
+                                "tool_number": tool.tool_number,
+                                "lot_number": tool.lot_number,
+                                "serial_number": tool.serial_number,
+                                "description": tool.description,
+                                "category": tool.category,
+                                "location": tool.location,
+                                "status": tool.status
                             }
                         })
                 else:
@@ -57,17 +59,17 @@ def register_scanner_routes(app):
 
                     if tool:
                         return jsonify({
-                            'item_type': 'tool',
-                            'item_id': tool.id,
-                            'item_data': {
-                                'id': tool.id,
-                                'tool_number': tool.tool_number,
-                                'serial_number': tool.serial_number,
-                                'lot_number': tool.lot_number,
-                                'description': tool.description,
-                                'category': tool.category,
-                                'location': tool.location,
-                                'status': tool.status
+                            "item_type": "tool",
+                            "item_id": tool.id,
+                            "item_data": {
+                                "id": tool.id,
+                                "tool_number": tool.tool_number,
+                                "serial_number": tool.serial_number,
+                                "lot_number": tool.lot_number,
+                                "description": tool.description,
+                                "category": tool.category,
+                                "location": tool.location,
+                                "status": tool.status
                             }
                         })
 
@@ -81,26 +83,26 @@ def register_scanner_routes(app):
 
                 if chemical:
                     # If expiration date is included, verify it
-                    if len(parts) >= 3 and parts[2] != 'NOEXP':
+                    if len(parts) >= 3 and parts[2] != "NOEXP":
                         try:
                             # Parse expiration date from YYYYMMDD format
-                            exp_date = datetime.strptime(parts[2], '%Y%m%d').date()
+                            exp_date = datetime.strptime(parts[2], "%Y%m%d").date()
 
                             # If chemical has expiration date, check if it matches
                             if chemical.expiration_date and chemical.expiration_date.date() != exp_date:
                                 # Still return the chemical, but with a warning
                                 return jsonify({
-                                    'item_type': 'chemical',
-                                    'item_id': chemical.id,
-                                    'warning': 'Expiration date in barcode does not match database record',
-                                    'item_data': {
-                                        'id': chemical.id,
-                                        'part_number': chemical.part_number,
-                                        'lot_number': chemical.lot_number,
-                                        'description': chemical.description,
-                                        'manufacturer': chemical.manufacturer,
-                                        'status': chemical.status,
-                                        'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None
+                                    "item_type": "chemical",
+                                    "item_id": chemical.id,
+                                    "warning": "Expiration date in barcode does not match database record",
+                                    "item_data": {
+                                        "id": chemical.id,
+                                        "part_number": chemical.part_number,
+                                        "lot_number": chemical.lot_number,
+                                        "description": chemical.description,
+                                        "manufacturer": chemical.manufacturer,
+                                        "status": chemical.status,
+                                        "expiration_date": chemical.expiration_date.isoformat() if chemical.expiration_date else None
                                     }
                                 })
                         except ValueError:
@@ -109,28 +111,28 @@ def register_scanner_routes(app):
 
                     # Return chemical data
                     return jsonify({
-                        'item_type': 'chemical',
-                        'item_id': chemical.id,
-                        'item_data': {
-                            'id': chemical.id,
-                            'part_number': chemical.part_number,
-                            'lot_number': chemical.lot_number,
-                            'description': chemical.description,
-                            'manufacturer': chemical.manufacturer,
-                            'status': chemical.status,
-                            'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None
+                        "item_type": "chemical",
+                        "item_id": chemical.id,
+                        "item_data": {
+                            "id": chemical.id,
+                            "part_number": chemical.part_number,
+                            "lot_number": chemical.lot_number,
+                            "description": chemical.description,
+                            "manufacturer": chemical.manufacturer,
+                            "status": chemical.status,
+                            "expiration_date": chemical.expiration_date.isoformat() if chemical.expiration_date else None
                         }
                     })
 
             # If no matching item found
-            return jsonify({'error': 'No matching item found for the provided code'}), 404
+            return jsonify({"error": "No matching item found for the provided code"}), 404
 
         except Exception as e:
-            print(f"Error in scanner lookup: {str(e)}")
-            return jsonify({'error': 'An error occurred while processing the code'}), 500
+            print(f"Error in scanner lookup: {e!s}")
+            return jsonify({"error": "An error occurred while processing the code"}), 500
 
     # Get barcode data for a tool
-    @app.route('/api/tools/<int:id>/barcode', methods=['GET'])
+    @app.route("/api/tools/<int:id>/barcode", methods=["GET"])
     def tool_barcode_route(id):
         try:
             # Get the tool
@@ -151,11 +153,8 @@ def register_scanner_routes(app):
 
             # Get the base URL for QR code
             # Use PUBLIC_URL from config if set (for external access), otherwise use request host
-            base_url = current_app.config.get('PUBLIC_URL')
-            if not base_url:
-                base_url = request.host_url.rstrip('/')
-            else:
-                base_url = base_url.rstrip('/')
+            base_url = current_app.config.get("PUBLIC_URL")
+            base_url = request.host_url.rstrip("/") if not base_url else base_url.rstrip("/")
 
             # Create QR code URL that points to the tool view page
             qr_url = f"{base_url}/tool-view/{tool.id}"
@@ -164,37 +163,37 @@ def register_scanner_routes(app):
             calibration_data = None
             if latest_calibration:
                 calibration_data = {
-                    'id': latest_calibration.id,
-                    'calibration_date': latest_calibration.calibration_date.isoformat() if latest_calibration.calibration_date else None,
-                    'next_calibration_date': latest_calibration.next_calibration_date.isoformat() if latest_calibration.next_calibration_date else None,
-                    'calibration_status': latest_calibration.calibration_status,
-                    'has_certificate': latest_calibration.calibration_certificate_file is not None
+                    "id": latest_calibration.id,
+                    "calibration_date": latest_calibration.calibration_date.isoformat() if latest_calibration.calibration_date else None,
+                    "next_calibration_date": latest_calibration.next_calibration_date.isoformat() if latest_calibration.next_calibration_date else None,
+                    "calibration_status": latest_calibration.calibration_status,
+                    "has_certificate": latest_calibration.calibration_certificate_file is not None
                 }
 
             return jsonify({
-                'tool_id': tool.id,
-                'tool_number': tool.tool_number,
-                'serial_number': tool.serial_number,
-                'lot_number': tool.lot_number,
-                'description': tool.description,
-                'category': tool.category,
-                'location': tool.location,
-                'condition': tool.condition,
-                'status': tool.status,
-                'created_at': tool.created_at.isoformat() if tool.created_at else None,
-                'barcode_data': barcode_data,
-                'qr_url': qr_url,
-                'calibration': calibration_data,
-                'requires_calibration': tool.requires_calibration,
-                'last_calibration_date': tool.last_calibration_date.isoformat() if tool.last_calibration_date else None,
-                'next_calibration_date': tool.next_calibration_date.isoformat() if tool.next_calibration_date else None
+                "tool_id": tool.id,
+                "tool_number": tool.tool_number,
+                "serial_number": tool.serial_number,
+                "lot_number": tool.lot_number,
+                "description": tool.description,
+                "category": tool.category,
+                "location": tool.location,
+                "condition": tool.condition,
+                "status": tool.status,
+                "created_at": tool.created_at.isoformat() if tool.created_at else None,
+                "barcode_data": barcode_data,
+                "qr_url": qr_url,
+                "calibration": calibration_data,
+                "requires_calibration": tool.requires_calibration,
+                "last_calibration_date": tool.last_calibration_date.isoformat() if tool.last_calibration_date else None,
+                "next_calibration_date": tool.next_calibration_date.isoformat() if tool.next_calibration_date else None
             })
         except Exception as e:
-            print(f"Error in tool barcode route: {str(e)}")
-            return jsonify({'error': 'An error occurred while generating barcode data'}), 500
+            print(f"Error in tool barcode route: {e!s}")
+            return jsonify({"error": "An error occurred while generating barcode data"}), 500
 
     # Public tool view page (accessible via QR code scan)
-    @app.route('/tool-view/<int:id>', methods=['GET'])
+    @app.route("/tool-view/<int:id>", methods=["GET"])
     def tool_view_page(id):
         try:
             # Get the tool
@@ -215,8 +214,8 @@ def register_scanner_routes(app):
             # Format dates for display
             def format_date(dt):
                 if dt:
-                    return dt.strftime('%B %d, %Y')
-                return 'N/A'
+                    return dt.strftime("%B %d, %Y")
+                return "N/A"
 
             # Create HTML template for the tool view page
             html_template = """
@@ -466,11 +465,11 @@ def register_scanner_routes(app):
             )
 
         except Exception as e:
-            print(f"Error in tool view page: {str(e)}")
+            print(f"Error in tool view page: {e!s}")
             return "<html><body><h1>Error</h1><p>Tool not found or an error occurred.</p></body></html>", 404
 
     # Public chemical view page (accessible via QR code scan)
-    @app.route('/chemical-view/<int:id>', methods=['GET'])
+    @app.route("/chemical-view/<int:id>", methods=["GET"])
     def chemical_view_page(id):
         try:
             # Get the chemical
@@ -479,8 +478,8 @@ def register_scanner_routes(app):
             # Format dates for display
             def format_date(dt):
                 if dt:
-                    return dt.strftime('%B %d, %Y')
-                return 'N/A'
+                    return dt.strftime("%B %d, %Y")
+                return "N/A"
 
             # Create HTML template for the chemical view page
             html_template = """
@@ -681,5 +680,5 @@ def register_scanner_routes(app):
             )
 
         except Exception as e:
-            print(f"Error in chemical view page: {str(e)}")
+            print(f"Error in chemical view page: {e!s}")
             return "<html><body><h1>Error</h1><p>Chemical not found or an error occurred.</p></body></html>", 404

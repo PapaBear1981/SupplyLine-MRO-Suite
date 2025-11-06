@@ -12,8 +12,10 @@ Tests all kit-related API endpoints including:
 - Analytics and alerts
 """
 
-import pytest
 import json
+
+import pytest
+
 from models import User
 from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
 
@@ -21,9 +23,9 @@ from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
 @pytest.fixture
 def aircraft_type(db_session):
     """Create a test aircraft type"""
-    aircraft_type = AircraftType.query.filter_by(name='Q400').first()
+    aircraft_type = AircraftType.query.filter_by(name="Q400").first()
     if not aircraft_type:
-        aircraft_type = AircraftType(name='Q400', description='Test Aircraft', is_active=True)
+        aircraft_type = AircraftType(name="Q400", description="Test Aircraft", is_active=True)
         db_session.add(aircraft_type)
         db_session.commit()
     return aircraft_type
@@ -33,12 +35,12 @@ def aircraft_type(db_session):
 def test_kit(db_session, admin_user, aircraft_type):
     """Create a test kit with unique name"""
     import uuid
-    kit_name = f'Test Kit {uuid.uuid4().hex[:8]}'
+    kit_name = f"Test Kit {uuid.uuid4().hex[:8]}"
     kit = Kit(
         name=kit_name,
         aircraft_type_id=aircraft_type.id,
-        description='Test kit for unit tests',
-        status='active',
+        description="Test kit for unit tests",
+        status="active",
         created_by=admin_user.id
     )
     db_session.add(kit)
@@ -51,9 +53,9 @@ def test_kit_box(db_session, test_kit):
     """Create a test kit box"""
     box = KitBox(
         kit_id=test_kit.id,
-        box_number='1',
-        box_type='expendable',
-        description='Expendable items box'
+        box_number="1",
+        box_type="expendable",
+        description="Expendable items box"
     )
     db_session.add(box)
     db_session.commit()
@@ -64,7 +66,7 @@ def test_kit_box(db_session, test_kit):
 def materials_user(db_session):
     """Create a Materials department user with unique employee number"""
     import uuid
-    emp_number = f'MAT{uuid.uuid4().hex[:6]}'
+    emp_number = f"MAT{uuid.uuid4().hex[:6]}"
 
     # Check if user already exists
     existing_user = User.query.filter_by(employee_number=emp_number).first()
@@ -72,13 +74,13 @@ def materials_user(db_session):
         return existing_user
 
     user = User(
-        name='Materials User',
+        name="Materials User",
         employee_number=emp_number,
-        department='Materials',
+        department="Materials",
         is_admin=False,
         is_active=True
     )
-    user.set_password('materials123')
+    user.set_password("materials123")
     db_session.add(user)
     db_session.commit()
     return user
@@ -89,7 +91,7 @@ def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(materials_user)
-    return {'Authorization': f"Bearer {tokens['access_token']}"}
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 class TestAircraftTypeEndpoints:
@@ -97,70 +99,70 @@ class TestAircraftTypeEndpoints:
 
     def test_get_aircraft_types_authenticated(self, client, auth_headers_user, aircraft_type):
         """Test getting aircraft types list with authentication"""
-        response = client.get('/api/aircraft-types', headers=auth_headers_user)
+        response = client.get("/api/aircraft-types", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, list)
         assert len(data) >= 1
-        assert any(at['name'] == 'Q400' for at in data)
+        assert any(at["name"] == "Q400" for at in data)
 
     def test_get_aircraft_types_unauthenticated(self, client):
         """Test getting aircraft types without authentication"""
-        response = client.get('/api/aircraft-types')
+        response = client.get("/api/aircraft-types")
 
         assert response.status_code == 401
         data = json.loads(response.data)
-        assert data['error'] == 'Authentication required'
+        assert data["error"] == "Authentication required"
 
     def test_get_aircraft_types_include_inactive(self, client, auth_headers_user, db_session):
         """Test getting aircraft types including inactive ones"""
         # Create inactive aircraft type
-        inactive_type = AircraftType(name='Inactive Type', is_active=False)
+        inactive_type = AircraftType(name="Inactive Type", is_active=False)
         db_session.add(inactive_type)
         db_session.commit()
 
         # Without include_inactive
-        response = client.get('/api/aircraft-types', headers=auth_headers_user)
+        response = client.get("/api/aircraft-types", headers=auth_headers_user)
         data = json.loads(response.data)
-        assert not any(at['name'] == 'Inactive Type' for at in data)
+        assert not any(at["name"] == "Inactive Type" for at in data)
 
         # With include_inactive
-        response = client.get('/api/aircraft-types?include_inactive=true', headers=auth_headers_user)
+        response = client.get("/api/aircraft-types?include_inactive=true", headers=auth_headers_user)
         data = json.loads(response.data)
-        assert any(at['name'] == 'Inactive Type' for at in data)
+        assert any(at["name"] == "Inactive Type" for at in data)
 
     def test_create_aircraft_type_admin(self, client, auth_headers_admin, db_session):
         """Test creating aircraft type as admin"""
         aircraft_data = {
-            'name': 'Boeing 737',
-            'description': 'Boeing 737 aircraft'
+            "name": "Boeing 737",
+            "description": "Boeing 737 aircraft"
         }
 
-        response = client.post('/api/aircraft-types',
+        response = client.post("/api/aircraft-types",
                              json=aircraft_data,
                              headers=auth_headers_admin)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['name'] == 'Boeing 737'
-        assert data['description'] == 'Boeing 737 aircraft'
-        assert data['is_active'] is True
+        assert data["name"] == "Boeing 737"
+        assert data["description"] == "Boeing 737 aircraft"
+        assert data["is_active"] is True
 
         # Verify created in database
-        aircraft_type = AircraftType.query.filter_by(name='Boeing 737').first()
+        aircraft_type = AircraftType.query.filter_by(name="Boeing 737").first()
         assert aircraft_type is not None
 
     def test_create_aircraft_type_regular_user(self, client, auth_headers_user):
         """Test creating aircraft type as regular user (should fail)"""
         aircraft_data = {
-            'name': 'Unauthorized Aircraft',
-            'description': 'Should not be created'
+            "name": "Unauthorized Aircraft",
+            "description": "Should not be created"
         }
 
-        response = client.post('/api/aircraft-types',
+        response = client.post("/api/aircraft-types",
                              json=aircraft_data,
                              headers=auth_headers_user)
 
@@ -169,56 +171,56 @@ class TestAircraftTypeEndpoints:
     def test_create_aircraft_type_duplicate(self, client, auth_headers_admin, aircraft_type):
         """Test creating duplicate aircraft type (should fail)"""
         aircraft_data = {
-            'name': 'Q400',
-            'description': 'Duplicate'
+            "name": "Q400",
+            "description": "Duplicate"
         }
 
-        response = client.post('/api/aircraft-types',
+        response = client.post("/api/aircraft-types",
                              json=aircraft_data,
                              headers=auth_headers_admin)
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'already exists' in data['error']
+        assert "already exists" in data["error"]
 
     def test_create_aircraft_type_missing_name(self, client, auth_headers_admin):
         """Test creating aircraft type without name (should fail)"""
         aircraft_data = {
-            'description': 'No name provided'
+            "description": "No name provided"
         }
 
-        response = client.post('/api/aircraft-types',
+        response = client.post("/api/aircraft-types",
                              json=aircraft_data,
                              headers=auth_headers_admin)
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'required' in data['error'].lower()
+        assert "required" in data["error"].lower()
 
     def test_update_aircraft_type_admin(self, client, auth_headers_admin, aircraft_type):
         """Test updating aircraft type as admin"""
         update_data = {
-            'description': 'Updated description',
-            'is_active': False
+            "description": "Updated description",
+            "is_active": False
         }
 
-        response = client.put(f'/api/aircraft-types/{aircraft_type.id}',
+        response = client.put(f"/api/aircraft-types/{aircraft_type.id}",
                             json=update_data,
                             headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['description'] == 'Updated description'
-        assert data['is_active'] is False
+        assert data["description"] == "Updated description"
+        assert data["is_active"] is False
 
     def test_update_aircraft_type_regular_user(self, client, auth_headers_user, aircraft_type):
         """Test updating aircraft type as regular user (should fail)"""
         update_data = {
-            'description': 'Unauthorized update'
+            "description": "Unauthorized update"
         }
 
-        response = client.put(f'/api/aircraft-types/{aircraft_type.id}',
+        response = client.put(f"/api/aircraft-types/{aircraft_type.id}",
                             json=update_data,
                             headers=auth_headers_user)
 
@@ -231,25 +233,25 @@ class TestAircraftTypeEndpoints:
         # Use an aircraft type that is not referenced by active kits to satisfy
         # the API's validation rules.
         temp_type = AircraftType(
-            name=f'Temp Type {uuid.uuid4().hex[:6]}',
-            description='Temporary test type',
+            name=f"Temp Type {uuid.uuid4().hex[:6]}",
+            description="Temporary test type",
             is_active=True
         )
         db_session.add(temp_type)
         db_session.commit()
 
-        response = client.delete(f'/api/aircraft-types/{temp_type.id}',
+        response = client.delete(f"/api/aircraft-types/{temp_type.id}",
                                headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['is_active'] is False
-        assert 'deactivated' in data['message'].lower()
+        assert data["is_active"] is False
+        assert "deactivated" in data["message"].lower()
 
     def test_deactivate_aircraft_type_regular_user(self, client, auth_headers_user, aircraft_type):
         """Test deactivating aircraft type as regular user (should fail)"""
-        response = client.delete(f'/api/aircraft-types/{aircraft_type.id}',
+        response = client.delete(f"/api/aircraft-types/{aircraft_type.id}",
                                headers=auth_headers_user)
 
         assert response.status_code == 403
@@ -260,7 +262,7 @@ class TestKitCRUDEndpoints:
 
     def test_get_kits_authenticated(self, client, auth_headers_user, test_kit):
         """Test getting kits list with authentication"""
-        response = client.get('/api/kits', headers=auth_headers_user)
+        response = client.get("/api/kits", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -270,24 +272,24 @@ class TestKitCRUDEndpoints:
 
     def test_get_kits_unauthenticated(self, client):
         """Test getting kits without authentication"""
-        response = client.get('/api/kits')
+        response = client.get("/api/kits")
 
         assert response.status_code == 401
 
     def test_get_kit_by_id(self, client, auth_headers_user, test_kit):
         """Test getting specific kit by ID"""
-        response = client.get(f'/api/kits/{test_kit.id}', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['id'] == test_kit.id
-        assert 'name' in data
-        assert data['status'] == 'active'
+        assert data["id"] == test_kit.id
+        assert "name" in data
+        assert data["status"] == "active"
 
     def test_get_kit_not_found(self, client, auth_headers_user):
         """Test getting non-existent kit"""
-        response = client.get('/api/kits/99999', headers=auth_headers_user)
+        response = client.get("/api/kits/99999", headers=auth_headers_user)
 
         assert response.status_code == 404
 
@@ -295,34 +297,34 @@ class TestKitCRUDEndpoints:
     def test_create_kit_materials_user(self, client, auth_headers_materials, aircraft_type, db_session):
         """Test creating kit as Materials user"""
         kit_data = {
-            'name': 'New Test Kit',
-            'aircraft_type_id': aircraft_type.id,
-            'description': 'Created by Materials user',
-            'status': 'active'
+            "name": "New Test Kit",
+            "aircraft_type_id": aircraft_type.id,
+            "description": "Created by Materials user",
+            "status": "active"
         }
 
-        response = client.post('/api/kits',
+        response = client.post("/api/kits",
                              json=kit_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['name'] == 'New Test Kit'
-        assert data['aircraft_type_id'] == aircraft_type.id
+        assert data["name"] == "New Test Kit"
+        assert data["aircraft_type_id"] == aircraft_type.id
 
         # Verify created in database
-        kit = Kit.query.filter_by(name='New Test Kit').first()
+        kit = Kit.query.filter_by(name="New Test Kit").first()
         assert kit is not None
 
     def test_create_kit_regular_user(self, client, auth_headers_user, aircraft_type):
         """Test creating kit as regular user (should fail)"""
         kit_data = {
-            'name': 'Unauthorized Kit',
-            'aircraft_type_id': aircraft_type.id
+            "name": "Unauthorized Kit",
+            "aircraft_type_id": aircraft_type.id
         }
 
-        response = client.post('/api/kits',
+        response = client.post("/api/kits",
                              json=kit_data,
                              headers=auth_headers_user)
 
@@ -331,10 +333,10 @@ class TestKitCRUDEndpoints:
     def test_create_kit_missing_required_fields(self, client, auth_headers_materials):
         """Test creating kit without required fields"""
         kit_data = {
-            'description': 'Missing name and aircraft type'
+            "description": "Missing name and aircraft type"
         }
 
-        response = client.post('/api/kits',
+        response = client.post("/api/kits",
                              json=kit_data,
                              headers=auth_headers_materials)
 
@@ -343,27 +345,27 @@ class TestKitCRUDEndpoints:
     def test_update_kit_materials_user(self, client, auth_headers_materials, test_kit):
         """Test updating kit as Materials user"""
         update_data = {
-            'description': 'Updated description',
-            'status': 'maintenance'
+            "description": "Updated description",
+            "status": "maintenance"
         }
 
-        response = client.put(f'/api/kits/{test_kit.id}',
+        response = client.put(f"/api/kits/{test_kit.id}",
                             json=update_data,
                             headers=auth_headers_materials)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['description'] == 'Updated description'
-        assert data['status'] == 'maintenance'
+        assert data["description"] == "Updated description"
+        assert data["status"] == "maintenance"
 
     def test_update_kit_regular_user(self, client, auth_headers_user, test_kit):
         """Test updating kit as regular user (should fail)"""
         update_data = {
-            'description': 'Unauthorized update'
+            "description": "Unauthorized update"
         }
 
-        response = client.put(f'/api/kits/{test_kit.id}',
+        response = client.put(f"/api/kits/{test_kit.id}",
                             json=update_data,
                             headers=auth_headers_user)
 
@@ -371,22 +373,22 @@ class TestKitCRUDEndpoints:
 
     def test_delete_kit_materials_user(self, client, auth_headers_materials, test_kit):
         """Test deleting kit as Materials user"""
-        response = client.delete(f'/api/kits/{test_kit.id}',
+        response = client.delete(f"/api/kits/{test_kit.id}",
                                headers=auth_headers_materials)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert 'deleted' in data['message'].lower()
+        assert "deleted" in data["message"].lower()
 
         # Verify kit is soft deleted (status set to inactive)
         kit = Kit.query.get(test_kit.id)
         assert kit is not None
-        assert kit.status == 'inactive'
+        assert kit.status == "inactive"
 
     def test_delete_kit_regular_user(self, client, auth_headers_user, test_kit):
         """Test deleting kit as regular user (should fail)"""
-        response = client.delete(f'/api/kits/{test_kit.id}',
+        response = client.delete(f"/api/kits/{test_kit.id}",
                                headers=auth_headers_user)
 
         assert response.status_code == 403
@@ -394,21 +396,21 @@ class TestKitCRUDEndpoints:
     def test_duplicate_kit_materials_user(self, client, auth_headers_materials, test_kit, db_session):
         """Test duplicating kit as Materials user"""
         duplicate_data = {
-            'name': 'Duplicated Kit'
+            "name": "Duplicated Kit"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/duplicate',
+        response = client.post(f"/api/kits/{test_kit.id}/duplicate",
                              json=duplicate_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['name'] == 'Duplicated Kit'
-        assert data['aircraft_type_id'] == test_kit.aircraft_type_id
+        assert data["name"] == "Duplicated Kit"
+        assert data["aircraft_type_id"] == test_kit.aircraft_type_id
 
         # Verify duplicated kit exists
-        duplicated_kit = Kit.query.filter_by(name='Duplicated Kit').first()
+        duplicated_kit = Kit.query.filter_by(name="Duplicated Kit").first()
         assert duplicated_kit is not None
 
 
@@ -418,39 +420,39 @@ class TestKitWizardEndpoint:
     def test_kit_wizard_step1_aircraft_selection(self, client, auth_headers_materials, aircraft_type):
         """Test kit wizard step 1 - aircraft type selection"""
         wizard_data = {
-            'step': 1,
-            'aircraft_type_id': aircraft_type.id
+            "step": 1,
+            "aircraft_type_id": aircraft_type.id
         }
 
-        response = client.post('/api/kits/wizard',
+        response = client.post("/api/kits/wizard",
                              json=wizard_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['step'] == 1
-        assert 'aircraft_types' in data
-        assert isinstance(data['aircraft_types'], list)
+        assert data["step"] == 1
+        assert "aircraft_types" in data
+        assert isinstance(data["aircraft_types"], list)
 
     def test_kit_wizard_step2_kit_details(self, client, auth_headers_materials, aircraft_type):
         """Test kit wizard step 2 - kit details"""
         wizard_data = {
-            'step': 2,
-            'aircraft_type_id': aircraft_type.id,
-            'name': 'Wizard Created Kit',
-            'description': 'Created via wizard'
+            "step": 2,
+            "aircraft_type_id": aircraft_type.id,
+            "name": "Wizard Created Kit",
+            "description": "Created via wizard"
         }
 
-        response = client.post('/api/kits/wizard',
+        response = client.post("/api/kits/wizard",
                              json=wizard_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['step'] == 2
-        assert data['valid'] is True
+        assert data["step"] == 2
+        assert data["valid"] is True
 
 
 class TestKitBoxEndpoints:
@@ -458,41 +460,41 @@ class TestKitBoxEndpoints:
 
     def test_get_kit_boxes(self, client, auth_headers_user, test_kit, test_kit_box):
         """Test getting kit boxes"""
-        response = client.get(f'/api/kits/{test_kit.id}/boxes', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/boxes", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, list)
         assert len(data) >= 1
-        assert data[0]['box_type'] == 'expendable'
+        assert data[0]["box_type"] == "expendable"
 
     def test_add_kit_box_materials_user(self, client, auth_headers_materials, test_kit, db_session):
         """Test adding box to kit as Materials user"""
         box_data = {
-            'box_number': '2',
-            'box_type': 'tooling',
-            'description': 'Tooling box'
+            "box_number": "2",
+            "box_type": "tooling",
+            "description": "Tooling box"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/boxes',
+        response = client.post(f"/api/kits/{test_kit.id}/boxes",
                              json=box_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['box_number'] == '2'
-        assert data['box_type'] == 'tooling'
+        assert data["box_number"] == "2"
+        assert data["box_type"] == "tooling"
 
     def test_add_kit_box_regular_user(self, client, auth_headers_user, test_kit):
         """Test adding box as regular user (should fail)"""
         box_data = {
-            'box_number': '3',
-            'box_type': 'consumable'
+            "box_number": "3",
+            "box_type": "consumable"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/boxes',
+        response = client.post(f"/api/kits/{test_kit.id}/boxes",
                              json=box_data,
                              headers=auth_headers_user)
 
@@ -501,21 +503,21 @@ class TestKitBoxEndpoints:
     def test_update_kit_box(self, client, auth_headers_materials, test_kit, test_kit_box):
         """Test updating kit box"""
         update_data = {
-            'description': 'Updated box description'
+            "description": "Updated box description"
         }
 
-        response = client.put(f'/api/kits/{test_kit.id}/boxes/{test_kit_box.id}',
+        response = client.put(f"/api/kits/{test_kit.id}/boxes/{test_kit_box.id}",
                             json=update_data,
                             headers=auth_headers_materials)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['description'] == 'Updated box description'
+        assert data["description"] == "Updated box description"
 
     def test_delete_kit_box(self, client, auth_headers_materials, test_kit, test_kit_box):
         """Test deleting kit box"""
-        response = client.delete(f'/api/kits/{test_kit.id}/boxes/{test_kit_box.id}',
+        response = client.delete(f"/api/kits/{test_kit.id}/boxes/{test_kit_box.id}",
                                headers=auth_headers_materials)
 
         assert response.status_code == 200
@@ -530,26 +532,26 @@ class TestKitItemEndpoints:
 
     def test_get_kit_items(self, client, auth_headers_user, test_kit):
         """Test getting kit items"""
-        response = client.get(f'/api/kits/{test_kit.id}/items', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/items", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, dict)
-        assert 'items' in data
-        assert 'expendables' in data
+        assert "items" in data
+        assert "expendables" in data
 
     def test_get_kit_items_with_filters(self, client, auth_headers_user, test_kit):
         """Test getting kit items with filters"""
-        response = client.get(f'/api/kits/{test_kit.id}/items?item_type=tool&status=available',
+        response = client.get(f"/api/kits/{test_kit.id}/items?item_type=tool&status=available",
                             headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, dict)
-        assert 'items' in data
-        assert 'expendables' in data
+        assert "items" in data
+        assert "expendables" in data
 
     def test_add_kit_item_materials_user(self, client, auth_headers_materials, test_kit, test_kit_box, test_tool, test_warehouse, db_session):
         """Test adding item to kit as Materials user"""
@@ -558,34 +560,34 @@ class TestKitItemEndpoints:
         db_session.commit()
 
         item_data = {
-            'box_id': test_kit_box.id,
-            'item_type': 'tool',
-            'item_id': test_tool.id,
-            'warehouse_id': test_warehouse.id,
-            'quantity': 1,
-            'location': 'Box 1',
-            'status': 'available'
+            "box_id": test_kit_box.id,
+            "item_type": "tool",
+            "item_id": test_tool.id,
+            "warehouse_id": test_warehouse.id,
+            "quantity": 1,
+            "location": "Box 1",
+            "status": "available"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/items',
+        response = client.post(f"/api/kits/{test_kit.id}/items",
                              json=item_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['item_type'] == 'tool'
-        assert data['quantity'] == 1
+        assert data["item_type"] == "tool"
+        assert data["quantity"] == 1
 
     def test_add_kit_item_regular_user(self, client, auth_headers_user, test_kit, test_kit_box, test_tool):
         """Test adding item as regular user (should fail)"""
         item_data = {
-            'box_id': test_kit_box.id,
-            'item_type': 'tool',
-            'item_id': test_tool.id
+            "box_id": test_kit_box.id,
+            "item_type": "tool",
+            "item_id": test_tool.id
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/items',
+        response = client.post(f"/api/kits/{test_kit.id}/items",
                              json=item_data,
                              headers=auth_headers_user)
 
@@ -597,37 +599,37 @@ class TestKitExpendableEndpoints:
 
     def test_get_kit_expendables(self, client, auth_headers_user, test_kit):
         """Test getting kit expendables"""
-        response = client.get(f'/api/kits/{test_kit.id}/expendables', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/expendables", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, dict)
-        assert 'expendables' in data
-        assert isinstance(data['expendables'], list)
+        assert "expendables" in data
+        assert isinstance(data["expendables"], list)
 
     def test_add_kit_expendable_materials_user(self, client, auth_headers_materials, test_kit, test_kit_box, db_session):
         """Test adding expendable to kit as Materials user"""
         expendable_data = {
-            'box_id': test_kit_box.id,
-            'part_number': 'EXP-001',
-            'description': 'Safety Wire',
-            'lot_number': 'LOT-001',
-            'quantity': 100,
-            'unit': 'ft',
-            'location': 'Box 1',
-            'status': 'available'
+            "box_id": test_kit_box.id,
+            "part_number": "EXP-001",
+            "description": "Safety Wire",
+            "lot_number": "LOT-001",
+            "quantity": 100,
+            "unit": "ft",
+            "location": "Box 1",
+            "status": "available"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/expendables',
+        response = client.post(f"/api/kits/{test_kit.id}/expendables",
                              json=expendable_data,
                              headers=auth_headers_materials)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['part_number'] == 'EXP-001'
-        assert data['quantity'] == 100
+        assert data["part_number"] == "EXP-001"
+        assert data["quantity"] == 100
 
 
 class TestKitIssuanceEndpoints:
@@ -639,32 +641,32 @@ class TestKitIssuanceEndpoints:
         expendable = KitExpendable(
             kit_id=test_kit.id,
             box_id=test_kit_box.id,
-            part_number='EXP-TEST',
-            description='Test Expendable',
+            part_number="EXP-TEST",
+            description="Test Expendable",
             quantity=50,
-            unit='ea',
-            status='available'
+            unit="ea",
+            status="available"
         )
         db_session.add(expendable)
         db_session.commit()
 
         issuance_data = {
-            'item_type': 'expendable',
-            'item_id': expendable.id,
-            'quantity': 10,
-            'purpose': 'Maintenance',
-            'work_order': 'WO-12345'
+            "item_type": "expendable",
+            "item_id": expendable.id,
+            "quantity": 10,
+            "purpose": "Maintenance",
+            "work_order": "WO-12345"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/issue',
+        response = client.post(f"/api/kits/{test_kit.id}/issue",
                              json=issuance_data,
                              headers=auth_headers_user)
 
         assert response.status_code == 201
         data = json.loads(response.data)
 
-        assert data['quantity'] == 10
-        assert data['purpose'] == 'Maintenance'
+        assert data["quantity"] == 10
+        assert data["purpose"] == "Maintenance"
 
         # Verify expendable quantity was reduced
         db_session.refresh(expendable)
@@ -675,33 +677,84 @@ class TestKitIssuanceEndpoints:
         expendable = KitExpendable(
             kit_id=test_kit.id,
             box_id=test_kit_box.id,
-            part_number='EXP-LOW',
-            description='Low Stock Item',
+            part_number="EXP-LOW",
+            description="Low Stock Item",
             quantity=5,
-            unit='ea',
-            status='available'
+            unit="ea",
+            status="available"
         )
         db_session.add(expendable)
         db_session.commit()
 
         issuance_data = {
-            'item_type': 'expendable',
-            'item_id': expendable.id,
-            'quantity': 10,
-            'purpose': 'Maintenance'
+            "item_type": "expendable",
+            "item_id": expendable.id,
+            "quantity": 10,
+            "purpose": "Maintenance"
         }
 
-        response = client.post(f'/api/kits/{test_kit.id}/issue',
+        response = client.post(f"/api/kits/{test_kit.id}/issue",
                              json=issuance_data,
                              headers=auth_headers_user)
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'insufficient' in data['error'].lower() or 'not enough' in data['error'].lower()
+        assert "insufficient" in data["error"].lower() or "not enough" in data["error"].lower()
+
+    def test_issue_tool_from_kit_rejected(self, client, auth_headers_user, test_kit, test_kit_box, db_session):
+        """Test that tools cannot be issued from kits (should fail)"""
+        from models import Tool
+        from models_kits import KitItem
+
+        # Create a tool
+        tool = Tool(
+            tool_number="T-12345",
+            description="Test Tool",
+            category="Hand Tools",
+            condition="Good",
+            location="Test Location",
+            serial_number="SN-12345",
+            status="available"
+        )
+        db_session.add(tool)
+        db_session.flush()
+
+        # Add tool to kit
+        kit_item = KitItem(
+            kit_id=test_kit.id,
+            box_id=test_kit_box.id,
+            item_type="tool",
+            item_id=tool.id,
+            part_number=tool.tool_number,
+            serial_number=tool.serial_number,
+            description=tool.description,
+            quantity=1,
+            status="available"
+        )
+        db_session.add(kit_item)
+        db_session.commit()
+
+        # Attempt to issue the tool
+        issuance_data = {
+            "item_type": "tool",
+            "item_id": kit_item.id,
+            "quantity": 1,
+            "purpose": "Maintenance"
+        }
+
+        response = client.post(f"/api/kits/{test_kit.id}/issue",
+                             json=issuance_data,
+                             headers=auth_headers_user)
+
+        # Should be rejected with 400 error
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "tool" in data["error"].lower()
+        assert "cannot be issued" in data["error"].lower() or "retired" in data["error"].lower()
 
     def test_get_kit_issuances(self, client, auth_headers_user, test_kit):
         """Test getting kit issuance history"""
-        response = client.get(f'/api/kits/{test_kit.id}/issuances', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/issuances", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -713,23 +766,23 @@ class TestKitIssuanceEndpoints:
         # Create an issuance
         issuance = KitIssuance(
             kit_id=test_kit.id,
-            item_type='expendable',
+            item_type="expendable",
             item_id=1,
             issued_by=admin_user.id,
             quantity=5,
-            purpose='Test'
+            purpose="Test"
         )
         db_session.add(issuance)
         db_session.commit()
 
-        response = client.get(f'/api/kits/{test_kit.id}/issuances/{issuance.id}',
+        response = client.get(f"/api/kits/{test_kit.id}/issuances/{issuance.id}",
                             headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data['id'] == issuance.id
-        assert data['quantity'] == 5
+        assert data["id"] == issuance.id
+        assert data["quantity"] == 5
 
 
 class TestKitAnalyticsEndpoints:
@@ -737,33 +790,33 @@ class TestKitAnalyticsEndpoints:
 
     def test_get_kit_analytics(self, client, auth_headers_user, test_kit):
         """Test getting kit analytics"""
-        response = client.get(f'/api/kits/{test_kit.id}/analytics', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/analytics", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert 'inventory' in data
-        assert 'total_items' in data['inventory']
-        assert 'issuances' in data
+        assert "inventory" in data
+        assert "total_items" in data["inventory"]
+        assert "issuances" in data
 
     def test_get_inventory_report(self, client, auth_headers_user):
         """Test getting inventory report"""
-        response = client.get('/api/kits/reports/inventory', headers=auth_headers_user)
+        response = client.get("/api/kits/reports/inventory", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert isinstance(data, list) or isinstance(data, dict)
+        assert isinstance(data, (list, dict))
 
     def test_get_inventory_report_with_filters(self, client, auth_headers_user, aircraft_type):
         """Test getting inventory report with filters"""
-        response = client.get(f'/api/kits/reports/inventory?aircraft_type_id={aircraft_type.id}',
+        response = client.get(f"/api/kits/reports/inventory?aircraft_type_id={aircraft_type.id}",
                             headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert isinstance(data, list) or isinstance(data, dict)
+        assert isinstance(data, (list, dict))
 
 
 class TestKitAlertsEndpoints:
@@ -771,18 +824,18 @@ class TestKitAlertsEndpoints:
 
     def test_get_kit_alerts(self, client, auth_headers_user, test_kit):
         """Test getting kit alerts"""
-        response = client.get(f'/api/kits/{test_kit.id}/alerts', headers=auth_headers_user)
+        response = client.get(f"/api/kits/{test_kit.id}/alerts", headers=auth_headers_user)
 
         assert response.status_code == 200
         data = json.loads(response.data)
 
         assert isinstance(data, dict)
-        assert 'alerts' in data
-        assert isinstance(data['alerts'], list)
+        assert "alerts" in data
+        assert isinstance(data["alerts"], list)
         # Alerts should include low stock, expiring items, etc.
 
     def test_get_kit_alerts_unauthenticated(self, client, test_kit):
         """Test getting kit alerts without authentication"""
-        response = client.get(f'/api/kits/{test_kit.id}/alerts')
+        response = client.get(f"/api/kits/{test_kit.id}/alerts")
 
         assert response.status_code == 401

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Callable, Iterable, Tuple
+from collections.abc import Callable, Iterable
 
 from werkzeug.datastructures import FileStorage
 
@@ -29,10 +29,10 @@ ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/gif"}
 
 # Image file signatures (magic bytes) for detection
 IMAGE_SIGNATURES = {
-    b'\x89PNG\r\n\x1a\n': (".png", "image/png"),
-    b'\xff\xd8\xff': (".jpg", "image/jpeg"),
-    b'GIF87a': (".gif", "image/gif"),
-    b'GIF89a': (".gif", "image/gif"),
+    b"\x89PNG\r\n\x1a\n": (".png", "image/png"),
+    b"\xff\xd8\xff": (".jpg", "image/jpeg"),
+    b"GIF87a": (".gif", "image/gif"),
+    b"GIF89a": (".gif", "image/gif"),
 }
 
 ALLOWED_CERTIFICATE_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
@@ -81,7 +81,7 @@ def _validate_file(
     allowed_extensions: Iterable[str],
     allowed_mime_types: Iterable[str],
     max_size: int,
-    detector: Callable[[bytes], Tuple[str, str]],
+    detector: Callable[[bytes], tuple[str, str]],
 ) -> str:
     if not file_storage or not file_storage.filename:
         raise FileValidationError("No file selected")
@@ -108,7 +108,7 @@ def _validate_file(
     return safe_filename
 
 
-def _detect_image(file_bytes: bytes) -> Tuple[str, str]:
+def _detect_image(file_bytes: bytes) -> tuple[str, str]:
     """Detect image type by checking file signature (magic bytes)."""
     if not file_bytes:
         raise FileValidationError("Uploaded file is empty")
@@ -121,7 +121,7 @@ def _detect_image(file_bytes: bytes) -> Tuple[str, str]:
     raise FileValidationError("Uploaded file is not a valid image")
 
 
-def _detect_certificate(file_bytes: bytes) -> Tuple[str, str]:
+def _detect_certificate(file_bytes: bytes) -> tuple[str, str]:
     # Allow PDF certificates
     if file_bytes.startswith(b"%PDF"):
         return ".pdf", "application/pdf"

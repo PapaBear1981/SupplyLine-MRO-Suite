@@ -180,7 +180,7 @@ export const generateChemicalBarcodeData = (chemical) => {
  */
 export const generateToolBarcodeData = (tool) => {
   const toolNumber = tool.tool_number || "";
-  
+
   if (tool.lot_number) {
     return `${toolNumber}-LOT-${tool.lot_number}`;
   } else {
@@ -188,3 +188,37 @@ export const generateToolBarcodeData = (tool) => {
   }
 };
 
+/**
+ * Get standard expendable barcode fields in correct order
+ * @param {Object} expendable - The expendable object
+ * @returns {Array} - Array of field objects {label, value}
+ */
+export const getExpendableBarcodeFields = (expendable) => {
+  const fields = [
+    { label: "Part Number", value: formatValue(expendable.part_number) },
+    { label: "Serial Number", value: formatValue(expendable.serial_number) },
+    { label: "Lot Number", value: formatValue(expendable.lot_number) },
+    { label: "Description", value: formatValue(expendable.description) },
+    { label: "Manufacturer", value: formatValue(expendable.manufacturer) },
+    { label: "Quantity", value: formatQuantity(expendable.quantity, expendable.unit) },
+    { label: "Status", value: formatValue(expendable.status) },
+    { label: "Created Date", value: formatDate(expendable.created_at) },
+  ];
+
+  return fields;
+};
+
+/**
+ * Generate barcode data string for expendables
+ * @param {Object} expendable - The expendable object
+ * @returns {string} - Barcode data string
+ */
+export const generateExpendableBarcodeData = (expendable) => {
+  const partNumber = expendable.part_number || "";
+
+  if (expendable.lot_number) {
+    return `${partNumber}-LOT-${expendable.lot_number}`;
+  } else {
+    return `${partNumber}-SN-${expendable.serial_number || ""}`;
+  }
+};

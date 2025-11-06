@@ -3,12 +3,14 @@ Bulk import utilities for tools and chemicals
 """
 import csv
 import io
-from datetime import datetime
-from typing import List, Dict, Any, Tuple, Optional
-from models import db, Tool, Chemical
-from utils.validation import validate_schema, ValidationError
-from utils.file_validation import sanitize_csv_cell, neutralize_csv_formula
 import logging
+from datetime import datetime
+from typing import Any
+
+from models import Chemical, Tool, db
+from utils.file_validation import neutralize_csv_formula, sanitize_csv_cell
+from utils.validation import ValidationError, validate_schema
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,54 +29,54 @@ class BulkImportResult:
         self.created_items = []
         self.skipped_items = []
 
-    def add_success(self, item_data: Dict[str, Any], created_item: Any):
+    def add_success(self, item_data: dict[str, Any], created_item: Any):
         """Add a successful import"""
         self.success_count += 1
         self.created_items.append({
-            'data': item_data,
-            'created': created_item.to_dict() if hasattr(created_item, 'to_dict') else str(created_item)
+            "data": item_data,
+            "created": created_item.to_dict() if hasattr(created_item, "to_dict") else str(created_item)
         })
 
-    def add_error(self, row_number: int, item_data: Dict[str, Any], error: str):
+    def add_error(self, row_number: int, item_data: dict[str, Any], error: str):
         """Add an import error"""
         self.error_count += 1
         self.errors.append({
-            'row': row_number,
-            'data': item_data,
-            'error': error
+            "row": row_number,
+            "data": item_data,
+            "error": error
         })
 
-    def add_warning(self, row_number: int, item_data: Dict[str, Any], warning: str):
+    def add_warning(self, row_number: int, item_data: dict[str, Any], warning: str):
         """Add an import warning"""
         self.warnings.append({
-            'row': row_number,
-            'data': item_data,
-            'warning': warning
+            "row": row_number,
+            "data": item_data,
+            "warning": warning
         })
 
-    def add_skipped(self, row_number: int, item_data: Dict[str, Any], reason: str):
+    def add_skipped(self, row_number: int, item_data: dict[str, Any], reason: str):
         """Add a skipped item"""
         self.skipped_items.append({
-            'row': row_number,
-            'data': item_data,
-            'reason': reason
+            "row": row_number,
+            "data": item_data,
+            "reason": reason
         })
 
     def to_dict(self):
         """Convert result to dictionary for JSON response"""
         return {
-            'success_count': self.success_count,
-            'error_count': self.error_count,
-            'warning_count': len(self.warnings),
-            'skipped_count': len(self.skipped_items),
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'created_items': self.created_items,
-            'skipped_items': self.skipped_items
+            "success_count": self.success_count,
+            "error_count": self.error_count,
+            "warning_count": len(self.warnings),
+            "skipped_count": len(self.skipped_items),
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "created_items": self.created_items,
+            "skipped_items": self.skipped_items
         }
 
 
-def parse_csv_content(content: str, expected_headers: List[str]) -> Tuple[List[Dict[str, Any]], List[str]]:
+def parse_csv_content(content: str, expected_headers: list[str]) -> tuple[list[dict[str, Any]], list[str]]:
     """
     Parse CSV content and validate headers
 
@@ -109,24 +111,21 @@ def parse_csv_content(content: str, expected_headers: List[str]) -> Tuple[List[D
             # Clean up the row data (strip whitespace, handle empty values)
             cleaned_row = {}
             for key, value in row.items():
-                if value is not None:
-                    cleaned_value = sanitize_csv_cell(str(value)) if value else ''
-                else:
-                    cleaned_value = ''
+                cleaned_value = (sanitize_csv_cell(str(value)) if value else "") if value is not None else ""
                 cleaned_row[key] = cleaned_value
 
             # Add row number for error reporting
-            cleaned_row['_row_number'] = row_num
+            cleaned_row["_row_number"] = row_num
             rows.append(cleaned_row)
 
         return rows, []
 
     except Exception as e:
-        logger.error(f"Error parsing CSV content: {str(e)}")
-        return [], [f"Error parsing CSV file: {str(e)}"]
+        logger.error(f"Error parsing CSV content: {e!s}")
+        return [], [f"Error parsing CSV file: {e!s}"]
 
 
-def validate_tool_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_tool_data(row_data: dict[str, Any]) -> dict[str, Any]:
     """
     Validate and clean tool data for import
 
@@ -138,46 +137,46 @@ def validate_tool_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Map CSV headers to model fields
     tool_data = {
-        'tool_number': row_data.get('tool_number', ''),
-        'serial_number': row_data.get('serial_number', ''),
-        'description': row_data.get('description', ''),
-        'condition': row_data.get('condition', 'good'),
-        'location': row_data.get('location', ''),
-        'category': row_data.get('category', 'General'),
-        'status': row_data.get('status', 'available'),
-        'requires_calibration': str(row_data.get('requires_calibration', 'false')).lower() in ['true', '1', 'yes'],
-        'calibration_frequency_days': None,
-        'warehouse_id': None
+        "tool_number": row_data.get("tool_number", ""),
+        "serial_number": row_data.get("serial_number", ""),
+        "description": row_data.get("description", ""),
+        "condition": row_data.get("condition", "good"),
+        "location": row_data.get("location", ""),
+        "category": row_data.get("category", "General"),
+        "status": row_data.get("status", "available"),
+        "requires_calibration": str(row_data.get("requires_calibration", "false")).lower() in ["true", "1", "yes"],
+        "calibration_frequency_days": None,
+        "warehouse_id": None
     }
 
     # Handle warehouse_id
-    warehouse_id_str = row_data.get('warehouse_id', '')
+    warehouse_id_str = row_data.get("warehouse_id", "")
     if warehouse_id_str:
         try:
-            tool_data['warehouse_id'] = int(warehouse_id_str)
+            tool_data["warehouse_id"] = int(warehouse_id_str)
         except ValueError:
             raise ValidationError(f"Invalid warehouse_id: {warehouse_id_str}")
 
     # Handle calibration frequency
-    if tool_data['requires_calibration']:
-        freq_str = row_data.get('calibration_frequency_days', '')
+    if tool_data["requires_calibration"]:
+        freq_str = row_data.get("calibration_frequency_days", "")
         if freq_str:
             try:
-                tool_data['calibration_frequency_days'] = int(freq_str)
+                tool_data["calibration_frequency_days"] = int(freq_str)
             except ValueError:
                 raise ValidationError(f"Invalid calibration frequency: {freq_str}")
 
     # Validate using existing schema
-    validated_tool = validate_schema(tool_data, 'tool')
+    validated_tool = validate_schema(tool_data, "tool")
 
-    for field in ['tool_number', 'serial_number', 'description', 'location', 'category', 'status', 'status_reason']:
+    for field in ["tool_number", "serial_number", "description", "location", "category", "status", "status_reason"]:
         if field in validated_tool:
             validated_tool[field] = neutralize_csv_formula(validated_tool[field])
 
     return validated_tool
 
 
-def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_chemical_data(row_data: dict[str, Any]) -> dict[str, Any]:
     """
     Validate and clean chemical data for import
 
@@ -189,49 +188,49 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Map CSV headers to model fields
     chemical_data = {
-        'part_number': row_data.get('part_number', ''),
-        'lot_number': row_data.get('lot_number', ''),
-        'description': row_data.get('description', ''),
-        'manufacturer': row_data.get('manufacturer', ''),
-        'quantity': 0,
-        'unit': row_data.get('unit', 'each'),
-        'location': row_data.get('location', ''),
-        'category': row_data.get('category', 'General'),
-        'expiration_date': None,
-        'msds_url': row_data.get('msds_url', '') or None,  # Convert empty string to None
-        'warehouse_id': None
+        "part_number": row_data.get("part_number", ""),
+        "lot_number": row_data.get("lot_number", ""),
+        "description": row_data.get("description", ""),
+        "manufacturer": row_data.get("manufacturer", ""),
+        "quantity": 0,
+        "unit": row_data.get("unit", "each"),
+        "location": row_data.get("location", ""),
+        "category": row_data.get("category", "General"),
+        "expiration_date": None,
+        "msds_url": row_data.get("msds_url", "") or None,  # Convert empty string to None
+        "warehouse_id": None
     }
 
     # Handle warehouse_id
-    warehouse_id_str = row_data.get('warehouse_id', '')
+    warehouse_id_str = row_data.get("warehouse_id", "")
     if warehouse_id_str:
         try:
-            chemical_data['warehouse_id'] = int(warehouse_id_str)
+            chemical_data["warehouse_id"] = int(warehouse_id_str)
         except ValueError:
             raise ValidationError(f"Invalid warehouse_id: {warehouse_id_str}")
 
     # Handle quantity - must be integer
-    quantity_str = row_data.get('quantity', '0')
+    quantity_str = row_data.get("quantity", "0")
     try:
         if quantity_str:
             quantity_value = float(quantity_str)
             # Validate that the value is an integer (no fractional part)
             if not quantity_value.is_integer():
                 raise ValidationError(f"Invalid quantity: {quantity_str}. Quantity must be a whole number (no decimals).")
-            chemical_data['quantity'] = int(quantity_value)
+            chemical_data["quantity"] = int(quantity_value)
         else:
-            chemical_data['quantity'] = 0
+            chemical_data["quantity"] = 0
     except ValueError:
         raise ValidationError(f"Invalid quantity: {quantity_str}. Quantity must be a whole number.")
 
     # Handle expiration date
-    exp_date_str = row_data.get('expiration_date', '')
+    exp_date_str = row_data.get("expiration_date", "")
     if exp_date_str:
         try:
             # Try multiple date formats
-            for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y']:
+            for fmt in ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]:
                 try:
-                    chemical_data['expiration_date'] = datetime.strptime(exp_date_str, fmt).date()
+                    chemical_data["expiration_date"] = datetime.strptime(exp_date_str, fmt).date()
                     break
                 except ValueError:
                     continue
@@ -241,29 +240,29 @@ def validate_chemical_data(row_data: Dict[str, Any]) -> Dict[str, Any]:
             raise ValidationError(f"Invalid expiration date: {exp_date_str}")
 
     # Validate using existing schema
-    validated_chemical = validate_schema(chemical_data, 'chemical')
+    validated_chemical = validate_schema(chemical_data, "chemical")
 
     # Sanitize string fields (skip None values)
-    for field in ['part_number', 'lot_number', 'description', 'manufacturer', 'location', 'category', 'msds_url']:
+    for field in ["part_number", "lot_number", "description", "manufacturer", "location", "category", "msds_url"]:
         if field in validated_chemical and validated_chemical[field] is not None:
             validated_chemical[field] = neutralize_csv_formula(validated_chemical[field])
 
     return validated_chemical
 
 
-def check_duplicate_tool(tool_data: Dict[str, Any]) -> Optional[Tool]:
+def check_duplicate_tool(tool_data: dict[str, Any]) -> Tool | None:
     """Check if a tool with the same tool_number and serial_number already exists"""
     return Tool.query.filter_by(
-        tool_number=tool_data['tool_number'],
-        serial_number=tool_data['serial_number']
+        tool_number=tool_data["tool_number"],
+        serial_number=tool_data["serial_number"]
     ).first()
 
 
-def check_duplicate_chemical(chemical_data: Dict[str, Any]) -> Optional[Chemical]:
+def check_duplicate_chemical(chemical_data: dict[str, Any]) -> Chemical | None:
     """Check if a chemical with the same part_number and lot_number already exists"""
     return Chemical.query.filter_by(
-        part_number=chemical_data['part_number'],
-        lot_number=chemical_data['lot_number']
+        part_number=chemical_data["part_number"],
+        lot_number=chemical_data["lot_number"]
     ).first()
 
 
@@ -281,7 +280,7 @@ def bulk_import_tools(csv_content: str, skip_duplicates: bool = True) -> BulkImp
     result = BulkImportResult()
 
     # Define expected headers for tools
-    expected_headers = ['tool_number', 'serial_number', 'description']
+    expected_headers = ["tool_number", "serial_number", "description"]
 
     # Parse CSV content
     rows, parse_errors = parse_csv_content(csv_content, expected_headers)
@@ -293,7 +292,7 @@ def bulk_import_tools(csv_content: str, skip_duplicates: bool = True) -> BulkImp
 
     # Process each row
     for row in rows:
-        row_number = row.pop('_row_number')
+        row_number = row.pop("_row_number")
 
         try:
             # Validate tool data
@@ -306,19 +305,18 @@ def bulk_import_tools(csv_content: str, skip_duplicates: bool = True) -> BulkImp
                     result.add_skipped(row_number, row,
                                      f"Tool with number {tool_data['tool_number']} and serial {tool_data['serial_number']} already exists")
                     continue
-                else:
-                    result.add_error(row_number, row,
-                                   f"Duplicate tool: {tool_data['tool_number']} - {tool_data['serial_number']}")
-                    continue
+                result.add_error(row_number, row,
+                               f"Duplicate tool: {tool_data['tool_number']} - {tool_data['serial_number']}")
+                continue
 
             # Create new tool
             tool = Tool(**tool_data)
 
             # Set calibration status
             if tool.requires_calibration:
-                tool.calibration_status = 'due_soon'
+                tool.calibration_status = "due_soon"
             else:
-                tool.calibration_status = 'not_applicable'
+                tool.calibration_status = "not_applicable"
 
             db.session.add(tool)
             db.session.flush()  # Get the ID without committing
@@ -328,8 +326,8 @@ def bulk_import_tools(csv_content: str, skip_duplicates: bool = True) -> BulkImp
         except ValidationError as e:
             result.add_error(row_number, row, str(e))
         except Exception as e:
-            logger.error(f"Unexpected error processing tool row {row_number}: {str(e)}")
-            result.add_error(row_number, row, f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error processing tool row {row_number}: {e!s}")
+            result.add_error(row_number, row, f"Unexpected error: {e!s}")
 
     # Commit all successful imports
     try:
@@ -340,10 +338,10 @@ def bulk_import_tools(csv_content: str, skip_duplicates: bool = True) -> BulkImp
             db.session.rollback()
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error committing tool imports: {str(e)}")
+        logger.error(f"Error committing tool imports: {e!s}")
         # Convert all successes to errors
         for item in result.created_items:
-            result.add_error(0, item['data'], f"Database commit failed: {str(e)}")
+            result.add_error(0, item["data"], f"Database commit failed: {e!s}")
         result.success_count = 0
         result.created_items = []
 
@@ -364,7 +362,7 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
     result = BulkImportResult()
 
     # Define expected headers for chemicals
-    expected_headers = ['part_number', 'lot_number', 'quantity', 'unit']
+    expected_headers = ["part_number", "lot_number", "quantity", "unit"]
 
     # Parse CSV content
     rows, parse_errors = parse_csv_content(csv_content, expected_headers)
@@ -376,7 +374,7 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
 
     # Process each row
     for row in rows:
-        row_number = row.pop('_row_number')
+        row_number = row.pop("_row_number")
 
         try:
             # Validate chemical data
@@ -389,13 +387,12 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
                     result.add_skipped(row_number, row,
                                      f"Chemical with part number {chemical_data['part_number']} and lot {chemical_data['lot_number']} already exists")
                     continue
-                else:
-                    result.add_error(row_number, row,
-                                   f"Duplicate chemical: {chemical_data['part_number']} - {chemical_data['lot_number']}")
-                    continue
+                result.add_error(row_number, row,
+                               f"Duplicate chemical: {chemical_data['part_number']} - {chemical_data['lot_number']}")
+                continue
 
             # Create new chemical - remove fields that don't exist in the model
-            chemical_model_data = {k: v for k, v in chemical_data.items() if k != 'msds_url'}
+            chemical_model_data = {k: v for k, v in chemical_data.items() if k != "msds_url"}
             chemical = Chemical(**chemical_model_data)
             db.session.add(chemical)
             db.session.flush()  # Get the ID without committing
@@ -405,8 +402,8 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
         except ValidationError as e:
             result.add_error(row_number, row, str(e))
         except Exception as e:
-            logger.error(f"Unexpected error processing chemical row {row_number}: {str(e)}")
-            result.add_error(row_number, row, f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error processing chemical row {row_number}: {e!s}")
+            result.add_error(row_number, row, f"Unexpected error: {e!s}")
 
     # Commit all successful imports
     try:
@@ -417,10 +414,10 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
             db.session.rollback()
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error committing chemical imports: {str(e)}")
+        logger.error(f"Error committing chemical imports: {e!s}")
         # Convert all successes to errors
         for item in result.created_items:
-            result.add_error(0, item['data'], f"Database commit failed: {str(e)}")
+            result.add_error(0, item["data"], f"Database commit failed: {e!s}")
         result.success_count = 0
         result.created_items = []
 
@@ -430,30 +427,30 @@ def bulk_import_chemicals(csv_content: str, skip_duplicates: bool = True) -> Bul
 def generate_tool_template() -> str:
     """Generate CSV template for tool imports"""
     headers = [
-        'tool_number',
-        'serial_number',
-        'description',
-        'condition',
-        'location',
-        'category',
-        'status',
-        'requires_calibration',
-        'calibration_frequency_days',
-        'warehouse_id'
+        "tool_number",
+        "serial_number",
+        "description",
+        "condition",
+        "location",
+        "category",
+        "status",
+        "requires_calibration",
+        "calibration_frequency_days",
+        "warehouse_id"
     ]
 
     # Create sample data
     sample_data = [
-        'T001',
-        'SN001',
-        'Sample Tool Description',
-        'good',
-        'Lab A',
-        'General',
-        'available',
-        'false',
-        '',
-        '1'
+        "T001",
+        "SN001",
+        "Sample Tool Description",
+        "good",
+        "Lab A",
+        "General",
+        "available",
+        "false",
+        "",
+        "1"
     ]
 
     output = io.StringIO()
@@ -467,32 +464,32 @@ def generate_tool_template() -> str:
 def generate_chemical_template() -> str:
     """Generate CSV template for chemical imports"""
     headers = [
-        'part_number',
-        'lot_number',
-        'description',
-        'manufacturer',
-        'quantity',
-        'unit',
-        'location',
-        'category',
-        'expiration_date',
-        'msds_url',
-        'warehouse_id'
+        "part_number",
+        "lot_number",
+        "description",
+        "manufacturer",
+        "quantity",
+        "unit",
+        "location",
+        "category",
+        "expiration_date",
+        "msds_url",
+        "warehouse_id"
     ]
 
     # Create sample data
     sample_data = [
-        'CHEM001',
-        'LOT001',
-        'Sample Chemical Description',
-        'Sample Manufacturer',
-        '10.5',
-        'each',
-        'Storage A',
-        'General',
-        '2025-12-31',
-        'https://example.com/msds',
-        '1'
+        "CHEM001",
+        "LOT001",
+        "Sample Chemical Description",
+        "Sample Manufacturer",
+        "10.5",
+        "each",
+        "Storage A",
+        "General",
+        "2025-12-31",
+        "https://example.com/msds",
+        "1"
     ]
 
     output = io.StringIO()

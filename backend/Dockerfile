@@ -14,6 +14,14 @@ RUN apt-get update && \
         tzdata \
         gcc \
         g++ \
+        gosu \
+        # WeasyPrint dependencies
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        libpangocairo-1.0-0 \
+        libgdk-pixbuf-2.0-0 \
+        libffi-dev \
+        shared-mime-info \
         && \
     # Set timezone to UTC
     ln -fs /usr/share/zoneinfo/UTC /etc/localtime && \
@@ -36,15 +44,17 @@ RUN pip install --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Copy entrypoint script and make it executable
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
-    chown -R appuser:appuser /app
+# Create directories and set ownership
+RUN mkdir -p /database /flask_session && \
+    chown -R appuser:appuser /app /database /flask_session && \
+    chmod 755 /database /flask_session
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:5000/api/health || exit 1
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["python", "run.py"]

@@ -1,38 +1,50 @@
-from flask import request, jsonify, current_app
-from models import db, Chemical, ChemicalIssuance, User, AuditLog, UserActivity
-from datetime import datetime
-from utils.error_handler import handle_errors, ValidationError
-from utils.validation import validate_schema, validate_lot_number_format, validate_warehouse_id
-from auth import jwt_required, department_required
-from sqlalchemy.orm import joinedload
 import logging
+from datetime import datetime
+
+from flask import current_app, jsonify, request
+from sqlalchemy.orm import joinedload
+
+from auth import department_required, jwt_required
+from models import (
+    AuditLog,
+    Chemical,
+    ChemicalIssuance,
+    ChemicalReturn,
+    User,
+    UserActivity,
+    Warehouse,
+    db,
+)
+from utils.error_handler import ValidationError, handle_errors
+from utils.validation import validate_lot_number_format, validate_schema, validate_warehouse_id
+
 
 logger = logging.getLogger(__name__)
 
 # Decorator to check if user is admin or in Materials department
-materials_manager_required = department_required('Materials')
+materials_manager_required = department_required("Materials")
 
 
 def register_chemical_routes(app):
     # Get all chemicals with pagination
-    @app.route('/api/chemicals', methods=['GET'])
+    @app.route("/api/chemicals", methods=["GET"])
     @handle_errors
     def chemicals_route():
         # PERFORMANCE: Add pagination to prevent unbounded dataset returns
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 50, type=int)
 
         # Get query parameters for filtering
-        category = request.args.get('category')
-        status = request.args.get('status')
-        search = request.args.get('q')
-        show_archived = request.args.get('archived', 'false').lower() == 'true'
+        category = request.args.get("category")
+        status = request.args.get("status")
+        search = request.args.get("q")
+        show_archived = request.args.get("archived", "false").lower() == "true"
 
         # Validate pagination parameters
         if page < 1:
-            return jsonify({'error': 'Page must be >= 1'}), 400
+            return jsonify({"error": "Page must be >= 1"}), 400
         if per_page < 1 or per_page > 500:
-            return jsonify({'error': 'Per page must be between 1 and 500'}), 400
+            return jsonify({"error": "Per page must be between 1 and 500"}), 400
 
         # Start with base query
         query = Chemical.query
@@ -53,10 +65,10 @@ def register_chemical_routes(app):
         if search:
             query = query.filter(
                 db.or_(
-                    Chemical.part_number.ilike(f'%{search}%'),
-                    Chemical.lot_number.ilike(f'%{search}%'),
-                    Chemical.description.ilike(f'%{search}%'),
-                    Chemical.manufacturer.ilike(f'%{search}%')
+                    Chemical.part_number.ilike(f"%{search}%"),
+                    Chemical.lot_number.ilike(f"%{search}%"),
+                    Chemical.description.ilike(f"%{search}%"),
+                    Chemical.manufacturer.ilike(f"%{search}%")
                 )
             )
 
@@ -80,34 +92,34 @@ def register_chemical_routes(app):
                 status_changed = False
 
                 if chemical.is_expired():
-                    chemical.status = 'expired'
+                    chemical.status = "expired"
                     status_changed = True
 
                     # Auto-archive expired chemicals if the columns exist
                     try:
                         chemical.is_archived = True
-                        chemical.archived_reason = 'expired'
+                        chemical.archived_reason = "expired"
                         chemical.archived_date = datetime.utcnow()
 
                         # Prepare log for archiving (batch insert later)
                         archive_logs.append({
-                            'action_type': 'chemical_archived',
-                            'action_details': f"Chemical {chemical.part_number} - {chemical.lot_number} automatically archived: expired",
-                            'timestamp': datetime.utcnow()
+                            "action_type": "chemical_archived",
+                            "action_details": f"Chemical {chemical.part_number} - {chemical.lot_number} automatically archived: expired",
+                            "timestamp": datetime.utcnow()
                         })
 
                         # Update reorder status for expired chemicals
                         chemical.update_reorder_status()
                     except AttributeError as e:
                         # If the columns don't exist, just update the status
-                        logger.debug(f"Archive columns not found for chemical {chemical.id}: {str(e)}")
+                        logger.debug(f"Archive columns not found for chemical {chemical.id}: {e!s}")
                 elif chemical.quantity <= 0:
-                    chemical.status = 'out_of_stock'
+                    chemical.status = "out_of_stock"
                     status_changed = True
                     # Update reorder status for out-of-stock chemicals
                     chemical.update_reorder_status()
                 elif chemical.is_low_stock():
-                    chemical.status = 'low_stock'
+                    chemical.status = "low_stock"
                     status_changed = True
                     # Update reorder status for low-stock chemicals
                     chemical.update_reorder_status()
@@ -128,73 +140,96 @@ def register_chemical_routes(app):
         if chemicals_to_update or archive_logs:
             db.session.commit()
 
+        # Get kit and box information for chemicals
+        from models_kits import KitItem
+        chemical_kit_info = {}
+        kit_items = KitItem.query.filter(
+            KitItem.item_type == "chemical",
+            KitItem.item_id.in_([c.id for c in chemicals])
+        ).all()
+
+        for kit_item in kit_items:
+            chemical_kit_info[kit_item.item_id] = {
+                "kit_id": kit_item.kit_id,
+                "kit_name": kit_item.kit.name if kit_item.kit else None,
+                "box_id": kit_item.box_id,
+                "box_number": kit_item.box.box_number if kit_item.box else None
+            }
+
         # Serialize after all mutations to ensure client gets updated data
         chemicals_data = [
-            {**c.to_dict(), **({'expiring_soon': True} if getattr(c, 'expiring_soon', False) else {})}
+            {
+                **c.to_dict(),
+                **({"expiring_soon": True} if getattr(c, "expiring_soon", False) else {}),
+                "kit_id": chemical_kit_info.get(c.id, {}).get("kit_id"),
+                "kit_name": chemical_kit_info.get(c.id, {}).get("kit_name"),
+                "box_id": chemical_kit_info.get(c.id, {}).get("box_id"),
+                "box_number": chemical_kit_info.get(c.id, {}).get("box_number")
+            }
             for c in chemicals
         ]
 
         # Return paginated response
         response = {
-            'chemicals': chemicals_data,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': pagination.total,
-                'pages': pagination.pages,
-                'has_next': pagination.has_next,
-                'has_prev': pagination.has_prev
+            "chemicals": chemicals_data,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+                "has_next": pagination.has_next,
+                "has_prev": pagination.has_prev
             }
         }
 
         return jsonify(response)
 
     # Create a new chemical
-    @app.route('/api/chemicals', methods=['POST'])
+    @app.route("/api/chemicals", methods=["POST"])
     @materials_manager_required
     @handle_errors
     def create_chemical_route():
         data = request.get_json() or {}
 
         # Validate warehouse_id is required
-        if not data.get('warehouse_id'):
-            raise ValidationError('warehouse_id is required for all chemicals')
+        if not data.get("warehouse_id"):
+            raise ValidationError("warehouse_id is required for all chemicals")
 
         # Validate warehouse exists and is active using validation function
-        warehouse = validate_warehouse_id(data['warehouse_id'])
+        warehouse = validate_warehouse_id(data["warehouse_id"])
 
         # Validate and sanitize input using schema
-        validated_data = validate_schema(data, 'chemical')
+        validated_data = validate_schema(data, "chemical")
 
         # Validate lot number format
-        validate_lot_number_format(validated_data['lot_number'])
+        validate_lot_number_format(validated_data["lot_number"])
 
         logger.info(f"Creating chemical with part number: {validated_data.get('part_number')} in warehouse {warehouse.name}")
 
         # Check if chemical with same part number and lot number already exists
         existing_chemical = Chemical.query.filter_by(
-            part_number=validated_data['part_number'],
-            lot_number=validated_data['lot_number']
+            part_number=validated_data["part_number"],
+            lot_number=validated_data["lot_number"]
         ).first()
 
         if existing_chemical:
-            raise ValidationError('Chemical with this part number and lot number already exists')
+            raise ValidationError("Chemical with this part number and lot number already exists")
 
         # Create new chemical - warehouse_id is required
         chemical = Chemical(
-            part_number=validated_data['part_number'],
-            lot_number=validated_data['lot_number'],
-            description=validated_data.get('description', ''),
-            manufacturer=validated_data.get('manufacturer', ''),
-            quantity=validated_data['quantity'],
-            unit=validated_data['unit'],
-            location=validated_data.get('location', ''),
-            category=validated_data.get('category', 'General'),
-            status=validated_data.get('status', 'available'),
-            warehouse_id=data['warehouse_id'],  # Required field
-            expiration_date=validated_data.get('expiration_date'),
-            minimum_stock_level=validated_data.get('minimum_stock_level'),
-            notes=validated_data.get('notes', '')
+            part_number=validated_data["part_number"],
+            lot_number=validated_data["lot_number"],
+            description=validated_data.get("description", ""),
+            manufacturer=validated_data.get("manufacturer", ""),
+            quantity=validated_data["quantity"],
+            unit=validated_data["unit"],
+            location=validated_data.get("location", ""),
+            category=validated_data.get("category", "General"),
+            status=validated_data.get("status", "available"),
+            warehouse_id=data["warehouse_id"],  # Required field
+            expiration_date=validated_data.get("expiration_date"),
+            minimum_stock_level=validated_data.get("minimum_stock_level"),
+            notes=validated_data.get("notes", "")
         )
 
         db.session.add(chemical)
@@ -204,28 +239,28 @@ def register_chemical_routes(app):
         from utils.transaction_helper import record_item_receipt
         try:
             record_item_receipt(
-                item_type='chemical',
+                item_type="chemical",
                 item_id=chemical.id,
-                user_id=request.current_user['user_id'],
-                quantity=validated_data['quantity'],
-                location=validated_data.get('location', 'Unknown'),
-                notes='Initial chemical creation'
+                user_id=request.current_user["user_id"],
+                quantity=validated_data["quantity"],
+                location=validated_data.get("location", "Unknown"),
+                notes="Initial chemical creation"
             )
         except Exception as e:
-            logger.error(f"Error recording chemical creation transaction: {str(e)}")
+            logger.error(f"Error recording chemical creation transaction: {e!s}")
 
         # Log the action
         log = AuditLog(
-            action_type='chemical_added',
+            action_type="chemical_added",
             action_details=f"Chemical {validated_data['part_number']} - {validated_data['lot_number']} added"
         )
         db.session.add(log)
 
         # Log user activity
-        if hasattr(request, 'current_user'):
+        if hasattr(request, "current_user"):
             activity = UserActivity(
-                user_id=request.current_user['user_id'],
-                activity_type='chemical_added',
+                user_id=request.current_user["user_id"],
+                activity_type="chemical_added",
                 description=f"Added chemical {validated_data['part_number']} - {validated_data['lot_number']}"
             )
             db.session.add(activity)
@@ -236,7 +271,7 @@ def register_chemical_routes(app):
         return jsonify(chemical.to_dict()), 201
 
     # Get barcode data for a chemical
-    @app.route('/api/chemicals/<int:id>/barcode', methods=['GET'])
+    @app.route("/api/chemicals/<int:id>/barcode", methods=["GET"])
     def chemical_barcode_route(id):
         try:
             # Get the chemical
@@ -245,89 +280,131 @@ def register_chemical_routes(app):
             # Format expiration date for barcode (YYYYMMDD)
             expiration_date = "NOEXP"
             if chemical.expiration_date:
-                expiration_date = chemical.expiration_date.strftime('%Y%m%d')
+                expiration_date = chemical.expiration_date.strftime("%Y%m%d")
 
             # Create barcode data
             barcode_data = f"{chemical.part_number}-{chemical.lot_number}-{expiration_date}"
 
             # Get the base URL for QR code
             # Use PUBLIC_URL from config if set (for external access), otherwise use request host
-            base_url = current_app.config.get('PUBLIC_URL')
-            if not base_url:
-                base_url = request.host_url.rstrip('/')
-            else:
-                base_url = base_url.rstrip('/')
+            base_url = current_app.config.get("PUBLIC_URL")
+            base_url = request.host_url.rstrip("/") if not base_url else base_url.rstrip("/")
 
             # Create QR code URL that points to the chemical view page
             qr_url = f"{base_url}/chemical-view/{chemical.id}"
 
             return jsonify({
-                'chemical_id': chemical.id,
-                'part_number': chemical.part_number,
-                'lot_number': chemical.lot_number,
-                'description': chemical.description,
-                'manufacturer': chemical.manufacturer,
-                'location': chemical.location,
-                'status': chemical.status,
-                'expiration_date': chemical.expiration_date.isoformat() if chemical.expiration_date else None,
-                'created_at': chemical.created_at.isoformat() if chemical.created_at else None,
-                'barcode_data': barcode_data,
-                'qr_url': qr_url
+                "chemical_id": chemical.id,
+                "part_number": chemical.part_number,
+                "lot_number": chemical.lot_number,
+                "description": chemical.description,
+                "manufacturer": chemical.manufacturer,
+                "location": chemical.location,
+                "status": chemical.status,
+                "expiration_date": chemical.expiration_date.isoformat() if chemical.expiration_date else None,
+                "created_at": chemical.created_at.isoformat() if chemical.created_at else None,
+                "barcode_data": barcode_data,
+                "qr_url": qr_url
             })
         except Exception as e:
-            print(f"Error in chemical barcode route: {str(e)}")
-            return jsonify({'error': 'An error occurred while generating barcode data'}), 500
+            print(f"Error in chemical barcode route: {e!s}")
+            return jsonify({"error": "An error occurred while generating barcode data"}), 500
 
     # Issue a chemical
-    @app.route('/api/chemicals/<int:id>/issue', methods=['POST'])
+    @app.route("/api/chemicals/<int:id>/issue", methods=["POST"])
     @jwt_required
     @handle_errors
     def chemical_issue_route(id):
+        from utils.lot_utils import create_child_chemical
+
         # Get the chemical
         chemical = Chemical.query.get_or_404(id)
 
         # Check if chemical can be issued
-        if chemical.status == 'expired':
-            raise ValidationError('Cannot issue an expired chemical')
+        if chemical.status == "expired":
+            raise ValidationError("Cannot issue an expired chemical")
 
         if chemical.quantity <= 0:
-            raise ValidationError('Cannot issue a chemical that is out of stock')
+            raise ValidationError("Cannot issue a chemical that is out of stock")
 
         # Get and validate request data
         data = request.get_json() or {}
 
         # Use centralized schema validation
-        validated_data = validate_schema(data, 'chemical_issuance')
+        validated_data = validate_schema(data, "chemical_issuance")
 
         # Ensure the user exists
-        if not User.query.get(validated_data['user_id']):
-            raise ValidationError('Supplied user_id does not exist')
+        if not db.session.get(User, validated_data["user_id"]):
+            raise ValidationError("Supplied user_id does not exist")
 
-        quantity = float(validated_data['quantity'])
+        quantity = float(validated_data["quantity"])
         if quantity > chemical.quantity:
-            raise ValidationError(f'Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})')
+            raise ValidationError(f"Cannot issue more than available quantity ({chemical.quantity} {chemical.unit})")
 
-        # Create issuance record
-        issuance = ChemicalIssuance(
-            chemical_id=chemical.id,
-            user_id=validated_data['user_id'],
-            quantity=quantity,
-            hangar=validated_data['hangar'],
-            purpose=validated_data.get('purpose', '')
-        )
+        # Check if this is a partial issue (doesn't consume entire lot)
+        is_partial_issue = quantity < chemical.quantity
+        child_chemical = None
 
-        # Update chemical quantity
-        chemical.quantity -= quantity
+        if is_partial_issue:
+            # Create a child lot for the issued quantity
+            child_chemical = create_child_chemical(
+                parent_chemical=chemical,
+                quantity=quantity,
+                destination_warehouse_id=chemical.warehouse_id
+            )
+            db.session.add(child_chemical)
+            db.session.flush()  # Flush to get the child chemical ID
 
-        # Update chemical status based on new quantity
-        if chemical.quantity <= 0:
-            chemical.status = 'out_of_stock'
-            # Update reorder status
+            # Create issuance record for the child lot
+            issuance = ChemicalIssuance(
+                chemical_id=child_chemical.id,
+                user_id=validated_data["user_id"],
+                quantity=quantity,
+                hangar=validated_data["hangar"],
+                purpose=validated_data.get("purpose", "")
+            )
+
+            # Update child chemical after issuance - it's been fully consumed
+            child_chemical.quantity = 0
+            child_chemical.status = "issued"
+
+            # Update parent status and reorder flags
+            if chemical.quantity == 0:
+                chemical.status = "depleted"
+            elif chemical.is_low_stock():
+                chemical.status = "low_stock"
+
+            # Update reorder status for parent
             chemical.update_reorder_status()
-        elif chemical.is_low_stock():
-            chemical.status = 'low_stock'
-            # Update reorder status
-            chemical.update_reorder_status()
+
+            # Log the action for child lot creation
+            log_child = AuditLog(
+                action_type="child_lot_created",
+                action_details=f"Child lot {child_chemical.lot_number} created from {chemical.lot_number}: {quantity} {chemical.unit}"
+            )
+            db.session.add(log_child)
+        else:
+            # Full consumption - issue from original chemical
+            issuance = ChemicalIssuance(
+                chemical_id=chemical.id,
+                user_id=validated_data["user_id"],
+                quantity=quantity,
+                hangar=validated_data["hangar"],
+                purpose=validated_data.get("purpose", "")
+            )
+
+            # Update chemical quantity
+            chemical.quantity -= quantity
+
+            # Update chemical status based on new quantity
+            if chemical.quantity <= 0:
+                chemical.status = "out_of_stock"
+                # Update reorder status
+                chemical.update_reorder_status()
+            elif chemical.is_low_stock():
+                chemical.status = "low_stock"
+                # Update reorder status
+                chemical.update_reorder_status()
 
         db.session.add(issuance)
 
@@ -335,45 +412,285 @@ def register_chemical_routes(app):
         from utils.transaction_helper import record_chemical_issuance
         try:
             record_chemical_issuance(
-                chemical_id=chemical.id,
-                user_id=request.current_user.get('user_id'),  # Authenticated user performing the issuance
+                chemical_id=child_chemical.id if child_chemical else chemical.id,
+                user_id=request.current_user.get("user_id"),  # Authenticated user performing the issuance
                 quantity=quantity,
-                hangar=validated_data['hangar'],
-                purpose=validated_data.get('purpose'),
-                work_order=validated_data.get('work_order'),
-                recipient_id=validated_data['user_id']  # Actual recipient of the chemical
+                hangar=validated_data["hangar"],
+                purpose=validated_data.get("purpose"),
+                work_order=validated_data.get("work_order"),
+                recipient_id=validated_data["user_id"]  # Actual recipient of the chemical
             )
         except Exception as e:
             logger.exception(f"Error recording chemical issuance transaction: {e}")
 
         # Log the action
         log = AuditLog(
-            action_type='chemical_issued',
-            action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} issued: {quantity} {chemical.unit}"
+            action_type="chemical_issued",
+            action_details=f"Chemical {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number} issued: {quantity} {chemical.unit}"
         )
         db.session.add(log)
 
         # Log user activity
-        if hasattr(request, 'current_user'):
+        if hasattr(request, "current_user"):
             activity = UserActivity(
-                user_id=request.current_user['user_id'],
-                activity_type='chemical_issued',
-                description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
+                user_id=request.current_user["user_id"],
+                activity_type="chemical_issued",
+                description=f"Issued {quantity} {chemical.unit} of chemical {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number}"
             )
             db.session.add(activity)
 
         db.session.commit()
 
-        logger.info(f"Chemical issued successfully: {chemical.part_number} - {chemical.lot_number}, quantity: {quantity}")
+        logger.info(f"Chemical issued successfully: {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number}, quantity: {quantity}")
 
-        # Return updated chemical and issuance record
-        return jsonify({
-            'chemical': chemical.to_dict(),
-            'issuance': issuance.to_dict()
-        })
+        # Return updated chemical and issuance record, including child lot if created
+        response_data = {
+            "chemical": chemical.to_dict(),
+            "issuance": issuance.to_dict()
+        }
+
+        if child_chemical:
+            response_data["child_chemical"] = child_chemical.to_dict()
+
+        return jsonify(response_data)
+
+    def _parse_chemical_barcode(code):
+        """Parse a chemical barcode into part and lot numbers.
+
+        Expected format: {part_number}-{lot_number}
+        Example: AMS-1424-LOT-251102-0001-A
+        - part_number: AMS-1424
+        - lot_number: LOT-251102-0001-A
+        """
+        if not code or not isinstance(code, str):
+            raise ValidationError("Barcode value is required")
+
+        # Find the first occurrence of "LOT" to split part number and lot number
+        # This handles cases where part numbers may contain hyphens (e.g., AMS-1424)
+        lot_index = code.find("-LOT")
+
+        if lot_index == -1:
+            # Fallback: try simple split if no "-LOT" pattern found
+            parts = code.split("-", 1)
+            if len(parts) < 2:
+                raise ValidationError("Unable to parse barcode. Please scan a chemical label")
+            part_number = parts[0]
+            lot_number = parts[1]
+        else:
+            # Split at the "-LOT" boundary
+            part_number = code[:lot_index]
+            lot_number = code[lot_index + 1:]  # Skip the leading hyphen
+
+        if not part_number or not lot_number:
+            raise ValidationError("Invalid barcode data")
+
+        return part_number, lot_number
+
+    # Lookup issued chemical information for returns
+    @app.route("/api/chemicals/returns/lookup", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def chemical_return_lookup():
+        data = request.get_json() or {}
+
+        chemical_id = data.get("chemical_id")
+        code = data.get("code")
+
+        if not chemical_id and not code:
+            raise ValidationError("Chemical ID or barcode is required")
+
+        if chemical_id:
+            chemical = Chemical.query.get_or_404(chemical_id)
+        else:
+            part_number, lot_number = _parse_chemical_barcode(code)
+            chemical = Chemical.query.filter_by(
+                part_number=part_number,
+                lot_number=lot_number,
+            ).first()
+            if not chemical:
+                raise ValidationError("No chemical found for the provided barcode")
+
+        issuance = (
+            ChemicalIssuance.query.filter_by(chemical_id=chemical.id)
+            .order_by(ChemicalIssuance.issue_date.desc())
+            .first()
+        )
+
+        if not issuance:
+            raise ValidationError("This lot does not have any issuance history")
+
+        returns = (
+            ChemicalReturn.query.filter_by(issuance_id=issuance.id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        total_returned = sum(ret.quantity for ret in returns)
+        remaining_quantity = max(issuance.quantity - total_returned, 0)
+
+        response = {
+            "chemical": chemical.to_dict(),
+            "issuance": issuance.to_dict(),
+            "returns": [ret.to_dict() for ret in returns],
+            "remaining_quantity": remaining_quantity,
+            "default_warehouse_id": chemical.warehouse_id,
+            "default_location": chemical.location,
+        }
+
+        return jsonify(response)
+
+    # Process a chemical return
+    @app.route("/api/chemicals/<int:id>/return", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def chemical_return_route(id):
+        chemical = Chemical.query.get_or_404(id)
+        data = request.get_json() or {}
+
+        issuance_id = data.get("issuance_id")
+        if not issuance_id:
+            raise ValidationError("Issuance ID is required")
+
+        issuance = db.session.get(ChemicalIssuance, issuance_id)
+        if not issuance or issuance.chemical_id != chemical.id:
+            raise ValidationError("Issuance does not match the selected chemical")
+
+        quantity = data.get("quantity")
+        try:
+            quantity = int(quantity)
+        except (TypeError, ValueError):
+            raise ValidationError("Quantity must be a whole number")
+
+        if quantity <= 0:
+            raise ValidationError("Quantity must be greater than zero")
+
+        total_returned = sum(ret.quantity for ret in issuance.returns)
+        remaining_quantity = issuance.quantity - total_returned
+
+        if quantity > remaining_quantity:
+            raise ValidationError(
+                f"Cannot return more than the outstanding issued quantity ({remaining_quantity})"
+            )
+
+        warehouse_id = data.get("warehouse_id", chemical.warehouse_id)
+        warehouse = None
+        if warehouse_id:
+            warehouse = db.session.get(Warehouse, warehouse_id)
+            if not warehouse:
+                raise ValidationError("Selected warehouse does not exist")
+            if not warehouse.is_active:
+                raise ValidationError("Selected warehouse is inactive")
+
+        location = data.get("location") or chemical.location
+        notes = data.get("notes")
+
+        chemical.quantity = (chemical.quantity or 0) + quantity
+        chemical.location = location
+        chemical.warehouse_id = warehouse_id
+
+        if chemical.quantity > 0:
+            chemical.status = "available"
+        if chemical.minimum_stock_level and chemical.quantity <= chemical.minimum_stock_level:
+            chemical.status = "low_stock"
+
+        try:
+            if hasattr(chemical, "needs_reorder") and chemical.quantity is not None:
+                if chemical.quantity > 0 and (
+                    not chemical.minimum_stock_level or chemical.quantity > chemical.minimum_stock_level
+                ):
+                    chemical.needs_reorder = False
+                    if hasattr(chemical, "reorder_status"):
+                        chemical.reorder_status = "not_needed"
+        except Exception:
+            logger.exception("Failed to reset reorder state after return")
+
+        try:
+            chemical.update_reorder_status()
+        except Exception:
+            logger.exception("Failed to update reorder status after return")
+
+        chemical_return = ChemicalReturn(
+            chemical_id=chemical.id,
+            issuance_id=issuance.id,
+            returned_by_id=request.current_user.get("user_id"),
+            quantity=quantity,
+            warehouse_id=warehouse_id,
+            location=location,
+            notes=notes,
+        )
+
+        db.session.add(chemical_return)
+
+        from utils.transaction_helper import record_chemical_return
+
+        try:
+            record_chemical_return(
+                chemical_id=chemical.id,
+                user_id=request.current_user.get("user_id"),
+                quantity=quantity,
+                location_from=issuance.hangar,
+                location_to=location or (warehouse.name if warehouse else None),
+                notes=notes,
+            )
+        except Exception as exc:
+            logger.exception("Error recording chemical return transaction: %s", exc)
+
+        log = AuditLog(
+            action_type="chemical_returned",
+            action_details=(
+                f"Chemical {chemical.part_number} - {chemical.lot_number} returned: {quantity} {chemical.unit}"
+            ),
+        )
+        db.session.add(log)
+
+        if hasattr(request, "current_user"):
+            activity = UserActivity(
+                user_id=request.current_user.get("user_id"),
+                activity_type="chemical_returned",
+                description=(
+                    f"Returned {quantity} {chemical.unit} of chemical {chemical.part_number} - {chemical.lot_number}"
+                ),
+            )
+            db.session.add(activity)
+
+        db.session.commit()
+
+        returns = (
+            ChemicalReturn.query.filter_by(issuance_id=issuance.id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        total_returned = sum(ret.quantity for ret in returns)
+        remaining_quantity = max(issuance.quantity - total_returned, 0)
+
+        response = {
+            "chemical": chemical.to_dict(),
+            "return": chemical_return.to_dict(),
+            "issuance": issuance.to_dict(),
+            "returns": [ret.to_dict() for ret in returns],
+            "remaining_quantity": remaining_quantity,
+        }
+
+        return jsonify(response), 201
+
+    # Get return history for a chemical
+    @app.route("/api/chemicals/<int:id>/returns", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_returns_route(id):
+        Chemical.query.get_or_404(id)
+
+        returns = (
+            ChemicalReturn.query.filter_by(chemical_id=id)
+            .order_by(ChemicalReturn.return_date.desc())
+            .all()
+        )
+
+        return jsonify([ret.to_dict() for ret in returns])
 
     # Get issuance history for a chemical
-    @app.route('/api/chemicals/<int:id>/issuances', methods=['GET'])
+    @app.route("/api/chemicals/<int:id>/issuances", methods=["GET"])
     @handle_errors
     def chemical_issuances_route(id):
         # Get the chemical
@@ -392,7 +709,7 @@ def register_chemical_routes(app):
         return jsonify(result)
 
     # Mark a chemical as ordered
-    @app.route('/api/chemicals/<int:id>/mark-ordered', methods=['POST'])
+    @app.route("/api/chemicals/<int:id>/mark-ordered", methods=["POST"])
     @materials_manager_required
     def mark_chemical_as_ordered_route(id):
         try:
@@ -400,48 +717,48 @@ def register_chemical_routes(app):
             chemical = Chemical.query.get_or_404(id)
 
             # Only allow ordering when a reorder is needed
-            if chemical.reorder_status != 'needed':
+            if chemical.reorder_status != "needed":
                 return jsonify({
-                    'error': f'Cannot mark chemical as ordered when reorder_status is "{chemical.reorder_status}"'
+                    "error": f'Cannot mark chemical as ordered when reorder_status is "{chemical.reorder_status}"'
                 }), 400
 
             # Get request data
             data = request.get_json() or {}
 
             # Validate required fields
-            if not data.get('expected_delivery_date'):
-                return jsonify({'error': 'Missing required field: expected_delivery_date'}), 400
+            if not data.get("expected_delivery_date"):
+                return jsonify({"error": "Missing required field: expected_delivery_date"}), 400
 
             # Parse the expected delivery date
             try:
-                expected_delivery_date = datetime.fromisoformat(data.get('expected_delivery_date'))
+                expected_delivery_date = datetime.fromisoformat(data.get("expected_delivery_date"))
                 # Note: We're allowing past dates for testing purposes
                 # This would normally validate that the date is in the future
             except ValueError:
-                return jsonify({'error': 'Invalid date format for expected_delivery_date. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+                return jsonify({"error": "Invalid date format for expected_delivery_date. Use ISO format (YYYY-MM-DDTHH:MM:SS)"}), 400
 
             # Update chemical reorder status
             try:
-                chemical.reorder_status = 'ordered'
+                chemical.reorder_status = "ordered"
                 chemical.reorder_date = datetime.utcnow()
                 chemical.expected_delivery_date = expected_delivery_date
             except Exception as e:
-                print(f"Error updating reorder status: {str(e)}")
-                return jsonify({'error': 'Failed to update reorder status'}), 500
+                print(f"Error updating reorder status: {e!s}")
+                return jsonify({"error": "Failed to update reorder status"}), 500
 
             # Log the action
-            user_name = request.current_user.get('user_name', 'Unknown user')
+            user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
-                action_type='chemical_ordered',
+                action_type="chemical_ordered",
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_ordered',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_ordered",
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
                 )
                 db.session.add(activity)
@@ -450,22 +767,22 @@ def register_chemical_routes(app):
 
             # Return updated chemical
             return jsonify({
-                'chemical': chemical.to_dict(),
-                'message': 'Chemical marked as ordered successfully'
+                "chemical": chemical.to_dict(),
+                "message": "Chemical marked as ordered successfully"
             })
         except Exception as e:
             db.session.rollback()
-            print(f"Error in mark chemical as ordered route: {str(e)}")
-            return jsonify({'error': 'An error occurred while marking the chemical as ordered'}), 500
+            print(f"Error in mark chemical as ordered route: {e!s}")
+            return jsonify({"error": "An error occurred while marking the chemical as ordered"}), 500
 
     # Get, update, or delete a specific chemical
-    @app.route('/api/chemicals/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+    @app.route("/api/chemicals/<int:id>", methods=["GET", "PUT", "DELETE"])
     @handle_errors
     def chemical_detail_route(id):
         # Get the chemical
         chemical = Chemical.query.get_or_404(id)
 
-        if request.method == 'GET':
+        if request.method == "GET":
             # Update status based on expiration and stock level
             try:
                 is_archived = chemical.is_archived
@@ -474,17 +791,17 @@ def register_chemical_routes(app):
 
             if not is_archived:  # Only update non-archived chemicals
                 if chemical.is_expired():
-                    chemical.status = 'expired'
+                    chemical.status = "expired"
 
                     # Auto-archive expired chemicals if the columns exist
                     try:
                         chemical.is_archived = True
-                        chemical.archived_reason = 'expired'
+                        chemical.archived_reason = "expired"
                         chemical.archived_date = datetime.utcnow()
 
                         # Add log for archiving
                         archive_log = AuditLog(
-                            action_type='chemical_archived',
+                            action_type="chemical_archived",
                             action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} automatically archived: expired"
                         )
                         db.session.add(archive_log)
@@ -495,11 +812,11 @@ def register_chemical_routes(app):
                         # If the columns don't exist, just update the status
                         pass
                 elif chemical.quantity <= 0:
-                    chemical.status = 'out_of_stock'
+                    chemical.status = "out_of_stock"
                     # Update reorder status for out-of-stock chemicals
                     chemical.update_reorder_status()
                 elif chemical.is_low_stock():
-                    chemical.status = 'low_stock'
+                    chemical.status = "low_stock"
                     # Update reorder status for low-stock chemicals
                     chemical.update_reorder_status()
 
@@ -512,40 +829,40 @@ def register_chemical_routes(app):
 
             return jsonify(chemical.to_dict())
 
-        elif request.method == 'PUT':
+        if request.method == "PUT":
             # Update chemical
             data = request.get_json() or {}
 
             # Validate and sanitize input using schema
-            validated_data = validate_schema(data, 'chemical')
+            validated_data = validate_schema(data, "chemical")
 
             logger.info(f"Updating chemical {id} with data: {validated_data}")
 
             # Update fields
-            if 'part_number' in validated_data:
-                chemical.part_number = validated_data['part_number']
-            if 'lot_number' in validated_data:
-                chemical.lot_number = validated_data['lot_number']
-            if 'description' in validated_data:
-                chemical.description = validated_data['description']
-            if 'manufacturer' in validated_data:
-                chemical.manufacturer = validated_data['manufacturer']
-            if 'quantity' in validated_data:
-                chemical.quantity = validated_data['quantity']
-            if 'unit' in validated_data:
-                chemical.unit = validated_data['unit']
-            if 'location' in validated_data:
-                chemical.location = validated_data['location']
-            if 'category' in validated_data:
-                chemical.category = validated_data['category']
-            if 'status' in validated_data:
-                chemical.status = validated_data['status']
-            if 'expiration_date' in validated_data:
-                chemical.expiration_date = validated_data['expiration_date']
-            if 'minimum_stock_level' in validated_data:
-                chemical.minimum_stock_level = validated_data['minimum_stock_level']
-            if 'notes' in validated_data:
-                chemical.notes = validated_data['notes']
+            if "part_number" in validated_data:
+                chemical.part_number = validated_data["part_number"]
+            if "lot_number" in validated_data:
+                chemical.lot_number = validated_data["lot_number"]
+            if "description" in validated_data:
+                chemical.description = validated_data["description"]
+            if "manufacturer" in validated_data:
+                chemical.manufacturer = validated_data["manufacturer"]
+            if "quantity" in validated_data:
+                chemical.quantity = validated_data["quantity"]
+            if "unit" in validated_data:
+                chemical.unit = validated_data["unit"]
+            if "location" in validated_data:
+                chemical.location = validated_data["location"]
+            if "category" in validated_data:
+                chemical.category = validated_data["category"]
+            if "status" in validated_data:
+                chemical.status = validated_data["status"]
+            if "expiration_date" in validated_data:
+                chemical.expiration_date = validated_data["expiration_date"]
+            if "minimum_stock_level" in validated_data:
+                chemical.minimum_stock_level = validated_data["minimum_stock_level"]
+            if "notes" in validated_data:
+                chemical.notes = validated_data["notes"]
 
             # Update reorder status based on new values
             chemical.update_reorder_status()
@@ -554,16 +871,16 @@ def register_chemical_routes(app):
 
             # Log the action
             log = AuditLog(
-                action_type='chemical_updated',
+                action_type="chemical_updated",
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} updated"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_updated',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_updated",
                     description=f"Updated chemical {chemical.part_number} - {chemical.lot_number}"
                 )
                 db.session.add(activity)
@@ -573,7 +890,7 @@ def register_chemical_routes(app):
             logger.info(f"Chemical {id} updated successfully")
             return jsonify(chemical.to_dict())
 
-        elif request.method == 'DELETE':
+        if request.method == "DELETE":
             # Delete chemical
             part_number = chemical.part_number
             lot_number = chemical.lot_number
@@ -582,16 +899,16 @@ def register_chemical_routes(app):
 
             # Log the action
             log = AuditLog(
-                action_type='chemical_deleted',
+                action_type="chemical_deleted",
                 action_details=f"Chemical {part_number} - {lot_number} deleted"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_deleted',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_deleted",
                     description=f"Deleted chemical {part_number} - {lot_number}"
                 )
                 db.session.add(activity)
@@ -599,10 +916,11 @@ def register_chemical_routes(app):
             db.session.commit()
 
             logger.info(f"Chemical {id} deleted successfully")
-            return jsonify({'message': 'Chemical deleted successfully'}), 200
+            return jsonify({"message": "Chemical deleted successfully"}), 200
+        return None
 
     # Archive a chemical
-    @app.route('/api/chemicals/<int:id>/archive', methods=['POST'])
+    @app.route("/api/chemicals/<int:id>/archive", methods=["POST"])
     @materials_manager_required
     def archive_chemical_route(id):
         try:
@@ -612,39 +930,39 @@ def register_chemical_routes(app):
             # Check if the chemical is already archived
             try:
                 if chemical.is_archived:
-                    return jsonify({'error': 'Chemical is already archived'}), 400
+                    return jsonify({"error": "Chemical is already archived"}), 400
             except Exception:
-                return jsonify({'error': 'Archive functionality not available'}), 500
+                return jsonify({"error": "Archive functionality not available"}), 500
 
             # Get request data
             data = request.get_json() or {}
 
             # Validate required fields
-            if not data.get('reason'):
-                return jsonify({'error': 'Missing required field: reason'}), 400
+            if not data.get("reason"):
+                return jsonify({"error": "Missing required field: reason"}), 400
 
             # Update chemical archive status
             try:
                 chemical.is_archived = True
-                chemical.archived_reason = data.get('reason')
+                chemical.archived_reason = data.get("reason")
                 chemical.archived_date = datetime.utcnow()
             except Exception as e:
-                print(f"Error updating archive status: {str(e)}")
-                return jsonify({'error': 'Failed to update archive status'}), 500
+                print(f"Error updating archive status: {e!s}")
+                return jsonify({"error": "Failed to update archive status"}), 500
 
             # Log the action
-            user_name = request.current_user.get('user_name', 'Unknown user')
+            user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
-                action_type='chemical_archived',
+                action_type="chemical_archived",
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} archived by {user_name}: {data.get('reason')}"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_archived',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_archived",
                     description=f"Archived chemical {chemical.part_number} - {chemical.lot_number}: {data.get('reason')}"
                 )
                 db.session.add(activity)
@@ -653,16 +971,16 @@ def register_chemical_routes(app):
 
             # Return updated chemical
             return jsonify({
-                'chemical': chemical.to_dict(),
-                'message': 'Chemical archived successfully'
+                "chemical": chemical.to_dict(),
+                "message": "Chemical archived successfully"
             })
         except Exception as e:
             db.session.rollback()
-            print(f"Error in archive chemical route: {str(e)}")
-            return jsonify({'error': 'An error occurred while archiving the chemical'}), 500
+            print(f"Error in archive chemical route: {e!s}")
+            return jsonify({"error": "An error occurred while archiving the chemical"}), 500
 
     # Unarchive a chemical
-    @app.route('/api/chemicals/<int:id>/unarchive', methods=['POST'])
+    @app.route("/api/chemicals/<int:id>/unarchive", methods=["POST"])
     @materials_manager_required
     def unarchive_chemical_route(id):
         try:
@@ -672,9 +990,9 @@ def register_chemical_routes(app):
             # Check if the chemical is archived
             try:
                 if not chemical.is_archived:
-                    return jsonify({'error': 'Chemical is not archived'}), 400
+                    return jsonify({"error": "Chemical is not archived"}), 400
             except Exception:
-                return jsonify({'error': 'Archive functionality not available'}), 500
+                return jsonify({"error": "Archive functionality not available"}), 500
 
             # Update chemical archive status
             try:
@@ -682,22 +1000,22 @@ def register_chemical_routes(app):
                 chemical.archived_reason = None
                 chemical.archived_date = None
             except Exception as e:
-                print(f"Error updating archive status: {str(e)}")
-                return jsonify({'error': 'Failed to update archive status'}), 500
+                print(f"Error updating archive status: {e!s}")
+                return jsonify({"error": "Failed to update archive status"}), 500
 
             # Log the action
-            user_name = request.current_user.get('user_name', 'Unknown user')
+            user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
-                action_type='chemical_unarchived',
+                action_type="chemical_unarchived",
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} unarchived by {user_name}"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_unarchived',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_unarchived",
                     description=f"Unarchived chemical {chemical.part_number} - {chemical.lot_number}"
                 )
                 db.session.add(activity)
@@ -706,16 +1024,16 @@ def register_chemical_routes(app):
 
             # Return updated chemical
             return jsonify({
-                'chemical': chemical.to_dict(),
-                'message': 'Chemical unarchived successfully'
+                "chemical": chemical.to_dict(),
+                "message": "Chemical unarchived successfully"
             })
         except Exception as e:
             db.session.rollback()
-            print(f"Error in unarchive chemical route: {str(e)}")
-            return jsonify({'error': 'An error occurred while unarchiving the chemical'}), 500
+            print(f"Error in unarchive chemical route: {e!s}")
+            return jsonify({"error": "An error occurred while unarchiving the chemical"}), 500
 
     # Mark a chemical as delivered
-    @app.route('/api/chemicals/<int:id>/mark-delivered', methods=['POST'])
+    @app.route("/api/chemicals/<int:id>/mark-delivered", methods=["POST"])
     @materials_manager_required
     def mark_chemical_as_delivered_route(id):
         try:
@@ -723,19 +1041,19 @@ def register_chemical_routes(app):
             chemical = Chemical.query.get_or_404(id)
 
             # Check if the chemical is currently marked as ordered
-            if chemical.reorder_status != 'ordered':
-                return jsonify({'error': 'Chemical is not currently on order'}), 400
+            if chemical.reorder_status != "ordered":
+                return jsonify({"error": "Chemical is not currently on order"}), 400
 
             # Get request data
             data = request.get_json() or {}
 
             # Check if received quantity is provided
             quantity_log = ""
-            if 'received_quantity' in data:
+            if "received_quantity" in data:
                 try:
-                    received_quantity = float(data['received_quantity'])
+                    received_quantity = float(data["received_quantity"])
                     if received_quantity <= 0:
-                        return jsonify({'error': 'Received quantity must be greater than zero'}), 400
+                        return jsonify({"error": "Received quantity must be greater than zero"}), 400
 
                     # Update chemical quantity
                     previous_quantity = chemical.quantity
@@ -744,45 +1062,45 @@ def register_chemical_routes(app):
                     # Include quantity update in log details
                     quantity_log = f" with {received_quantity} {chemical.unit} received (previous: {previous_quantity} {chemical.unit}, new: {chemical.quantity} {chemical.unit})"
                 except ValueError:
-                    return jsonify({'error': 'Invalid received quantity format'}), 400
+                    return jsonify({"error": "Invalid received quantity format"}), 400
 
             # Update chemical reorder status and ensure it's properly added to active inventory
             try:
                 # Update reorder status
-                chemical.reorder_status = 'not_needed'
+                chemical.reorder_status = "not_needed"
                 chemical.needs_reorder = False
                 chemical.reorder_date = None
                 chemical.expected_delivery_date = None
 
                 # Update chemical status to available if it's not already
-                if chemical.status != 'available' and chemical.quantity > 0:
-                    chemical.status = 'available'
+                if chemical.status != "available" and chemical.quantity > 0:
+                    chemical.status = "available"
                 elif chemical.quantity <= 0:
-                    chemical.status = 'out_of_stock'
+                    chemical.status = "out_of_stock"
                 elif chemical.is_low_stock():
-                    chemical.status = 'low_stock'
+                    chemical.status = "low_stock"
 
                 # Make sure the chemical is not archived
                 chemical.is_archived = False
                 chemical.archived_reason = None
                 chemical.archived_date = None
             except Exception as e:
-                print(f"Error updating chemical status: {str(e)}")
-                return jsonify({'error': 'Failed to update chemical status'}), 500
+                print(f"Error updating chemical status: {e!s}")
+                return jsonify({"error": "Failed to update chemical status"}), 500
 
             # Log the action
-            user_name = request.current_user.get('user_name', 'Unknown user')
+            user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
-                action_type='chemical_delivered',
+                action_type="chemical_delivered",
                 action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as delivered by {user_name}{quantity_log}"
             )
             db.session.add(log)
 
             # Log user activity
-            if hasattr(request, 'current_user'):
+            if hasattr(request, "current_user"):
                 activity = UserActivity(
-                    user_id=request.current_user['user_id'],
-                    activity_type='chemical_delivered',
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_delivered",
                     description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as delivered{quantity_log}"
                 )
                 db.session.add(activity)
@@ -791,10 +1109,10 @@ def register_chemical_routes(app):
 
             # Return updated chemical
             return jsonify({
-                'chemical': chemical.to_dict(),
-                'message': 'Chemical marked as delivered successfully'
+                "chemical": chemical.to_dict(),
+                "message": "Chemical marked as delivered successfully"
             })
         except Exception as e:
             db.session.rollback()
-            print(f"Error in mark chemical as delivered route: {str(e)}")
-            return jsonify({'error': 'An error occurred while marking the chemical as delivered'}), 500
+            print(f"Error in mark chemical as delivered route: {e!s}")
+            return jsonify({"error": "An error occurred while marking the chemical as delivered"}), 500

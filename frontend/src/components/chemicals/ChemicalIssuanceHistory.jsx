@@ -22,6 +22,8 @@ const ChemicalIssuanceHistory = ({ issuances, loading }) => {
                   <th>Date</th>
                   <th>Issued By</th>
                   <th>Quantity</th>
+                  <th>Returned</th>
+                  <th>Remaining</th>
                   <th>Hangar</th>
                   <th>Purpose</th>
                 </tr>
@@ -32,6 +34,8 @@ const ChemicalIssuanceHistory = ({ issuances, loading }) => {
                     <td>{new Date(issuance.issue_date).toLocaleString()}</td>
                     <td>{issuance.user_name}</td>
                     <td>{issuance.quantity}</td>
+                    <td>{issuance.total_returned ?? 0}</td>
+                    <td>{issuance.remaining_quantity ?? issuance.quantity}</td>
                     <td>{issuance.hangar}</td>
                     <td>{issuance.purpose || 'N/A'}</td>
                   </tr>

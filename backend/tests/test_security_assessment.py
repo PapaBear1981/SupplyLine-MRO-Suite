@@ -4,6 +4,7 @@ Tests multiple security aspects and generates a security report
 """
 
 import time
+
 from models import User
 
 
@@ -25,16 +26,16 @@ class TestSecurityAssessment:
 
         for payload in sql_payloads:
             login_data = {
-                'employee_number': payload,
-                'password': 'anypassword'
+                "employee_number": payload,
+                "password": "anypassword"
             }
 
-            response = client.post('/api/auth/login', json=login_data)
+            response = client.post("/api/auth/login", json=login_data)
 
             if response.status_code == 429:
                 rate_limited = True
                 break
-            elif response.status_code in [400, 422]:
+            if response.status_code in [400, 422]:
                 injection_blocked += 1
 
             # Don't cause server errors
@@ -60,17 +61,17 @@ class TestSecurityAssessment:
         # Make multiple failed login attempts
         for attempt in range(8):
             login_data = {
-                'employee_number': 'NONEXISTENT',
-                'password': 'wrongpassword'
+                "employee_number": "NONEXISTENT",
+                "password": "wrongpassword"
             }
 
-            response = client.post('/api/auth/login', json=login_data)
+            response = client.post("/api/auth/login", json=login_data)
 
             if response.status_code == 429:
                 rate_limited = True
                 print(f"✅ Rate limiting activated after {attempt + 1} attempts")
                 break
-            elif response.status_code in [401, 422]:
+            if response.status_code in [401, 422]:
                 failed_attempts += 1
 
             # Small delay between attempts
@@ -89,14 +90,14 @@ class TestSecurityAssessment:
 
         with app.app_context():
             user = User(
-                name='Security Test User',
-                employee_number='SEC001',
-                department='Security',
+                name="Security Test User",
+                employee_number="SEC001",
+                department="Security",
                 is_admin=False,
                 is_active=True
             )
 
-            password = 'TestPassword123!'
+            password = "TestPassword123!"
             user.set_password(password)
 
             # Password should be hashed
@@ -109,15 +110,18 @@ class TestSecurityAssessment:
 
             # Should use secure algorithm (PBKDF2, bcrypt, scrypt, or argon2)
             secure_algorithm = any(
-                alg in user.password_hash for alg in ['pbkdf2:', '$2b$', 'scrypt', '$argon2', 'argon2']
+                alg in user.password_hash for alg in ["pbkdf2:", "$2b$", "scrypt", "$argon2", "argon2"]
             )
             print(f"✅ Secure hash algorithm: {'Yes' if secure_algorithm else 'No'}")
 
             # Password verification should work
-            verification_works = user.check_password(password) and not user.check_password('wrongpassword')
+            verification_works = user.check_password(password) and not user.check_password("wrongpassword")
             print(f"✅ Password verification: {'Working' if verification_works else 'Not working'}")
 
-            assert password_hashed and hash_length_ok and secure_algorithm and verification_works
+            assert password_hashed
+            assert hash_length_ok
+            assert secure_algorithm
+            assert verification_works
 
     def test_input_validation(self, client):
         """Test input validation on various endpoints"""
@@ -126,32 +130,32 @@ class TestSecurityAssessment:
         # Test registration with invalid data
         invalid_registrations = [
             {
-                'name': 'A' * 1000,  # Very long name
-                'employee_number': 'TEST001',
-                'department': 'IT',
-                'password': 'ValidPass123!',
-                'confirm_password': 'ValidPass123!'
+                "name": "A" * 1000,  # Very long name
+                "employee_number": "TEST001",
+                "department": "IT",
+                "password": "ValidPass123!",
+                "confirm_password": "ValidPass123!"
             },
             {
-                'name': 'Test User',
-                'employee_number': '<script>alert("xss")</script>',  # XSS attempt
-                'department': 'IT',
-                'password': 'ValidPass123!',
-                'confirm_password': 'ValidPass123!'
+                "name": "Test User",
+                "employee_number": '<script>alert("xss")</script>',  # XSS attempt
+                "department": "IT",
+                "password": "ValidPass123!",
+                "confirm_password": "ValidPass123!"
             },
             {
-                'name': 'Test User',
-                'employee_number': 'TEST002',
-                'department': 'IT',
-                'password': '123',  # Weak password
-                'confirm_password': '123'
+                "name": "Test User",
+                "employee_number": "TEST002",
+                "department": "IT",
+                "password": "123",  # Weak password
+                "confirm_password": "123"
             }
         ]
 
         validation_working = 0
 
         for invalid_data in invalid_registrations:
-            response = client.post('/api/auth/register', json=invalid_data)
+            response = client.post("/api/auth/register", json=invalid_data)
 
             if response.status_code in [400, 422, 429]:
                 validation_working += 1
@@ -167,9 +171,9 @@ class TestSecurityAssessment:
         print("\n🔑 Testing Authentication Security...")
 
         # Test with invalid credentials
-        response = client.post('/api/auth/login', json={
-            'employee_number': regular_user.employee_number,
-            'password': 'wrongpassword'
+        response = client.post("/api/auth/login", json={
+            "employee_number": regular_user.employee_number,
+            "password": "wrongpassword"
         })
 
         auth_rejects_invalid = response.status_code in [401, 422, 429]
@@ -177,17 +181,17 @@ class TestSecurityAssessment:
 
         # Test with valid credentials (if not rate limited)
         if response.status_code != 429:
-            response = client.post('/api/auth/login', json={
-                'employee_number': regular_user.employee_number,
-                'password': 'user123'
+            response = client.post("/api/auth/login", json={
+                "employee_number": regular_user.employee_number,
+                "password": "user123"
             })
 
             auth_accepts_valid = response.status_code == 200
             print(f"✅ Valid credentials accepted: {'Yes' if auth_accepts_valid else 'No'}")
 
             if auth_accepts_valid:
-                set_cookie_headers = response.headers.getlist('Set-Cookie')
-                token_cookie = any('access_token=' in header for header in set_cookie_headers)
+                set_cookie_headers = response.headers.getlist("Set-Cookie")
+                token_cookie = any("access_token=" in header for header in set_cookie_headers)
                 print(f"✅ Access token cookie set: {'Yes' if token_cookie else 'No'}")
         else:
             print("⚠️  Cannot test valid credentials due to rate limiting")
@@ -199,22 +203,22 @@ class TestSecurityAssessment:
         print("\n🌐 Testing CORS and Security Headers...")
 
         # Test CORS headers
-        response = client.options('/api/auth/login')
+        response = client.options("/api/auth/login")
 
         cors_headers_present = any(
-            header.startswith('Access-Control-') for header, _ in response.headers.items()
+            header.startswith("Access-Control-") for header, _ in response.headers.items()
         )
         print(f"✅ CORS headers present: {'Yes' if cors_headers_present else 'No'}")
 
         # Test for security headers on any response
-        response = client.get('/')
+        response = client.get("/")
 
         security_headers = {
-            'X-Content-Type-Options': 'nosni',
-            'X-Frame-Options': 'DENY',
-            'X-XSS-Protection': '1; mode=block',
-            'Strict-Transport-Security': 'max-age=',
-            'Content-Security-Policy': 'default-src'
+            "X-Content-Type-Options": "nosni",
+            "X-Frame-Options": "DENY",
+            "X-XSS-Protection": "1; mode=block",
+            "Strict-Transport-Security": "max-age=",
+            "Content-Security-Policy": "default-src"
         }
 
         headers_found = 0
@@ -238,20 +242,20 @@ class TestSecurityAssessment:
         print("\n🛡️  Testing Error Handling Security...")
 
         # Test 404 errors don't leak information
-        response = client.get('/api/nonexistent/endpoint')
+        response = client.get("/api/nonexistent/endpoint")
         error_safe = response.status_code == 404
 
         if error_safe and response.get_json():
             data = response.get_json()
-            message = data.get('message', '').lower()
+            message = data.get("message", "").lower()
             # Should not contain sensitive information
-            info_leak = any(word in message for word in ['database', 'sql', 'internal', 'traceback', 'exception'])
+            info_leak = any(word in message for word in ["database", "sql", "internal", "traceback", "exception"])
             error_safe = not info_leak
 
         print(f"✅ Error messages secure: {'Yes' if error_safe else 'No'}")
 
         # Test invalid JSON handling
-        response = client.post('/api/auth/login', data='invalid json{', content_type='application/json')
+        response = client.post("/api/auth/login", data="invalid json{", content_type="application/json")
         json_error_safe = 400 <= response.status_code < 500
         print(f"✅ Invalid JSON handled safely: {'Yes' if json_error_safe else 'No'}")
 

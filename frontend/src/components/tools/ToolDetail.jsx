@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Row, Col, Button, Table, Badge, Tabs, Tab, Alert } from 'react-bootstrap';
 import { fetchToolById } from '../../store/toolsSlice';
@@ -22,6 +22,7 @@ import { useHelp } from '../../context/HelpContext';
 
 const ToolDetail = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { currentTool, loading: toolLoading } = useSelector((state) => state.tools);
@@ -106,11 +107,19 @@ const ToolDetail = () => {
             )}
           </div>
           <div>
-            <Tooltip text="Return to tool inventory" placement="top" show={showTooltips}>
-              <Button as={Link} to="/tools" variant="secondary" className="me-2">
-                Back to Tools
-              </Button>
-            </Tooltip>
+            {searchParams.get('from') === 'calibrations' ? (
+              <Tooltip text="Return to calibrations page" placement="top" show={showTooltips}>
+                <Button as={Link} to="/calibrations" variant="secondary" className="me-2">
+                  Back to Calibrations
+                </Button>
+              </Tooltip>
+            ) : (
+              <Tooltip text="Return to tool inventory" placement="top" show={showTooltips}>
+                <Button as={Link} to="/tools" variant="secondary" className="me-2">
+                  Back to Tools
+                </Button>
+              </Tooltip>
+            )}
             <Tooltip text="Generate barcode/QR code" placement="top" show={showTooltips}>
               <Button variant="info" className="me-2" onClick={() => setShowBarcodeModal(true)}>
                 <i className="bi bi-upc-scan me-1"></i> Barcode/QR
