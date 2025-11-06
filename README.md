@@ -2,46 +2,75 @@
 
 A comprehensive, secure, and scalable Maintenance, Repair, and Operations (MRO) management system built with modern technologies and containerized deployment.
 
-**Current Version: 4.1.0 - Security Hardening & Feature Enhancements** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
+**Current Version: 5.1.0 - Barcode System Refactoring & Inventory Enhancements** - See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete version history and release notes.
 
-## 🔒 Version 4.1.0 - Security Hardening & Feature Enhancements
+## 🚀 Version 5.1.0 - Barcode System Refactoring & Inventory Enhancements
 
-This is a **major security release** featuring comprehensive fixes for critical vulnerabilities, enhanced authentication mechanisms, and new barcode/QR code features for improved tool tracking. This version includes breaking changes that significantly improve the security posture of the application.
+This release introduces a professional PDF-based barcode system, kit-only expendables management, child lot tracking for partial chemical issuances, and numerous UI/UX improvements. The barcode system has been completely refactored to use WeasyPrint for magazine-quality labels with support for multiple label sizes.
 
 ### Key Highlights
 
-- **🛡️ Critical Security Fixes**: 8 vulnerabilities fixed (1 Critical, 3 High, 4 Medium)
-- **🔐 Enhanced Authentication**: Password history tracking, 90-day expiration, secure reset tokens
-- **📱 Barcode/QR Code Features**: Calibration information display, mobile-friendly landing pages
-- **🧪 Chemical Management**: Fixed critical bug preventing expiration date edits
-- **📦 Dependency Updates**: All dependencies updated to latest secure versions
-- **🔒 Hardened Security**: Removed hardcoded secrets, rate limiting, file upload validation
+- **🏷️ Professional Barcode System**: PDF-based labels with WeasyPrint, 4 label sizes, vector graphics (SVG)
+- **📦 Kit-Only Expendables**: Direct consumable management within kits without warehouse overhead
+- **🧬 Child Lot Tracking**: Automatic child lot creation for partial chemical issuances with full lineage tracking
+- **📊 Enhanced UI/UX**: Sortable tables, improved dark mode, better tool location display
+- **🔧 Code Quality**: Migrated from flake8 to Ruff for faster linting and modern Python practices
+- **🐛 Critical Fixes**: Chemical inventory tracking, transfer logic, tool location display
 
-### Security Improvements
+### New Features in v5.1.0
 
-- **Removed Hardcoded Secrets** (CRITICAL): Application now requires environment variables for SECRET_KEY and JWT_SECRET_KEY
-- **Strengthened Password Reset**: 32-character cryptographically secure tokens with 15-minute expiry
-- **Rate Limiting**: Protection against brute force attacks on authentication endpoints
-- **Password Security**: History tracking (last 5 passwords), 90-day expiration enforcement
-- **File Upload Validation**: Strict type checking, size limits, CSV sanitization
-- **Enhanced Logging**: Structured logging with sanitized error responses
-- **Updated Dependencies**: Fixed CVE-2023-25577, CVE-2023-46136, and other vulnerabilities
+#### 🏷️ Professional PDF-Based Barcode System
+- **Magazine-Quality Labels**: WeasyPrint-generated PDFs with professional typography and design
+- **Multiple Label Sizes**: 4x6, 3x4, 2x4, 2x2 inches with responsive content scaling
+- **Vector Graphics**: SVG-based barcodes and QR codes for crisp printing at any resolution
+- **Unified API**: Single endpoint pattern for tools, chemicals, expendables, and kit items
+- **Future-Ready**: Designed for Zebra printer compatibility while supporting standard PDF printing
+- **Automatic Printing**: Barcode modals appear after transfers and partial issuances for immediate labeling
 
-### New Features in v4.1.0
+#### 📦 Kit-Only Expendables System
+- **Direct Kit Storage**: Add consumables directly to kits without warehouse management overhead
+- **Full CRUD Operations**: Complete create, read, update, delete functionality via REST API
+- **Lot/Serial Tracking**: Mutually exclusive lot or serial number validation
+- **Auto-Complete Transfers**: Immediate feedback for warehouse-to-kit expendable transfers
+- **Integrated Workflow**: Seamless integration with kit transfers and reorder systems
 
-#### 📱 Barcode/QR Code Enhancements
-- **Calibration Information on Printed Tags**: Calibration date and expiration date prominently displayed on physical labels
-- **Color-Coded Dates**: Green for calibration date, red for due date for easy identification
-- **QR Code Certification Access**: QR codes link to mobile-friendly landing pages with tool and calibration information
-- **Public Tool View**: No authentication required for QR code scans, perfect for field use
-- **Certificate Download**: Direct access to calibration certificates from QR code scans
-- **Enhanced Print Layout**: Professional labels optimized for printing without interfering with scannability
+#### 🧬 Child Lot Tracking & Lineage
+- **Automatic Child Lot Creation**: Partial chemical issuances automatically create child lots
+- **Parent-Child Lineage**: Complete tracking of lot splits with parent_lot_number field
+- **Lot Sequence Counter**: Track number of child lots created from each parent
+- **Auto-Generated Lot Numbers**: Format LOT-YYMMDD-XXXX with atomic generation and row-level locking
+- **Immediate Barcode Printing**: Automatic barcode modal for new child lots
+- **Complete Audit Trail**: Full transaction history for lot splits and transfers
 
-#### 🧪 Chemical Management Improvements
-- **Fixed Critical Bug**: Resolved issue preventing chemical expiration date edits
-- **Complete CRUD Operations**: Added missing PUT/DELETE handlers for chemical management
-- **Enhanced Validation**: Added "tubes" unit support and improved schema validation
-- **Audit Logging**: Comprehensive logging for all chemical updates and changes
+#### 📊 UI/UX Improvements
+- **Sortable Tables**: Click column headers to sort in All Active Checkouts and Kit Items tables
+- **Dark Mode Fixes**: Improved table header hover effects and theme consistency
+- **Tool Location Display**: Tools now correctly show warehouse OR kit location (never both)
+- **Pagination Support**: Handle large datasets efficiently with paginated tool lists
+- **Theme Flash Prevention**: Inline script applies theme immediately on page load
+
+### Technical Improvements
+
+#### Backend Enhancements
+- **Ruff Linting**: Migrated from flake8 to Ruff for 10x faster linting
+- **Code Quality**: Auto-fixed thousands of linting issues (imports, quotes, whitespace)
+- **Modern Python**: Includes pyupgrade and bugbear rules for best practices
+- **Enhanced Transfer Logic**: Better distinction between KitExpendable and KitItem
+- **Improved Reorder Fulfillment**: Modify existing expendables instead of creating duplicates
+
+#### Frontend Enhancements
+- **Centralized Barcode Service**: Single service for all barcode PDF generation
+- **Component Updates**: Improved ChemicalBarcode, ToolBarcode, ExpendableBarcode components
+- **Better State Management**: Enhanced Redux slices for transfers and inventory
+- **React 19**: Updated to latest React version with improved performance
+
+### Critical Bug Fixes
+
+- **Chemical Inventory Tracking**: Fixed child lot quantities and status not updating after issuance
+- **Transfer Logic**: Fixed expendable transfer validation and auto-completion issues
+- **Tool Location**: Fixed tools showing in both warehouse and kit simultaneously
+- **Reorder Fulfillment**: Fixed duplicate expendable creation during reorder fulfillment
+- **Dark Mode**: Fixed table header hover effects and theme consistency issues
 
 ## Overview
 
@@ -82,8 +111,47 @@ Built with modern security practices and designed for enterprise-scale deploymen
 - **Quantity Management**: Track chemical quantities with unit conversion support
 - **Low Stock Alerts**: Automatic alerts when chemicals reach minimum stock levels
 - **Issuance Tracking**: Record chemical issuances by user, quantity, location, and purpose
+- **Child Lot Creation**: Automatic child lot generation for partial issuances with full lineage tracking
+- **Lot Number Auto-Generation**: Format LOT-YYMMDD-XXXX with atomic generation
 - **Archiving System**: Archive expired or depleted chemicals while maintaining history
 - **Category Organization**: Organize chemicals by type (Sealant, Paint, Adhesive, etc.)
+
+### Mobile Warehouse/Kits Management (v5.0.0+)
+- **Aircraft Type Management**: Define and manage aircraft types (Q400, RJ85, CL415, etc.)
+- **Kit Creation Wizard**: Guided 4-step process for creating new kits
+- **Box System**: Numbered boxes with type constraints (expendable, tooling, consumable, loose, floor)
+- **Item Tracking**: Track tools, chemicals, and expendables within kits
+- **Issuance System**: Issue items from kits with work order tracking
+- **Transfer System**: Kit-to-kit, kit-to-warehouse, warehouse-to-kit transfers
+- **Automatic Reordering**: Trigger reorders on low stock or after issuance
+- **Messaging System**: Communication between mechanics and stores personnel
+- **Alerts & Notifications**: Low stock, expiring items, pending reorders
+- **Analytics & Reporting**: Kit usage statistics and inventory reports
+
+### Warehouse Management (v5.1.0+)
+- **Warehouse Creation**: Create and manage multiple warehouse locations
+- **Address Management**: Track warehouse addresses, city, state, zip code, country
+- **Warehouse Types**: Main and satellite warehouse classifications
+- **Inventory Tracking**: Track tools, chemicals, and expendables by warehouse
+- **Transfer Management**: Complete audit trail for all warehouse transfers
+- **Location Hierarchy**: Warehouses → Kits → Boxes for organized inventory
+
+### Expendables Management (v5.1.0+)
+- **Kit-Only Consumables**: Direct storage of expendables within kits without warehouse overhead
+- **Full CRUD Operations**: Create, read, update, delete expendables via REST API
+- **Lot/Serial Tracking**: Mutually exclusive lot or serial number validation
+- **Auto-Complete Transfers**: Immediate feedback for warehouse-to-kit transfers
+- **Integrated Workflow**: Seamless integration with kit transfers and reorder systems
+- **Barcode Printing**: Professional PDF labels for all expendables
+
+### Barcode & Label System (v5.1.0+)
+- **Professional PDF Labels**: WeasyPrint-generated labels with magazine-quality design
+- **Multiple Label Sizes**: 4x6, 3x4, 2x4, 2x2 inches with responsive scaling
+- **Vector Graphics**: SVG-based barcodes and QR codes for crisp printing
+- **Unified API**: Single endpoint pattern for all item types
+- **Automatic Printing**: Barcode modals after transfers and partial issuances
+- **QR Code Landing Pages**: Mobile-friendly pages with item details and calibration info
+- **Future-Ready**: Designed for Zebra printer compatibility
 
 ### Reporting & Analytics
 - **Tool Reports**: Generate reports on tool inventory, checkout history, and department usage
