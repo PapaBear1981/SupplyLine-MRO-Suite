@@ -21,7 +21,6 @@ export const fetchToolInventoryReport = createAsyncThunk(
   async (filters, { rejectWithValue }) => {
     try {
       const response = await api.get('/reports/tools', { params: filters });
-      console.log('Tool Inventory Report Data:', response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch tool inventory report' });
@@ -36,7 +35,6 @@ export const fetchCheckoutHistoryReport = createAsyncThunk(
       const response = await api.get('/reports/checkouts', {
         params: { timeframe, ...filters }
       });
-      console.log('Checkout History Report Data:', response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch checkout history report' });
@@ -51,7 +49,6 @@ export const fetchDepartmentUsageReport = createAsyncThunk(
       const response = await api.get('/reports/departments', {
         params: { timeframe }
       });
-      console.log('Department Usage Report Data:', response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch department usage report' });

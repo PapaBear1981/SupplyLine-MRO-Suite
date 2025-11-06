@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Table, Badge, Spinner, Alert, Form, Pagination } from 'react-bootstrap';
 import { FaTimes, FaBox, FaFlask, FaTools, FaHistory, FaPrint, FaDownload } from 'react-icons/fa';
 import api from '../../services/api';
@@ -28,15 +28,7 @@ const ItemDetailModal = ({ show, onHide, itemType, itemId }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 10;
 
-  // Fetch item details when modal opens
-  useEffect(() => {
-    if (show && itemType && itemId) {
-      fetchItemDetail();
-      setCurrentPage(1); // Reset to first page when modal opens
-    }
-  }, [show, itemType, itemId]);
-
-  const fetchItemDetail = async () => {
+  const fetchItemDetail = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -49,7 +41,15 @@ const ItemDetailModal = ({ show, onHide, itemType, itemId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [itemType, itemId]);
+
+  // Fetch item details when modal opens
+  useEffect(() => {
+    if (show && itemType && itemId) {
+      fetchItemDetail();
+      setCurrentPage(1); // Reset to first page when modal opens
+    }
+  }, [show, itemType, itemId, fetchItemDetail]);
 
   // Get icon based on item type
   const getItemIcon = () => {

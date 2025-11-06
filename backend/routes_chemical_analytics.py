@@ -491,7 +491,7 @@ def register_chemical_analytics_routes(app):
                     if user_id not in users:
                         users[user_id] = 0
                         # Get the user's name from the database
-                        user = User.query.get(user_id)
+                        user = db.session.get(User, user_id)
                         if user:
                             user_names[user_id] = f"{user.first_name} {user.last_name}"
                         else:

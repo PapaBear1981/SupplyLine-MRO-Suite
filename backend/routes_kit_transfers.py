@@ -63,20 +63,20 @@ def register_kit_transfer_routes(app):
 
         # Validate source and destination locations
         if from_type == "kit":
-            source_kit = Kit.query.get(data["from_location_id"])
+            source_kit = db.session.get(Kit, data["from_location_id"])
             if not source_kit:
                 raise ValidationError("Source kit not found")
         else:
-            source_warehouse = Warehouse.query.get(data["from_location_id"])
+            source_warehouse = db.session.get(Warehouse, data["from_location_id"])
             if not source_warehouse:
                 raise ValidationError("Source warehouse not found")
 
         if to_type == "kit":
-            dest_kit = Kit.query.get(data["to_location_id"])
+            dest_kit = db.session.get(Kit, data["to_location_id"])
             if not dest_kit:
                 raise ValidationError("Destination kit not found")
         else:
-            dest_warehouse = Warehouse.query.get(data["to_location_id"])
+            dest_warehouse = db.session.get(Warehouse, data["to_location_id"])
             if not dest_warehouse:
                 raise ValidationError("Destination warehouse not found")
 
@@ -86,9 +86,9 @@ def register_kit_transfer_routes(app):
             # For tools/chemicals, the item_id refers to KitItem
             source_item = None
             if data["item_type"] == "expendable":
-                source_item = KitExpendable.query.get(data["item_id"])
+                source_item = db.session.get(KitExpendable, data["item_id"])
             else:
-                source_item = KitItem.query.get(data["item_id"])
+                source_item = db.session.get(KitItem, data["item_id"])
 
             if not source_item or source_item.kit_id != data["from_location_id"]:
                 raise ValidationError("Source item not found")
@@ -98,13 +98,13 @@ def register_kit_transfer_routes(app):
 
         elif from_type == "warehouse":
             if data["item_type"] == "chemical":
-                chemical = Chemical.query.get(data["item_id"])
+                chemical = db.session.get(Chemical, data["item_id"])
                 if not chemical:
                     raise ValidationError("Source chemical not found")
                 if chemical.quantity < quantity:
                     raise ValidationError(f"Insufficient quantity. Available: {chemical.quantity}")
             elif data["item_type"] == "tool":
-                tool = Tool.query.get(data["item_id"])
+                tool = db.session.get(Tool, data["item_id"])
                 if not tool:
                     raise ValidationError("Tool not found")
                 if tool.warehouse_id != data["from_location_id"]:
@@ -125,7 +125,7 @@ def register_kit_transfer_routes(app):
                 # Expendables use their own ID
                 transfer_item_id = data["item_id"]
             else:
-                kit_item = KitItem.query.get(data["item_id"])
+                kit_item = db.session.get(KitItem, data["item_id"])
                 if not kit_item:
                     raise ValidationError("Source item not found")
                 transfer_item_id = kit_item.item_id
@@ -207,7 +207,7 @@ def register_kit_transfer_routes(app):
         if transfer.from_location_type == "kit":
             if transfer.item_type == "expendable":
                 # For expendables, transfer.item_id is the KitExpendable.id
-                kit_expendable = KitExpendable.query.get(transfer.item_id)
+                kit_expendable = db.session.get(KitExpendable, transfer.item_id)
                 if not kit_expendable:
                     raise ValidationError("Source expendable not found")
 
@@ -249,7 +249,7 @@ def register_kit_transfer_routes(app):
                 }
         elif transfer.from_location_type == "warehouse":
             if transfer.item_type == "chemical":
-                source_chemical = Chemical.query.get(transfer.item_id)
+                source_chemical = db.session.get(Chemical, transfer.item_id)
                 if not source_chemical:
                     raise ValidationError("Source chemical not found")
                 if source_chemical.quantity < quantity:
@@ -377,13 +377,13 @@ def register_kit_transfer_routes(app):
             else:
                 actual_item_id = source_item_snapshot.get("item_id", transfer.item_id)
                 if transfer.item_type == "tool":
-                    actual_item = Tool.query.get(actual_item_id)
+                    actual_item = db.session.get(Tool, actual_item_id)
                     if not actual_item:
                         raise ValidationError("Tool not found")
                 elif transfer.item_type == "chemical" and child_chemical:
                     actual_item = child_chemical
                 else:
-                    actual_item = Chemical.query.get(actual_item_id)
+                    actual_item = db.session.get(Chemical, actual_item_id)
                     if not actual_item:
                         raise ValidationError("Chemical not found")
 
@@ -408,11 +408,11 @@ def register_kit_transfer_routes(app):
                 raise ValidationError("Destination warehouse not found")
 
             if transfer.item_type == "chemical" and source_item and hasattr(source_item, "item_id"):
-                transferred_chemical = Chemical.query.get(source_item.item_id)
+                transferred_chemical = db.session.get(Chemical, source_item.item_id)
                 if transferred_chemical:
                     transferred_chemical.warehouse_id = transfer.to_location_id
             elif transfer.item_type == "tool" and source_item and hasattr(source_item, "item_id"):
-                transferred_tool = Tool.query.get(source_item.item_id)
+                transferred_tool = db.session.get(Tool, source_item.item_id)
                 if transferred_tool:
                     transferred_tool.warehouse_id = transfer.to_location_id
 
@@ -422,8 +422,8 @@ def register_kit_transfer_routes(app):
         db.session.commit()
 
         if transfer.from_location_type == "warehouse" and transfer.to_location_type == "warehouse":
-            from_warehouse = Warehouse.query.get(transfer.from_location_id)
-            to_warehouse = Warehouse.query.get(transfer.to_location_id)
+            from_warehouse = db.session.get(Warehouse, transfer.from_location_id)
+            to_warehouse = db.session.get(Warehouse, transfer.to_location_id)
             if from_warehouse and to_warehouse:
                 record_transaction(
                     item_type=transfer.item_type,

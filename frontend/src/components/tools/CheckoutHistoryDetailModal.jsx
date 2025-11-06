@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Table, Badge, Spinner, Alert, Card, Row, Col } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHistory, faUser, faClock, faCheckCircle, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
@@ -8,16 +8,7 @@ const CheckoutHistoryDetailModal = ({ show, onHide, checkoutId }) => {
   const [error, setError] = useState('');
   const [checkoutDetails, setCheckoutDetails] = useState(null);
 
-  useEffect(() => {
-    if (!show || !checkoutId) return;
-
-    const controller = new AbortController();
-    fetchCheckoutDetails(controller.signal);
-
-    return () => controller.abort();
-  }, [show, checkoutId]);
-
-  const fetchCheckoutDetails = async (signal) => {
+  const fetchCheckoutDetails = useCallback(async (signal) => {
     setLoading(true);
     setError('');
 
@@ -41,7 +32,16 @@ const CheckoutHistoryDetailModal = ({ show, onHide, checkoutId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [checkoutId]);
+
+  useEffect(() => {
+    if (!show || !checkoutId) return;
+
+    const controller = new AbortController();
+    fetchCheckoutDetails(controller.signal);
+
+    return () => controller.abort();
+  }, [show, checkoutId, fetchCheckoutDetails]);
 
   const handleClose = () => {
     setCheckoutDetails(null);

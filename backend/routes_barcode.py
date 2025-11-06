@@ -5,16 +5,17 @@ Unified API endpoints for generating professional PDF labels for all item types.
 Supports tools, chemicals, expendables, and kit items with multiple label sizes.
 """
 
-from flask import Blueprint, request, send_file, jsonify
+import io
+
+from flask import Blueprint, jsonify, request, send_file
+
 from auth.jwt_manager import jwt_required
-from models import Tool, Chemical, Expendable
-from models_kits import KitItem
+from models import Chemical, Expendable, Tool
 from utils.label_pdf_service import (
-    generate_tool_label_pdf,
     generate_chemical_label_pdf,
     generate_expendable_label_pdf,
+    generate_tool_label_pdf,
 )
-import io
 
 
 barcode_bp = Blueprint("barcode", __name__)

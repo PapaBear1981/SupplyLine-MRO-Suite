@@ -206,9 +206,6 @@ def register_kit_reorder_routes(app):
         # Import models needed for fulfillment
         from models import Chemical, Tool, Warehouse, WarehouseTransfer
 
-        # Get the kit for logging purposes
-        kit = Kit.query.get_or_404(reorder.kit_id)
-
         # Get box_id from request body (optional - default to first box)
         data = request.get_json(silent=True) or {}
         logger.info(f"Request data: {data}")
@@ -235,7 +232,7 @@ def register_kit_reorder_routes(app):
             # Check if this is updating an existing expendable or creating a new one
             if reorder.item_id:
                 # Update existing expendable
-                existing_expendable = KitExpendable.query.get(reorder.item_id)
+                existing_expendable = db.session.get(KitExpendable, reorder.item_id)
                 if not existing_expendable:
                     raise ValidationError("Referenced expendable not found")
 
@@ -311,7 +308,7 @@ def register_kit_reorder_routes(app):
                 # The item_id could be either a KitItem ID (for reordering existing kit items)
                 # or a Tool/Chemical ID (for transferring from warehouse)
                 # First, check if it's a KitItem
-                existing_kit_item = KitItem.query.get(reorder.item_id)
+                existing_kit_item = db.session.get(KitItem, reorder.item_id)
 
                 if existing_kit_item and existing_kit_item.item_type == reorder.item_type:
                     # This is an existing KitItem - find another instance in warehouse to transfer
@@ -369,9 +366,9 @@ def register_kit_reorder_routes(app):
                 else:
                     # This is a direct Tool/Chemical ID - transfer from warehouse
                     if reorder.item_type == "tool":
-                        warehouse_item = Tool.query.get(reorder.item_id)
+                        warehouse_item = db.session.get(Tool, reorder.item_id)
                     else:
-                        warehouse_item = Chemical.query.get(reorder.item_id)
+                        warehouse_item = db.session.get(Chemical, reorder.item_id)
 
                     if not warehouse_item:
                         raise ValidationError(f"{reorder.item_type.capitalize()} not found")

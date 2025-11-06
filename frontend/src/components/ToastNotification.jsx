@@ -5,7 +5,7 @@
  * auto-dismiss, and manual close functionality
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Toast, ToastContainer } from 'react-bootstrap';
 import './ToastNotification.css';
 
@@ -43,6 +43,13 @@ const ToastNotification = ({
 }) => {
   const [visible, setVisible] = useState(true);
 
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    if (onClose) {
+      onClose(id);
+    }
+  }, [onClose, id]);
+
   useEffect(() => {
     if (!persistent && duration > 0) {
       const timer = setTimeout(() => {
@@ -51,14 +58,7 @@ const ToastNotification = ({
 
       return () => clearTimeout(timer);
     }
-  }, [duration, persistent]);
-
-  const handleClose = () => {
-    setVisible(false);
-    if (onClose) {
-      onClose(id);
-    }
-  };
+  }, [duration, persistent, handleClose]);
 
   const handleClick = () => {
     if (onClick) {

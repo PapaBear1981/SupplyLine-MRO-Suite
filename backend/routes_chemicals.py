@@ -334,7 +334,7 @@ def register_chemical_routes(app):
         validated_data = validate_schema(data, "chemical_issuance")
 
         # Ensure the user exists
-        if not User.query.get(validated_data["user_id"]):
+        if not db.session.get(User, validated_data["user_id"]):
             raise ValidationError("Supplied user_id does not exist")
 
         quantity = float(validated_data["quantity"])
@@ -551,7 +551,7 @@ def register_chemical_routes(app):
         if not issuance_id:
             raise ValidationError("Issuance ID is required")
 
-        issuance = ChemicalIssuance.query.get(issuance_id)
+        issuance = db.session.get(ChemicalIssuance, issuance_id)
         if not issuance or issuance.chemical_id != chemical.id:
             raise ValidationError("Issuance does not match the selected chemical")
 
@@ -575,7 +575,7 @@ def register_chemical_routes(app):
         warehouse_id = data.get("warehouse_id", chemical.warehouse_id)
         warehouse = None
         if warehouse_id:
-            warehouse = Warehouse.query.get(warehouse_id)
+            warehouse = db.session.get(Warehouse, warehouse_id)
             if not warehouse:
                 raise ValidationError("Selected warehouse does not exist")
             if not warehouse.is_active:

@@ -80,6 +80,6 @@ def register_security_routes(app):
 
         # Attach relationship info manually when refreshed in a new session context
         if not setting.updated_by and setting.updated_by_id:
-            setting.updated_by = User.query.get(setting.updated_by_id)
+            setting.updated_by = db.session.get(User, setting.updated_by_id)
 
         return jsonify(_serialize_security_settings(timeout_minutes, setting)), 200

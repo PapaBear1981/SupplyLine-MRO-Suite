@@ -18,7 +18,7 @@ warehouses_bp = Blueprint("warehouses", __name__)
 def require_admin():
     """Decorator to require admin privileges."""
     user_id = request.current_user.get("user_id")
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or not user.is_admin:
         return jsonify({"error": "Admin privileges required"}), 403
     return None
@@ -153,7 +153,7 @@ def create_warehouse():
 def get_warehouse(warehouse_id):
     """Get details of a specific warehouse."""
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -177,7 +177,7 @@ def update_warehouse(warehouse_id):
         return admin_check
 
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -235,7 +235,7 @@ def delete_warehouse(warehouse_id):
         return admin_check
 
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -270,7 +270,7 @@ def delete_warehouse(warehouse_id):
 def get_warehouse_stats(warehouse_id):
     """Get statistics for a warehouse."""
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -341,7 +341,7 @@ def get_warehouse_tools(warehouse_id):
         - per_page: Items per page (default: 50)
     """
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -403,7 +403,7 @@ def get_warehouse_chemicals(warehouse_id):
         - per_page: Items per page (default: 50)
     """
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -462,7 +462,7 @@ def get_warehouse_inventory(warehouse_id):
         - search: Search across all items
     """
     try:
-        warehouse = Warehouse.query.get(warehouse_id)
+        warehouse = db.session.get(Warehouse, warehouse_id)
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404

@@ -18,7 +18,7 @@ from typing import Any
 import jwt
 from flask import current_app, jsonify, request
 
-from models import User
+from models import User, db
 
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ class JWTManager:
                 return None
 
             # Get user from database
-            user = User.query.get(payload["user_id"])
+            user = db.session.get(User, payload["user_id"])
             if not user or not user.is_active:
                 logger.warning(f"User {payload['user_id']} not found or inactive")
                 return None

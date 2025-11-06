@@ -49,7 +49,7 @@ def register_rbac_routes(app):
         # Add permissions if provided
         if "permissions" in data and isinstance(data["permissions"], list):
             for permission_id in data["permissions"]:
-                permission = Permission.query.get(permission_id)
+                permission = db.session.get(Permission, permission_id)
                 if permission:
                     role_permission = RolePermission(role_id=role.id, permission_id=permission.id)
                     db.session.add(role_permission)
@@ -97,7 +97,7 @@ def register_rbac_routes(app):
 
             # Add new permissions
             for permission_id in data["permissions"]:
-                permission = Permission.query.get(permission_id)
+                permission = db.session.get(Permission, permission_id)
                 if permission:
                     role_permission = RolePermission(role_id=role.id, permission_id=permission.id)
                     db.session.add(role_permission)
@@ -188,7 +188,7 @@ def register_rbac_routes(app):
 
         # Add new roles
         for role_id in data["roles"]:
-            role = Role.query.get(role_id)
+            role = db.session.get(Role, role_id)
             if role:
                 user_role = UserRole(user_id=user.id, role_id=role.id)
                 db.session.add(user_role)
@@ -209,7 +209,7 @@ def register_rbac_routes(app):
     @app.route("/api/auth/permissions", methods=["GET"])
     @jwt_required
     def get_current_user_permissions():
-        user = User.query.get(request.current_user["user_id"])
+        user = db.session.get(User, request.current_user["user_id"])
         if not user:
             return jsonify({"error": "User not found"}), 404
 

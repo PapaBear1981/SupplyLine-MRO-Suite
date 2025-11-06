@@ -21,6 +21,7 @@ from models import (
 )
 from routes_announcements import register_announcement_routes
 from routes_auth import register_auth_routes
+from routes_barcode import barcode_bp
 from routes_bulk_import import register_bulk_import_routes
 from routes_calibration import register_calibration_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
@@ -41,8 +42,6 @@ from routes_scanner import register_scanner_routes
 from routes_security import register_security_routes
 from routes_transfers import transfers_bp
 from routes_warehouses import warehouses_bp
-from routes_expendables import expendables_bp
-from routes_barcode import barcode_bp
 from utils.error_handler import ValidationError, handle_errors, log_security_event
 from utils.file_validation import FileValidationError, validate_image_upload
 from utils.password_reset_security import get_password_reset_tracker
@@ -1186,7 +1185,7 @@ def register_routes(app):
         db.session.commit()
 
         # Verify the update in the database
-        updated_tool = Tool.query.get(id)
+        updated_tool = db.session.get(Tool, id)
         logger.debug("Tool updated successfully", extra={"tool_id": id})
 
         # Log the action
@@ -1198,7 +1197,7 @@ def register_routes(app):
         db.session.commit()
 
         # Get the updated tool from the database
-        updated_tool = Tool.query.get(id)
+        updated_tool = db.session.get(Tool, id)
 
         response_data = {
             "id": updated_tool.id,
@@ -1515,7 +1514,7 @@ def register_routes(app):
             except (ValueError, TypeError):
                 return jsonify({"error": "Invalid tool ID format"}), 400
 
-            tool = Tool.query.get(tool_id)
+            tool = db.session.get(Tool, tool_id)
             if not tool:
                 return jsonify({"error": f"Tool with ID {tool_id} does not exist"}), 404
 
@@ -1538,7 +1537,7 @@ def register_routes(app):
                 user_id = user_payload["user_id"]
 
             # Validate user exists
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return jsonify({"error": f"User with ID {user_id} does not exist"}), 404
 
@@ -1650,7 +1649,7 @@ def register_routes(app):
                 return jsonify({"error": "You do not have permission to return tools"}), 403
 
             # Validate checkout exists
-            c = Checkout.query.get(id)
+            c = db.session.get(Checkout, id)
             if not c:
                 return jsonify({"error": f"Checkout with ID {id} not found"}), 404
             logger.debug("Checkout record found", extra={"checkout_id": c.id, "tool_id": c.tool_id, "user_id": c.user_id})
@@ -1660,8 +1659,8 @@ def register_routes(app):
                 return jsonify({"error": "This tool has already been returned"}), 400
 
             # Get tool and user info for better logging
-            tool = Tool.query.get(c.tool_id)
-            user = User.query.get(c.user_id)
+            tool = db.session.get(Tool, c.tool_id)
+            user = db.session.get(User, c.user_id)
 
             if not tool:
                 return jsonify({"error": f"Tool with ID {c.tool_id} not found"}), 404
@@ -2100,14 +2099,14 @@ def register_routes(app):
     @login_required
     def get_profile():
         # Get user_id from JWT token
-        user = User.query.get(request.current_user["user_id"])
+        user = db.session.get(User, request.current_user["user_id"])
         return jsonify(user.to_dict(include_roles=True, include_permissions=True)), 200
 
     @app.route("/api/user/profile", methods=["PUT"])
     @login_required
     def update_profile():
         # Get user_id from JWT token
-        user = User.query.get(request.current_user["user_id"])
+        user = db.session.get(User, request.current_user["user_id"])
         data = request.get_json() or {}
 
         # Update allowed fields
@@ -2136,7 +2135,7 @@ def register_routes(app):
     @login_required
     def upload_avatar():
         # Get user_id from JWT token
-        user = User.query.get(request.current_user["user_id"])
+        user = db.session.get(User, request.current_user["user_id"])
 
         if "avatar" not in request.files:
             return jsonify({"error": "No file part"}), 400
@@ -2185,7 +2184,7 @@ def register_routes(app):
     @login_required
     def change_password():
         # Get user_id from JWT token
-        user = User.query.get(request.current_user["user_id"])
+        user = db.session.get(User, request.current_user["user_id"])
         data = request.get_json() or {}
 
         # SECURITY: Enforce current-session JWT validation (OWASP ASVS 3.1.4)
