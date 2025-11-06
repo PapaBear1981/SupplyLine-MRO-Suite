@@ -169,6 +169,40 @@ class TestToolRoutes:
         db_session.refresh(checkout)
         assert checkout.return_date is not None
 
+    def test_return_tool_without_permission_denied(self, client, auth_headers_user, test_tool, regular_user, db_session):
+        """Verify users without department access or permission are blocked."""
+
+        checkout = Checkout(tool_id=test_tool.id, user_id=regular_user.id)
+        db_session.add(checkout)
+        db_session.commit()
+
+        response = client.post(
+            f"/api/checkouts/{checkout.id}/return",
+            headers=auth_headers_user,
+            json={},
+        )
+
+        assert response.status_code == 403
+        data = json.loads(response.data)
+        assert "permission" in data["error"].lower()
+
+    def test_return_tool_with_explicit_permission(self, client, auth_headers_return_manager, test_tool, regular_user, db_session):
+        """Users granted the tool.return permission can process returns regardless of department."""
+
+        checkout = Checkout(tool_id=test_tool.id, user_id=regular_user.id)
+        db_session.add(checkout)
+        db_session.commit()
+
+        response = client.post(
+            f"/api/checkouts/{checkout.id}/return",
+            headers=auth_headers_return_manager,
+            json={},
+        )
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "Returned"
+
 
 class TestChemicalRoutes:
     """Test chemical management routes"""

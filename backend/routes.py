@@ -1634,10 +1634,19 @@ def register_routes(app):
         try:
             logger.debug("Return request received", extra={"checkout_id": id, "method": request.method})
 
-            # Check if user is admin or Materials department (from JWT token)
+            # Check if user is authorized through admin flag, department, or explicit permission
             user_payload = request.current_user
-            if not (user_payload.get("is_admin", False) or user_payload.get("department") == "Materials"):
-                return jsonify({"error": "Only Materials and Admin personnel can return tools"}), 403
+            permissions = set(user_payload.get("permissions", []))
+            is_admin = user_payload.get("is_admin", False)
+            is_materials = user_payload.get("department") == "Materials"
+            has_return_permission = "tool.return" in permissions
+
+            if not (is_admin or is_materials or has_return_permission):
+                log_security_event(
+                    "insufficient_permissions",
+                    f"Tool return access denied for user {user_payload.get('user_id')}"
+                )
+                return jsonify({"error": "You do not have permission to return tools"}), 403
 
             # Validate checkout exists
             c = db.session.get(Checkout, id)

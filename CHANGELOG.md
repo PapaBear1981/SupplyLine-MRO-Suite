@@ -2,6 +2,232 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.1.0] - 2025-11-06 - Barcode System Refactoring & Inventory Enhancements
+
+### 🚀 MAJOR IMPROVEMENTS RELEASE
+
+This release introduces a professional PDF-based barcode system, kit-only expendables management, child lot tracking for partial chemical issuances, and numerous UI/UX improvements. The barcode system has been completely refactored to use WeasyPrint for magazine-quality labels with support for multiple label sizes.
+
+### Added
+
+#### Backend - Barcode & Label System
+- **Professional PDF-Based Barcode System**:
+  - New `routes_barcode.py` with unified API endpoints for all item types
+  - `label_pdf_service.py` for generating high-quality PDF labels using WeasyPrint
+  - `label_config.py` defining 4 label sizes (4x6, 3x4, 2x4, 2x2) with responsive scaling
+  - Support for both 1D barcodes (python-barcode) and 2D QR codes (segno) in SVG vector format
+  - Jinja2 HTML templates for professional label layouts
+  - Magazine-quality typography and design optimized for printing
+  - Future-ready for Zebra printer compatibility
+- **Barcode API Endpoints**:
+  - GET /api/barcode/tool/:id - Generate tool label PDF
+  - GET /api/barcode/chemical/:id - Generate chemical label PDF (with transfer support)
+  - GET /api/barcode/expendable/:id - Generate expendable label PDF
+  - Query parameters: label_size (4x6, 3x4, 2x4, 2x2), code_type (barcode, qrcode)
+
+#### Backend - Expendables System
+- **Kit-Only Expendables Model** (`Expendable`):
+  - Direct storage of consumable items within kits without warehouse management
+  - Lot/serial number validation (mutually exclusive)
+  - Full CRUD operations via `/api/expendables` endpoints
+  - Auto-complete transfers for immediate feedback
+  - Integration with kit transfer and reorder systems
+- **Expendables API Endpoints**:
+  - GET /api/expendables - List all expendables with pagination
+  - POST /api/expendables - Create new expendable
+  - GET /api/expendables/:id - Get expendable details
+  - PUT /api/expendables/:id - Update expendable
+  - DELETE /api/expendables/:id - Delete expendable
+
+#### Backend - Inventory Tracking Enhancements
+- **Child Lot Creation System**:
+  - Automatic child lot generation for partial chemical issuances
+  - Parent-child lot lineage tracking with `parent_lot_number` field
+  - Lot sequence counter for tracking number of child lots created
+  - Automatic barcode printing dialog for new child lots
+  - Complete audit trail for lot splits and transfers
+- **Lot Number Auto-Generation**:
+  - `LotNumberSequence` model for atomic lot number generation
+  - Format: LOT-YYMMDD-XXXX (e.g., LOT-251106-0001)
+  - Row-level locking to ensure uniqueness
+  - Daily sequence counter with automatic reset
+- **Inventory Transaction Tracking**:
+  - GET /api/lot-numbers/generate - Generate unique lot numbers
+  - GET /api/inventory/transactions/:item_type/:item_id - Get transaction history
+  - GET /api/inventory/detail/:item_type/:item_id - Get item details with full transaction history
+
+#### Backend - Warehouse & Transfer Improvements
+- **Enhanced Transfer Logic**:
+  - Distinction between `KitExpendable` and `KitItem` during transfers
+  - Kit-to-kit transfers remain pending until manually completed
+  - Warehouse transfers auto-complete for immediate feedback
+  - Improved validation for expendable transfers
+- **Reorder Fulfillment Updates**:
+  - Modify existing expendables instead of creating duplicates
+  - Automatic status update to 'available' when quantity restored
+  - Better handling of partial fulfillments
+
+#### Frontend - Barcode Components
+- **New Barcode Service** (`barcodeService.js`):
+  - Centralized service for generating barcode PDFs
+  - Support for tools, chemicals, expendables, and kit items
+  - Automatic PDF download and print dialog
+- **Updated Barcode Components**:
+  - `ChemicalBarcode.jsx` - Chemical label generation with transfer support
+  - `ToolBarcode.jsx` - Tool label generation
+  - `ExpendableBarcode.jsx` - Expendable label generation
+  - `KitItemBarcode.jsx` - Kit item label generation
+  - `TransferBarcodeModal.jsx` - Transfer label generation
+- **Barcode Display After Transfers**:
+  - Automatic barcode modal after kit expendable transfers
+  - Immediate label printing for transferred items
+  - Improved tracking and management workflow
+
+#### Frontend - UI/UX Improvements
+- **Table Sorting**:
+  - Sortable columns in All Active Checkouts table (tool number, serial, description, user, dates)
+  - Sortable columns in Kit Items table (box, part number, description, type, quantity, location, status)
+  - Visual indicators for sort direction (ascending/descending)
+- **Dark Mode Fixes**:
+  - Fixed table header hover effect in dark mode (#2d3139 background)
+  - Improved theme consistency across all components
+  - Removed hardcoded `bg-light` classes from Announcements card
+  - Inline script in index.html to apply theme immediately on page load (prevents flash)
+- **Tool Location Display**:
+  - Tools now show correct location (warehouse OR kit, never both)
+  - Kit name displayed in warehouse column for tools in kits
+  - Box number displayed in location column for tools in kits
+  - Pagination support for large tool datasets
+
+#### Frontend - Chemical Management
+- **Child Lot Barcode Printing**:
+  - Automatic barcode modal after partial chemical issuance
+  - Immediate label printing for child lots
+  - Improved lot traceability workflow
+- **Chemical Status Updates**:
+  - Child lot quantity set to 0 and status to "issued" when fully consumed
+  - Parent lot status updated to "depleted" when quantity reaches 0
+  - Parent lot status updated to "low_stock" when below threshold
+  - Automatic reorder status updates
+
+### Changed
+
+#### Backend - Code Quality
+- **Migration from flake8 to Ruff**:
+  - Faster linting with modern Python best practices
+  - Auto-fixed thousands of linting issues (imports, quotes, whitespace)
+  - Configured in `pyproject.toml` with rules matching previous flake8 setup
+  - Includes `pyupgrade` and `bugbear` rules for improved code quality
+  - Updated CI/CD workflow to use Ruff
+- **Import Sorting and Quote Standardization**:
+  - All imports sorted alphabetically
+  - Standardized to double quotes throughout backend
+  - Removed trailing whitespace from blank lines
+
+#### Frontend - Component Updates
+- **Kit Transfer Form**:
+  - Display barcode after successful kit expendable transfer
+  - Pass relevant item details (destination kit ID, box ID, quantity) to barcode component
+- **Chemical Issue Form**:
+  - Integrated `ChemicalBarcode` modal component
+  - Conditional barcode modal display when child lot created
+  - Improved lot traceability and label printing workflow
+
+#### Docker Configuration
+- **Improved Build Process**:
+  - Updated Dockerfile for better layer caching
+  - Added `gosu` for proper user permission management
+  - Enhanced docker-entrypoint.sh for better initialization
+
+### Fixed
+
+#### Backend - Critical Fixes
+- **Chemical Inventory Tracking Bug**:
+  - Fixed child lot quantities not updating after issuance
+  - Fixed child lot status not updating when fully consumed
+  - Fixed parent lot status not updating when depleted
+  - Fixed reorder status not updating correctly
+- **Transfer and Reorder Logic**:
+  - Fixed expendable transfer validation
+  - Fixed reorder fulfillment creating duplicate expendables
+  - Fixed expendable status not updating to 'available' after reorder
+  - Fixed kit-to-kit transfers auto-completing incorrectly
+- **Tool Location Display**:
+  - Fixed tools showing in both warehouse and kit simultaneously
+  - Fixed incorrect location information for tools in kits
+  - Fixed pagination issues with large tool datasets
+
+#### Frontend - Bug Fixes
+- **Announcements Card Theme**:
+  - Removed hardcoded `bg-light` classes for theme compatibility
+  - Used `fw-semibold` to highlight unread announcements
+- **E2E Test Navigation**:
+  - Updated tests to use `Promise.all` for proper navigation waiting
+  - Fixed tests to expect `/dashboard` URL after login
+  - Updated input placeholders and error message selectors
+- **JavaScript Reference Errors**:
+  - Fixed sorting logic defined after helper functions in `KitItemsList.jsx`
+  - Fixed undefined variable references
+
+### Security
+
+#### Dependency Updates
+- **Backend Dependencies**:
+  - Added WeasyPrint for PDF generation
+  - Added segno for QR code generation
+  - Added python-barcode (treepoem) for 1D barcode generation
+  - Updated all dependencies to latest secure versions
+- **Frontend Dependencies**:
+  - Updated React to v19.0.0
+  - Updated all dependencies to latest secure versions
+
+### Removed
+
+#### Deprecated Components
+- **Frontend**:
+  - Removed `StandardBarcode.jsx` (replaced by PDF-based system)
+  - Removed `labelSizeConfig.js` (replaced by backend label_config.py)
+- **Backend**:
+  - Removed flake8 and related dependencies (replaced by Ruff)
+  - Removed `.flake8` configuration file
+
+### Migration Notes
+
+#### No Breaking Changes
+- All existing functionality remains unchanged
+- New features are additive only
+- Existing barcode functionality continues to work
+- No database schema changes required
+
+#### Recommended Actions
+1. **Update Dependencies**:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+
+2. **Update Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+3. **Test Barcode Printing**:
+   - Verify PDF generation works correctly
+   - Test all label sizes (4x6, 3x4, 2x4, 2x2)
+   - Test both barcode and QR code types
+
+4. **Review Expendables**:
+   - Familiarize with new expendables system
+   - Test expendable creation and transfers
+   - Verify barcode printing for expendables
+
+### Known Issues
+
+- None reported
+
+---
+
 ## [5.0.0] - 2025-10-12 - Mobile Warehouse/Kits System
 
 ### 🚀 MAJOR FEATURE RELEASE
