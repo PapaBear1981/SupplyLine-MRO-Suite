@@ -455,20 +455,31 @@ def register_chemical_routes(app):
         return jsonify(response_data)
 
     def _parse_chemical_barcode(code):
-        """Parse a chemical barcode into part and lot numbers."""
+        """Parse a chemical barcode into part and lot numbers.
+
+        Expected format: {part_number}-{lot_number}
+        Example: AMS-1424-LOT-251102-0001-A
+        - part_number: AMS-1424
+        - lot_number: LOT-251102-0001-A
+        """
         if not code or not isinstance(code, str):
             raise ValidationError("Barcode value is required")
 
-        parts = code.split("-")
-        if len(parts) < 2:
-            raise ValidationError("Unable to parse barcode. Please scan a chemical label")
+        # Find the first occurrence of "LOT" to split part number and lot number
+        # This handles cases where part numbers may contain hyphens (e.g., AMS-1424)
+        lot_index = code.find("-LOT")
 
-        if len(parts) >= 3:
-            lot_number = parts[-2]
-            part_number = "-".join(parts[:-2])
-        else:
-            lot_number = parts[-1]
+        if lot_index == -1:
+            # Fallback: try simple split if no "-LOT" pattern found
+            parts = code.split("-", 1)
+            if len(parts) < 2:
+                raise ValidationError("Unable to parse barcode. Please scan a chemical label")
             part_number = parts[0]
+            lot_number = parts[1]
+        else:
+            # Split at the "-LOT" boundary
+            part_number = code[:lot_index]
+            lot_number = code[lot_index + 1:]  # Skip the leading hyphen
 
         if not part_number or not lot_number:
             raise ValidationError("Invalid barcode data")
