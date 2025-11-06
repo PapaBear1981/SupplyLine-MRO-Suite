@@ -24,6 +24,10 @@ Tool = None
 Chemical = None
 UserActivity = None
 AuditLog = None
+Permission = None
+Role = None
+RolePermission = None
+UserRole = None
 JWTManager = None
 
 @pytest.fixture(scope="session")
@@ -42,6 +46,7 @@ def app():
 
     try:
         global create_app, db, User, Tool, Chemical, UserActivity, AuditLog, JWTManager
+        global Permission, Role, RolePermission, UserRole
         if create_app is None:
             from app import create_app as _create_app
             from auth import JWTManager as _JWTManager
@@ -61,6 +66,18 @@ def app():
                 UserActivity as _UserActivity,
             )
             from models import (
+                Permission as _Permission,
+            )
+            from models import (
+                Role as _Role,
+            )
+            from models import (
+                RolePermission as _RolePermission,
+            )
+            from models import (
+                UserRole as _UserRole,
+            )
+            from models import (
                 db as _db,
             )
 
@@ -72,6 +89,10 @@ def app():
             UserActivity = _UserActivity
             AuditLog = _AuditLog
             JWTManager = _JWTManager
+            Permission = _Permission
+            Role = _Role
+            RolePermission = _RolePermission
+            UserRole = _UserRole
 
         application = create_app()
 
@@ -308,6 +329,44 @@ def auth_headers_materials(client, materials_user, jwt_manager):
     """Get auth headers for Materials user"""
     with client.application.app_context():
         tokens = jwt_manager.generate_tokens(materials_user)
+    access_token = tokens["access_token"]
+    return {"Authorization": f"Bearer {access_token}"}
+
+
+@pytest.fixture
+def auth_headers_return_manager(client, db_session, regular_user, jwt_manager):
+    """Get auth headers for a user with explicit tool return permission."""
+
+    permission = db_session.query(Permission).filter_by(name="tool.return").first()
+    if not permission:
+        permission = Permission(name="tool.return", description="Return tools", category="Tool Management")
+        db_session.add(permission)
+        db_session.flush()
+
+    role = db_session.query(Role).filter_by(name="Return Manager").first()
+    if not role:
+        role = Role(name="Return Manager", description="Can process tool returns")
+        db_session.add(role)
+        db_session.flush()
+
+    role_permission = (
+        db_session.query(RolePermission)
+        .filter_by(role_id=role.id, permission_id=permission.id)
+        .first()
+    )
+    if not role_permission:
+        role_permission = RolePermission(role_id=role.id, permission_id=permission.id)
+        db_session.add(role_permission)
+
+    user_role = db_session.query(UserRole).filter_by(user_id=regular_user.id, role_id=role.id).first()
+    if not user_role:
+        user_role = UserRole(user_id=regular_user.id, role_id=role.id)
+        db_session.add(user_role)
+
+    db_session.commit()
+
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(regular_user)
     access_token = tokens["access_token"]
     return {"Authorization": f"Bearer {access_token}"}
 
