@@ -107,12 +107,6 @@ const MainLayout = ({ children }) => {
                 </>
               )}
 
-              {/* Scanner button - available to users with scanner permission */}
-              {user && hasPermission(user, 'page.scanner') && (
-                <Nav.Link as={Link} to="/scanner" className="ms-2 btn btn-outline-light btn-sm">
-                  <i className="bi bi-upc-scan me-1"></i> Scanner
-                </Nav.Link>
-              )}
             </Nav>
             <Nav>
               {/* Help Button */}
