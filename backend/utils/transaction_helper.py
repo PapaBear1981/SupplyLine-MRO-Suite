@@ -162,6 +162,24 @@ def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpos
     )
 
 
+def record_chemical_return(chemical_id, user_id, quantity, location_from=None, location_to=None, notes=None):
+    """Record a chemical return transaction."""
+    chemical = Chemical.query.get(chemical_id)
+    if not chemical:
+        raise ValueError(f"Chemical {chemical_id} not found")
+
+    return record_transaction(
+        item_type="chemical",
+        item_id=chemical_id,
+        transaction_type="return",
+        user_id=user_id,
+        quantity_change=quantity,
+        location_from=location_from,
+        location_to=location_to or chemical.location,
+        notes=notes,
+    )
+
+
 def record_kit_item_transfer(item_type, item_id, user_id, from_location, to_location, quantity=None, reference=None, notes=None):
     """Record a kit item transfer transaction"""
     return record_transaction(

@@ -681,8 +681,16 @@ class ChemicalIssuance(db.Model):
     issue_date = db.Column(db.DateTime, default=get_current_time)
     chemical = db.relationship("Chemical")
     user = db.relationship("User")
+    returns = db.relationship(
+        "ChemicalReturn",
+        back_populates="issuance",
+        lazy="select",
+        cascade="all, delete-orphan",
+    )
 
     def to_dict(self):
+        total_returned = sum(ret.quantity for ret in self.returns) if self.returns else 0
+        remaining_quantity = max(self.quantity - total_returned, 0)
         return {
             "id": self.id,
             "chemical_id": self.chemical_id,
@@ -691,7 +699,43 @@ class ChemicalIssuance(db.Model):
             "quantity": self.quantity,
             "hangar": self.hangar,
             "purpose": self.purpose,
-            "issue_date": self.issue_date.isoformat()
+            "issue_date": self.issue_date.isoformat(),
+            "total_returned": total_returned,
+            "remaining_quantity": remaining_quantity,
+        }
+
+
+class ChemicalReturn(db.Model):
+    __tablename__ = "chemical_returns"
+
+    id = db.Column(db.Integer, primary_key=True)
+    chemical_id = db.Column(db.Integer, db.ForeignKey("chemicals.id"), nullable=False)
+    issuance_id = db.Column(db.Integer, db.ForeignKey("chemical_issuances.id"), nullable=False)
+    returned_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey("warehouses.id"), nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.String(1000), nullable=True)
+    return_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
+
+    chemical = db.relationship("Chemical")
+    issuance = db.relationship("ChemicalIssuance", back_populates="returns")
+    returned_by = db.relationship("User")
+    warehouse = db.relationship("Warehouse")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "chemical_id": self.chemical_id,
+            "issuance_id": self.issuance_id,
+            "returned_by_id": self.returned_by_id,
+            "returned_by_name": self.returned_by.name if self.returned_by else "Unknown",
+            "quantity": self.quantity,
+            "warehouse_id": self.warehouse_id,
+            "warehouse_name": self.warehouse.name if self.warehouse else None,
+            "location": self.location,
+            "notes": self.notes,
+            "return_date": self.return_date.isoformat() if self.return_date else None,
         }
 
 
