@@ -43,12 +43,9 @@ export const updateTool = createAsyncThunk(
   'tools/updateTool',
   async ({ id, toolData }, { rejectWithValue }) => {
     try {
-      console.log('updateTool thunk called with:', { id, toolData });
       const data = await ToolService.updateTool(id, toolData);
-      console.log('updateTool thunk response:', data);
       return data;
     } catch (error) {
-      console.error('updateTool thunk error:', error);
       return rejectWithValue(error.response?.data || { message: 'Failed to update tool' });
     }
   }
@@ -195,16 +192,13 @@ const toolsSlice = createSlice({
         if (action.payload && action.payload.id) {
           state.tools.push(action.payload);
           state.successMessage = `Tool ${action.payload.tool_number} created successfully`;
-          console.log('Tool created successfully:', action.payload);
         } else {
-          console.error('Invalid tool data received:', action.payload);
           state.error = { message: 'Received invalid tool data from server' };
         }
       })
       .addCase(createTool.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        console.error('Failed to create tool:', action.payload);
       })
       // Update tool
       .addCase(updateTool.pending, (state) => {
