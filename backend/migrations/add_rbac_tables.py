@@ -134,11 +134,20 @@ def run_migration():
                 # Report permissions
                 (22, 'report.view', 'View reports', 'Reporting'),
                 (23, 'report.export', 'Export reports', 'Reporting'),
-                
+
                 # System permissions
                 (24, 'system.settings', 'Manage system settings', 'System'),
                 (25, 'system.audit', 'View audit logs', 'System'),
-                (26, 'role.manage', 'Manage roles and permissions', 'System')
+                (26, 'role.manage', 'Manage roles and permissions', 'System'),
+
+                # Department management permissions
+                (27, 'department.create', 'Create new departments', 'Department Management'),
+                (28, 'department.update', 'Update department details', 'Department Management'),
+                (29, 'department.delete', 'Deactivate departments', 'Department Management'),
+                (30, 'department.hard_delete', 'Permanently delete departments', 'Department Management'),
+
+                # Advanced user management
+                (31, 'user.manage', 'Manage advanced user account settings', 'User Management')
             ]
             cursor.executemany("INSERT INTO permissions (id, name, description, category) VALUES (?, ?, ?, ?)", default_permissions)
             print("Created default permissions")
@@ -149,7 +158,7 @@ def run_migration():
         
         if role_permission_count == 0:
             # Administrator role - all permissions
-            admin_permissions = [(1, permission_id) for permission_id in range(1, 27)]
+            admin_permissions = [(1, permission_id) for permission_id in range(1, 32)]
             cursor.executemany("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", admin_permissions)
             
             # Materials Manager role - specific permissions
