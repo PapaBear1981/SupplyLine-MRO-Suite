@@ -29,7 +29,7 @@ async function seedDatabase() {
     const isWindows = process.platform === 'win32';
     const pythonCmd = isWindows
       ? path.join(__dirname, '..', '..', '..', '.venv', 'Scripts', 'python.exe')
-      : 'python3';
+      : path.join(__dirname, '..', '..', '..', 'venv', 'bin', 'python');
 
     // Run the seeding script
     const { stdout, stderr } = await execAsync(`"${pythonCmd}" "${seedScript}"`, {

@@ -346,7 +346,7 @@ def register_auth_routes(app):
             user_id = user_payload["user_id"]
 
             # Get fresh user data from database
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user or not user.is_active:
                 return jsonify({
                     "error": "User not found or inactive",

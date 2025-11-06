@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import jsonify, request
+from sqlalchemy import and_, or_
 
 from auth import admin_required, department_required, jwt_required
 from models import AuditLog, Chemical, Tool, Warehouse, WarehouseTransfer, db
@@ -187,7 +188,7 @@ def register_kit_routes(app):
             raise ValidationError(f'Kit "{data["name"]}" already exists')
 
         # Verify aircraft type exists
-        aircraft_type = AircraftType.query.get(data["aircraft_type_id"])
+        aircraft_type = db.session.get(AircraftType, data["aircraft_type_id"])
         if not aircraft_type:
             raise ValidationError("Invalid aircraft type")
 
@@ -565,7 +566,7 @@ def register_kit_routes(app):
         for kit_item in kit_items:
             if kit_item.item_type == "expendable":
                 # Get the full Expendable record
-                expendable = Expendable.query.get(kit_item.item_id)
+                expendable = db.session.get(Expendable, kit_item.item_id)
                 if expendable:
                     # Merge KitItem data with Expendable data
                     exp_dict = {
@@ -647,7 +648,7 @@ def register_kit_routes(app):
 
         # Verify item exists and belongs to the specified warehouse
         if data["item_type"] == "tool":
-            item = Tool.query.get(data["item_id"])
+            item = db.session.get(Tool, data["item_id"])
             if not item:
                 raise ValidationError("Tool not found")
 
@@ -656,14 +657,14 @@ def register_kit_routes(app):
                 raise ValidationError(f"Tool is not in the specified warehouse. Tool is in warehouse ID: {item.warehouse_id}")
 
             # Verify warehouse exists and is active
-            warehouse = Warehouse.query.get(data["warehouse_id"])
+            warehouse = db.session.get(Warehouse, data["warehouse_id"])
             if not warehouse:
                 raise ValidationError("Warehouse not found")
             if not warehouse.is_active:
                 raise ValidationError("Cannot transfer from inactive warehouse")
 
         elif data["item_type"] == "chemical":
-            item = Chemical.query.get(data["item_id"])
+            item = db.session.get(Chemical, data["item_id"])
             if not item:
                 raise ValidationError("Chemical not found")
 
@@ -672,7 +673,7 @@ def register_kit_routes(app):
                 raise ValidationError(f"Chemical is not in the specified warehouse. Chemical is in warehouse ID: {item.warehouse_id}")
 
             # Verify warehouse exists and is active
-            warehouse = Warehouse.query.get(data["warehouse_id"])
+            warehouse = db.session.get(Warehouse, data["warehouse_id"])
             if not warehouse:
                 raise ValidationError("Warehouse not found")
             if not warehouse.is_active:
@@ -1087,7 +1088,7 @@ def register_kit_routes(app):
         result = []
         for issuance in issuances:
             issuance_dict = issuance.to_dict()
-            issuance_dict['kit_name'] = issuance.kit.name if issuance.kit else None
+            issuance_dict["kit_name"] = issuance.kit.name if issuance.kit else None
             result.append(issuance_dict)
 
         return jsonify(result), 200
@@ -1564,12 +1565,12 @@ def register_kit_routes(app):
             # Try to get kit names if applicable
             kit_name = None
             if transfer.from_location_type == "kit":
-                from_kit = Kit.query.get(transfer.from_location_id)
+                from_kit = db.session.get(Kit, transfer.from_location_id)
                 if from_kit:
                     from_loc = f"Kit: {from_kit.name}"
                     kit_name = from_kit.name
             if transfer.to_location_type == "kit":
-                to_kit = Kit.query.get(transfer.to_location_id)
+                to_kit = db.session.get(Kit, transfer.to_location_id)
                 if to_kit:
                     to_loc = f"Kit: {to_kit.name}"
                     if not kit_name:

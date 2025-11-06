@@ -482,12 +482,12 @@ def validate_warehouse_id(warehouse_id):
     Raises:
         ValidationError: If warehouse is invalid or inactive
     """
-    from models import Warehouse
+    from models import Warehouse, db
 
     if not warehouse_id:
         raise ValidationError("Warehouse ID is required")
 
-    warehouse = Warehouse.query.get(warehouse_id)
+    warehouse = db.session.get(Warehouse, warehouse_id)
     if not warehouse:
         raise ValidationError(f"Warehouse with ID {warehouse_id} not found")
 

@@ -9,11 +9,11 @@ for professional printing on standard printers and future Zebra printer compatib
 """
 
 import io
-from typing import Literal, Optional
+from typing import Literal
 
 import barcode
-from barcode.writer import SVGWriter
 import segno
+from barcode.writer import SVGWriter
 
 
 # Barcode type definitions
@@ -70,11 +70,10 @@ def generate_1d_barcode_svg(
         barcode_instance.write(output)
 
         # Return SVG as string
-        svg_content = output.getvalue().decode("utf-8")
-        return svg_content
+        return output.getvalue().decode("utf-8")
 
     except Exception as e:
-        raise ValueError(f"Failed to generate {barcode_type} barcode: {str(e)}") from e
+        raise ValueError(f"Failed to generate {barcode_type} barcode: {e!s}") from e
 
 
 def generate_qr_code_svg(
@@ -126,11 +125,10 @@ def generate_qr_code_svg(
         )
 
         # Return SVG as string
-        svg_content = output.getvalue().decode("utf-8")
-        return svg_content
+        return output.getvalue().decode("utf-8")
 
     except Exception as e:
-        raise ValueError(f"Failed to generate QR code: {str(e)}") from e
+        raise ValueError(f"Failed to generate QR code: {e!s}") from e
 
 
 def get_barcode_config_for_size(label_size: str) -> dict:

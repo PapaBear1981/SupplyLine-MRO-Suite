@@ -297,8 +297,8 @@ def get_expendable_detail(expendable_id):
     # Build kit locations list
     kit_locations = []
     for kit_item in kit_items:
-        kit = Kit.query.get(kit_item.kit_id)
-        box = KitBox.query.get(kit_item.box_id) if kit_item.box_id else None
+        kit = db.session.get(Kit, kit_item.kit_id)
+        box = db.session.get(KitBox, kit_item.box_id) if kit_item.box_id else None
         kit_locations.append({
             "kit_id": kit.id,
             "kit_name": kit.name,

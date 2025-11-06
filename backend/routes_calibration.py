@@ -234,7 +234,7 @@ def register_calibration_routes(app):
         # Now that we have a valid calibration.id, we can link standards to it
         if data.get("standard_ids"):
             for standard_id in data.get("standard_ids"):
-                standard = CalibrationStandard.query.get(standard_id)
+                standard = db.session.get(CalibrationStandard, standard_id)
                 if standard:
                     calibration_standard = ToolCalibrationStandard(
                         calibration_id=calibration.id,  # This ID is now available because we flushed above
@@ -411,7 +411,7 @@ def register_calibration_routes(app):
             # Get the calibration standards used
             standards = []
             for cs in calibration.calibration_standards:
-                standard = CalibrationStandard.query.get(cs.standard_id)
+                standard = db.session.get(CalibrationStandard, cs.standard_id)
                 if standard:
                     standards.append(standard.to_dict())
 

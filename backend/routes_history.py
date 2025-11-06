@@ -22,6 +22,7 @@ from models import (
     Tool,
     Warehouse,
     WarehouseTransfer,
+    db,
 )
 from models_kits import Kit, KitExpendable, KitIssuance, KitItem, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
@@ -157,7 +158,7 @@ def register_history_routes(app):
             if expendable:
                 item = expendable
                 item_type = "expendable"
-                kit = Kit.query.get(expendable.kit_id)
+                kit = db.session.get(Kit, expendable.kit_id)
                 item_details = {
                     "id": expendable.id,
                     "part_number": expendable.part_number,
@@ -244,7 +245,7 @@ def _get_current_location(item, item_type):
             # Check if in a kit
             kit_item = KitItem.query.filter_by(item_type="tool", item_id=item.id).first()
             if kit_item:
-                kit = Kit.query.get(kit_item.kit_id)
+                kit = db.session.get(Kit, kit_item.kit_id)
                 location["type"] = "kit"
                 location["name"] = kit.name if kit else "Unknown Kit"
                 location["details"] = kit_item.location
@@ -261,7 +262,7 @@ def _get_current_location(item, item_type):
             # Check if in a kit
             kit_item = KitItem.query.filter_by(item_type="chemical", item_id=item.id).first()
             if kit_item:
-                kit = Kit.query.get(kit_item.kit_id)
+                kit = db.session.get(Kit, kit_item.kit_id)
                 location["type"] = "kit"
                 location["name"] = kit.name if kit else "Unknown Kit"
                 location["details"] = kit_item.location
@@ -270,7 +271,7 @@ def _get_current_location(item, item_type):
                 location["name"] = item.location or "Unknown"
 
     elif item_type == "expendable":
-        kit = Kit.query.get(item.kit_id)
+        kit = db.session.get(Kit, item.kit_id)
         location["type"] = "kit"
         location["name"] = kit.name if kit else "Unknown Kit"
         location["details"] = item.location
@@ -317,7 +318,7 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
         for trans in transactions:
             from models import User
-            user = User.query.get(trans.user_id)
+            user = db.session.get(User, trans.user_id)
             history_events.append({
                 "event_type": trans.transaction_type,
                 "timestamp": trans.timestamp.isoformat() if trans.timestamp else None,
@@ -341,23 +342,23 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
         for transfer in warehouse_transfers:
             from models import User
-            user = User.query.get(transfer.transferred_by_id)
+            user = db.session.get(User, transfer.transferred_by_id)
 
             # Determine transfer type
             if transfer.from_warehouse_id and transfer.to_warehouse_id:
                 event_type = "warehouse_to_warehouse_transfer"
-                from_warehouse = Warehouse.query.get(transfer.from_warehouse_id)
-                to_warehouse = Warehouse.query.get(transfer.to_warehouse_id)
+                from_warehouse = db.session.get(Warehouse, transfer.from_warehouse_id)
+                to_warehouse = db.session.get(Warehouse, transfer.to_warehouse_id)
                 description = f'Transferred from {from_warehouse.name if from_warehouse else "Unknown"} to {to_warehouse.name if to_warehouse else "Unknown"}'
             elif transfer.from_warehouse_id and transfer.to_kit_id:
                 event_type = "warehouse_to_kit_transfer"
-                from_warehouse = Warehouse.query.get(transfer.from_warehouse_id)
-                to_kit = Kit.query.get(transfer.to_kit_id)
+                from_warehouse = db.session.get(Warehouse, transfer.from_warehouse_id)
+                to_kit = db.session.get(Kit, transfer.to_kit_id)
                 description = f'Transferred from {from_warehouse.name if from_warehouse else "Unknown"} to Kit {to_kit.name if to_kit else "Unknown"}'
             elif transfer.from_kit_id and transfer.to_warehouse_id:
                 event_type = "kit_to_warehouse_transfer"
-                from_kit = Kit.query.get(transfer.from_kit_id)
-                to_warehouse = Warehouse.query.get(transfer.to_warehouse_id)
+                from_kit = db.session.get(Kit, transfer.from_kit_id)
+                to_warehouse = db.session.get(Warehouse, transfer.to_warehouse_id)
                 description = f'Transferred from Kit {from_kit.name if from_kit else "Unknown"} to {to_warehouse.name if to_warehouse else "Unknown"}'
             else:
                 event_type = "transfer"
@@ -399,23 +400,23 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
     for transfer in kit_transfers:
         from models import User
-        user = User.query.get(transfer.transferred_by)
+        user = db.session.get(User, transfer.transferred_by)
 
         # Determine transfer type
         if transfer.from_location_type == "kit" and transfer.to_location_type == "kit":
             event_type = "kit_to_kit_transfer"
-            from_kit = Kit.query.get(transfer.from_location_id)
-            to_kit = Kit.query.get(transfer.to_location_id)
+            from_kit = db.session.get(Kit, transfer.from_location_id)
+            to_kit = db.session.get(Kit, transfer.to_location_id)
             description = f'Transferred from Kit {from_kit.name if from_kit else "Unknown"} to Kit {to_kit.name if to_kit else "Unknown"}'
         elif transfer.from_location_type == "kit" and transfer.to_location_type == "warehouse":
             event_type = "kit_to_warehouse_transfer"
-            from_kit = Kit.query.get(transfer.from_location_id)
-            to_warehouse = Warehouse.query.get(transfer.to_location_id)
+            from_kit = db.session.get(Kit, transfer.from_location_id)
+            to_warehouse = db.session.get(Warehouse, transfer.to_location_id)
             description = f'Transferred from Kit {from_kit.name if from_kit else "Unknown"} to {to_warehouse.name if to_warehouse else "Unknown"}'
         elif transfer.from_location_type == "warehouse" and transfer.to_location_type == "kit":
             event_type = "warehouse_to_kit_transfer"
-            from_warehouse = Warehouse.query.get(transfer.from_location_id)
-            to_kit = Kit.query.get(transfer.to_location_id)
+            from_warehouse = db.session.get(Warehouse, transfer.from_location_id)
+            to_kit = db.session.get(Kit, transfer.to_location_id)
             description = f'Transferred from {from_warehouse.name if from_warehouse else "Unknown"} to Kit {to_kit.name if to_kit else "Unknown"}'
         else:
             event_type = "transfer"
@@ -455,7 +456,7 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
         for checkout in checkouts:
             from models import User
-            user = User.query.get(checkout.user_id)
+            user = db.session.get(User, checkout.user_id)
 
             # Checkout event
             history_events.append({
@@ -484,7 +485,7 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
         for issuance in issuances:
             from models import User
-            user = User.query.get(issuance.user_id)
+            user = db.session.get(User, issuance.user_id)
 
             history_events.append({
                 "event_type": "issuance",
@@ -503,7 +504,7 @@ def _build_item_history(item, item_type, identifier, tracking_number):
         for chem_return in returns:
             from models import User
 
-            user = User.query.get(chem_return.returned_by_id)
+            user = db.session.get(User, chem_return.returned_by_id)
 
             history_events.append({
                 "event_type": "return",
@@ -531,8 +532,8 @@ def _build_item_history(item, item_type, identifier, tracking_number):
 
     for issuance in kit_issuances:
         from models import User
-        issuer = User.query.get(issuance.issued_by)
-        recipient = User.query.get(issuance.issued_to) if issuance.issued_to else None
+        issuer = db.session.get(User, issuance.issued_by)
+        recipient = db.session.get(User, issuance.issued_to) if issuance.issued_to else None
 
         history_events.append({
             "event_type": "kit_issuance",

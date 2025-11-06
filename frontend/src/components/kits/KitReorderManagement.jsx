@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Table, Badge, Button, ButtonGroup, Form, Row, Col, Modal, Alert } from 'react-bootstrap';
 import { FaShoppingCart, FaCheck, FaTimes, FaExclamationCircle, FaFilter } from 'react-icons/fa';
@@ -28,27 +28,27 @@ const KitReorderManagement = ({ kitId = null }) => {
   // Filter reorder requests based on filters
   const reorderRequests = allReorderRequests || [];
 
-  useEffect(() => {
-    loadReorderRequests();
-    loadBoxes();
-  }, [kitId, filterStatus, filterPriority, dispatch]);
-
-  const loadBoxes = async () => {
+  const loadBoxes = useCallback(async () => {
     try {
       const response = await api.get(`/kits/${kitId}/boxes`);
       setBoxes(response.data);
     } catch (error) {
       console.error('Failed to load boxes:', error);
     }
-  };
+  }, [kitId]);
 
-  const loadReorderRequests = () => {
+  const loadReorderRequests = useCallback(() => {
     const filters = {};
     if (filterStatus) filters.status = filterStatus;
     if (filterPriority) filters.priority = filterPriority;
 
     dispatch(fetchReorderRequests({ kitId, filters }));
-  };
+  }, [dispatch, kitId, filterStatus, filterPriority]);
+
+  useEffect(() => {
+    loadReorderRequests();
+    loadBoxes();
+  }, [loadReorderRequests, loadBoxes]);
 
   const getStatusBadge = (status) => {
     const variants = {

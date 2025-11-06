@@ -5,14 +5,14 @@ Defines size-specific configurations for professional label printing.
 Each configuration includes dimensions, styling, and field display rules.
 """
 
-from typing import Dict, List, Any
 from datetime import datetime
+from typing import Any
 
 
 # Label size configurations
 LABEL_SIZES = {
     "4x6": {
-        "name": "4\" × 6\" (Standard Shipping Label)",
+        "name": '4" × 6" (Standard Shipping Label)',
         "dimensions": {
             "width": "4in",
             "height": "6in",
@@ -45,7 +45,7 @@ LABEL_SIZES = {
         "show_footer": True,
     },
     "3x4": {
-        "name": "3\" × 4\" (Medium Label)",
+        "name": '3" × 4" (Medium Label)',
         "dimensions": {
             "width": "3in",
             "height": "4in",
@@ -87,7 +87,7 @@ LABEL_SIZES = {
         "show_footer": True,
     },
     "2x4": {
-        "name": "2\" × 4\" (Small Label)",
+        "name": '2" × 4" (Small Label)',
         "dimensions": {
             "width": "2in",
             "height": "4in",
@@ -126,7 +126,7 @@ LABEL_SIZES = {
         "show_footer": False,
     },
     "2x2": {
-        "name": "2\" × 2\" (Compact Label)",
+        "name": '2" × 2" (Compact Label)',
         "dimensions": {
             "width": "2in",
             "height": "2in",
@@ -167,8 +167,8 @@ LABEL_SIZES = {
 
 
 def filter_fields_for_label_size(
-    fields: List[Dict[str, str]], label_size: str
-) -> List[Dict[str, str]]:
+    fields: list[dict[str, str]], label_size: str
+) -> list[dict[str, str]]:
     """
     Filter and prioritize fields based on label size constraints.
 
@@ -209,11 +209,11 @@ def get_label_template_context(
     label_size: str,
     item_title: str,
     barcode_svg: str,
-    fields: List[Dict[str, str]],
+    fields: list[dict[str, str]],
     is_transfer: bool = False,
-    warning_text: str = None,
+    warning_text: str | None = None,
     footer_note: str = "SupplyLine MRO Suite",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate template context for rendering a label.
 

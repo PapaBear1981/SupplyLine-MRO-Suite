@@ -46,9 +46,9 @@ def transfer_warehouse_to_kit():
             return jsonify({"error": 'item_type must be "tool" or "chemical"'}), 400
 
         # Get warehouse, kit, and box
-        warehouse = Warehouse.query.get(data["from_warehouse_id"])
-        kit = Kit.query.get(data["to_kit_id"])
-        box = KitBox.query.get(data["box_id"])
+        warehouse = db.session.get(Warehouse, data["from_warehouse_id"])
+        kit = db.session.get(Kit, data["to_kit_id"])
+        box = db.session.get(KitBox, data["box_id"])
 
         if not warehouse:
             return jsonify({"error": "Warehouse not found"}), 404
@@ -61,7 +61,7 @@ def transfer_warehouse_to_kit():
 
         # Get the item
         if data["item_type"] == "tool":
-            item = Tool.query.get(data["item_id"])
+            item = db.session.get(Tool, data["item_id"])
             if not item:
                 return jsonify({"error": "Tool not found"}), 404
             if item.warehouse_id != warehouse.id:
@@ -87,7 +87,7 @@ def transfer_warehouse_to_kit():
             item.warehouse_id = None
 
         else:  # chemical
-            item = Chemical.query.get(data["item_id"])
+            item = db.session.get(Chemical, data["item_id"])
             if not item:
                 return jsonify({"error": "Chemical not found"}), 404
             if item.warehouse_id != warehouse.id:
@@ -175,9 +175,9 @@ def transfer_kit_to_warehouse():
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
         # Get kit, kit item, and warehouse
-        kit = Kit.query.get(data["from_kit_id"])
-        kit_item = KitItem.query.get(data["kit_item_id"])
-        warehouse = Warehouse.query.get(data["to_warehouse_id"])
+        kit = db.session.get(Kit, data["from_kit_id"])
+        kit_item = db.session.get(KitItem, data["kit_item_id"])
+        warehouse = db.session.get(Warehouse, data["to_warehouse_id"])
 
         if not kit:
             return jsonify({"error": "Kit not found"}), 404
@@ -190,11 +190,11 @@ def transfer_kit_to_warehouse():
 
         # Get the actual item and move it to warehouse
         if kit_item.item_type == "tool":
-            item = Tool.query.get(kit_item.item_id)
+            item = db.session.get(Tool, kit_item.item_id)
             if item:
                 item.warehouse_id = warehouse.id
         else:  # chemical
-            item = Chemical.query.get(kit_item.item_id)
+            item = db.session.get(Chemical, kit_item.item_id)
             if item:
                 item.warehouse_id = warehouse.id
 
@@ -267,8 +267,8 @@ def transfer_warehouse_to_warehouse():
             return jsonify({"error": 'item_type must be "tool" or "chemical"'}), 400
 
         # Get warehouses
-        from_warehouse = Warehouse.query.get(data["from_warehouse_id"])
-        to_warehouse = Warehouse.query.get(data["to_warehouse_id"])
+        from_warehouse = db.session.get(Warehouse, data["from_warehouse_id"])
+        to_warehouse = db.session.get(Warehouse, data["to_warehouse_id"])
 
         if not from_warehouse:
             return jsonify({"error": "Source warehouse not found"}), 404
@@ -279,7 +279,7 @@ def transfer_warehouse_to_warehouse():
 
         # Get the item and transfer it
         if data["item_type"] == "tool":
-            item = Tool.query.get(data["item_id"])
+            item = db.session.get(Tool, data["item_id"])
             if not item:
                 return jsonify({"error": "Tool not found"}), 404
             if item.warehouse_id != from_warehouse.id:
@@ -288,7 +288,7 @@ def transfer_warehouse_to_warehouse():
             item.warehouse_id = to_warehouse.id
 
         else:  # chemical
-            item = Chemical.query.get(data["item_id"])
+            item = db.session.get(Chemical, data["item_id"])
             if not item:
                 return jsonify({"error": "Chemical not found"}), 404
             if item.warehouse_id != from_warehouse.id:

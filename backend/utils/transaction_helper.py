@@ -43,21 +43,21 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
         if not lot_number and not serial_number:
             # Try to get from the item itself
             if item_type == "tool":
-                tool = Tool.query.get(item_id)
+                tool = db.session.get(Tool, item_id)
                 if tool:
                     lot_number = tool.lot_number
                     serial_number = tool.serial_number
             elif item_type == "chemical":
-                chemical = Chemical.query.get(item_id)
+                chemical = db.session.get(Chemical, item_id)
                 if chemical:
                     lot_number = chemical.lot_number
             elif item_type == "expendable":
-                expendable = KitExpendable.query.get(item_id)
+                expendable = db.session.get(KitExpendable, item_id)
                 if expendable:
                     lot_number = expendable.lot_number
                     serial_number = expendable.serial_number
             elif item_type == "kit_item":
-                kit_item = KitItem.query.get(item_id)
+                kit_item = db.session.get(KitItem, item_id)
                 if kit_item:
                     lot_number = kit_item.lot_number
                     serial_number = kit_item.serial_number
@@ -89,7 +89,7 @@ def record_transaction(item_type, item_id, transaction_type, user_id, **kwargs):
 
 def record_tool_checkout(tool_id, user_id, expected_return_date=None, notes=None):
     """Record a tool checkout transaction"""
-    tool = Tool.query.get(tool_id)
+    tool = db.session.get(Tool, tool_id)
     if not tool:
         raise ValueError(f"Tool {tool_id} not found")
 
@@ -108,7 +108,7 @@ def record_tool_checkout(tool_id, user_id, expected_return_date=None, notes=None
 
 def record_tool_return(tool_id, user_id, condition=None, notes=None):
     """Record a tool return transaction"""
-    tool = Tool.query.get(tool_id)
+    tool = db.session.get(Tool, tool_id)
     if not tool:
         raise ValueError(f"Tool {tool_id} not found")
 
@@ -137,7 +137,7 @@ def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpos
         work_order: Work order number
         recipient_id: ID of the user receiving the chemical (optional, for audit trail)
     """
-    chemical = Chemical.query.get(chemical_id)
+    chemical = db.session.get(Chemical, chemical_id)
     if not chemical:
         raise ValueError(f"Chemical {chemical_id} not found")
 
@@ -164,7 +164,7 @@ def record_chemical_issuance(chemical_id, user_id, quantity, hangar=None, purpos
 
 def record_chemical_return(chemical_id, user_id, quantity, location_from=None, location_to=None, notes=None):
     """Record a chemical return transaction."""
-    chemical = Chemical.query.get(chemical_id)
+    chemical = db.session.get(Chemical, chemical_id)
     if not chemical:
         raise ValueError(f"Chemical {chemical_id} not found")
 
@@ -312,19 +312,19 @@ def get_item_detail_with_transactions(item_type, item_id):
     item_data = None
 
     if item_type == "tool":
-        item = Tool.query.get(item_id)
+        item = db.session.get(Tool, item_id)
         if item:
             item_data = item.to_dict()
     elif item_type == "chemical":
-        item = Chemical.query.get(item_id)
+        item = db.session.get(Chemical, item_id)
         if item:
             item_data = item.to_dict()
     elif item_type == "expendable":
-        item = KitExpendable.query.get(item_id)
+        item = db.session.get(KitExpendable, item_id)
         if item:
             item_data = item.to_dict()
     elif item_type == "kit_item":
-        item = KitItem.query.get(item_id)
+        item = db.session.get(KitItem, item_id)
         if item:
             item_data = item.to_dict()
 

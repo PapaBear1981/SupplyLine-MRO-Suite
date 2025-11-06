@@ -5,13 +5,12 @@ This module provides functions to generate professional PDF labels using
 Jinja2 templates and WeasyPrint. Supports multiple label sizes and item types.
 """
 
-import io
 import os
-from typing import Dict, List, Any, Optional, Literal
+from typing import Any, Literal
 
 from flask import current_app
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from weasyprint import HTML, CSS
+from weasyprint import HTML
 
 from .barcode_service import generate_barcode_for_label, generate_qr_code_for_label
 from .label_config import get_label_template_context
@@ -34,25 +33,23 @@ def get_template_environment() -> Environment:
         current_app.root_path, "templates", "labels"
     )
 
-    # Create Jinja2 environment
-    env = Environment(
+    # Create and return Jinja2 environment
+    return Environment(
         loader=FileSystemLoader(template_dir),
         autoescape=select_autoescape(["html", "xml"]),
         trim_blocks=True,
         lstrip_blocks=True,
     )
 
-    return env
-
 
 def generate_label_pdf(
     item_title: str,
     barcode_data: str,
-    fields: List[Dict[str, str]],
+    fields: list[dict[str, str]],
     label_size: str = "4x6",
     code_type: CodeType = "barcode",
     is_transfer: bool = False,
-    warning_text: Optional[str] = None,
+    warning_text: str | None = None,
     barcode_type: str = "CODE128",
 ) -> bytes:
     """
@@ -101,12 +98,10 @@ def generate_label_pdf(
 
         # Generate PDF using WeasyPrint
         html = HTML(string=html_content)
-        pdf_bytes = html.write_pdf()
-
-        return pdf_bytes
+        return html.write_pdf()
 
     except Exception as e:
-        raise RuntimeError(f"Failed to generate label PDF: {str(e)}") from e
+        raise RuntimeError(f"Failed to generate label PDF: {e!s}") from e
 
 
 def generate_tool_label_pdf(
@@ -155,7 +150,7 @@ def generate_tool_label_pdf(
         fields.append({"label": "Category", "value": tool.category})
     if tool.condition:
         fields.append({"label": "Condition", "value": tool.condition})
-    if hasattr(tool, 'created_at') and tool.created_at:
+    if hasattr(tool, "created_at") and tool.created_at:
         fields.append({"label": "Date Added", "value": tool.created_at.strftime("%Y-%m-%d")})
 
     return generate_label_pdf(
@@ -172,7 +167,7 @@ def generate_chemical_label_pdf(
     label_size: str = "4x6",
     code_type: CodeType = "barcode",
     is_transfer: bool = False,
-    transfer_data: Optional[Dict[str, Any]] = None,
+    transfer_data: dict[str, Any] | None = None,
 ) -> bytes:
     """
     Generate a PDF label for a chemical.

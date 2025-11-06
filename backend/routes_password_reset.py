@@ -46,7 +46,7 @@ def register_password_reset_routes(app):
         try:
             # Get the admin user performing the reset
             admin_user_id = request.current_user.get("user_id")
-            admin_user = User.query.get(admin_user_id)
+            admin_user = db.session.get(User, admin_user_id)
 
             if not admin_user:
                 return jsonify({
@@ -55,7 +55,7 @@ def register_password_reset_routes(app):
                 }), 404
 
             # Get the target user
-            target_user = User.query.get(user_id)
+            target_user = db.session.get(User, user_id)
 
             if not target_user:
                 return jsonify({
