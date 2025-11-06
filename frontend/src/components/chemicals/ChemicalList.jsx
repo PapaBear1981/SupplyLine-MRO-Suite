@@ -20,7 +20,8 @@ const ChemicalList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChemicals, setFilteredChemicals] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Default to showing Available and Low Stock items (exclude Out Of Stock)
+  const [statusFilter, setStatusFilter] = useState('available,low_stock');
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [warehouses, setWarehouses] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
@@ -74,9 +75,10 @@ const ChemicalList = () => {
       filtered = filtered.filter((chemical) => chemical.category === categoryFilter);
     }
 
-    // Apply status filter
+    // Apply status filter (supports multiple statuses separated by comma)
     if (statusFilter) {
-      filtered = filtered.filter((chemical) => chemical.status === statusFilter);
+      const allowedStatuses = statusFilter.split(',').map(s => s.trim());
+      filtered = filtered.filter((chemical) => allowedStatuses.includes(chemical.status));
     }
 
     // Apply warehouse filter
@@ -159,11 +161,11 @@ const ChemicalList = () => {
     setStatusFilter(e.target.value);
   };
 
-  // Reset all filters
+  // Reset all filters to defaults
   const resetFilters = () => {
     setSearchTerm('');
     setCategoryFilter('');
-    setStatusFilter('');
+    setStatusFilter('available,low_stock'); // Reset to default (exclude Out Of Stock)
     setWarehouseFilter('');
     setCurrentPage(1);
   };
@@ -371,6 +373,7 @@ const ChemicalList = () => {
               <div className="col-md-2">
                 <Tooltip text="Filter by chemical status" placement="top" show={showTooltips}>
                   <Form.Select value={statusFilter} onChange={handleStatusChange}>
+                    <option value="available,low_stock">Available & Low Stock</option>
                     <option value="">All Statuses</option>
                     {statuses.map((status) => (
                       <option key={status} value={status}>

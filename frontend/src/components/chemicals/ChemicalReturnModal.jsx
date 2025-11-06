@@ -176,7 +176,12 @@ const ChemicalReturnModal = ({ show, onHide }) => {
 
   return (
     <>
-      <Modal show={show} onHide={handleClose} size="xl" className="chemical-return-modal">
+      <Modal
+        show={show}
+        onHide={handleClose}
+        size={returnLookup ? "xl" : "lg"}
+        className="chemical-return-modal"
+      >
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>
             <FaBarcode className="me-2" />
@@ -185,7 +190,7 @@ const ChemicalReturnModal = ({ show, onHide }) => {
         </Modal.Header>
         <Modal.Body>
           <Row className="g-4">
-            <Col lg={4}>
+            <Col lg={returnLookup ? 4 : 12}>
               <Card className="shadow-sm h-100 scan-card">
                 <Card.Header className="bg-light">
                   <h5 className="mb-0">
@@ -265,8 +270,8 @@ const ChemicalReturnModal = ({ show, onHide }) => {
               </Card>
             </Col>
 
-            <Col lg={8}>
-              {returnLookup && returnLookup.chemical ? (
+            {returnLookup && returnLookup.chemical && (
+              <Col lg={8}>
                 <Card className="shadow-sm h-100 details-card">
                   <Card.Header className="bg-light">
                     <div className="d-flex justify-content-between align-items-center">
@@ -443,8 +448,8 @@ const ChemicalReturnModal = ({ show, onHide }) => {
                     </Form>
                   </Card.Body>
                 </Card>
-              ) : null}
-            </Col>
+              </Col>
+            )}
           </Row>
 
           {chemicalId && (
