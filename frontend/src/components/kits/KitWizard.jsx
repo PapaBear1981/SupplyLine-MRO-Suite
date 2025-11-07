@@ -19,6 +19,7 @@ const KitWizard = () => {
   });
   const [validationErrors, setValidationErrors] = useState({});
   const [liveMessage, setLiveMessage] = useState('');
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   const steps = useMemo(() => ([
     {
@@ -52,7 +53,9 @@ const KitWizard = () => {
   ]), []);
 
   useEffect(() => {
-    dispatch(fetchAircraftTypes());
+    dispatch(fetchAircraftTypes()).finally(() => {
+      setHasAttemptedFetch(true);
+    });
     return () => {
       dispatch(clearWizardData());
     };
@@ -67,7 +70,8 @@ const KitWizard = () => {
 
   const totalSteps = steps.length;
   const progress = (currentStep / totalSteps) * 100;
-  const isInitialLoading = loading && aircraftTypes.length === 0;
+  // Only show loading spinner if we're actively loading AND haven't completed the initial fetch yet
+  const isInitialLoading = loading && !hasAttemptedFetch;
 
   const validateStep = (step) => {
     const errors = {};
