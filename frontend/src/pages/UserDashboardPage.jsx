@@ -12,6 +12,7 @@ import PastDueTools from '../components/dashboard/PastDueTools';
 import MyKits from '../components/dashboard/MyKits';
 import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
 import RecentKitActivity from '../components/dashboard/RecentKitActivity';
+import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -90,6 +91,13 @@ const DASHBOARD_WIDGETS = [
     component: QuickActions,
     isAvailable: () => true,
   },
+  {
+    id: 'lateOrders',
+    label: 'Late Orders',
+    defaultColumn: COLUMN_SIDEBAR,
+    component: LateOrdersWidget,
+    isAvailable: ({ hasOrderPermission }) => hasOrderPermission,
+  },
 ];
 
 const UserDashboardPage = () => {
@@ -97,6 +105,7 @@ const UserDashboardPage = () => {
   const isAdmin = user?.is_admin;
   const isMaterials = user?.department === 'Materials';
   const canViewAdminWidgets = isAdmin || isMaterials;
+  const hasOrderPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.orders'));
 
   const widgetLookup = useMemo(() => {
     const lookup = {};
@@ -107,8 +116,8 @@ const UserDashboardPage = () => {
   }, []);
 
   const roleFlags = useMemo(
-    () => ({ isAdmin, isMaterials, canViewAdminWidgets }),
-    [isAdmin, isMaterials, canViewAdminWidgets]
+    () => ({ isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission }),
+    [isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission]
   );
 
   const availableWidgets = useMemo(

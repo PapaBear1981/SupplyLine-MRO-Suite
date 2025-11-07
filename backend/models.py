@@ -453,6 +453,162 @@ class ToolServiceRecord(db.Model):
         }
 
 
+class ProcurementOrder(db.Model):
+    """Track procurement activity for replacement tools, chemicals, and expendables."""
+
+    __tablename__ = "procurement_orders"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    order_type = db.Column(db.String(50), nullable=False, default="tool")
+    description = db.Column(db.String(4000))
+    priority = db.Column(db.String(20), nullable=False, default="normal")
+    status = db.Column(db.String(50), nullable=False, default="new")
+    reference_type = db.Column(db.String(30))
+    reference_number = db.Column(db.String(100))
+    tracking_number = db.Column(db.String(120))
+    expected_due_date = db.Column(db.DateTime, index=True)
+    completed_date = db.Column(db.DateTime)
+    notes = db.Column(db.String(4000))
+    kit_id = db.Column(db.Integer, db.ForeignKey("kits.id"), nullable=True, index=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    buyer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_current_time, onupdate=get_current_time)
+
+    requester = db.relationship("User", foreign_keys=[requester_id])
+    buyer = db.relationship("User", foreign_keys=[buyer_id])
+    kit = db.relationship("Kit", foreign_keys=[kit_id])
+    messages = db.relationship(
+        "ProcurementOrderMessage",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+
+    OPEN_STATUSES = {"new", "awaiting_info", "ordered", "shipped", "in_progress"}
+    CLOSED_STATUSES = {"received", "cancelled"}
+
+    def is_closed(self) -> bool:
+        return self.status in self.CLOSED_STATUSES
+
+    def _due_state(self):
+        if not self.expected_due_date:
+            return "unscheduled"
+
+        if self.is_closed():
+            return "completed"
+
+        now = get_current_time()
+        if self.expected_due_date < now:
+            return "late"
+
+        if (self.expected_due_date - now).days <= 3:
+            return "due_soon"
+
+        return "on_track"
+
+    def to_dict(self, include_messages: bool = False):
+        """Serialize order for API responses."""
+
+        latest_message = None
+        message_count = 0
+        if self.messages is not None:
+            message_count = self.messages.count()
+            if message_count:
+                latest_message = self.messages.order_by(ProcurementOrderMessage.sent_date.desc()).first()
+
+        data = {
+            "id": self.id,
+            "title": self.title,
+            "order_type": self.order_type,
+            "description": self.description,
+            "priority": self.priority,
+            "status": self.status,
+            "reference_type": self.reference_type,
+            "reference_number": self.reference_number,
+            "tracking_number": self.tracking_number,
+            "expected_due_date": self.expected_due_date.isoformat() if self.expected_due_date else None,
+            "completed_date": self.completed_date.isoformat() if self.completed_date else None,
+            "notes": self.notes,
+            "kit_id": self.kit_id,
+            "kit_name": self.kit.name if self.kit else None,
+            "requester_id": self.requester_id,
+            "requester_name": self.requester.name if self.requester else None,
+            "buyer_id": self.buyer_id,
+            "buyer_name": self.buyer.name if self.buyer else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "message_count": message_count,
+            "latest_message_at": latest_message.sent_date.isoformat() if latest_message else None,
+            "due_status": self._due_state(),
+            "is_late": self._due_state() == "late",
+            "days_overdue": None,
+            "days_open": None,
+        }
+
+        if self.expected_due_date and not self.is_closed():
+            delta = get_current_time() - self.expected_due_date
+            if delta.days >= 0:
+                data["days_overdue"] = delta.days
+
+        if self.created_at:
+            open_delta = get_current_time() - self.created_at
+            data["days_open"] = open_delta.days
+
+        if include_messages:
+            messages_query = self.messages.order_by(ProcurementOrderMessage.sent_date.desc()) if self.messages is not None else []
+            data["messages"] = [message.to_dict() for message in messages_query]
+
+        return data
+
+
+class ProcurementOrderMessage(db.Model):
+    """Message thread entries associated with procurement orders."""
+
+    __tablename__ = "procurement_order_messages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("procurement_orders.id"), nullable=False, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    subject = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.String(5000), nullable=False)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    sent_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
+    read_date = db.Column(db.DateTime)
+    parent_message_id = db.Column(db.Integer, db.ForeignKey("procurement_order_messages.id"))
+    attachments = db.Column(db.String(1000))
+
+    order = db.relationship("ProcurementOrder", back_populates="messages")
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+    parent_message = db.relationship("ProcurementOrderMessage", remote_side=[id], backref="replies")
+
+    def to_dict(self, include_replies: bool = False):
+        data = {
+            "id": self.id,
+            "order_id": self.order_id,
+            "subject": self.subject,
+            "message": self.message,
+            "sender_id": self.sender_id,
+            "sender_name": self.sender.name if self.sender else None,
+            "recipient_id": self.recipient_id,
+            "recipient_name": self.recipient.name if self.recipient else None,
+            "is_read": self.is_read,
+            "sent_date": self.sent_date.isoformat() if self.sent_date else None,
+            "read_date": self.read_date.isoformat() if self.read_date else None,
+            "parent_message_id": self.parent_message_id,
+            "attachments": self.attachments,
+            "reply_count": len(self.replies) if hasattr(self, "replies") else 0,
+        }
+
+        if include_replies and hasattr(self, "replies"):
+            data["replies"] = [reply.to_dict() for reply in self.replies]
+
+        return data
+
+
 class Expendable(db.Model):
     """
     Expendable model for kit-only consumable inventory.

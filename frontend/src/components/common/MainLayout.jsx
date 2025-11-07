@@ -104,6 +104,10 @@ const MainLayout = ({ children }) => {
                     <Nav.Link as={Link} to="/tools" className="interactive-link">Tools</Nav.Link>
                   )}
 
+                  {hasPermission(user, 'page.orders') && (
+                    <Nav.Link as={Link} to="/orders" className="interactive-link">Orders</Nav.Link>
+                  )}
+
                   {hasPermission(user, 'page.checkouts') && (
                     <Nav.Link as={Link} to="/checkouts" className="interactive-link">Checkouts</Nav.Link>
                   )}
