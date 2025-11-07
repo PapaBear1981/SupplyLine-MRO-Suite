@@ -158,6 +158,15 @@ class User(db.Model):
         lazy="dynamic"
     )
 
+    # Enhanced messaging relationships
+    created_channels = db.relationship("Channel", back_populates="creator", foreign_keys="Channel.created_by")
+    channel_memberships = db.relationship("ChannelMember", back_populates="user", cascade="all, delete-orphan")
+    channel_messages = db.relationship("ChannelMessage", back_populates="sender")
+    message_reactions = db.relationship("MessageReaction", back_populates="user", cascade="all, delete-orphan")
+    uploaded_attachments = db.relationship("MessageAttachment", back_populates="uploader")
+    attachment_downloads = db.relationship("AttachmentDownload", back_populates="user", cascade="all, delete-orphan")
+    presence = db.relationship("UserPresence", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
         now = get_current_time()
@@ -1254,3 +1263,10 @@ class WarehouseTransfer(db.Model):
             "notes": self.notes,
             "status": self.status
         }
+
+# Import enhanced messaging models
+from models_messaging import (
+    Channel, ChannelMember, ChannelMessage,
+    MessageReaction, MessageAttachment, AttachmentDownload,
+    UserPresence, TypingIndicator
+)

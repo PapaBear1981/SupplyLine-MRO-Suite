@@ -1,6 +1,7 @@
 import os
 
 from app import create_app
+from socketio_config import socketio
 
 
 app = create_app()
@@ -20,4 +21,5 @@ if __name__ == "__main__":
     host = os.environ.get("FLASK_HOST", "127.0.0.1")
     port = int(os.environ.get("FLASK_PORT", 5000))
 
-    app.run(host=host, port=port, debug=debug_mode)
+    # Use socketio.run() instead of app.run() for WebSocket support
+    socketio.run(app, host=host, port=port, debug=debug_mode)

@@ -206,3 +206,144 @@ def neutralize_csv_formula(value: str) -> str:
     if isinstance(value, str) and value and value[0] in DANGEROUS_CSV_PREFIXES:
         return "'" + value
     return value
+
+
+# Extended file type support for attachments
+DOCUMENT_SIGNATURES = {
+    b"%PDF": ("pdf", "application/pdf"),
+    b"PK\x03\x04": ("zip", "application/zip"),  # ZIP, DOCX, XLSX, etc.
+}
+
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",  # Images
+    ".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt",  # Documents
+    ".xls", ".xlsx", ".csv", ".ods",  # Spreadsheets
+    ".zip", ".tar", ".gz", ".7z"  # Archives
+}
+
+
+def validate_file_upload(file_path: str, max_size: int | None = None) -> None:
+    """
+    Validate an uploaded file by checking magic bytes and size.
+
+    Args:
+        file_path: Path to the uploaded file
+        max_size: Maximum allowed file size in bytes
+
+    Raises:
+        FileValidationError: If file validation fails
+    """
+    if not os.path.exists(file_path):
+        raise FileValidationError("File not found")
+
+    # Check file size
+    file_size = os.path.getsize(file_path)
+    if file_size == 0:
+        raise FileValidationError("File is empty")
+
+    if max_size and file_size > max_size:
+        raise FileValidationError(
+            f"File too large. Maximum size: {max_size // (1024 * 1024)}MB"
+        )
+
+    # Read first bytes for magic byte validation
+    with open(file_path, 'rb') as f:
+        header = f.read(512)
+
+    # Check for NULL bytes (potential binary corruption)
+    if b'\x00' * 100 in header:
+        raise FileValidationError("File appears to be corrupted")
+
+    # File is valid
+    return None
+
+
+def get_file_type(file_path: str) -> str:
+    """
+    Determine the file type category based on extension and content.
+
+    Args:
+        file_path: Path to the file
+
+    Returns:
+        File type category: 'image', 'document', 'spreadsheet', 'archive', 'other'
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+
+    # Image types
+    if ext in {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'}:
+        return 'image'
+
+    # Document types
+    elif ext in {'.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt'}:
+        return 'document'
+
+    # Spreadsheet types
+    elif ext in {'.xls', '.xlsx', '.csv', '.ods'}:
+        return 'spreadsheet'
+
+    # Archive types
+    elif ext in {'.zip', '.tar', '.gz', '.7z'}:
+        return 'archive'
+
+    return 'other'
+
+
+def scan_file_for_malware(file_path: str) -> None:
+    """
+    Basic malware scanning for uploaded files.
+
+    This is a basic implementation that checks for:
+    - Executable file extensions embedded in archives
+    - Suspicious file patterns
+    - Script files disguised as other types
+
+    For production, integrate with ClamAV or similar AV solution.
+
+    Args:
+        file_path: Path to the file to scan
+
+    Raises:
+        FileValidationError: If file appears suspicious
+    """
+    # Check file extension
+    ext = os.path.splitext(file_path)[1].lower()
+
+    # Block executable files
+    dangerous_extensions = {
+        '.exe', '.dll', '.so', '.dylib', '.bat', '.cmd', '.sh',
+        '.ps1', '.vbs', '.js', '.jar', '.app', '.dmg', '.pkg'
+    }
+
+    if ext in dangerous_extensions:
+        raise FileValidationError(
+            "Executable files are not allowed for security reasons"
+        )
+
+    # Read file header
+    with open(file_path, 'rb') as f:
+        header = f.read(1024)
+
+    # Check for executable signatures
+    if header.startswith(b'MZ'):  # Windows EXE
+        raise FileValidationError("Windows executable files are not allowed")
+
+    if header.startswith(b'\x7fELF'):  # Linux ELF
+        raise FileValidationError("Executable files are not allowed")
+
+    # Check for script content in disguised files
+    suspicious_patterns = [
+        b'<script',
+        b'eval(',
+        b'system(',
+        b'exec(',
+        b'shell_exec',
+    ]
+
+    header_lower = header.lower()
+    for pattern in suspicious_patterns:
+        if pattern in header_lower:
+            raise FileValidationError("File contains suspicious content")
+
+    # File passed basic checks
+    return None

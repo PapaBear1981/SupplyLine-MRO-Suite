@@ -12,6 +12,7 @@ from flask_cors import CORS
 from config import Config
 from models import db
 from routes import register_routes
+from socketio_config import init_socketio
 from utils.logging_utils import setup_request_logging
 from utils.resource_monitor import init_resource_monitoring
 from utils.scheduled_backup import init_scheduled_backup, shutdown_scheduled_backup
@@ -145,6 +146,13 @@ def create_app():
 
     # Initialize database with app
     db.init_app(app)
+
+    # Initialize SocketIO for real-time messaging
+    init_socketio(app)
+
+    # Register WebSocket event handlers
+    from socketio_events import register_socketio_events
+    register_socketio_events(app)
 
     # Get logger after logging is configured
     logger = logging.getLogger(__name__)

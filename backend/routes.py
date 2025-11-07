@@ -20,6 +20,7 @@ from models import (
     db,
 )
 from routes_announcements import register_announcement_routes
+from routes_attachments import register_attachments_routes
 from routes_auth import register_auth_routes
 from routes_barcode import barcode_bp
 from routes_bulk_import import register_bulk_import_routes
@@ -31,10 +32,12 @@ from routes_departments import register_department_routes
 from routes_expendables import expendables_bp
 from routes_history import register_history_routes
 from routes_inventory import register_inventory_routes
+from routes_channels import register_channels_routes
 from routes_kit_messages import register_kit_message_routes
 from routes_kit_reorders import register_kit_reorder_routes
 from routes_kit_transfers import register_kit_transfer_routes
 from routes_kits import register_kit_routes
+from routes_message_search import register_message_search_routes
 from routes_password_reset import register_password_reset_routes
 from routes_rbac import register_rbac_routes
 from routes_reports import register_report_routes
@@ -203,6 +206,11 @@ def register_routes(app):
     register_kit_transfer_routes(app)
     register_kit_reorder_routes(app)
     register_kit_message_routes(app)
+
+    # Register enhanced messaging routes (channels, real-time chat)
+    register_channels_routes(app)
+    register_attachments_routes(app)
+    register_message_search_routes(app)
 
     # Register inventory tracking routes (lot/serial numbers, transactions)
     register_inventory_routes(app)
