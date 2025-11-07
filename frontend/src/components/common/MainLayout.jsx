@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Container, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Container, Nav, Button, OverlayTrigger, Tooltip, Spinner } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { FaTools, FaBars, FaTimes } from 'react-icons/fa';
 import ProfileModal from '../profile/ProfileModal';
@@ -22,6 +22,10 @@ const MainLayout = ({ children }) => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [transitionStage, setTransitionStage] = useState('idle');
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const transitionTimers = useRef({ exit: null, enter: null });
+  const initialRenderRef = useRef(true);
 
   useInactivityLogout();
 
@@ -31,9 +35,60 @@ const MainLayout = ({ children }) => {
     }
   }, [dispatch, isAuthenticated, securityLoaded, securityLoading]);
 
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      setTransitionStage('idle');
+      return;
+    }
+
+    if (transitionTimers.current.exit) {
+      clearTimeout(transitionTimers.current.exit);
+    }
+
+    if (transitionTimers.current.enter) {
+      clearTimeout(transitionTimers.current.enter);
+    }
+
+    setIsRouteLoading(true);
+    setTransitionStage('exiting');
+
+    transitionTimers.current.exit = setTimeout(() => {
+      setTransitionStage('entering');
+      transitionTimers.current.enter = setTimeout(() => {
+        setTransitionStage('idle');
+        setIsRouteLoading(false);
+        transitionTimers.current.enter = null;
+      }, 320);
+      transitionTimers.current.exit = null;
+    }, 120);
+
+    return () => {
+      if (transitionTimers.current.exit) {
+        clearTimeout(transitionTimers.current.exit);
+        transitionTimers.current.exit = null;
+      }
+      if (transitionTimers.current.enter) {
+        clearTimeout(transitionTimers.current.enter);
+        transitionTimers.current.enter = null;
+      }
+    };
+  }, [location.pathname]);
+
+  useEffect(() => () => {
+    if (transitionTimers.current.exit) {
+      clearTimeout(transitionTimers.current.exit);
+    }
+    if (transitionTimers.current.enter) {
+      clearTimeout(transitionTimers.current.enter);
+    }
+  }, []);
+
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
+
+  const transitionClassName = `page-transition page-transition--${transitionStage}`;
 
   return (
     <div className="main-layout">
@@ -269,7 +324,9 @@ const MainLayout = ({ children }) => {
       {/* Main Content */}
       <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Container fluid className="flex-grow-1 mb-4 px-4 py-3">
-          {children}
+          <div key={location.pathname} className={transitionClassName}>
+            {children}
+          </div>
         </Container>
 
         <footer className="main-footer py-3 mt-auto">
@@ -328,6 +385,15 @@ const MainLayout = ({ children }) => {
           }
         ]}
       />
+
+      {isRouteLoading && (
+        <div className="page-loading-overlay" role="status" aria-live="polite">
+          <Spinner animation="border" variant="light">
+            <span className="visually-hidden">Loading next section</span>
+          </Spinner>
+          <span className="page-loading-message">Loading next section…</span>
+        </div>
+      )}
     </div>
   );
 };
