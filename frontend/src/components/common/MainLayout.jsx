@@ -137,6 +137,17 @@ const MainLayout = ({ children }) => {
                 </Nav.Link>
               )}
 
+              {hasPermission(user, 'page.orders') && (
+                <Nav.Link
+                  as={Link}
+                  to="/orders"
+                  className={location.pathname === '/orders' ? 'active' : ''}
+                >
+                  <i className="bi bi-cart"></i>
+                  {!sidebarCollapsed && <span>Orders</span>}
+                </Nav.Link>
+              )}
+
               {hasPermission(user, 'page.checkouts') && (
                 <Nav.Link
                   as={Link}

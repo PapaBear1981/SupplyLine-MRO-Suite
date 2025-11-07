@@ -12,7 +12,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 
 ### Key Features
 
-- ✅ **13 new page access permissions** added to the Permission system
+- ✅ **14 new page access permissions** added to the Permission system
 - ✅ **Permission-based routing** - Users without permission see "Access Denied" page
 - ✅ **Dynamic navigation** - Menu items only show for pages user can access
 - ✅ **Dashboard always accessible** - All authenticated users can access /dashboard
@@ -27,6 +27,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 | Permission Name | Description | Page(s) Protected |
 |----------------|-------------|-------------------|
 | `page.tools` | Access Tools page | /tools, /tools/new, /tools/:id, /tools/:id/edit |
+| `page.orders` | Access Orders page | /orders |
 | `page.checkouts` | Access Checkouts page | /checkouts, /checkouts/all, /checkout/:id |
 | `page.my_checkouts` | Access My Checkouts page | /my-checkouts |
 | `page.kits` | Access Kits page | /kits, /kits/new, /kits/:id, /kits/:id/edit, /kits/reports, /kits/mobile |
@@ -46,9 +47,10 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 ## Role Assignments
 
 ### Administrator Role
-**Page Permissions:** ALL (13 permissions)
+**Page Permissions:** ALL (14 permissions)
 
 - ✅ Tools
+- ✅ Orders
 - ✅ Checkouts
 - ✅ My Checkouts
 - ✅ Kits
@@ -66,9 +68,10 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 ---
 
 ### Materials Manager Role
-**Page Permissions:** 10 permissions (everything except admin pages)
+**Page Permissions:** 11 permissions (everything except admin-specific pages)
 
 - ✅ Tools
+- ✅ Orders
 - ✅ Checkouts
 - ✅ My Checkouts
 - ✅ Kits
@@ -89,6 +92,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 **Page Permissions:** 3 permissions (minimal access)
 
 - ❌ Tools
+- ❌ Orders
 - ❌ Checkouts
 - ✅ My Checkouts (can see their own checkouts)
 - ✅ Kits (primary work area)
@@ -117,6 +121,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 - ✅ Tools
 - ✅ Checkouts
 - ✅ My Checkouts
+- ❌ Orders
 - ❌ Kits
 - ❌ Chemicals
 - ✅ Calibrations
@@ -137,7 +142,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 
 **File:** `backend/migrations/add_page_access_permissions.py`
 
-- Creates 13 new permissions in the "Page Access" category
+- Creates 14 new permissions in the "Page Access" category
 - Assigns permissions to all 4 default roles
 - Can be run multiple times safely (checks for existing permissions)
 

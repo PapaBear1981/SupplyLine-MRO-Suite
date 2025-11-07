@@ -39,6 +39,7 @@ from routes_kit_transfers import register_kit_transfer_routes
 from routes_kits import register_kit_routes
 from routes_message_search import register_message_search_routes
 from routes_password_reset import register_password_reset_routes
+from routes_orders import register_order_routes
 from routes_rbac import register_rbac_routes
 from routes_reports import register_report_routes
 from routes_scanner import register_scanner_routes
@@ -206,6 +207,7 @@ def register_routes(app):
     register_kit_transfer_routes(app)
     register_kit_reorder_routes(app)
     register_kit_message_routes(app)
+    register_order_routes(app)
 
     # Register enhanced messaging routes (channels, real-time chat)
     register_channels_routes(app)

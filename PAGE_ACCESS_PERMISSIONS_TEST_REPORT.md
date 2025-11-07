@@ -30,11 +30,12 @@ The page access permission system has been successfully implemented and tested. 
 
 **Migration Script:** `backend/migrations/add_page_access_permissions.py`
 
-Added 13 new page access permissions in the "Page Access" category:
+Added 14 new page access permissions in the "Page Access" category:
 
 | Permission Code | Description | Category |
 |----------------|-------------|----------|
 | `page.tools` | Access Tools page | Page Access |
+| `page.orders` | Access Orders page | Page Access |
 | `page.checkouts` | Access Checkouts page | Page Access |
 | `page.my_checkouts` | Access My Checkouts page | Page Access |
 | `page.kits` | Access Kits page | Page Access |
@@ -50,11 +51,11 @@ Added 13 new page access permissions in the "Page Access" category:
 ### 2. Role Permission Assignments
 
 **Administrator Role:**
-- ALL 13 page access permissions ✅
+- ALL 14 page access permissions ✅
 
 **Materials Manager Role:**
-- 10 permissions (all except admin-specific pages)
-- Excluded: `page.admin_dashboard`, `page.aircraft_types`, `page.profile`
+- 11 permissions (all except admin-specific pages)
+- Excluded: `page.admin_dashboard`, `page.aircraft_types`
 
 **Maintenance User Role (RESTRICTED):**
 - **ONLY 3 permissions:**
@@ -114,6 +115,7 @@ Added 13 new page access permissions in the "Page Access" category:
 
 **Hidden Navigation Links:**
 - ❌ Tools (no `page.tools` permission)
+- ❌ Orders (no `page.orders` permission)
 - ❌ Checkouts (no `page.checkouts` permission)
 - ❌ Chemicals (no `page.chemicals` permission)
 - ❌ Calibrations (no `page.calibrations` permission)
