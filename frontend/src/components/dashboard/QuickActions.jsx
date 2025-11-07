@@ -220,7 +220,7 @@ const QuickActions = () => {
   );
 
   return (
-    <Card className="shadow-sm mb-4" data-testid="quick-actions">
+    <Card className="shadow-sm mb-4 fade-in" data-testid="quick-actions">
       <Card.Header className="bg-light">
         <h4 className="mb-0">Quick Actions</h4>
       </Card.Header>

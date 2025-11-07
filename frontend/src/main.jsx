@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import store from './store';
 import './index.css';
 import './styles/mobile.css';
+import './styles/animations.css';
 import 'bootstrap-icons/font/bootstrap-icons.css'; // Add Bootstrap Icons
 import App from './App.jsx';
 
