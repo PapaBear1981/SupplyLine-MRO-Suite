@@ -263,7 +263,7 @@ const KitReorderManagement = ({ kitId = null }) => {
                           <Badge bg="secondary">Manual</Badge>
                         )}
                       </td>
-                      <td>{request.requested_by_name}</td>
+                      <td>{request.requester_name}</td>
                       <td>{new Date(request.requested_date).toLocaleDateString()}</td>
                     </tr>
                   ))}

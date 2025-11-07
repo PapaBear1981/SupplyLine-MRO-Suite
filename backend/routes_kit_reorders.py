@@ -68,7 +68,7 @@ def register_kit_reorder_routes(app):
 
                 # Store relative path
                 image_path = f"/api/static/reorder_images/{safe_filename}"
-                logger.info(f"Saved reorder request image: {image_path}")
+                logger.info("Saved reorder request image", extra={"image_path": image_path})
             except FileValidationError as exc:
                 raise ValidationError(f"Image upload failed: {exc!s}")
 
@@ -102,7 +102,7 @@ def register_kit_reorder_routes(app):
         db.session.add(log)
         db.session.commit()
 
-        logger.info(f"Reorder request created: ID {reorder.id}")
+        logger.info("Reorder request created", extra={"reorder_id": reorder.id})
         return jsonify(reorder.to_dict()), 201
 
     @app.route("/api/reorder-requests", methods=["GET"])
@@ -198,21 +198,34 @@ def register_kit_reorder_routes(app):
         """Mark a reorder request as fulfilled"""
         reorder = KitReorderRequest.query.get_or_404(id)
 
-        logger.info(f"Fulfilling reorder request {id}: type={reorder.item_type}, item_id={reorder.item_id}, status={reorder.status}")
+        logger.info("Fulfilling reorder request", extra={
+            "reorder_id": id,
+            "item_type": reorder.item_type,
+            "item_id": reorder.item_id,
+            "status": reorder.status
+        })
 
         if reorder.status != "ordered":
             raise ValidationError("Can only fulfill ordered requests")
+
+        # Validate quantity_requested
+        if reorder.quantity_requested <= 0:
+            raise ValidationError("Quantity requested must be greater than zero")
+
+        # Validate quantity for tools (should be 1 for individual items)
+        if reorder.item_type == "tool" and reorder.quantity_requested != 1:
+            raise ValidationError("Tool quantity must be 1 (tools are individual items)")
 
         # Import models needed for fulfillment
         from models import Chemical, Tool, Warehouse, WarehouseTransfer
 
         # Get box_id from request body (optional - default to first box)
         data = request.get_json(silent=True) or {}
-        logger.info(f"Request data: {data}")
+        logger.info("Request data received", extra={"data": data})
 
         box = None
         box_id = data.get("box_id")
-        logger.info(f"Box ID from request: {box_id}, type: {type(box_id)}")
+        logger.info("Box ID from request", extra={"box_id": box_id, "box_id_type": type(box_id).__name__})
 
         if box_id:
             box = KitBox.query.filter_by(id=box_id, kit_id=reorder.kit_id).first()
@@ -241,7 +254,10 @@ def register_kit_reorder_routes(app):
                 # Update status to available when quantity is restored
                 existing_expendable.status = "available"
 
-                logger.info(f"Updated existing expendable {existing_expendable.id} with additional quantity {reorder.quantity_requested}")
+                logger.info("Updated existing expendable", extra={
+                    "expendable_id": existing_expendable.id,
+                    "quantity_added": reorder.quantity_requested
+                })
 
                 # Log action
                 log = AuditLog(
@@ -256,7 +272,10 @@ def register_kit_reorder_routes(app):
                 # Auto-generate lot number
                 lot_number = LotNumberSequence.generate_lot_number()
 
-                logger.info(f"Creating new expendable {reorder.part_number} with lot number {lot_number}")
+                logger.info("Creating new expendable", extra={
+                    "part_number": reorder.part_number,
+                    "lot_number": lot_number
+                })
 
                 # Create new Expendable (warehouse_id will be forced to None)
                 expendable = Expendable(
@@ -301,7 +320,10 @@ def register_kit_reorder_routes(app):
                 )
                 db.session.add(log)
 
-                logger.info(f"Created expendable {expendable.id} and kit item for reorder {reorder.id}")
+                logger.info("Created expendable and kit item for reorder", extra={
+                    "expendable_id": expendable.id,
+                    "reorder_id": reorder.id
+                })
 
         elif reorder.item_type in ["tool", "chemical"]:
             if reorder.item_id:
@@ -312,7 +334,9 @@ def register_kit_reorder_routes(app):
 
                 if existing_kit_item and existing_kit_item.item_type == reorder.item_type:
                     # This is an existing KitItem - find another instance in warehouse to transfer
-                    logger.info(f"Reordering existing item {existing_kit_item.part_number} - searching for warehouse stock")
+                    logger.info("Reordering existing item - searching for warehouse stock", extra={
+                        "part_number": existing_kit_item.part_number
+                    })
 
                     # Find a tool/chemical with the same part number that IS in a warehouse
                     if reorder.item_type == "tool":
@@ -329,7 +353,18 @@ def register_kit_reorder_routes(app):
                     if not warehouse_item:
                         raise ValidationError(f"No {reorder.item_type} with part number {existing_kit_item.part_number} found in warehouse. Please add stock to warehouse first.")
 
-                    logger.info(f"Found warehouse {reorder.item_type} ID {warehouse_item.id} with part number {existing_kit_item.part_number}")
+                    # Validate quantity for chemicals (check warehouse stock)
+                    if reorder.item_type == "chemical":
+                        if warehouse_item.quantity < reorder.quantity_requested:
+                            raise ValidationError(
+                                f"Insufficient quantity in warehouse. Available: {warehouse_item.quantity}, Requested: {reorder.quantity_requested}"
+                            )
+
+                    logger.info("Found warehouse item", extra={
+                        "item_type": reorder.item_type,
+                        "item_id": warehouse_item.id,
+                        "part_number": existing_kit_item.part_number
+                    })
 
                     # Create new kit item based on the warehouse item
                     kit_item = KitItem(
@@ -375,6 +410,13 @@ def register_kit_reorder_routes(app):
 
                     if not warehouse_item.warehouse_id:
                         raise ValidationError(f"{reorder.item_type.capitalize()} is not in a warehouse. Please add it to a warehouse first.")
+
+                    # Validate quantity for chemicals (check warehouse stock)
+                    if reorder.item_type == "chemical":
+                        if warehouse_item.quantity < reorder.quantity_requested:
+                            raise ValidationError(
+                                f"Insufficient quantity in warehouse. Available: {warehouse_item.quantity}, Requested: {reorder.quantity_requested}"
+                            )
 
                     # Create kit item
                     kit_item = KitItem(
@@ -427,7 +469,10 @@ def register_kit_reorder_routes(app):
                         "No active warehouse found. Please create a warehouse before fulfilling new item requests."
                     )
 
-                logger.info(f"Auto-creating new {reorder.item_type} in warehouse {default_warehouse.name}")
+                logger.info("Auto-creating new item in warehouse", extra={
+                    "item_type": reorder.item_type,
+                    "warehouse_name": default_warehouse.name
+                })
 
                 # Create the item in the warehouse
                 if reorder.item_type == "tool":
@@ -468,7 +513,11 @@ def register_kit_reorder_routes(app):
                 db.session.add(warehouse_item)
                 db.session.flush()  # Get the ID
 
-                logger.info(f"Created {reorder.item_type} ID {warehouse_item.id} in warehouse {default_warehouse.name}")
+                logger.info("Created item in warehouse", extra={
+                    "item_type": reorder.item_type,
+                    "item_id": warehouse_item.id,
+                    "warehouse_name": default_warehouse.name
+                })
 
                 # Now transfer it to the kit
                 kit_item = KitItem(
@@ -503,7 +552,11 @@ def register_kit_reorder_routes(app):
                 # Remove from warehouse (it's now in the kit)
                 warehouse_item.warehouse_id = None
 
-                logger.info(f"Transferred {reorder.item_type} ID {warehouse_item.id} to kit {reorder.kit_id}")
+                logger.info("Transferred item to kit", extra={
+                    "item_type": reorder.item_type,
+                    "item_id": warehouse_item.id,
+                    "kit_id": reorder.kit_id
+                })
 
         db.session.commit()
 
