@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Button, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const QuickActions = () => {
   const { user } = useSelector((state) => state.auth);
@@ -148,7 +149,8 @@ const QuickActions = () => {
         setFavoriteActions([]);
       }
     } catch (error) {
-      console.warn('Unable to load dashboard favorites:', error);
+      console.error('Unable to load dashboard favorites:', error);
+      toast.error('Failed to load your favorite actions. Using defaults.');
       setFavoriteActions([]);
     }
   }, [actions, storageKey]);
@@ -168,7 +170,8 @@ const QuickActions = () => {
       }
       localStorage.setItem(storageKey, JSON.stringify(favoriteActions));
     } catch (error) {
-      console.warn('Unable to store dashboard favorites:', error);
+      console.error('Unable to store dashboard favorites:', error);
+      toast.error('Failed to save your favorite actions. Changes may not persist.');
     }
   }, [actions, favoriteActions, storageKey]);
 

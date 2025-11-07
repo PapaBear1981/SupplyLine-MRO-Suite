@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Container, Row, Col, Button, Modal, ListGroup, ButtonGroup } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 import OverdueChemicals from '../components/dashboard/OverdueChemicals';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 import UserCheckoutStatus from '../components/dashboard/UserCheckoutStatus';
@@ -13,74 +14,79 @@ import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
 import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 import '../styles/dashboardThemes.css';
 
+// Constants for column names
+const COLUMN_MAIN = 'main';
+const COLUMN_SIDEBAR = 'sidebar';
+const COLUMN_HIDDEN = 'hidden';
+
 const DASHBOARD_WIDGETS = [
   {
     id: 'calibrationNotifications',
     label: 'Calibration Notifications',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: CalibrationNotifications,
     isAvailable: () => true,
   },
   {
     id: 'overdueChemicals',
     label: 'Overdue Chemicals',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: OverdueChemicals,
     isAvailable: ({ canViewAdminWidgets }) => canViewAdminWidgets,
   },
   {
     id: 'pastDueTools',
     label: 'Past Due Tools',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: PastDueTools,
     isAvailable: ({ canViewAdminWidgets }) => canViewAdminWidgets,
   },
   {
     id: 'kitAlerts',
     label: 'Kit Alerts Summary',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: KitAlertsSummary,
     isAvailable: () => true,
   },
   {
     id: 'checkoutStatus',
     label: 'My Checked Out Tools',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: UserCheckoutStatus,
     isAvailable: () => true,
   },
   {
     id: 'myKits',
     label: 'My Kits',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: MyKits,
     isAvailable: () => true,
   },
   {
     id: 'recentKitActivity',
     label: 'Recent Kit Activity',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: RecentKitActivity,
     isAvailable: () => true,
   },
   {
     id: 'recentActivity',
     label: 'Recent Activity',
-    defaultColumn: 'main',
+    defaultColumn: COLUMN_MAIN,
     component: RecentActivity,
     isAvailable: () => true,
   },
   {
     id: 'announcements',
     label: 'Announcements',
-    defaultColumn: 'sidebar',
+    defaultColumn: COLUMN_SIDEBAR,
     component: Announcements,
     isAvailable: () => true,
   },
   {
     id: 'quickActions',
     label: 'Quick Actions',
-    defaultColumn: 'sidebar',
+    defaultColumn: COLUMN_SIDEBAR,
     component: QuickActions,
     isAvailable: () => true,
   },
@@ -127,21 +133,21 @@ const UserDashboardPage = () => {
       const base = savedLayout || {};
 
       const normalized = {
-        main: Array.isArray(base.main) ? base.main.filter((id) => availableSet.has(id)) : [],
-        sidebar: Array.isArray(base.sidebar)
-          ? base.sidebar.filter((id) => availableSet.has(id))
+        [COLUMN_MAIN]: Array.isArray(base[COLUMN_MAIN]) ? base[COLUMN_MAIN].filter((id) => availableSet.has(id)) : [],
+        [COLUMN_SIDEBAR]: Array.isArray(base[COLUMN_SIDEBAR])
+          ? base[COLUMN_SIDEBAR].filter((id) => availableSet.has(id))
           : [],
-        hidden: Array.isArray(base.hidden)
-          ? base.hidden.filter((id) => availableSet.has(id))
+        [COLUMN_HIDDEN]: Array.isArray(base[COLUMN_HIDDEN])
+          ? base[COLUMN_HIDDEN].filter((id) => availableSet.has(id))
           : [],
       };
 
-      const used = new Set([...normalized.main, ...normalized.sidebar, ...normalized.hidden]);
+      const used = new Set([...normalized[COLUMN_MAIN], ...normalized[COLUMN_SIDEBAR], ...normalized[COLUMN_HIDDEN]]);
 
       availableWidgetIds.forEach((id) => {
         if (!used.has(id)) {
           const widget = widgetLookup[id];
-          const column = widget?.defaultColumn || 'main';
+          const column = widget?.defaultColumn || COLUMN_MAIN;
           normalized[column] = [...normalized[column], id];
           used.add(id);
         }
@@ -153,10 +159,10 @@ const UserDashboardPage = () => {
   );
 
   const defaultLayout = useMemo(() => {
-    const layout = { main: [], sidebar: [], hidden: [] };
+    const layout = { [COLUMN_MAIN]: [], [COLUMN_SIDEBAR]: [], [COLUMN_HIDDEN]: [] };
     availableWidgetIds.forEach((id) => {
       const widget = widgetLookup[id];
-      const column = widget?.defaultColumn || 'main';
+      const column = widget?.defaultColumn || COLUMN_MAIN;
       layout[column].push(id);
     });
     return layout;
@@ -164,9 +170,9 @@ const UserDashboardPage = () => {
 
   const cloneLayout = useCallback(
     (layout) => ({
-      main: [...layout.main],
-      sidebar: [...layout.sidebar],
-      hidden: [...layout.hidden],
+      [COLUMN_MAIN]: [...layout[COLUMN_MAIN]],
+      [COLUMN_SIDEBAR]: [...layout[COLUMN_SIDEBAR]],
+      [COLUMN_HIDDEN]: [...layout[COLUMN_HIDDEN]],
     }),
     []
   );
@@ -183,6 +189,7 @@ const UserDashboardPage = () => {
       }
     } catch (error) {
       console.warn('Failed to load dashboard layout:', error);
+      toast.error('Failed to load your dashboard layout. Using default layout.');
     }
 
     return cloneLayout(defaultLayout);
@@ -190,10 +197,7 @@ const UserDashboardPage = () => {
 
   const [showCustomizer, setShowCustomizer] = useState(false);
 
-  useEffect(() => {
-    setLayout((currentLayout) => normalizeLayout(currentLayout));
-  }, [normalizeLayout]);
-
+  // Consolidated layout initialization - handles both initial load and storage key changes
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -202,16 +206,19 @@ const UserDashboardPage = () => {
     try {
       const saved = localStorage.getItem(layoutStorageKey);
       if (saved) {
-        setLayout(normalizeLayout(JSON.parse(saved)));
+        const parsedLayout = JSON.parse(saved);
+        setLayout(normalizeLayout(parsedLayout));
       } else {
         setLayout(cloneLayout(defaultLayout));
       }
     } catch (error) {
       console.warn('Failed to reload dashboard layout:', error);
+      toast.error('Failed to load your dashboard layout. Using default layout.');
       setLayout(cloneLayout(defaultLayout));
     }
   }, [layoutStorageKey, defaultLayout, normalizeLayout, cloneLayout]);
 
+  // Persist layout changes to localStorage
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -220,7 +227,8 @@ const UserDashboardPage = () => {
     try {
       localStorage.setItem(layoutStorageKey, JSON.stringify(layout));
     } catch (error) {
-      console.warn('Failed to persist dashboard layout:', error);
+      console.error('Failed to persist dashboard layout:', error);
+      toast.error('Failed to save your dashboard layout. Changes may not persist.');
     }
   }, [layout, layoutStorageKey]);
 
@@ -268,20 +276,20 @@ const UserDashboardPage = () => {
     setLayout((currentLayout) => ({
       ...currentLayout,
       [fromColumn]: currentLayout[fromColumn].filter((id) => id !== widgetId),
-      hidden: currentLayout.hidden.includes(widgetId)
-        ? currentLayout.hidden
-        : [...currentLayout.hidden, widgetId],
+      [COLUMN_HIDDEN]: currentLayout[COLUMN_HIDDEN].includes(widgetId)
+        ? currentLayout[COLUMN_HIDDEN]
+        : [...currentLayout[COLUMN_HIDDEN], widgetId],
     }));
   };
 
   const restoreWidget = (widgetId) => {
-    const defaultColumn = widgetLookup[widgetId]?.defaultColumn || 'main';
+    const defaultColumn = widgetLookup[widgetId]?.defaultColumn || COLUMN_MAIN;
     setLayout((currentLayout) => ({
       ...currentLayout,
       [defaultColumn]: currentLayout[defaultColumn].includes(widgetId)
         ? currentLayout[defaultColumn]
         : [...currentLayout[defaultColumn], widgetId],
-      hidden: currentLayout.hidden.filter((id) => id !== widgetId),
+      [COLUMN_HIDDEN]: currentLayout[COLUMN_HIDDEN].filter((id) => id !== widgetId),
     }));
   };
 
@@ -298,6 +306,66 @@ const UserDashboardPage = () => {
       const Component = widget.component;
       return <Component key={id} />;
     });
+
+  // Reusable component for rendering widget list in customization modal
+  const renderWidgetList = (columnName, widgetIds, canMoveToColumn) => (
+    <ListGroup>
+      {widgetIds.map((widgetId, index) => {
+        const widget = widgetLookup[widgetId];
+        return (
+          <ListGroup.Item
+            key={widgetId}
+            className="d-flex flex-column gap-2"
+          >
+            <div className="d-flex justify-content-between align-items-center">
+              <span className="fw-semibold">{widget?.label}</span>
+              <ButtonGroup size="sm">
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => moveWidget(columnName, index, -1)}
+                  disabled={index === 0}
+                  aria-label="Move up"
+                >
+                  <i className="bi bi-arrow-up"></i>
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => moveWidget(columnName, index, 1)}
+                  disabled={index === widgetIds.length - 1}
+                  aria-label="Move down"
+                >
+                  <i className="bi bi-arrow-down"></i>
+                </Button>
+              </ButtonGroup>
+            </div>
+            <div className="d-flex gap-2 flex-wrap">
+              {canMoveToColumn && (
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => moveWidgetToColumn(widgetId, columnName, canMoveToColumn)}
+                >
+                  Move to {canMoveToColumn === COLUMN_MAIN ? 'Main' : 'Sidebar'}
+                </Button>
+              )}
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => hideWidget(widgetId, columnName)}
+              >
+                Hide
+              </Button>
+            </div>
+          </ListGroup.Item>
+        );
+      })}
+      {widgetIds.length === 0 && (
+        <ListGroup.Item className="text-muted">
+          No widgets in this column.
+        </ListGroup.Item>
+      )}
+    </ListGroup>
+  );
 
   return (
     <div
@@ -319,10 +387,10 @@ const UserDashboardPage = () => {
       <Container fluid className="p-0">
         <Row>
           {/* Main content area - 2/3 width on large screens */}
-          <Col lg={8}>{renderWidgets(layout.main)}</Col>
+          <Col lg={8}>{renderWidgets(layout[COLUMN_MAIN])}</Col>
 
           {/* Sidebar - 1/3 width on large screens */}
-          <Col lg={4}>{renderWidgets(layout.sidebar)}</Col>
+          <Col lg={4}>{renderWidgets(layout[COLUMN_SIDEBAR])}</Col>
         </Row>
       </Container>
 
@@ -343,122 +411,16 @@ const UserDashboardPage = () => {
           <Row className="gy-3">
             <Col md={4}>
               <h6 className="text-uppercase text-muted mb-2">Main Column</h6>
-              <ListGroup>
-                {layout.main.map((widgetId, index) => {
-                  const widget = widgetLookup[widgetId];
-                  return (
-                    <ListGroup.Item
-                      key={widgetId}
-                      className="d-flex flex-column gap-2"
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-semibold">{widget?.label}</span>
-                        <ButtonGroup size="sm">
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => moveWidget('main', index, -1)}
-                            disabled={index === 0}
-                            aria-label="Move up"
-                          >
-                            <i className="bi bi-arrow-up"></i>
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => moveWidget('main', index, 1)}
-                            disabled={index === layout.main.length - 1}
-                            aria-label="Move down"
-                          >
-                            <i className="bi bi-arrow-down"></i>
-                          </Button>
-                        </ButtonGroup>
-                      </div>
-                      <div className="d-flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => moveWidgetToColumn(widgetId, 'main', 'sidebar')}
-                        >
-                          Move to Sidebar
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => hideWidget(widgetId, 'main')}
-                        >
-                          Hide
-                        </Button>
-                      </div>
-                    </ListGroup.Item>
-                  );
-                })}
-                {layout.main.length === 0 && (
-                  <ListGroup.Item className="text-muted">
-                    No widgets in the main column.
-                  </ListGroup.Item>
-                )}
-              </ListGroup>
+              {renderWidgetList(COLUMN_MAIN, layout[COLUMN_MAIN], COLUMN_SIDEBAR)}
             </Col>
             <Col md={4}>
               <h6 className="text-uppercase text-muted mb-2">Sidebar</h6>
-              <ListGroup>
-                {layout.sidebar.map((widgetId, index) => {
-                  const widget = widgetLookup[widgetId];
-                  return (
-                    <ListGroup.Item
-                      key={widgetId}
-                      className="d-flex flex-column gap-2"
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-semibold">{widget?.label}</span>
-                        <ButtonGroup size="sm">
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => moveWidget('sidebar', index, -1)}
-                            disabled={index === 0}
-                            aria-label="Move up"
-                          >
-                            <i className="bi bi-arrow-up"></i>
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => moveWidget('sidebar', index, 1)}
-                            disabled={index === layout.sidebar.length - 1}
-                            aria-label="Move down"
-                          >
-                            <i className="bi bi-arrow-down"></i>
-                          </Button>
-                        </ButtonGroup>
-                      </div>
-                      <div className="d-flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => moveWidgetToColumn(widgetId, 'sidebar', 'main')}
-                        >
-                          Move to Main
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => hideWidget(widgetId, 'sidebar')}
-                        >
-                          Hide
-                        </Button>
-                      </div>
-                    </ListGroup.Item>
-                  );
-                })}
-                {layout.sidebar.length === 0 && (
-                  <ListGroup.Item className="text-muted">
-                    No widgets in the sidebar.
-                  </ListGroup.Item>
-                )}
-              </ListGroup>
+              {renderWidgetList(COLUMN_SIDEBAR, layout[COLUMN_SIDEBAR], COLUMN_MAIN)}
             </Col>
             <Col md={4}>
               <h6 className="text-uppercase text-muted mb-2">Hidden Widgets</h6>
               <ListGroup>
-                {layout.hidden.map((widgetId) => {
+                {layout[COLUMN_HIDDEN].map((widgetId) => {
                   const widget = widgetLookup[widgetId];
                   return (
                     <ListGroup.Item
@@ -476,7 +438,7 @@ const UserDashboardPage = () => {
                     </ListGroup.Item>
                   );
                 })}
-                {layout.hidden.length === 0 && (
+                {layout[COLUMN_HIDDEN].length === 0 && (
                   <ListGroup.Item className="text-muted">
                     No hidden widgets.
                   </ListGroup.Item>
