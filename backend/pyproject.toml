@@ -63,6 +63,7 @@ ignore = [
     "DTZ001",  # datetime without timezone (would require major refactor)
     "DTZ006",  # datetime.fromtimestamp without timezone
     "DTZ007",  # datetime.strptime without timezone
+    "UP017",   # datetime.UTC alias (using datetime.timezone.utc for Python <3.12 compatibility)
     "PLW0603", # global statement (used intentionally in some places)
     "PLR0913", # too many arguments (would require refactoring)
     "PLR0912", # too many branches (would require refactoring)

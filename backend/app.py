@@ -175,7 +175,7 @@ def create_app():
 
     # Log current time information for debugging
     logger.info("Application starting", extra={
-        "utc_time": datetime.datetime.now(datetime.UTC).isoformat(),
+        "utc_time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "local_time": datetime.datetime.now().isoformat()
     })
 

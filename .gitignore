@@ -87,5 +87,5 @@ installer/
 portable-build/
 
 # Temporary debugging scripts
-check_tool*.py
-backend/check_tools.py
+check_*.py
+backend/check_*.py
