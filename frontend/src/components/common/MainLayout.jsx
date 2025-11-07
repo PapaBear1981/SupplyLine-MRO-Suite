@@ -112,72 +112,6 @@ const MainLayout = ({ children }) => {
           )}
         </div>
 
-        {/* Sidebar User Section */}
-        {isAuthenticated && (
-          <div className="sidebar-user-section">
-            <Button
-              variant="link"
-              className="sidebar-user-btn w-100"
-              onClick={() => setShowProfileModal(true)}
-              data-testid="user-menu"
-            >
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="User Avatar"
-                  className="sidebar-avatar"
-                  style={{ objectFit: 'cover' }}
-                />
-              ) : (
-                <div className="sidebar-avatar bg-primary text-white">
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
-              )}
-              {!sidebarCollapsed && (
-                <span className="sidebar-user-name">{user?.name || 'User'}</span>
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* Sidebar Help Buttons */}
-        {isAuthenticated && (
-          <div className="sidebar-help-section">
-            <OverlayTrigger
-              placement="right"
-              overlay={<Tooltip id="tooltip-help">Toggle help features</Tooltip>}
-              trigger={showTooltips ? ['hover', 'focus'] : []}
-            >
-              <Button
-                variant={showHelp ? "info" : "outline-info"}
-                size="sm"
-                className="sidebar-help-btn"
-                onClick={() => setShowHelp(!showHelp)}
-                aria-label={showHelp ? "Hide help features" : "Show help features"}
-              >
-                <i className="bi bi-question-circle"></i>
-                {!sidebarCollapsed && <span className="ms-2">Help</span>}
-              </Button>
-            </OverlayTrigger>
-            <OverlayTrigger
-              placement="right"
-              overlay={<Tooltip id="tooltip-tour">Start guided tour</Tooltip>}
-              trigger={showTooltips ? ['hover', 'focus'] : []}
-            >
-              <Button
-                variant="outline-info"
-                size="sm"
-                className="sidebar-help-btn"
-                onClick={() => setShowTour(true)}
-                aria-label="Start guided tour"
-              >
-                <i className="bi bi-info-circle"></i>
-                {!sidebarCollapsed && <span className="ms-2">Tour</span>}
-              </Button>
-            </OverlayTrigger>
-          </div>
-        )}
-
         {/* Sidebar Navigation */}
         <Nav className="flex-column sidebar-nav">
           {/* Dashboard is always visible to authenticated users */}
@@ -319,6 +253,34 @@ const MainLayout = ({ children }) => {
             </>
           )}
         </Nav>
+
+        {/* Sidebar User Section - Moved to Bottom */}
+        {isAuthenticated && (
+          <div className="sidebar-user-section">
+            <Button
+              variant="link"
+              className="sidebar-user-btn w-100"
+              onClick={() => setShowProfileModal(true)}
+              data-testid="user-menu"
+            >
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="User Avatar"
+                  className="sidebar-avatar"
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="sidebar-avatar bg-primary text-white">
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+              )}
+              {!sidebarCollapsed && (
+                <span className="sidebar-user-name">{user?.name || 'User'}</span>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -343,6 +305,9 @@ const MainLayout = ({ children }) => {
       <ProfileModal
         show={showProfileModal}
         onHide={() => setShowProfileModal(false)}
+        onShowTour={() => setShowTour(true)}
+        onToggleHelp={() => setShowHelp(!showHelp)}
+        showHelp={showHelp}
       />
 
       {/* Tour Guide */}

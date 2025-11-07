@@ -367,6 +367,14 @@ const UserDashboardPage = () => {
     </ListGroup>
   );
 
+  // Expose the customize function to the window object so ProfileModal can access it
+  useEffect(() => {
+    window.openDashboardCustomizer = () => setShowCustomizer(true);
+    return () => {
+      delete window.openDashboardCustomizer;
+    };
+  }, []);
+
   return (
     <div
       className={`dashboard-root w-100 ${roleThemeClass}`}
@@ -374,14 +382,6 @@ const UserDashboardPage = () => {
     >
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <h1 className="mb-0">Dashboard</h1>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          onClick={() => setShowCustomizer(true)}
-        >
-          <i className="bi bi-sliders me-2"></i>
-          Customize
-        </Button>
       </div>
 
       <Container fluid className="p-0">
