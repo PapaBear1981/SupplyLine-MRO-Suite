@@ -145,6 +145,35 @@ const sanitizeUtilizationResponse = (payload) => {
   return sanitized;
 };
 
+// Constants and helper functions for chart rendering
+const RADIAN = Math.PI / 180;
+
+const renderTransferLabel = ({
+  cx,
+  cy,
+  midAngle,
+  outerRadius,
+  percent,
+  name
+}) => {
+  const radius = outerRadius + 18;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#2c3e50"
+      fontSize={12}
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+    >
+      {`${name}: ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const KitUtilizationStats = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -182,33 +211,6 @@ const KitUtilizationStats = () => {
   }, [timeRange]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-  const RADIAN = Math.PI / 180;
-
-  const renderTransferLabel = ({
-    cx,
-    cy,
-    midAngle,
-    outerRadius,
-    percent,
-    name
-  }) => {
-    const radius = outerRadius + 18;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#2c3e50"
-        fontSize={12}
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-      >
-        {`${name}: ${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
 
   if (loading) {
     return (
