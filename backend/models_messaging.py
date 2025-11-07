@@ -2,7 +2,7 @@
 Enhanced messaging models for real-time chat features.
 Includes channels, message reactions, user presence tracking, and attachment metadata.
 """
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from models import db
 
@@ -21,7 +21,7 @@ class Channel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.String(500))
-    channel_type = db.Column(db.String(50), nullable=False, default='department')  # department, team, project
+    channel_type = db.Column(db.String(50), nullable=False, default="department")  # department, team, project
     department = db.Column(db.String(100))  # Department name for department channels
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
@@ -62,7 +62,7 @@ class ChannelMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     channel_id = db.Column(db.Integer, db.ForeignKey("channels.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    role = db.Column(db.String(50), default='member')  # admin, moderator, member
+    role = db.Column(db.String(50), default="member")  # admin, moderator, member
     joined_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
     last_read_message_id = db.Column(db.Integer, db.ForeignKey("channel_messages.id"))
     notifications_enabled = db.Column(db.Boolean, default=True)
@@ -74,7 +74,7 @@ class ChannelMember(db.Model):
 
     # Unique constraint to prevent duplicate memberships
     __table_args__ = (
-        db.UniqueConstraint('channel_id', 'user_id', name='unique_channel_membership'),
+        db.UniqueConstraint("channel_id", "user_id", name="unique_channel_membership"),
     )
 
     def to_dict(self):
@@ -101,7 +101,7 @@ class ChannelMessage(db.Model):
     channel_id = db.Column(db.Integer, db.ForeignKey("channels.id"), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     message = db.Column(db.String(5000), nullable=False)
-    message_type = db.Column(db.String(50), default='text')  # text, system, announcement
+    message_type = db.Column(db.String(50), default="text")  # text, system, announcement
     sent_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
     edited_date = db.Column(db.DateTime)
     is_deleted = db.Column(db.Boolean, default=False)
@@ -160,9 +160,9 @@ class MessageReaction(db.Model):
     # Unique constraint to prevent duplicate reactions from same user
     __table_args__ = (
         db.CheckConstraint(
-            '(kit_message_id IS NOT NULL AND channel_message_id IS NULL) OR '
-            '(kit_message_id IS NULL AND channel_message_id IS NOT NULL)',
-            name='check_one_message_type'
+            "(kit_message_id IS NOT NULL AND channel_message_id IS NULL) OR "
+            "(kit_message_id IS NULL AND channel_message_id IS NOT NULL)",
+            name="check_one_message_type"
         ),
     )
 
@@ -211,9 +211,9 @@ class MessageAttachment(db.Model):
     # Constraint to ensure attachment belongs to one message type
     __table_args__ = (
         db.CheckConstraint(
-            '(kit_message_id IS NOT NULL AND channel_message_id IS NULL) OR '
-            '(kit_message_id IS NULL AND channel_message_id IS NOT NULL)',
-            name='check_attachment_message_type'
+            "(kit_message_id IS NOT NULL AND channel_message_id IS NULL) OR "
+            "(kit_message_id IS NULL AND channel_message_id IS NOT NULL)",
+            name="check_attachment_message_type"
         ),
     )
 
@@ -316,9 +316,9 @@ class TypingIndicator(db.Model):
     # Constraint to ensure typing is for one context
     __table_args__ = (
         db.CheckConstraint(
-            '(channel_id IS NOT NULL AND kit_id IS NULL) OR '
-            '(channel_id IS NULL AND kit_id IS NOT NULL)',
-            name='check_typing_context'
+            "(channel_id IS NOT NULL AND kit_id IS NULL) OR "
+            "(channel_id IS NULL AND kit_id IS NOT NULL)",
+            name="check_typing_context"
         ),
     )
 

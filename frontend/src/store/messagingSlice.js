@@ -184,7 +184,7 @@ const messagingSlice = createSlice({
 
     // Update message read status
     updateMessageReadStatus: (state, action) => {
-      const { messageId, readBy, readDate } = action.payload;
+      const { messageId, readDate } = action.payload;
 
       // Update in kit messages
       const kitMsg = state.kitMessages.find(m => m.id === messageId);

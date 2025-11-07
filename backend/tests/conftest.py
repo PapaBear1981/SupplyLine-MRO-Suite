@@ -454,7 +454,7 @@ def test_utils():
 def test_user_2(db_session):
     """Create a second test user"""
     from models import User
-    
+
     user = User(
         name="Test User 2",
         employee_number="EMP002",
@@ -472,7 +472,7 @@ def test_user_2(db_session):
 def test_channel(db_session, test_user):
     """Create a test channel"""
     from models_messaging import Channel
-    
+
     channel = Channel(
         name="Test Channel",
         description="Test channel for unit tests",
@@ -488,8 +488,8 @@ def test_channel(db_session, test_user):
 @pytest.fixture
 def test_kit(db_session, test_user):
     """Create a test kit"""
-    from models_kits import Kit, AircraftType
-    
+    from models_kits import AircraftType, Kit
+
     # Create aircraft type first
     aircraft_type = AircraftType(
         name="Test Aircraft",
@@ -497,7 +497,7 @@ def test_kit(db_session, test_user):
     )
     db_session.add(aircraft_type)
     db_session.flush()
-    
+
     kit = Kit(
         name="Test Kit",
         description="Test kit for unit tests",

@@ -3,21 +3,19 @@ WebSocket event handlers for real-time messaging features.
 Handles connection, disconnection, messaging, typing indicators, and presence tracking.
 """
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from functools import wraps
 
 from flask import request
 from flask_jwt_extended import decode_token
-from flask_socketio import emit, join_room, leave_room, rooms
+from flask_socketio import emit, join_room, leave_room
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 from models import db
-from models_messaging import (
-    Channel, ChannelMember, ChannelMessage,
-    MessageReaction, UserPresence, TypingIndicator
-)
 from models_kits import KitMessage
+from models_messaging import ChannelMember, ChannelMessage, MessageReaction, UserPresence
 from socketio_config import socketio
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,27 +26,27 @@ def authenticated_only(f):
     """
     @wraps(f)
     def wrapped(*args, **kwargs):
-        token = request.args.get('token')
+        token = request.args.get("token")
         if not token:
             logger.warning("WebSocket connection without token")
-            emit('error', {'message': 'Authentication required'})
+            emit("error", {"message": "Authentication required"})
             return None
 
         try:
             decoded_token = decode_token(token)
-            user_id = decoded_token.get('sub')
+            user_id = decoded_token.get("sub")
             if not user_id:
-                emit('error', {'message': 'Invalid token'})
+                emit("error", {"message": "Invalid token"})
                 return None
 
             # Pass user_id to the wrapped function
             return f(user_id, *args, **kwargs)
 
         except ExpiredSignatureError:
-            emit('error', {'message': 'Token expired'})
+            emit("error", {"message": "Token expired"})
             return None
         except InvalidTokenError:
-            emit('error', {'message': 'Invalid token'})
+            emit("error", {"message": "Invalid token"})
             return None
 
     return wrapped
@@ -56,20 +54,20 @@ def authenticated_only(f):
 
 # === Connection Management ===
 
-@socketio.on('connect')
+@socketio.on("connect")
 def handle_connect():
     """
     Handle client connection.
     Authenticate user and set them as online.
     """
-    token = request.args.get('token')
+    token = request.args.get("token")
     if not token:
         logger.warning("WebSocket connection attempt without token")
         return False  # Reject connection
 
     try:
         decoded_token = decode_token(token)
-        user_id = decoded_token.get('sub')
+        user_id = decoded_token.get("sub")
 
         if not user_id:
             logger.warning("WebSocket connection with invalid token")
@@ -100,31 +98,31 @@ def handle_connect():
         })
 
         # Broadcast presence update to all users
-        emit('user_online', {
-            'user_id': user_id,
-            'timestamp': datetime.now(UTC).isoformat()
+        emit("user_online", {
+            "user_id": user_id,
+            "timestamp": datetime.now(UTC).isoformat()
         }, broadcast=True)
 
         return True
 
     except (ExpiredSignatureError, InvalidTokenError) as e:
-        logger.warning(f"WebSocket authentication failed: {str(e)}")
+        logger.warning(f"WebSocket authentication failed: {e!s}")
         return False
 
 
-@socketio.on('disconnect')
+@socketio.on("disconnect")
 def handle_disconnect():
     """
     Handle client disconnection.
     Set user as offline.
     """
-    token = request.args.get('token')
+    token = request.args.get("token")
     if not token:
         return
 
     try:
         decoded_token = decode_token(token)
-        user_id = decoded_token.get('sub')
+        user_id = decoded_token.get("sub")
 
         if user_id:
             presence = UserPresence.query.filter_by(user_id=user_id).first()
@@ -139,18 +137,18 @@ def handle_disconnect():
                 })
 
                 # Broadcast presence update
-                emit('user_offline', {
-                    'user_id': user_id,
-                    'timestamp': datetime.now(UTC).isoformat()
+                emit("user_offline", {
+                    "user_id": user_id,
+                    "timestamp": datetime.now(UTC).isoformat()
                 }, broadcast=True)
 
     except Exception as e:
-        logger.error(f"Error handling disconnect: {str(e)}")
+        logger.error(f"Error handling disconnect: {e!s}")
 
 
 # === Kit Messaging ===
 
-@socketio.on('send_kit_message')
+@socketio.on("send_kit_message")
 @authenticated_only
 def handle_kit_message(user_id, data):
     """
@@ -158,14 +156,14 @@ def handle_kit_message(user_id, data):
     Broadcasts to recipient in real-time.
     """
     try:
-        kit_id = data.get('kit_id')
-        recipient_id = data.get('recipient_id')
-        subject = data.get('subject')
-        message = data.get('message')
-        parent_message_id = data.get('parent_message_id')
+        kit_id = data.get("kit_id")
+        recipient_id = data.get("recipient_id")
+        subject = data.get("subject")
+        message = data.get("message")
+        parent_message_id = data.get("parent_message_id")
 
         if not all([kit_id, subject, message]):
-            emit('error', {'message': 'Missing required fields'})
+            emit("error", {"message": "Missing required fields"})
             return
 
         # Create new message
@@ -183,16 +181,16 @@ def handle_kit_message(user_id, data):
         message_data = new_message.to_dict()
 
         # Emit to sender
-        emit('kit_message_sent', message_data, room=f"user_{user_id}")
+        emit("kit_message_sent", message_data, room=f"user_{user_id}")
 
         # Emit to recipient if specified
         if recipient_id:
-            emit('new_kit_message', message_data, room=f"user_{recipient_id}")
+            emit("new_kit_message", message_data, room=f"user_{recipient_id}")
         else:
             # Broadcast to all if no recipient (public message)
-            emit('new_kit_message', message_data, broadcast=True)
+            emit("new_kit_message", message_data, broadcast=True)
 
-        logger.info(f"Kit message sent", extra={
+        logger.info("Kit message sent", extra={
             "sender_id": user_id,
             "recipient_id": recipient_id,
             "kit_id": kit_id,
@@ -200,30 +198,30 @@ def handle_kit_message(user_id, data):
         })
 
     except Exception as e:
-        logger.error(f"Error sending kit message: {str(e)}", exc_info=True)
-        emit('error', {'message': 'Failed to send message'})
+        logger.error(f"Error sending kit message: {e!s}", exc_info=True)
+        emit("error", {"message": "Failed to send message"})
 
 
-@socketio.on('mark_kit_message_read')
+@socketio.on("mark_kit_message_read")
 @authenticated_only
 def handle_mark_kit_message_read(user_id, data):
     """
     Mark a kit message as read.
     """
     try:
-        message_id = data.get('message_id')
+        message_id = data.get("message_id")
         if not message_id:
-            emit('error', {'message': 'Message ID required'})
+            emit("error", {"message": "Message ID required"})
             return
 
         message = KitMessage.query.get(message_id)
         if not message:
-            emit('error', {'message': 'Message not found'})
+            emit("error", {"message": "Message not found"})
             return
 
         # Only recipient can mark as read
         if message.recipient_id != user_id:
-            emit('error', {'message': 'Unauthorized'})
+            emit("error", {"message": "Unauthorized"})
             return
 
         message.is_read = True
@@ -231,22 +229,22 @@ def handle_mark_kit_message_read(user_id, data):
         db.session.commit()
 
         # Notify sender that message was read
-        emit('kit_message_read', {
-            'message_id': message_id,
-            'read_by': user_id,
-            'read_date': message.read_date.isoformat()
+        emit("kit_message_read", {
+            "message_id": message_id,
+            "read_by": user_id,
+            "read_date": message.read_date.isoformat()
         }, room=f"user_{message.sender_id}")
 
-        emit('message_marked_read', {'message_id': message_id})
+        emit("message_marked_read", {"message_id": message_id})
 
     except Exception as e:
-        logger.error(f"Error marking message as read: {str(e)}")
-        emit('error', {'message': 'Failed to mark message as read'})
+        logger.error(f"Error marking message as read: {e!s}")
+        emit("error", {"message": "Failed to mark message as read"})
 
 
 # === Channel Messaging ===
 
-@socketio.on('send_channel_message')
+@socketio.on("send_channel_message")
 @authenticated_only
 def handle_channel_message(user_id, data):
     """
@@ -254,12 +252,12 @@ def handle_channel_message(user_id, data):
     Broadcasts to all channel members.
     """
     try:
-        channel_id = data.get('channel_id')
-        message = data.get('message')
-        parent_message_id = data.get('parent_message_id')
+        channel_id = data.get("channel_id")
+        message = data.get("message")
+        parent_message_id = data.get("parent_message_id")
 
         if not all([channel_id, message]):
-            emit('error', {'message': 'Missing required fields'})
+            emit("error", {"message": "Missing required fields"})
             return
 
         # Verify user is a member of the channel
@@ -269,7 +267,7 @@ def handle_channel_message(user_id, data):
         ).first()
 
         if not membership:
-            emit('error', {'message': 'Not a channel member'})
+            emit("error", {"message": "Not a channel member"})
             return
 
         # Create new channel message
@@ -285,29 +283,29 @@ def handle_channel_message(user_id, data):
         message_data = new_message.to_dict(include_reactions=True, include_attachments=True)
 
         # Broadcast to all channel members
-        emit('new_channel_message', message_data, room=f"channel_{channel_id}")
+        emit("new_channel_message", message_data, room=f"channel_{channel_id}")
 
-        logger.info(f"Channel message sent", extra={
+        logger.info("Channel message sent", extra={
             "sender_id": user_id,
             "channel_id": channel_id,
             "message_id": new_message.id
         })
 
     except Exception as e:
-        logger.error(f"Error sending channel message: {str(e)}", exc_info=True)
-        emit('error', {'message': 'Failed to send message'})
+        logger.error(f"Error sending channel message: {e!s}", exc_info=True)
+        emit("error", {"message": "Failed to send message"})
 
 
-@socketio.on('join_channel')
+@socketio.on("join_channel")
 @authenticated_only
 def handle_join_channel(user_id, data):
     """
     Join a channel room for real-time updates.
     """
     try:
-        channel_id = data.get('channel_id')
+        channel_id = data.get("channel_id")
         if not channel_id:
-            emit('error', {'message': 'Channel ID required'})
+            emit("error", {"message": "Channel ID required"})
             return
 
         # Verify user is a member
@@ -317,128 +315,128 @@ def handle_join_channel(user_id, data):
         ).first()
 
         if not membership:
-            emit('error', {'message': 'Not a channel member'})
+            emit("error", {"message": "Not a channel member"})
             return
 
         join_room(f"channel_{channel_id}")
-        emit('channel_joined', {'channel_id': channel_id})
+        emit("channel_joined", {"channel_id": channel_id})
 
         # Notify other members
-        emit('user_joined_channel', {
-            'user_id': user_id,
-            'channel_id': channel_id
+        emit("user_joined_channel", {
+            "user_id": user_id,
+            "channel_id": channel_id
         }, room=f"channel_{channel_id}", include_self=False)
 
     except Exception as e:
-        logger.error(f"Error joining channel: {str(e)}")
-        emit('error', {'message': 'Failed to join channel'})
+        logger.error(f"Error joining channel: {e!s}")
+        emit("error", {"message": "Failed to join channel"})
 
 
-@socketio.on('leave_channel')
+@socketio.on("leave_channel")
 @authenticated_only
 def handle_leave_channel(user_id, data):
     """
     Leave a channel room.
     """
     try:
-        channel_id = data.get('channel_id')
+        channel_id = data.get("channel_id")
         if not channel_id:
-            emit('error', {'message': 'Channel ID required'})
+            emit("error", {"message": "Channel ID required"})
             return
 
         leave_room(f"channel_{channel_id}")
-        emit('channel_left', {'channel_id': channel_id})
+        emit("channel_left", {"channel_id": channel_id})
 
         # Notify other members
-        emit('user_left_channel', {
-            'user_id': user_id,
-            'channel_id': channel_id
+        emit("user_left_channel", {
+            "user_id": user_id,
+            "channel_id": channel_id
         }, room=f"channel_{channel_id}")
 
     except Exception as e:
-        logger.error(f"Error leaving channel: {str(e)}")
-        emit('error', {'message': 'Failed to leave channel'})
+        logger.error(f"Error leaving channel: {e!s}")
+        emit("error", {"message": "Failed to leave channel"})
 
 
 # === Typing Indicators ===
 
-@socketio.on('typing_start')
+@socketio.on("typing_start")
 @authenticated_only
 def handle_typing_start(user_id, data):
     """
     User started typing in a channel or kit message.
     """
     try:
-        channel_id = data.get('channel_id')
-        kit_id = data.get('kit_id')
+        channel_id = data.get("channel_id")
+        kit_id = data.get("kit_id")
 
         if channel_id:
             # Broadcast typing to channel members
-            emit('user_typing', {
-                'user_id': user_id,
-                'channel_id': channel_id,
-                'typing': True
+            emit("user_typing", {
+                "user_id": user_id,
+                "channel_id": channel_id,
+                "typing": True
             }, room=f"channel_{channel_id}", include_self=False)
 
         elif kit_id:
             # Broadcast typing to kit message recipients
-            emit('user_typing', {
-                'user_id': user_id,
-                'kit_id': kit_id,
-                'typing': True
+            emit("user_typing", {
+                "user_id": user_id,
+                "kit_id": kit_id,
+                "typing": True
             }, room=f"kit_{kit_id}", include_self=False)
 
     except Exception as e:
-        logger.error(f"Error handling typing start: {str(e)}")
+        logger.error(f"Error handling typing start: {e!s}")
 
 
-@socketio.on('typing_stop')
+@socketio.on("typing_stop")
 @authenticated_only
 def handle_typing_stop(user_id, data):
     """
     User stopped typing.
     """
     try:
-        channel_id = data.get('channel_id')
-        kit_id = data.get('kit_id')
+        channel_id = data.get("channel_id")
+        kit_id = data.get("kit_id")
 
         if channel_id:
-            emit('user_typing', {
-                'user_id': user_id,
-                'channel_id': channel_id,
-                'typing': False
+            emit("user_typing", {
+                "user_id": user_id,
+                "channel_id": channel_id,
+                "typing": False
             }, room=f"channel_{channel_id}", include_self=False)
 
         elif kit_id:
-            emit('user_typing', {
-                'user_id': user_id,
-                'kit_id': kit_id,
-                'typing': False
+            emit("user_typing", {
+                "user_id": user_id,
+                "kit_id": kit_id,
+                "typing": False
             }, room=f"kit_{kit_id}", include_self=False)
 
     except Exception as e:
-        logger.error(f"Error handling typing stop: {str(e)}")
+        logger.error(f"Error handling typing stop: {e!s}")
 
 
 # === Message Reactions ===
 
-@socketio.on('add_reaction')
+@socketio.on("add_reaction")
 @authenticated_only
 def handle_add_reaction(user_id, data):
     """
     Add a reaction to a message.
     """
     try:
-        kit_message_id = data.get('kit_message_id')
-        channel_message_id = data.get('channel_message_id')
-        reaction_type = data.get('reaction_type')
+        kit_message_id = data.get("kit_message_id")
+        channel_message_id = data.get("channel_message_id")
+        reaction_type = data.get("reaction_type")
 
         if not reaction_type:
-            emit('error', {'message': 'Reaction type required'})
+            emit("error", {"message": "Reaction type required"})
             return
 
         if not kit_message_id and not channel_message_id:
-            emit('error', {'message': 'Message ID required'})
+            emit("error", {"message": "Message ID required"})
             return
 
         # Check if reaction already exists
@@ -450,7 +448,7 @@ def handle_add_reaction(user_id, data):
         ).first()
 
         if existing:
-            emit('error', {'message': 'Reaction already exists'})
+            emit("error", {"message": "Reaction already exists"})
             return
 
         # Create reaction
@@ -469,42 +467,42 @@ def handle_add_reaction(user_id, data):
         if channel_message_id:
             message = ChannelMessage.query.get(channel_message_id)
             if message:
-                emit('reaction_added', reaction_data, room=f"channel_{message.channel_id}")
+                emit("reaction_added", reaction_data, room=f"channel_{message.channel_id}")
         elif kit_message_id:
             message = KitMessage.query.get(kit_message_id)
             if message:
                 # Notify sender and recipient
                 if message.recipient_id:
-                    emit('reaction_added', reaction_data, room=f"user_{message.recipient_id}")
-                emit('reaction_added', reaction_data, room=f"user_{message.sender_id}")
+                    emit("reaction_added", reaction_data, room=f"user_{message.recipient_id}")
+                emit("reaction_added", reaction_data, room=f"user_{message.sender_id}")
 
-        emit('reaction_added_confirm', reaction_data)
+        emit("reaction_added_confirm", reaction_data)
 
     except Exception as e:
-        logger.error(f"Error adding reaction: {str(e)}", exc_info=True)
-        emit('error', {'message': 'Failed to add reaction'})
+        logger.error(f"Error adding reaction: {e!s}", exc_info=True)
+        emit("error", {"message": "Failed to add reaction"})
 
 
-@socketio.on('remove_reaction')
+@socketio.on("remove_reaction")
 @authenticated_only
 def handle_remove_reaction(user_id, data):
     """
     Remove a reaction from a message.
     """
     try:
-        reaction_id = data.get('reaction_id')
+        reaction_id = data.get("reaction_id")
         if not reaction_id:
-            emit('error', {'message': 'Reaction ID required'})
+            emit("error", {"message": "Reaction ID required"})
             return
 
         reaction = MessageReaction.query.get(reaction_id)
         if not reaction:
-            emit('error', {'message': 'Reaction not found'})
+            emit("error", {"message": "Reaction not found"})
             return
 
         # Only the user who added the reaction can remove it
         if reaction.user_id != user_id:
-            emit('error', {'message': 'Unauthorized'})
+            emit("error", {"message": "Unauthorized"})
             return
 
         channel_id = None
@@ -518,25 +516,25 @@ def handle_remove_reaction(user_id, data):
 
         # Broadcast removal
         if channel_id:
-            emit('reaction_removed', {'reaction_id': reaction_id}, room=f"channel_{channel_id}")
+            emit("reaction_removed", {"reaction_id": reaction_id}, room=f"channel_{channel_id}")
 
-        emit('reaction_removed_confirm', {'reaction_id': reaction_id})
+        emit("reaction_removed_confirm", {"reaction_id": reaction_id})
 
     except Exception as e:
-        logger.error(f"Error removing reaction: {str(e)}")
-        emit('error', {'message': 'Failed to remove reaction'})
+        logger.error(f"Error removing reaction: {e!s}")
+        emit("error", {"message": "Failed to remove reaction"})
 
 
 # === Presence & Status ===
 
-@socketio.on('update_status')
+@socketio.on("update_status")
 @authenticated_only
 def handle_update_status(user_id, data):
     """
     Update user's custom status message.
     """
     try:
-        status_message = data.get('status_message', '')
+        status_message = data.get("status_message", "")
 
         presence = UserPresence.query.filter_by(user_id=user_id).first()
         if not presence:
@@ -548,19 +546,19 @@ def handle_update_status(user_id, data):
         db.session.commit()
 
         # Broadcast status update
-        emit('status_updated', {
-            'user_id': user_id,
-            'status_message': status_message
+        emit("status_updated", {
+            "user_id": user_id,
+            "status_message": status_message
         }, broadcast=True)
 
-        emit('status_update_confirm', {'status_message': status_message})
+        emit("status_update_confirm", {"status_message": status_message})
 
     except Exception as e:
-        logger.error(f"Error updating status: {str(e)}")
-        emit('error', {'message': 'Failed to update status'})
+        logger.error(f"Error updating status: {e!s}")
+        emit("error", {"message": "Failed to update status"})
 
 
-@socketio.on('ping')
+@socketio.on("ping")
 @authenticated_only
 def handle_ping(user_id, data):
     """
@@ -572,10 +570,10 @@ def handle_ping(user_id, data):
             presence.last_activity = datetime.now(UTC)
             db.session.commit()
 
-        emit('pong', {'timestamp': datetime.now(UTC).isoformat()})
+        emit("pong", {"timestamp": datetime.now(UTC).isoformat()})
 
     except Exception as e:
-        logger.error(f"Error handling ping: {str(e)}")
+        logger.error(f"Error handling ping: {e!s}")
 
 
 def register_socketio_events(app):

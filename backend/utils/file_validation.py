@@ -247,15 +247,14 @@ def validate_file_upload(file_path: str, max_size: int | None = None) -> None:
         )
 
     # Read first bytes for magic byte validation
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         header = f.read(512)
 
     # Check for NULL bytes (potential binary corruption)
-    if b'\x00' * 100 in header:
+    if b"\x00" * 100 in header:
         raise FileValidationError("File appears to be corrupted")
 
     # File is valid
-    return None
 
 
 def get_file_type(file_path: str) -> str:
@@ -271,22 +270,22 @@ def get_file_type(file_path: str) -> str:
     ext = os.path.splitext(file_path)[1].lower()
 
     # Image types
-    if ext in {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'}:
-        return 'image'
+    if ext in {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"}:
+        return "image"
 
     # Document types
-    elif ext in {'.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt'}:
-        return 'document'
+    if ext in {".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt"}:
+        return "document"
 
     # Spreadsheet types
-    elif ext in {'.xls', '.xlsx', '.csv', '.ods'}:
-        return 'spreadsheet'
+    if ext in {".xls", ".xlsx", ".csv", ".ods"}:
+        return "spreadsheet"
 
     # Archive types
-    elif ext in {'.zip', '.tar', '.gz', '.7z'}:
-        return 'archive'
+    if ext in {".zip", ".tar", ".gz", ".7z"}:
+        return "archive"
 
-    return 'other'
+    return "other"
 
 
 def scan_file_for_malware(file_path: str) -> None:
@@ -311,8 +310,8 @@ def scan_file_for_malware(file_path: str) -> None:
 
     # Block executable files
     dangerous_extensions = {
-        '.exe', '.dll', '.so', '.dylib', '.bat', '.cmd', '.sh',
-        '.ps1', '.vbs', '.js', '.jar', '.app', '.dmg', '.pkg'
+        ".exe", ".dll", ".so", ".dylib", ".bat", ".cmd", ".sh",
+        ".ps1", ".vbs", ".js", ".jar", ".app", ".dmg", ".pkg"
     }
 
     if ext in dangerous_extensions:
@@ -321,23 +320,23 @@ def scan_file_for_malware(file_path: str) -> None:
         )
 
     # Read file header
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         header = f.read(1024)
 
     # Check for executable signatures
-    if header.startswith(b'MZ'):  # Windows EXE
+    if header.startswith(b"MZ"):  # Windows EXE
         raise FileValidationError("Windows executable files are not allowed")
 
-    if header.startswith(b'\x7fELF'):  # Linux ELF
+    if header.startswith(b"\x7fELF"):  # Linux ELF
         raise FileValidationError("Executable files are not allowed")
 
     # Check for script content in disguised files
     suspicious_patterns = [
-        b'<script',
-        b'eval(',
-        b'system(',
-        b'exec(',
-        b'shell_exec',
+        b"<script",
+        b"eval(",
+        b"system(",
+        b"exec(",
+        b"shell_exec",
     ]
 
     header_lower = header.lower()
@@ -346,4 +345,3 @@ def scan_file_for_malware(file_path: str) -> None:
             raise FileValidationError("File contains suspicious content")
 
     # File passed basic checks
-    return None

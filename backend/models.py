@@ -1265,8 +1265,3 @@ class WarehouseTransfer(db.Model):
         }
 
 # Import enhanced messaging models
-from models_messaging import (
-    Channel, ChannelMember, ChannelMessage,
-    MessageReaction, MessageAttachment, AttachmentDownload,
-    UserPresence, TypingIndicator
-)

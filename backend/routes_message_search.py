@@ -6,23 +6,21 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_
 
 from auth import jwt_required
 from auth.jwt_manager import JWTManager
-from models import db, User
-from models_messaging import (
-    Channel, ChannelMember, ChannelMessage,
-    MessageAttachment
-)
+from models import User, db
 from models_kits import KitMessage
+from models_messaging import ChannelMember, ChannelMessage, MessageAttachment
+
 
 logger = logging.getLogger(__name__)
 
-search_bp = Blueprint('message_search', __name__, url_prefix='/api/messages/search')
+search_bp = Blueprint("message_search", __name__, url_prefix="/api/messages/search")
 
 
-@search_bp.route('', methods=['GET'])
+@search_bp.route("", methods=["GET"])
 @jwt_required
 def search_messages():
     """
@@ -42,28 +40,28 @@ def search_messages():
     """
     try:
         user_payload = JWTManager.get_current_user()
-        current_user_id = user_payload['user_id']
+        current_user_id = user_payload["user_id"]
 
         # Get search query
-        search_query = request.args.get('q', '').strip()
+        search_query = request.args.get("q", "").strip()
         if not search_query:
-            return jsonify({'error': 'Search query is required'}), 400
+            return jsonify({"error": "Search query is required"}), 400
 
         # Get filters
-        message_type = request.args.get('type', 'all')
-        sender_id = request.args.get('sender')
-        channel_id = request.args.get('channel_id')
-        kit_id = request.args.get('kit_id')
-        has_attachments = request.args.get('has_attachments', '').lower() == 'true'
-        from_date = request.args.get('from_date')
-        to_date = request.args.get('to_date')
-        limit = min(int(request.args.get('limit', 50)), 100)
-        offset = int(request.args.get('offset', 0))
+        message_type = request.args.get("type", "all")
+        sender_id = request.args.get("sender")
+        channel_id = request.args.get("channel_id")
+        kit_id = request.args.get("kit_id")
+        has_attachments = request.args.get("has_attachments", "").lower() == "true"
+        from_date = request.args.get("from_date")
+        to_date = request.args.get("to_date")
+        limit = min(int(request.args.get("limit", 50)), 100)
+        offset = int(request.args.get("offset", 0))
 
         results = []
 
         # Search kit messages
-        if message_type in ['kit', 'all']:
+        if message_type in ["kit", "all"]:
             kit_query = KitMessage.query.filter(
                 or_(
                     KitMessage.sender_id == current_user_id,
@@ -71,8 +69,8 @@ def search_messages():
                 )
             ).filter(
                 or_(
-                    KitMessage.subject.ilike(f'%{search_query}%'),
-                    KitMessage.message.ilike(f'%{search_query}%')
+                    KitMessage.subject.ilike(f"%{search_query}%"),
+                    KitMessage.message.ilike(f"%{search_query}%")
                 )
             )
 
@@ -83,13 +81,13 @@ def search_messages():
                 kit_query = kit_query.filter(KitMessage.kit_id == kit_id)
             if from_date:
                 try:
-                    from_dt = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+                    from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
                     kit_query = kit_query.filter(KitMessage.sent_date >= from_dt)
                 except ValueError:
                     pass
             if to_date:
                 try:
-                    to_dt = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+                    to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
                     kit_query = kit_query.filter(KitMessage.sent_date <= to_dt)
                 except ValueError:
                     pass
@@ -100,23 +98,23 @@ def search_messages():
 
             for msg in kit_messages:
                 results.append({
-                    'type': 'kit',
-                    'id': msg.id,
-                    'subject': msg.subject,
-                    'message': msg.message,
-                    'sender_id': msg.sender_id,
-                    'sender_name': msg.sender.name if msg.sender else None,
-                    'recipient_id': msg.recipient_id,
-                    'recipient_name': msg.recipient.name if msg.recipient else None,
-                    'sent_date': msg.sent_date.isoformat() if msg.sent_date else None,
-                    'is_read': msg.is_read,
-                    'kit_id': msg.kit_id,
-                    'kit_name': msg.kit.name if msg.kit else None,
-                    'has_attachments': bool(msg.attachments)
+                    "type": "kit",
+                    "id": msg.id,
+                    "subject": msg.subject,
+                    "message": msg.message,
+                    "sender_id": msg.sender_id,
+                    "sender_name": msg.sender.name if msg.sender else None,
+                    "recipient_id": msg.recipient_id,
+                    "recipient_name": msg.recipient.name if msg.recipient else None,
+                    "sent_date": msg.sent_date.isoformat() if msg.sent_date else None,
+                    "is_read": msg.is_read,
+                    "kit_id": msg.kit_id,
+                    "kit_name": msg.kit.name if msg.kit else None,
+                    "has_attachments": bool(msg.attachments)
                 })
 
         # Search channel messages
-        if message_type in ['channel', 'all']:
+        if message_type in ["channel", "all"]:
             # Get channels user is a member of
             member_channel_ids = db.session.query(ChannelMember.channel_id).filter(
                 ChannelMember.user_id == current_user_id
@@ -126,8 +124,8 @@ def search_messages():
             if member_channel_ids:
                 channel_query = ChannelMessage.query.filter(
                     ChannelMessage.channel_id.in_(member_channel_ids),
-                    ChannelMessage.is_deleted == False,
-                    ChannelMessage.message.ilike(f'%{search_query}%')
+                    ~ChannelMessage.is_deleted,
+                    ChannelMessage.message.ilike(f"%{search_query}%")
                 )
 
                 # Apply filters
@@ -137,13 +135,13 @@ def search_messages():
                     channel_query = channel_query.filter(ChannelMessage.channel_id == channel_id)
                 if from_date:
                     try:
-                        from_dt = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+                        from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
                         channel_query = channel_query.filter(ChannelMessage.sent_date >= from_dt)
                     except ValueError:
                         pass
                 if to_date:
                     try:
-                        to_dt = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+                        to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
                         channel_query = channel_query.filter(ChannelMessage.sent_date <= to_dt)
                     except ValueError:
                         pass
@@ -165,38 +163,38 @@ def search_messages():
                     ).count()
 
                     results.append({
-                        'type': 'channel',
-                        'id': msg.id,
-                        'message': msg.message,
-                        'sender_id': msg.sender_id,
-                        'sender_name': msg.sender.name if msg.sender else None,
-                        'sent_date': msg.sent_date.isoformat() if msg.sent_date else None,
-                        'channel_id': msg.channel_id,
-                        'channel_name': msg.channel.name if msg.channel else None,
-                        'has_attachments': attachment_count > 0,
-                        'attachment_count': attachment_count
+                        "type": "channel",
+                        "id": msg.id,
+                        "message": msg.message,
+                        "sender_id": msg.sender_id,
+                        "sender_name": msg.sender.name if msg.sender else None,
+                        "sent_date": msg.sent_date.isoformat() if msg.sent_date else None,
+                        "channel_id": msg.channel_id,
+                        "channel_name": msg.channel.name if msg.channel else None,
+                        "has_attachments": attachment_count > 0,
+                        "attachment_count": attachment_count
                     })
 
         # Sort all results by date
-        results.sort(key=lambda x: x.get('sent_date', ''), reverse=True)
+        results.sort(key=lambda x: x.get("sent_date", ""), reverse=True)
 
         # Apply pagination
         paginated_results = results[offset:offset + limit]
 
         return jsonify({
-            'results': paginated_results,
-            'total': len(results),
-            'limit': limit,
-            'offset': offset,
-            'query': search_query
+            "results": paginated_results,
+            "total": len(results),
+            "limit": limit,
+            "offset": offset,
+            "query": search_query
         }), 200
 
     except Exception as e:
-        logger.error(f"Error searching messages: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Failed to search messages'}), 500
+        logger.error(f"Error searching messages: {e!s}", exc_info=True)
+        return jsonify({"error": "Failed to search messages"}), 500
 
 
-@search_bp.route('/senders', methods=['GET'])
+@search_bp.route("/senders", methods=["GET"])
 @jwt_required
 def get_message_senders():
     """
@@ -205,7 +203,7 @@ def get_message_senders():
     """
     try:
         user_payload = JWTManager.get_current_user()
-        current_user_id = user_payload['user_id']
+        current_user_id = user_payload["user_id"]
 
         # Get kit message senders
         kit_senders = db.session.query(
@@ -241,18 +239,18 @@ def get_message_senders():
             all_senders[user_id] = name
 
         senders = [
-            {'id': user_id, 'name': name}
+            {"id": user_id, "name": name}
             for user_id, name in sorted(all_senders.items(), key=lambda x: x[1])
         ]
 
-        return jsonify({'senders': senders}), 200
+        return jsonify({"senders": senders}), 200
 
     except Exception as e:
-        logger.error(f"Error fetching message senders: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Failed to fetch senders'}), 500
+        logger.error(f"Error fetching message senders: {e!s}", exc_info=True)
+        return jsonify({"error": "Failed to fetch senders"}), 500
 
 
-@search_bp.route('/stats', methods=['GET'])
+@search_bp.route("/stats", methods=["GET"])
 @jwt_required
 def get_message_stats():
     """
@@ -261,7 +259,7 @@ def get_message_stats():
     """
     try:
         user_payload = JWTManager.get_current_user()
-        current_user_id = user_payload['user_id']
+        current_user_id = user_payload["user_id"]
 
         # Kit message stats
         kit_received = KitMessage.query.filter_by(recipient_id=current_user_id).count()
@@ -282,7 +280,7 @@ def get_message_stats():
         if member_channel_ids:
             channel_total = ChannelMessage.query.filter(
                 ChannelMessage.channel_id.in_(member_channel_ids),
-                ChannelMessage.is_deleted == False
+                ~ChannelMessage.is_deleted
             ).count()
 
             # Calculate unread by comparing last_read_message_id
@@ -296,36 +294,36 @@ def get_message_stats():
                     unread_count = ChannelMessage.query.filter(
                         ChannelMessage.channel_id == channel_id,
                         ChannelMessage.id > membership.last_read_message_id,
-                        ChannelMessage.is_deleted == False
+                        ~ChannelMessage.is_deleted
                     ).count()
                     channel_unread += unread_count
                 else:
                     # All messages unread
                     channel_unread += ChannelMessage.query.filter(
                         ChannelMessage.channel_id == channel_id,
-                        ChannelMessage.is_deleted == False
+                        ~ChannelMessage.is_deleted
                     ).count()
 
         return jsonify({
-            'kit_messages': {
-                'received': kit_received,
-                'unread': kit_unread,
-                'sent': kit_sent,
-                'total': kit_received + kit_sent
+            "kit_messages": {
+                "received": kit_received,
+                "unread": kit_unread,
+                "sent": kit_sent,
+                "total": kit_received + kit_sent
             },
-            'channel_messages': {
-                'total': channel_total,
-                'unread': channel_unread
+            "channel_messages": {
+                "total": channel_total,
+                "unread": channel_unread
             },
-            'totals': {
-                'all_messages': kit_received + kit_sent + channel_total,
-                'unread': kit_unread + channel_unread
+            "totals": {
+                "all_messages": kit_received + kit_sent + channel_total,
+                "unread": kit_unread + channel_unread
             }
         }), 200
 
     except Exception as e:
-        logger.error(f"Error fetching message stats: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Failed to fetch message stats'}), 500
+        logger.error(f"Error fetching message stats: {e!s}", exc_info=True)
+        return jsonify({"error": "Failed to fetch message stats"}), 500
 
 
 def register_message_search_routes(app):

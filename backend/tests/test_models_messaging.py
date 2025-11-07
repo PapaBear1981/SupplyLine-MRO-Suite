@@ -3,16 +3,23 @@ Tests for enhanced messaging models.
 Tests Channel, ChannelMember, ChannelMessage, MessageReaction,
 MessageAttachment, AttachmentDownload, UserPresence, and TypingIndicator models.
 """
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
-from models import db, User
-from models_messaging import (
-    Channel, ChannelMember, ChannelMessage,
-    MessageReaction, MessageAttachment, AttachmentDownload,
-    UserPresence, TypingIndicator
-)
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+from models import User, db
 from models_kits import Kit, KitMessage
+from models_messaging import (
+    AttachmentDownload,
+    Channel,
+    ChannelMember,
+    ChannelMessage,
+    MessageAttachment,
+    MessageReaction,
+    TypingIndicator,
+    UserPresence,
+)
 
 
 class TestChannelModel:
@@ -47,10 +54,10 @@ class TestChannelModel:
             db.session.commit()
 
             data = channel.to_dict()
-            assert data['id'] == channel.id
-            assert data['name'] == 'Test Channel'
-            assert data['member_count'] == 0
-            assert 'creator_name' in data
+            assert data["id"] == channel.id
+            assert data["name"] == "Test Channel"
+            assert data["member_count"] == 0
+            assert "creator_name" in data
 
     def test_channel_unique_name(self, app, test_user):
         """Test channel name uniqueness constraint"""
@@ -62,7 +69,7 @@ class TestChannelModel:
             channel2 = Channel(name="Unique", created_by=test_user.id)
             db.session.add(channel2)
 
-            with pytest.raises(Exception):  # IntegrityError
+            with pytest.raises(IntegrityError):
                 db.session.commit()
 
 
@@ -79,13 +86,13 @@ class TestChannelMemberModel:
             member = ChannelMember(
                 channel_id=channel.id,
                 user_id=test_user.id,
-                role='admin'
+                role="admin"
             )
             db.session.add(member)
             db.session.commit()
 
             assert member.id is not None
-            assert member.role == 'admin'
+            assert member.role == "admin"
             assert member.notifications_enabled is True
 
     def test_unique_membership(self, app, test_user):
@@ -102,7 +109,7 @@ class TestChannelMemberModel:
             member2 = ChannelMember(channel_id=channel.id, user_id=test_user.id)
             db.session.add(member2)
 
-            with pytest.raises(Exception):  # IntegrityError
+            with pytest.raises(IntegrityError):
                 db.session.commit()
 
 
@@ -173,10 +180,10 @@ class TestChannelMessageModel:
             db.session.commit()
 
             data = message.to_dict()
-            assert data['id'] == message.id
-            assert data['message'] == 'Test'
-            assert 'sender_name' in data
-            assert data['reply_count'] == 0
+            assert data["id"] == message.id
+            assert data["message"] == "Test"
+            assert "sender_name" in data
+            assert data["reply_count"] == 0
 
 
 class TestMessageReactionModel:
@@ -197,13 +204,13 @@ class TestMessageReactionModel:
             reaction = MessageReaction(
                 kit_message_id=kit_message.id,
                 user_id=test_user.id,
-                reaction_type='thumbs_up'
+                reaction_type="thumbs_up"
             )
             db.session.add(reaction)
             db.session.commit()
 
             assert reaction.id is not None
-            assert reaction.reaction_type == 'thumbs_up'
+            assert reaction.reaction_type == "thumbs_up"
 
     def test_create_channel_message_reaction(self, app, test_user):
         """Test creating a reaction on a channel message"""
@@ -223,7 +230,7 @@ class TestMessageReactionModel:
             reaction = MessageReaction(
                 channel_message_id=channel_message.id,
                 user_id=test_user.id,
-                reaction_type='heart'
+                reaction_type="heart"
             )
             db.session.add(reaction)
             db.session.commit()
@@ -296,9 +303,9 @@ class TestMessageAttachmentModel:
             db.session.commit()
 
             data = attachment.to_dict()
-            assert data['id'] == attachment.id
-            assert data['file_type'] == 'document'
-            assert 'uploader_name' in data
+            assert data["id"] == attachment.id
+            assert data["file_type"] == "document"
+            assert "uploader_name" in data
 
 
 class TestAttachmentDownloadModel:
@@ -374,9 +381,9 @@ class TestUserPresenceModel:
             db.session.commit()
 
             data = presence.to_dict()
-            assert data['user_id'] == test_user.id
-            assert data['is_online'] is True
-            assert data['status_message'] == "Working on project"
+            assert data["user_id"] == test_user.id
+            assert data["is_online"] is True
+            assert data["status_message"] == "Working on project"
 
     def test_presence_unique_user(self, app, test_user):
         """Test user can only have one presence record"""
@@ -388,7 +395,7 @@ class TestUserPresenceModel:
             presence2 = UserPresence(user_id=test_user.id, is_online=False)
             db.session.add(presence2)
 
-            with pytest.raises(Exception):  # IntegrityError
+            with pytest.raises(IntegrityError):
                 db.session.commit()
 
 

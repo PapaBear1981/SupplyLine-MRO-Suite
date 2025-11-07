@@ -16,9 +16,8 @@ const MainLayout = ({ children }) => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const { theme } = useSelector((state) => state.theme);
   const { hasLoaded: securityLoaded, loading: securityLoading } = useSelector((state) => state.security);
-  const { showHelp, showTooltips, setShowHelp } = useHelp();
+  const { showHelp, setShowHelp } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

@@ -2,8 +2,9 @@
 Tests for enhanced messaging channel routes.
 Tests /api/channels endpoints for CRUD operations, members, and messages.
 """
-import pytest
 import json
+
+import pytest
 
 from models import db
 from models_messaging import Channel, ChannelMember, ChannelMessage
@@ -14,55 +15,55 @@ class TestChannelRoutes:
 
     def test_get_channels_unauthenticated(self, client):
         """Test getting channels without authentication"""
-        response = client.get('/api/channels')
+        response = client.get("/api/channels")
         assert response.status_code == 401
 
     def test_create_channel(self, client, auth_headers):
         """Test creating a new channel"""
         data = {
-            'name': 'Engineering Team',
-            'description': 'Engineering department channel',
-            'channel_type': 'department',
-            'department': 'Engineering'
+            "name": "Engineering Team",
+            "description": "Engineering department channel",
+            "channel_type": "department",
+            "department": "Engineering"
         }
 
         response = client.post(
-            '/api/channels',
+            "/api/channels",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 201
         data = json.loads(response.data)
-        assert 'channel' in data
-        assert data['channel']['name'] == 'Engineering Team'
-        assert data['message'] == 'Channel created successfully'
+        assert "channel" in data
+        assert data["channel"]["name"] == "Engineering Team"
+        assert data["message"] == "Channel created successfully"
 
     def test_create_channel_missing_name(self, client, auth_headers):
         """Test creating channel without name"""
-        data = {'description': 'Test'}
+        data = {"description": "Test"}
 
         response = client.post(
-            '/api/channels',
+            "/api/channels",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert 'error' in data
+        assert "error" in data
 
     def test_create_duplicate_channel(self, client, auth_headers, test_channel):
         """Test creating channel with duplicate name"""
-        data = {'name': test_channel.name}
+        data = {"name": test_channel.name}
 
         response = client.post(
-            '/api/channels',
+            "/api/channels",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 409
@@ -78,12 +79,12 @@ class TestChannelRoutes:
             db.session.add(member)
             db.session.commit()
 
-        response = client.get('/api/channels', headers=auth_headers)
+        response = client.get("/api/channels", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert 'channels' in data
-        assert len(data['channels']) > 0
+        assert "channels" in data
+        assert len(data["channels"]) > 0
 
     def test_get_channel_by_id(self, client, auth_headers, test_channel, admin_user):
         """Test getting specific channel details"""
@@ -97,19 +98,19 @@ class TestChannelRoutes:
             db.session.commit()
 
         response = client.get(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert data['channel']['id'] == test_channel.id
-        assert 'members' in data['channel']
+        assert data["channel"]["id"] == test_channel.id
+        assert "members" in data["channel"]
 
     def test_get_channel_not_member(self, client, auth_headers, test_channel):
         """Test getting channel user is not a member of"""
         response = client.get(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             headers=auth_headers
         )
 
@@ -122,23 +123,23 @@ class TestChannelRoutes:
             member = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='admin'
+                role="admin"
             )
             db.session.add(member)
             db.session.commit()
 
-        data = {'description': 'Updated description'}
+        data = {"description": "Updated description"}
 
         response = client.put(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 200
         response_data = json.loads(response.data)
-        assert response_data['channel']['description'] == 'Updated description'
+        assert response_data["channel"]["description"] == "Updated description"
 
     def test_update_channel_not_admin(self, client, auth_headers, test_channel, admin_user):
         """Test updating channel without admin role"""
@@ -147,18 +148,18 @@ class TestChannelRoutes:
             member = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='member'
+                role="member"
             )
             db.session.add(member)
             db.session.commit()
 
-        data = {'description': 'Updated'}
+        data = {"description": "Updated"}
 
         response = client.put(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 403
@@ -170,13 +171,13 @@ class TestChannelRoutes:
             member = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='admin'
+                role="admin"
             )
             db.session.add(member)
             db.session.commit()
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             headers=auth_headers
         )
 
@@ -184,7 +185,7 @@ class TestChannelRoutes:
 
         # Verify channel is deleted
         response = client.get(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             headers=auth_headers
         )
         assert response.status_code == 403  # No longer a member
@@ -195,13 +196,13 @@ class TestChannelRoutes:
             member = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='member'
+                role="member"
             )
             db.session.add(member)
             db.session.commit()
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}',
+            f"/api/channels/{test_channel.id}",
             headers=auth_headers
         )
 
@@ -222,14 +223,14 @@ class TestChannelMemberRoutes:
             db.session.commit()
 
         response = client.get(
-            f'/api/channels/{test_channel.id}/members',
+            f"/api/channels/{test_channel.id}/members",
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert 'members' in data
-        assert len(data['members']) > 0
+        assert "members" in data
+        assert len(data["members"]) > 0
 
     def test_add_channel_member(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test adding a member to channel"""
@@ -238,23 +239,23 @@ class TestChannelMemberRoutes:
             admin = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='admin'
+                role="admin"
             )
             db.session.add(admin)
             db.session.commit()
 
-        data = {'user_id': test_user_2.id, 'role': 'member'}
+        data = {"user_id": test_user_2.id, "role": "member"}
 
         response = client.post(
-            f'/api/channels/{test_channel.id}/members',
+            f"/api/channels/{test_channel.id}/members",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 201
         response_data = json.loads(response.data)
-        assert response_data['member']['user_id'] == test_user_2.id
+        assert response_data["member"]["user_id"] == test_user_2.id
 
     def test_add_member_not_admin(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test adding member without admin permission"""
@@ -263,18 +264,18 @@ class TestChannelMemberRoutes:
             member = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='member'
+                role="member"
             )
             db.session.add(member)
             db.session.commit()
 
-        data = {'user_id': test_user_2.id}
+        data = {"user_id": test_user_2.id}
 
         response = client.post(
-            f'/api/channels/{test_channel.id}/members',
+            f"/api/channels/{test_channel.id}/members",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 403
@@ -285,7 +286,7 @@ class TestChannelMemberRoutes:
             admin = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='admin'
+                role="admin"
             )
             existing = ChannelMember(
                 channel_id=test_channel.id,
@@ -294,13 +295,13 @@ class TestChannelMemberRoutes:
             db.session.add_all([admin, existing])
             db.session.commit()
 
-        data = {'user_id': test_user_2.id}
+        data = {"user_id": test_user_2.id}
 
         response = client.post(
-            f'/api/channels/{test_channel.id}/members',
+            f"/api/channels/{test_channel.id}/members",
             data=json.dumps(data),
             headers=auth_headers,
-            content_type='application/json'
+            content_type="application/json"
         )
 
         assert response.status_code == 409
@@ -311,7 +312,7 @@ class TestChannelMemberRoutes:
             admin = ChannelMember(
                 channel_id=test_channel.id,
                 user_id=admin_user.id,
-                role='admin'
+                role="admin"
             )
             member = ChannelMember(
                 channel_id=test_channel.id,
@@ -321,7 +322,7 @@ class TestChannelMemberRoutes:
             db.session.commit()
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}/members/{test_user_2.id}',
+            f"/api/channels/{test_channel.id}/members/{test_user_2.id}",
             headers=auth_headers
         )
 
@@ -338,7 +339,7 @@ class TestChannelMemberRoutes:
             db.session.commit()
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}/members/{admin_user.id}',
+            f"/api/channels/{test_channel.id}/members/{admin_user.id}",
             headers=auth_headers
         )
 
@@ -364,19 +365,19 @@ class TestChannelMessageRoutes:
             db.session.commit()
 
         response = client.get(
-            f'/api/channels/{test_channel.id}/messages',
+            f"/api/channels/{test_channel.id}/messages",
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert 'messages' in data
-        assert len(data['messages']) > 0
+        assert "messages" in data
+        assert len(data["messages"]) > 0
 
     def test_get_messages_not_member(self, client, auth_headers, test_channel):
         """Test getting messages when not a member"""
         response = client.get(
-            f'/api/channels/{test_channel.id}/messages',
+            f"/api/channels/{test_channel.id}/messages",
             headers=auth_headers
         )
 
@@ -403,15 +404,15 @@ class TestChannelMessageRoutes:
             db.session.commit()
 
         response = client.get(
-            f'/api/channels/{test_channel.id}/messages?limit=5&offset=0',
+            f"/api/channels/{test_channel.id}/messages?limit=5&offset=0",
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert len(data['messages']) == 5
-        assert data['limit'] == 5
-        assert data['offset'] == 0
+        assert len(data["messages"]) == 5
+        assert data["limit"] == 5
+        assert data["offset"] == 0
 
     def test_delete_channel_message_sender(self, client, auth_headers, test_channel, admin_user):
         """Test deleting message as sender"""
@@ -430,7 +431,7 @@ class TestChannelMessageRoutes:
             message_id = message.id
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}/messages/{message_id}',
+            f"/api/channels/{test_channel.id}/messages/{message_id}",
             headers=auth_headers
         )
 
@@ -462,7 +463,7 @@ class TestChannelMessageRoutes:
             message_id = message.id
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}/messages/{message_id}',
+            f"/api/channels/{test_channel.id}/messages/{message_id}",
             headers=auth_headers  # Authenticated as admin_user
         )
 

@@ -3,11 +3,12 @@ WebSocket configuration and initialization for real-time messaging.
 """
 from flask_socketio import SocketIO
 
+
 # Initialize SocketIO with async mode for production
 # cors_allowed_origins will be set dynamically from app config
 socketio = SocketIO(
     cors_allowed_origins="*",  # Will be restricted in production via app config
-    async_mode='threading',  # Use threading for compatibility with gunicorn
+    async_mode="threading",  # Use threading for compatibility with gunicorn
     logger=True,
     engineio_logger=False,
     ping_timeout=60,
@@ -29,7 +30,7 @@ def init_socketio(app):
     socketio.init_app(
         app,
         cors_allowed_origins=allowed_origins,
-        async_mode='threading',
+        async_mode="threading",
         logger=app.config.get("DEBUG", False),
         engineio_logger=False,
         ping_timeout=60,

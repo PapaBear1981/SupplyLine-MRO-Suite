@@ -25,6 +25,7 @@ from routes_auth import register_auth_routes
 from routes_barcode import barcode_bp
 from routes_bulk_import import register_bulk_import_routes
 from routes_calibration import register_calibration_routes
+from routes_channels import register_channels_routes
 from routes_chemical_analytics import register_chemical_analytics_routes
 from routes_chemicals import register_chemical_routes
 from routes_database import register_database_routes
@@ -32,7 +33,6 @@ from routes_departments import register_department_routes
 from routes_expendables import expendables_bp
 from routes_history import register_history_routes
 from routes_inventory import register_inventory_routes
-from routes_channels import register_channels_routes
 from routes_kit_messages import register_kit_message_routes
 from routes_kit_reorders import register_kit_reorder_routes
 from routes_kit_transfers import register_kit_transfer_routes

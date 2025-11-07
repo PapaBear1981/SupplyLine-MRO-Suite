@@ -91,7 +91,7 @@ def create_app():
     app.config["JWT_HEADER_TYPE"] = "Bearer"
 
     # Initialize JWTManager for flask-jwt-extended
-    jwt = JWTManager(app)
+    JWTManager(app)
 
     # Configure structured logging
     if hasattr(Config, "LOGGING_CONFIG"):
