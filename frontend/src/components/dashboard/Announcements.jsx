@@ -91,7 +91,7 @@ const Announcements = () => {
   });
 
   return (
-    <Card className="shadow-sm mb-4" data-testid="announcements">
+    <Card className="shadow-sm mb-4 fade-in" data-testid="announcements">
       <Card.Header className="d-flex justify-content-between align-items-center">
         <h4 className="mb-0">Announcements</h4>
         <Badge bg="primary" pill>
@@ -108,7 +108,7 @@ const Announcements = () => {
             {sortedAnnouncements.map((announcement) => (
               <ListGroup.Item
                 key={announcement.id}
-                className={`d-flex flex-column ${!announcement.read ? 'fw-semibold' : ''}`}
+                className={`d-flex flex-column interactive-list-item ${!announcement.read ? 'fw-semibold' : ''}`}
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <div className="fw-bold">{announcement.title}</div>
@@ -127,7 +127,7 @@ const Announcements = () => {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    className="align-self-end"
+                    className="align-self-end interactive-button"
                     onClick={() => markAsRead(announcement.id)}
                   >
                     Mark as Read

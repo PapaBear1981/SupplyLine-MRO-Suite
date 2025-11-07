@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Container, Card, Form, Button, Row, Col, ProgressBar, Alert, ListGroup, Badge } from 'react-bootstrap';
-import { FaPlane, FaBox, FaCheck, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { Container, Card, Form, Button, Row, Col, ProgressBar, Alert, ListGroup, Badge, Spinner } from 'react-bootstrap';
+import { FaPlane, FaBox, FaCheck, FaArrowLeft, FaArrowRight, FaTools } from 'react-icons/fa';
 import { fetchAircraftTypes, kitWizardStep, createKit, clearWizardData } from '../../store/kitsSlice';
 
 const KitWizard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { aircraftTypes, loading, error } = useSelector((state) => state.kits);
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     aircraft_type_id: '',
@@ -18,6 +18,38 @@ const KitWizard = () => {
     boxes: []
   });
   const [validationErrors, setValidationErrors] = useState({});
+  const [liveMessage, setLiveMessage] = useState('');
+
+  const steps = useMemo(() => ([
+    {
+      id: 1,
+      label: 'Aircraft Type',
+      description: 'Choose the aircraft this kit supports',
+      icon: <FaPlane />,
+      announcement: 'Step 1 of 4: Select the aircraft type for this kit.'
+    },
+    {
+      id: 2,
+      label: 'Kit Details',
+      description: 'Name and describe the kit',
+      icon: <FaTools />,
+      announcement: 'Step 2 of 4: Provide details for the kit.'
+    },
+    {
+      id: 3,
+      label: 'Configure Boxes',
+      description: 'Organize kit containers',
+      icon: <FaBox />,
+      announcement: 'Step 3 of 4: Configure the kit boxes.'
+    },
+    {
+      id: 4,
+      label: 'Review',
+      description: 'Confirm and create the kit',
+      icon: <FaCheck />,
+      announcement: 'Step 4 of 4: Review your selections before creating the kit.'
+    }
+  ]), []);
 
   useEffect(() => {
     dispatch(fetchAircraftTypes());
@@ -26,12 +58,20 @@ const KitWizard = () => {
     };
   }, [dispatch]);
 
-  const totalSteps = 4;
+  useEffect(() => {
+    const activeStep = steps.find(step => step.id === currentStep);
+    if (activeStep) {
+      setLiveMessage(activeStep.announcement);
+    }
+  }, [currentStep, steps]);
+
+  const totalSteps = steps.length;
   const progress = (currentStep / totalSteps) * 100;
+  const isInitialLoading = loading && aircraftTypes.length === 0;
 
   const validateStep = (step) => {
     const errors = {};
-    
+
     if (step === 1) {
       if (!formData.aircraft_type_id) {
         errors.aircraft_type_id = 'Please select an aircraft type';
@@ -49,6 +89,19 @@ const KitWizard = () => {
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  if (isInitialLoading) {
+    return (
+      <Container className="py-5">
+        <div className="page-loading-panel">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading kit wizard</span>
+          </Spinner>
+          <div className="text-muted">Preparing the kit wizard…</div>
+        </div>
+      </Container>
+    );
+  }
 
   const handleNext = async () => {
     if (!validateStep(currentStep)) {
@@ -126,8 +179,8 @@ const KitWizard = () => {
             <Row>
               {aircraftTypes.map(type => (
                 <Col key={type.id} md={4} className="mb-3">
-                  <Card 
-                    className={`h-100 cursor-pointer ${formData.aircraft_type_id === type.id ? 'border-primary' : ''}`}
+                  <Card
+                    className={`h-100 cursor-pointer interactive-card ${formData.aircraft_type_id === type.id ? 'border-primary' : ''}`}
                     onClick={() => setFormData({ ...formData, aircraft_type_id: type.id })}
                     style={{ cursor: 'pointer' }}
                   >
@@ -205,7 +258,7 @@ const KitWizard = () => {
             
             <ListGroup className="mb-3">
               {formData.boxes.map((box, index) => (
-                <ListGroup.Item key={index}>
+                <ListGroup.Item key={index} className="interactive-list-item">
                   <Row className="align-items-center">
                     <Col md={3}>
                       <Form.Control
@@ -242,6 +295,7 @@ const KitWizard = () => {
                       <Button
                         size="sm"
                         variant="outline-danger"
+                        className="interactive-button"
                         onClick={() => removeBox(index)}
                       >
                         ×
@@ -251,11 +305,11 @@ const KitWizard = () => {
                 </ListGroup.Item>
               ))}
             </ListGroup>
-            
-            <Button variant="outline-primary" size="sm" onClick={addBox}>
+
+            <Button variant="outline-primary" size="sm" className="interactive-button" onClick={addBox}>
               + Add Box
             </Button>
-            
+
             {validationErrors.boxes && (
               <Alert variant="danger" className="mt-3">{validationErrors.boxes}</Alert>
             )}
@@ -296,7 +350,7 @@ const KitWizard = () => {
                 <h6>Boxes ({formData.boxes.length})</h6>
                 <ListGroup variant="flush">
                   {formData.boxes.map((box, index) => (
-                    <ListGroup.Item key={index}>
+                    <ListGroup.Item key={index} className="interactive-list-item">
                       <strong>{box.box_number}</strong> - {box.box_type}
                       {box.description && ` - ${box.description}`}
                     </ListGroup.Item>
@@ -315,37 +369,68 @@ const KitWizard = () => {
 
   return (
     <Container className="py-4">
-      <Card>
-        <Card.Header>
+      <Card className="shadow-lg border-0 fade-in">
+        <Card.Header className="bg-white border-0 pb-0">
           <h3 className="mb-0">Create New Kit</h3>
         </Card.Header>
-        <Card.Body>
-          <ProgressBar now={progress} className="mb-4" />
-          
+        <Card.Body className="pt-3">
+          <div className="multi-step-progress mb-4" role="list" aria-label="Kit creation progress">
+            {steps.map(step => {
+              const isActive = currentStep === step.id;
+              const isComplete = currentStep > step.id;
+              return (
+                <div
+                  key={step.id}
+                  className={`multi-step-progress__item ${isActive ? 'is-active' : ''} ${isComplete ? 'is-complete' : ''}`.trim()}
+                  role="listitem"
+                  aria-current={isActive ? 'step' : undefined}
+                >
+                  <div className="multi-step-progress__marker" aria-hidden="true">
+                    <span className="multi-step-progress__icon">{step.icon}</span>
+                    <span className="multi-step-progress__number">{step.id}</span>
+                  </div>
+                  <div className="multi-step-progress__label">
+                    <span className="multi-step-progress__label-title">{step.label}</span>
+                    <span className="multi-step-progress__label-subtitle">{step.description}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <ProgressBar
+            now={progress}
+            className="visually-hidden"
+            aria-label={`Progress: step ${currentStep} of ${totalSteps}`}
+          />
+          <span className="visually-hidden" aria-live="polite">{liveMessage}</span>
+
           {error && (
             <Alert variant="danger" dismissible>
               {error.message || 'An error occurred'}
             </Alert>
           )}
-          
-          {renderStep()}
-          
+
+          <div key={currentStep} className="fade-in">
+            {renderStep()}
+          </div>
+
           <div className="d-flex justify-content-between mt-4">
             <Button
               variant="outline-secondary"
+              className="interactive-button"
               onClick={currentStep === 1 ? () => navigate('/kits') : handleBack}
             >
               <FaArrowLeft className="me-2" />
               {currentStep === 1 ? 'Cancel' : 'Back'}
             </Button>
-            
+
             {currentStep < totalSteps ? (
-              <Button variant="primary" onClick={handleNext} disabled={loading}>
+              <Button variant="primary" className="interactive-button" onClick={handleNext} disabled={loading}>
                 Next
                 <FaArrowRight className="ms-2" />
               </Button>
             ) : (
-              <Button variant="success" onClick={handleSubmit} disabled={loading}>
+              <Button variant="success" className="interactive-button" onClick={handleSubmit} disabled={loading}>
                 <FaCheck className="me-2" />
                 Create Kit
               </Button>

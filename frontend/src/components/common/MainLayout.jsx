@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip, Spinner } from 'react-bootstrap';
+import { Link, useLocation } from 'react-router-dom';
 import { FaTools } from 'react-icons/fa';
 import ProfileModal from '../profile/ProfileModal';
 import { APP_VERSION } from '../../utils/version';
@@ -18,6 +18,11 @@ const MainLayout = ({ children }) => {
   const { showHelp, showTooltips, setShowHelp } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const location = useLocation();
+  const [transitionStage, setTransitionStage] = useState('idle');
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const transitionTimers = useRef({ exit: null, enter: null });
+  const initialRenderRef = useRef(true);
 
   useInactivityLogout();
 
@@ -26,6 +31,57 @@ const MainLayout = ({ children }) => {
       dispatch(fetchSecuritySettings());
     }
   }, [dispatch, isAuthenticated, securityLoaded, securityLoading]);
+
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      setTransitionStage('idle');
+      return;
+    }
+
+    if (transitionTimers.current.exit) {
+      clearTimeout(transitionTimers.current.exit);
+    }
+
+    if (transitionTimers.current.enter) {
+      clearTimeout(transitionTimers.current.enter);
+    }
+
+    setIsRouteLoading(true);
+    setTransitionStage('exiting');
+
+    transitionTimers.current.exit = setTimeout(() => {
+      setTransitionStage('entering');
+      transitionTimers.current.enter = setTimeout(() => {
+        setTransitionStage('idle');
+        setIsRouteLoading(false);
+        transitionTimers.current.enter = null;
+      }, 320);
+      transitionTimers.current.exit = null;
+    }, 120);
+
+    return () => {
+      if (transitionTimers.current.exit) {
+        clearTimeout(transitionTimers.current.exit);
+        transitionTimers.current.exit = null;
+      }
+      if (transitionTimers.current.enter) {
+        clearTimeout(transitionTimers.current.enter);
+        transitionTimers.current.enter = null;
+      }
+    };
+  }, [location.pathname]);
+
+  useEffect(() => () => {
+    if (transitionTimers.current.exit) {
+      clearTimeout(transitionTimers.current.exit);
+    }
+    if (transitionTimers.current.enter) {
+      clearTimeout(transitionTimers.current.enter);
+    }
+  }, []);
+
+  const transitionClassName = `page-transition page-transition--${transitionStage}`;
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -39,41 +95,41 @@ const MainLayout = ({ children }) => {
           <Navbar.Collapse id="basic-navbar-nav" data-testid="mobile-menu">
             <Nav className="me-auto">
               {/* Dashboard is always visible to authenticated users */}
-              <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
+              <Nav.Link as={Link} to="/dashboard" className="interactive-link">Dashboard</Nav.Link>
 
               {/* Show navigation links based on page permissions */}
               {user && (
                 <>
                   {hasPermission(user, 'page.tools') && (
-                    <Nav.Link as={Link} to="/tools">Tools</Nav.Link>
+                    <Nav.Link as={Link} to="/tools" className="interactive-link">Tools</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.checkouts') && (
-                    <Nav.Link as={Link} to="/checkouts">Checkouts</Nav.Link>
+                    <Nav.Link as={Link} to="/checkouts" className="interactive-link">Checkouts</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.kits') && (
-                    <Nav.Link as={Link} to="/kits">Kits</Nav.Link>
+                    <Nav.Link as={Link} to="/kits" className="interactive-link">Kits</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.chemicals') && (
-                    <Nav.Link as={Link} to="/chemicals">Chemicals</Nav.Link>
+                    <Nav.Link as={Link} to="/chemicals" className="interactive-link">Chemicals</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.calibrations') && (
-                    <Nav.Link as={Link} to="/calibrations">Calibrations</Nav.Link>
+                    <Nav.Link as={Link} to="/calibrations" className="interactive-link">Calibrations</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.warehouses') && (
-                    <Nav.Link as={Link} to="/warehouses">Warehouses</Nav.Link>
+                    <Nav.Link as={Link} to="/warehouses" className="interactive-link">Warehouses</Nav.Link>
                   )}
 
                   {hasPermission(user, 'page.reports') && (
-                    <Nav.Link as={Link} to="/reports">Reports</Nav.Link>
+                    <Nav.Link as={Link} to="/reports" className="interactive-link">Reports</Nav.Link>
                   )}
 
                   {/* Item History Lookup - Available to all authenticated users */}
-                  <Nav.Link as={Link} to="/history">History</Nav.Link>
+                  <Nav.Link as={Link} to="/history" className="interactive-link">History</Nav.Link>
 
                   {/* CYCLE COUNT NAVIGATION - TEMPORARILY DISABLED */}
                   {/* ============================================== */}
@@ -102,7 +158,7 @@ const MainLayout = ({ children }) => {
 
                   {/* Only show Admin Dashboard to users with permission */}
                   {hasPermission(user, 'page.admin_dashboard') && (
-                    <Nav.Link as={Link} to="/admin/dashboard">Admin Dashboard</Nav.Link>
+                    <Nav.Link as={Link} to="/admin/dashboard" className="interactive-link">Admin Dashboard</Nav.Link>
                   )}
                 </>
               )}
@@ -119,7 +175,7 @@ const MainLayout = ({ children }) => {
                   >
                     <Button
                       variant={showHelp ? "info" : "outline-info"}
-                      className="me-2"
+                      className="me-2 interactive-button"
                       onClick={() => setShowHelp(!showHelp)}
                       aria-label={showHelp ? "Hide help features" : "Show help features"}
                     >
@@ -133,6 +189,7 @@ const MainLayout = ({ children }) => {
                   >
                     <Button
                       variant="outline-info"
+                      className="interactive-button"
                       onClick={() => setShowTour(true)}
                       aria-label="Start guided tour"
                     >
@@ -145,7 +202,7 @@ const MainLayout = ({ children }) => {
               {isAuthenticated ? (
                 <Button
                   variant="outline-light"
-                  className="d-flex align-items-center"
+                  className="d-flex align-items-center interactive-button"
                   onClick={() => setShowProfileModal(true)}
                   data-testid="user-menu"
                 >
@@ -165,10 +222,10 @@ const MainLayout = ({ children }) => {
                 </Button>
               ) : (
                 <>
-                  <Button variant="outline-light" className="me-2" as={Link} to="/login">
+                  <Button variant="outline-light" className="me-2 interactive-button" as={Link} to="/login">
                     Login
                   </Button>
-                  <Button variant="light" as={Link} to="/register">
+                  <Button variant="light" className="interactive-button" as={Link} to="/register">
                     Register
                   </Button>
                 </>
@@ -178,8 +235,10 @@ const MainLayout = ({ children }) => {
         </Container>
       </Navbar>
 
-      <Container fluid className="flex-grow-1 mb-4 px-4">
-        {children}
+      <Container fluid className="flex-grow-1 mb-4 px-4 position-relative">
+        <div key={location.pathname} className={transitionClassName}>
+          {children}
+        </div>
       </Container>
 
       <footer className="bg-dark text-light py-3 mt-auto">
@@ -237,6 +296,15 @@ const MainLayout = ({ children }) => {
           }
         ]}
       />
+
+      {isRouteLoading && (
+        <div className="page-loading-overlay" role="status" aria-live="polite">
+          <Spinner animation="border" variant="light">
+            <span className="visually-hidden">Loading next section</span>
+          </Spinner>
+          <span className="page-loading-message">Loading next section…</span>
+        </div>
+      )}
     </div>
   );
 };
