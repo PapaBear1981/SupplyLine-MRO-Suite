@@ -1,56 +1,53 @@
-#root {
-  width: 100%;
-  min-height: 100vh;
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top;
+}
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
 }
 
-/* Custom styles for the SupplyLine MRO Suite */
-
-/* Page titles */
-h1 {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 1.5rem;
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
 }
 
-/* Card title styling */
-.card-header h4, .card-header h5 {
-  margin-bottom: 0;
-  font-weight: 600;
+.react-grid-item.react-grid-placeholder {
+  background: #0d6efd;
+  opacity: 0.2;
+  transition-duration: 100ms;
+  z-index: 2;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }
 
-/* Badge styling */
-.badge {
-  font-weight: 500;
-  padding: 0.5em 0.75em;
-  border-radius: 0.25rem;
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
 }
 
-/* Table hover effect */
-.table-hover tbody tr:hover {
-  background-color: rgba(13, 110, 253, 0.05);
-}
-
-/* Navbar active link */
-.nav-link.active {
-  font-weight: 600;
-}
-
-/* Form styling */
-.form-control:focus, .form-select:focus {
-  border-color: var(--bs-primary);
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* Button focus */
-.btn:focus {
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* Utility classes */
-.w-100 {
-  width: 100%;
-}
-
-.h-100 {
-  height: 100%;
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-right: 2px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
 }
