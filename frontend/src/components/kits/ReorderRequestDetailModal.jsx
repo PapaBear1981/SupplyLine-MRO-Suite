@@ -151,7 +151,7 @@ const ReorderRequestDetailModal = ({
             <Col md={6}>
               <div className="mb-2">
                 <strong className="text-muted d-block mb-1">Requested By</strong>
-                <div>{request.requested_by_name || 'Unknown'}</div>
+                <div>{request.requester_name || 'Unknown'}</div>
               </div>
             </Col>
             <Col md={6}>

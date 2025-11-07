@@ -5,6 +5,175 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import api from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const coerceNonNegativeNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const logFilteredRecords = (type, originalCount, filteredCount) => {
+  if (filteredCount === 0 && originalCount > 0) {
+    console.warn(`Discarded ${originalCount} invalid ${type} entries from kit utilization payload.`);
+    return;
+  }
+
+  if (filteredCount < originalCount) {
+    console.warn(
+      `Filtered ${originalCount - filteredCount} malformed ${type} records from kit utilization payload.`,
+    );
+  }
+};
+
+const sanitizeNamedValueCollection = (records, type) => {
+  if (!Array.isArray(records)) {
+    if (records != null) {
+      console.warn(`Expected ${type} to be an array but received`, records);
+    }
+    return [];
+  }
+
+  const sanitized = records
+    .map((entry) => {
+      if (!entry || !isNonEmptyString(entry.name)) {
+        return null;
+      }
+
+      const value = coerceNonNegativeNumber(entry.value);
+      if (value === null) {
+        return null;
+      }
+
+      return {
+        ...entry,
+        name: entry.name.trim(),
+        value
+      };
+    })
+    .filter(Boolean);
+
+  logFilteredRecords(type, records.length, sanitized.length);
+  return sanitized;
+};
+
+const sanitizeActivityOverTime = (records) => {
+  if (!Array.isArray(records)) {
+    if (records != null) {
+      console.warn('Expected activityOverTime to be an array but received', records);
+    }
+    return [];
+  }
+
+  const sanitized = records
+    .map((entry) => {
+      if (!entry || !isNonEmptyString(entry.date)) {
+        return null;
+      }
+
+      const issuances = coerceNonNegativeNumber(entry.issuances);
+      const transfers = coerceNonNegativeNumber(entry.transfers);
+
+      if (issuances === null && transfers === null) {
+        return null;
+      }
+
+      return {
+        ...entry,
+        date: entry.date.trim(),
+        issuances: issuances ?? 0,
+        transfers: transfers ?? 0
+      };
+    })
+    .filter(Boolean);
+
+  logFilteredRecords('activityOverTime', records.length, sanitized.length);
+  return sanitized;
+};
+
+const sanitizeSummary = (summary) => {
+  if (!summary || typeof summary !== 'object') {
+    if (summary != null) {
+      console.warn('Expected summary to be an object but received', summary);
+    }
+    return null;
+  }
+
+  const sanitized = {};
+
+  ['totalIssuances', 'totalTransfers', 'activeKits', 'avgUtilization'].forEach((key) => {
+    const value = coerceNonNegativeNumber(summary[key]);
+    if (value !== null) {
+      sanitized[key] = value;
+    }
+  });
+
+  if (Object.keys(sanitized).length === 0) {
+    console.warn('Summary payload did not include any numeric metrics.');
+    return null;
+  }
+
+  return sanitized;
+};
+
+const sanitizeUtilizationResponse = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    console.warn('Kit utilization response payload was not an object. Ignoring payload.');
+    return null;
+  }
+
+  const sanitized = {
+    issuancesByKit: sanitizeNamedValueCollection(payload.issuancesByKit, 'issuancesByKit'),
+    transfersByType: sanitizeNamedValueCollection(payload.transfersByType, 'transfersByType'),
+    activityOverTime: sanitizeActivityOverTime(payload.activityOverTime)
+  };
+
+  const summary = sanitizeSummary(payload.summary);
+  if (summary) {
+    sanitized.summary = summary;
+  }
+
+  if (
+    sanitized.issuancesByKit.length === 0 &&
+    sanitized.transfersByType.length === 0 &&
+    sanitized.activityOverTime.length === 0 &&
+    !sanitized.summary
+  ) {
+    console.warn('Kit utilization response did not include any usable datasets after validation.');
+    return null;
+  }
+
+  return sanitized;
+};
+
+// Constants and helper functions for chart rendering
+const RADIAN = Math.PI / 180;
+
+const renderTransferLabel = ({
+  cx,
+  cy,
+  midAngle,
+  outerRadius,
+  percent,
+  name
+}) => {
+  const radius = outerRadius + 18;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#2c3e50"
+      fontSize={12}
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+    >
+      {`${name}: ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const KitUtilizationStats = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +187,13 @@ const KitUtilizationStats = () => {
         const response = await api.get('/kits/analytics/utilization', {
           params: { days: timeRange }
         });
-        setUtilizationData(response.data);
+        const sanitizedData = sanitizeUtilizationResponse(response.data);
+
+        if (!sanitizedData) {
+          console.warn('Falling back to mock kit utilization data after validation.');
+        }
+
+        setUtilizationData(sanitizedData);
         setError(null);
       } catch (err) {
         console.error('Error fetching kit utilization:', err);
@@ -132,13 +307,13 @@ const KitUtilizationStats = () => {
             <h6 className="mb-3">Transfers by Type</h6>
             {data.transfersByType && data.transfersByType.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
+                <PieChart margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Pie
                     data={data.transfersByType}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine
+                    label={renderTransferLabel}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"

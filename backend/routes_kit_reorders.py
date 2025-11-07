@@ -221,7 +221,6 @@ def register_kit_reorder_routes(app):
 
         # Get box_id from request body (optional - default to first box)
         data = request.get_json(silent=True) or {}
-        logger.info("Request data received", extra={"data": data})
 
         box = None
         box_id = data.get("box_id")

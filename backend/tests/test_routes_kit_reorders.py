@@ -528,6 +528,75 @@ class TestFulfillReorderRequest:
 
         assert response.status_code == 401
 
+    def test_fulfill_reorder_request_zero_quantity(self, client, auth_headers_materials, db_session, test_kit, test_expendable, admin_user):
+        """Test fulfilling reorder request with zero quantity (should fail)"""
+        reorder = KitReorderRequest(
+            kit_id=test_kit.id,
+            item_type="expendable",
+            item_id=test_expendable.id,
+            part_number="EXP-ZERO",
+            description="Zero Quantity Test",
+            quantity_requested=0.0,
+            priority="medium",
+            requested_by=admin_user.id,
+            status="ordered"
+        )
+        db_session.add(reorder)
+        db_session.commit()
+
+        response = client.put(f"/api/reorder-requests/{reorder.id}/fulfill",
+                            headers=auth_headers_materials)
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "Quantity requested must be greater than zero" in data["error"]
+
+    def test_fulfill_reorder_request_negative_quantity(self, client, auth_headers_materials, db_session, test_kit, test_expendable, admin_user):
+        """Test fulfilling reorder request with negative quantity (should fail)"""
+        reorder = KitReorderRequest(
+            kit_id=test_kit.id,
+            item_type="expendable",
+            item_id=test_expendable.id,
+            part_number="EXP-NEG",
+            description="Negative Quantity Test",
+            quantity_requested=-10.0,
+            priority="medium",
+            requested_by=admin_user.id,
+            status="ordered"
+        )
+        db_session.add(reorder)
+        db_session.commit()
+
+        response = client.put(f"/api/reorder-requests/{reorder.id}/fulfill",
+                            headers=auth_headers_materials)
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "Quantity requested must be greater than zero" in data["error"]
+
+    def test_fulfill_tool_reorder_with_quantity_not_one(self, client, auth_headers_materials, db_session, test_kit, admin_user):
+        """Test fulfilling tool reorder request with quantity != 1 (should fail)"""
+        reorder = KitReorderRequest(
+            kit_id=test_kit.id,
+            item_type="tool",
+            item_id=None,
+            part_number="TOOL-001",
+            description="Test Tool",
+            quantity_requested=5.0,
+            priority="medium",
+            requested_by=admin_user.id,
+            status="ordered"
+        )
+        db_session.add(reorder)
+        db_session.commit()
+
+        response = client.put(f"/api/reorder-requests/{reorder.id}/fulfill",
+                            headers=auth_headers_materials)
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "Tool quantity must be 1" in data["error"]
+
 
 class TestCancelReorderRequest:
     """Test cancelling reorder requests"""
