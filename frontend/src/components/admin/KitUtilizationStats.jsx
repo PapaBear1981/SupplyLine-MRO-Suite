@@ -36,6 +36,33 @@ const KitUtilizationStats = () => {
   }, [timeRange]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+  const RADIAN = Math.PI / 180;
+
+  const renderTransferLabel = ({
+    cx,
+    cy,
+    midAngle,
+    outerRadius,
+    percent,
+    name
+  }) => {
+    const radius = outerRadius + 18;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#2c3e50"
+        fontSize={12}
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+      >
+        {`${name}: ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   if (loading) {
     return (
@@ -132,13 +159,13 @@ const KitUtilizationStats = () => {
             <h6 className="mb-3">Transfers by Type</h6>
             {data.transfersByType && data.transfersByType.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
+                <PieChart margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Pie
                     data={data.transfersByType}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine
+                    label={renderTransferLabel}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
