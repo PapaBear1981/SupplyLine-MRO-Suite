@@ -67,13 +67,13 @@ class TestChannelRoutes:
 
         assert response.status_code == 409
 
-    def test_get_user_channels(self, client, auth_headers, test_channel, test_user):
+    def test_get_user_channels(self, client, auth_headers, test_channel, admin_user):
         """Test getting channels user is a member of"""
         with client.application.app_context():
-            # Add user as member
+            # Add admin user as member
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             db.session.add(member)
             db.session.commit()
@@ -85,13 +85,13 @@ class TestChannelRoutes:
         assert 'channels' in data
         assert len(data['channels']) > 0
 
-    def test_get_channel_by_id(self, client, auth_headers, test_channel, test_user):
+    def test_get_channel_by_id(self, client, auth_headers, test_channel, admin_user):
         """Test getting specific channel details"""
         with client.application.app_context():
-            # Add user as member
+            # Add admin user as member
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             db.session.add(member)
             db.session.commit()
@@ -115,13 +115,13 @@ class TestChannelRoutes:
 
         assert response.status_code == 403
 
-    def test_update_channel(self, client, auth_headers, test_channel, test_user):
+    def test_update_channel(self, client, auth_headers, test_channel, admin_user):
         """Test updating channel (admin only)"""
         with client.application.app_context():
-            # Add user as admin
+            # Add admin user as admin
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='admin'
             )
             db.session.add(member)
@@ -140,13 +140,13 @@ class TestChannelRoutes:
         response_data = json.loads(response.data)
         assert response_data['channel']['description'] == 'Updated description'
 
-    def test_update_channel_not_admin(self, client, auth_headers, test_channel, test_user):
+    def test_update_channel_not_admin(self, client, auth_headers, test_channel, admin_user):
         """Test updating channel without admin role"""
         with client.application.app_context():
-            # Add user as regular member
+            # Add admin user as regular member
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='member'
             )
             db.session.add(member)
@@ -163,13 +163,13 @@ class TestChannelRoutes:
 
         assert response.status_code == 403
 
-    def test_delete_channel(self, client, auth_headers, test_channel, test_user):
+    def test_delete_channel(self, client, auth_headers, test_channel, admin_user):
         """Test deleting channel (admin only)"""
         with client.application.app_context():
-            # Add user as admin
+            # Add admin user as admin
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='admin'
             )
             db.session.add(member)
@@ -189,12 +189,12 @@ class TestChannelRoutes:
         )
         assert response.status_code == 403  # No longer a member
 
-    def test_delete_channel_not_admin(self, client, auth_headers, test_channel, test_user):
+    def test_delete_channel_not_admin(self, client, auth_headers, test_channel, admin_user):
         """Test deleting channel without admin role"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='member'
             )
             db.session.add(member)
@@ -211,12 +211,12 @@ class TestChannelRoutes:
 class TestChannelMemberRoutes:
     """Test channel member management"""
 
-    def test_get_channel_members(self, client, auth_headers, test_channel, test_user):
+    def test_get_channel_members(self, client, auth_headers, test_channel, admin_user):
         """Test getting channel members"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             db.session.add(member)
             db.session.commit()
@@ -231,13 +231,13 @@ class TestChannelMemberRoutes:
         assert 'members' in data
         assert len(data['members']) > 0
 
-    def test_add_channel_member(self, client, auth_headers, test_channel, test_user, test_user_2):
+    def test_add_channel_member(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test adding a member to channel"""
         with client.application.app_context():
-            # Add test_user as admin
+            # Add admin user as admin
             admin = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='admin'
             )
             db.session.add(admin)
@@ -256,13 +256,13 @@ class TestChannelMemberRoutes:
         response_data = json.loads(response.data)
         assert response_data['member']['user_id'] == test_user_2.id
 
-    def test_add_member_not_admin(self, client, auth_headers, test_channel, test_user, test_user_2):
+    def test_add_member_not_admin(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test adding member without admin permission"""
         with client.application.app_context():
-            # Add test_user as regular member
+            # Add admin user as regular member
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='member'
             )
             db.session.add(member)
@@ -279,12 +279,12 @@ class TestChannelMemberRoutes:
 
         assert response.status_code == 403
 
-    def test_add_duplicate_member(self, client, auth_headers, test_channel, test_user, test_user_2):
+    def test_add_duplicate_member(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test adding member who is already a member"""
         with client.application.app_context():
             admin = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='admin'
             )
             existing = ChannelMember(
@@ -305,12 +305,12 @@ class TestChannelMemberRoutes:
 
         assert response.status_code == 409
 
-    def test_remove_channel_member(self, client, auth_headers, test_channel, test_user, test_user_2):
+    def test_remove_channel_member(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test removing a member from channel"""
         with client.application.app_context():
             admin = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id,
+                user_id=admin_user.id,
                 role='admin'
             )
             member = ChannelMember(
@@ -327,18 +327,18 @@ class TestChannelMemberRoutes:
 
         assert response.status_code == 200
 
-    def test_member_self_leave(self, client, auth_headers, test_channel, test_user):
+    def test_member_self_leave(self, client, auth_headers, test_channel, admin_user):
         """Test member leaving channel (self-removal)"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             db.session.add(member)
             db.session.commit()
 
         response = client.delete(
-            f'/api/channels/{test_channel.id}/members/{test_user.id}',
+            f'/api/channels/{test_channel.id}/members/{admin_user.id}',
             headers=auth_headers
         )
 
@@ -348,16 +348,16 @@ class TestChannelMemberRoutes:
 class TestChannelMessageRoutes:
     """Test channel message operations"""
 
-    def test_get_channel_messages(self, client, auth_headers, test_channel, test_user):
+    def test_get_channel_messages(self, client, auth_headers, test_channel, admin_user):
         """Test getting messages from a channel"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             message = ChannelMessage(
                 channel_id=test_channel.id,
-                sender_id=test_user.id,
+                sender_id=admin_user.id,
                 message="Test message"
             )
             db.session.add_all([member, message])
@@ -382,12 +382,12 @@ class TestChannelMessageRoutes:
 
         assert response.status_code == 403
 
-    def test_get_messages_pagination(self, client, auth_headers, test_channel, test_user):
+    def test_get_messages_pagination(self, client, auth_headers, test_channel, admin_user):
         """Test message pagination"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             db.session.add(member)
 
@@ -395,7 +395,7 @@ class TestChannelMessageRoutes:
             for i in range(10):
                 message = ChannelMessage(
                     channel_id=test_channel.id,
-                    sender_id=test_user.id,
+                    sender_id=admin_user.id,
                     message=f"Message {i}"
                 )
                 db.session.add(message)
@@ -413,16 +413,16 @@ class TestChannelMessageRoutes:
         assert data['limit'] == 5
         assert data['offset'] == 0
 
-    def test_delete_channel_message_sender(self, client, auth_headers, test_channel, test_user):
+    def test_delete_channel_message_sender(self, client, auth_headers, test_channel, admin_user):
         """Test deleting message as sender"""
         with client.application.app_context():
             member = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             message = ChannelMessage(
                 channel_id=test_channel.id,
-                sender_id=test_user.id,
+                sender_id=admin_user.id,
                 message="To be deleted"
             )
             db.session.add_all([member, message])
@@ -441,12 +441,12 @@ class TestChannelMessageRoutes:
             message = ChannelMessage.query.get(message_id)
             assert message.is_deleted is True
 
-    def test_delete_message_not_sender(self, client, auth_headers, test_channel, test_user, test_user_2):
+    def test_delete_message_not_sender(self, client, auth_headers, test_channel, admin_user, test_user_2):
         """Test deleting message not sent by user (should fail)"""
         with client.application.app_context():
             member1 = ChannelMember(
                 channel_id=test_channel.id,
-                user_id=test_user.id
+                user_id=admin_user.id
             )
             member2 = ChannelMember(
                 channel_id=test_channel.id,
@@ -463,7 +463,7 @@ class TestChannelMessageRoutes:
 
         response = client.delete(
             f'/api/channels/{test_channel.id}/messages/{message_id}',
-            headers=auth_headers  # Authenticated as test_user
+            headers=auth_headers  # Authenticated as admin_user
         )
 
         assert response.status_code == 403

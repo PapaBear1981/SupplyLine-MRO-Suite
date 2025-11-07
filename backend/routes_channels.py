@@ -5,9 +5,10 @@ import logging
 from datetime import datetime, UTC
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import or_
 
+from auth import jwt_required
+from auth.jwt_manager import JWTManager
 from models import db
 from models_messaging import Channel, ChannelMember, ChannelMessage
 
@@ -17,7 +18,7 @@ channels_bp = Blueprint('channels', __name__, url_prefix='/api/channels')
 
 
 @channels_bp.route('', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_channels():
     """
     Get all channels the current user has access to.
@@ -26,7 +27,8 @@ def get_channels():
     - active_only: Boolean to show only active channels (default True)
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
         channel_type = request.args.get('type')
         active_only = request.args.get('active_only', 'true').lower() == 'true'
 
@@ -56,13 +58,14 @@ def get_channels():
 
 
 @channels_bp.route('/<int:channel_id>', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_channel(channel_id):
     """
     Get detailed information about a specific channel.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Verify user is a member
         membership = ChannelMember.query.filter_by(
@@ -87,7 +90,7 @@ def get_channel(channel_id):
 
 
 @channels_bp.route('', methods=['POST'])
-@jwt_required()
+@jwt_required
 def create_channel():
     """
     Create a new channel.
@@ -95,7 +98,8 @@ def create_channel():
     Optional: description, department
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
         data = request.get_json()
 
         name = data.get('name')
@@ -149,13 +153,14 @@ def create_channel():
 
 
 @channels_bp.route('/<int:channel_id>', methods=['PUT'])
-@jwt_required()
+@jwt_required
 def update_channel(channel_id):
     """
     Update channel information (admin only).
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
         data = request.get_json()
 
         # Check if user is admin of the channel
@@ -214,13 +219,14 @@ def update_channel(channel_id):
 
 
 @channels_bp.route('/<int:channel_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required
 def delete_channel(channel_id):
     """
     Delete a channel (admin only).
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Check if user is admin of the channel
         membership = ChannelMember.query.filter_by(
@@ -255,13 +261,14 @@ def delete_channel(channel_id):
 # === Channel Members ===
 
 @channels_bp.route('/<int:channel_id>/members', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_channel_members(channel_id):
     """
     Get all members of a channel.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Verify user is a member
         membership = ChannelMember.query.filter_by(
@@ -284,7 +291,7 @@ def get_channel_members(channel_id):
 
 
 @channels_bp.route('/<int:channel_id>/members', methods=['POST'])
-@jwt_required()
+@jwt_required
 def add_channel_member(channel_id):
     """
     Add a member to a channel (admin/moderator only).
@@ -292,7 +299,8 @@ def add_channel_member(channel_id):
     Optional: role (default: member)
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
         data = request.get_json()
 
         user_id = data.get('user_id')
@@ -348,13 +356,14 @@ def add_channel_member(channel_id):
 
 
 @channels_bp.route('/<int:channel_id>/members/<int:user_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required
 def remove_channel_member(channel_id, user_id):
     """
     Remove a member from a channel (admin only, or user removing themselves).
     """
     try:
-        current_user_id = get_jwt_identity()
+        current_user_payload = JWTManager.get_current_user()
+        current_user_id = current_user_payload['user_id']
 
         # Check permissions
         is_admin = ChannelMember.query.filter_by(
@@ -396,7 +405,7 @@ def remove_channel_member(channel_id, user_id):
 # === Channel Messages ===
 
 @channels_bp.route('/<int:channel_id>/messages', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_channel_messages(channel_id):
     """
     Get messages from a channel.
@@ -406,7 +415,8 @@ def get_channel_messages(channel_id):
     - since: ISO timestamp to get messages after this time
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Verify user is a member
         membership = ChannelMember.query.filter_by(
@@ -455,13 +465,14 @@ def get_channel_messages(channel_id):
 
 
 @channels_bp.route('/<int:channel_id>/messages/<int:message_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required
 def delete_channel_message(channel_id, message_id):
     """
     Delete a channel message (sender, moderator, or admin only).
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         message = ChannelMessage.query.filter_by(
             id=message_id,

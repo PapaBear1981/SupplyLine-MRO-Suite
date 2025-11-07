@@ -22,4 +22,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
 
     # Use socketio.run() instead of app.run() for WebSocket support
-    socketio.run(app, host=host, port=port, debug=debug_mode)
+    # allow_unsafe_werkzeug=True is needed for production deployment
+    socketio.run(app, host=host, port=port, debug=debug_mode, allow_unsafe_werkzeug=True)

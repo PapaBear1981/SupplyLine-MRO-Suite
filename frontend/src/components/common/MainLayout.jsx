@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Container, Navbar, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Container, Nav, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { FaTools, FaBars, FaTimes } from 'react-icons/fa';
 import ProfileModal from '../profile/ProfileModal';
@@ -16,6 +16,7 @@ const MainLayout = ({ children }) => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { theme } = useSelector((state) => state.theme);
   const { hasLoaded: securityLoaded, loading: securityLoading } = useSelector((state) => state.security);
   const { showHelp, showTooltips, setShowHelp } = useHelp();
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -36,103 +37,101 @@ const MainLayout = ({ children }) => {
 
   return (
     <div className="main-layout">
-      {/* Top Header */}
-      <Navbar bg="dark" variant="dark" className="top-navbar fixed-top">
-        <Container fluid>
-          <div className="d-flex align-items-center">
-            <Button
-              variant="link"
-              className="text-light sidebar-toggle"
-              onClick={toggleSidebar}
-              aria-label="Toggle sidebar"
-            >
-              {sidebarCollapsed ? <FaBars size={20} /> : <FaTimes size={20} />}
-            </Button>
-            <Navbar.Brand as={Link} to="/" className="d-flex align-items-center ms-2">
-              <FaTools className="me-2" />
-              SupplyLine MRO Suite
-            </Navbar.Brand>
-          </div>
-
-          <Nav className="ms-auto d-flex align-items-center">
-            {/* Help Button */}
-            {isAuthenticated && (
-              <div className="d-flex me-3">
-                <OverlayTrigger
-                  placement="bottom"
-                  overlay={<Tooltip id="tooltip-help">Toggle help features</Tooltip>}
-                  trigger={showTooltips ? ['hover', 'focus'] : []}
-                >
-                  <Button
-                    variant={showHelp ? "info" : "outline-info"}
-                    className="me-2"
-                    onClick={() => setShowHelp(!showHelp)}
-                    aria-label={showHelp ? "Hide help features" : "Show help features"}
-                  >
-                    <i className="bi bi-question-circle"></i>
-                  </Button>
-                </OverlayTrigger>
-                <OverlayTrigger
-                  placement="bottom"
-                  overlay={<Tooltip id="tooltip-tour">Start guided tour</Tooltip>}
-                  trigger={showTooltips ? ['hover', 'focus'] : []}
-                >
-                  <Button
-                    variant="outline-info"
-                    onClick={() => setShowTour(true)}
-                    aria-label="Start guided tour"
-                  >
-                    <i className="bi bi-info-circle"></i>
-                  </Button>
-                </OverlayTrigger>
-              </div>
-            )}
-
-            {isAuthenticated ? (
-              <Button
-                variant="outline-light"
-                className="d-flex align-items-center"
-                onClick={() => setShowProfileModal(true)}
-                data-testid="user-menu"
-              >
-                <span className="me-2">{user?.name || 'User'}</span>
-                {user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt="User Avatar"
-                    className="avatar-circle-sm"
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div className="avatar-circle-sm bg-primary text-white">
-                    {user?.name?.charAt(0) || 'U'}
-                  </div>
-                )}
-              </Button>
-            ) : (
-              <>
-                <Button variant="outline-light" className="me-2" as={Link} to="/login">
-                  Login
-                </Button>
-                <Button variant="light" as={Link} to="/register">
-                  Register
-                </Button>
-              </>
-            )}
-          </Nav>
-        </Container>
-      </Navbar>
-
       {/* Sidebar */}
       <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        <Nav className="flex-column pt-3">
+        {/* Sidebar Header with Logo and Toggle */}
+        <div className="sidebar-header">
+          <Button
+            variant="link"
+            className="sidebar-toggle-btn"
+            onClick={toggleSidebar}
+            aria-label="Toggle sidebar"
+          >
+            {sidebarCollapsed ? <FaBars size={20} /> : <FaTimes size={20} />}
+          </Button>
+          {!sidebarCollapsed && (
+            <Link to="/" className="sidebar-brand">
+              <FaTools className="me-2" />
+              <span>SupplyLine MRO</span>
+            </Link>
+          )}
+        </div>
+
+        {/* Sidebar User Section */}
+        {isAuthenticated && (
+          <div className="sidebar-user-section">
+            <Button
+              variant="link"
+              className="sidebar-user-btn w-100"
+              onClick={() => setShowProfileModal(true)}
+              data-testid="user-menu"
+            >
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="User Avatar"
+                  className="sidebar-avatar"
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="sidebar-avatar bg-primary text-white">
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+              )}
+              {!sidebarCollapsed && (
+                <span className="sidebar-user-name">{user?.name || 'User'}</span>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Sidebar Help Buttons */}
+        {isAuthenticated && (
+          <div className="sidebar-help-section">
+            <OverlayTrigger
+              placement="right"
+              overlay={<Tooltip id="tooltip-help">Toggle help features</Tooltip>}
+              trigger={showTooltips ? ['hover', 'focus'] : []}
+            >
+              <Button
+                variant={showHelp ? "info" : "outline-info"}
+                size="sm"
+                className="sidebar-help-btn"
+                onClick={() => setShowHelp(!showHelp)}
+                aria-label={showHelp ? "Hide help features" : "Show help features"}
+              >
+                <i className="bi bi-question-circle"></i>
+                {!sidebarCollapsed && <span className="ms-2">Help</span>}
+              </Button>
+            </OverlayTrigger>
+            <OverlayTrigger
+              placement="right"
+              overlay={<Tooltip id="tooltip-tour">Start guided tour</Tooltip>}
+              trigger={showTooltips ? ['hover', 'focus'] : []}
+            >
+              <Button
+                variant="outline-info"
+                size="sm"
+                className="sidebar-help-btn"
+                onClick={() => setShowTour(true)}
+                aria-label="Start guided tour"
+              >
+                <i className="bi bi-info-circle"></i>
+                {!sidebarCollapsed && <span className="ms-2">Tour</span>}
+              </Button>
+            </OverlayTrigger>
+          </div>
+        )}
+
+        {/* Sidebar Navigation */}
+        <Nav className="flex-column sidebar-nav">
           {/* Dashboard is always visible to authenticated users */}
           <Nav.Link
             as={Link}
             to="/dashboard"
             className={location.pathname === '/dashboard' ? 'active' : ''}
           >
-            <i className="bi bi-speedometer2 me-2"></i>
+            <i className="bi bi-speedometer2"></i>
             {!sidebarCollapsed && <span>Dashboard</span>}
           </Nav.Link>
 
@@ -145,7 +144,7 @@ const MainLayout = ({ children }) => {
                   to="/tools"
                   className={location.pathname === '/tools' ? 'active' : ''}
                 >
-                  <i className="bi bi-tools me-2"></i>
+                  <i className="bi bi-tools"></i>
                   {!sidebarCollapsed && <span>Tools</span>}
                 </Nav.Link>
               )}
@@ -156,7 +155,7 @@ const MainLayout = ({ children }) => {
                   to="/checkouts"
                   className={location.pathname === '/checkouts' ? 'active' : ''}
                 >
-                  <i className="bi bi-box-arrow-right me-2"></i>
+                  <i className="bi bi-box-arrow-right"></i>
                   {!sidebarCollapsed && <span>Checkouts</span>}
                 </Nav.Link>
               )}
@@ -167,7 +166,7 @@ const MainLayout = ({ children }) => {
                   to="/kits"
                   className={location.pathname === '/kits' ? 'active' : ''}
                 >
-                  <i className="bi bi-briefcase me-2"></i>
+                  <i className="bi bi-briefcase"></i>
                   {!sidebarCollapsed && <span>Kits</span>}
                 </Nav.Link>
               )}
@@ -178,7 +177,7 @@ const MainLayout = ({ children }) => {
                   to="/chemicals"
                   className={location.pathname === '/chemicals' ? 'active' : ''}
                 >
-                  <i className="bi bi-droplet me-2"></i>
+                  <i className="bi bi-droplet"></i>
                   {!sidebarCollapsed && <span>Chemicals</span>}
                 </Nav.Link>
               )}
@@ -189,7 +188,7 @@ const MainLayout = ({ children }) => {
                   to="/calibrations"
                   className={location.pathname === '/calibrations' ? 'active' : ''}
                 >
-                  <i className="bi bi-sliders me-2"></i>
+                  <i className="bi bi-sliders"></i>
                   {!sidebarCollapsed && <span>Calibrations</span>}
                 </Nav.Link>
               )}
@@ -200,7 +199,7 @@ const MainLayout = ({ children }) => {
                   to="/warehouses"
                   className={location.pathname === '/warehouses' ? 'active' : ''}
                 >
-                  <i className="bi bi-building me-2"></i>
+                  <i className="bi bi-building"></i>
                   {!sidebarCollapsed && <span>Warehouses</span>}
                 </Nav.Link>
               )}
@@ -211,7 +210,7 @@ const MainLayout = ({ children }) => {
                   to="/reports"
                   className={location.pathname === '/reports' ? 'active' : ''}
                 >
-                  <i className="bi bi-file-earmark-text me-2"></i>
+                  <i className="bi bi-file-earmark-text"></i>
                   {!sidebarCollapsed && <span>Reports</span>}
                 </Nav.Link>
               )}
@@ -222,7 +221,7 @@ const MainLayout = ({ children }) => {
                 to="/history"
                 className={location.pathname === '/history' ? 'active' : ''}
               >
-                <i className="bi bi-clock-history me-2"></i>
+                <i className="bi bi-clock-history"></i>
                 {!sidebarCollapsed && <span>History</span>}
               </Nav.Link>
 
@@ -258,7 +257,7 @@ const MainLayout = ({ children }) => {
                   to="/admin/dashboard"
                   className={location.pathname === '/admin/dashboard' ? 'active' : ''}
                 >
-                  <i className="bi bi-gear me-2"></i>
+                  <i className="bi bi-gear"></i>
                   {!sidebarCollapsed && <span>Admin Dashboard</span>}
                 </Nav.Link>
               )}
@@ -273,7 +272,7 @@ const MainLayout = ({ children }) => {
           {children}
         </Container>
 
-        <footer className="bg-dark text-light py-3 mt-auto">
+        <footer className="main-footer py-3 mt-auto">
           <Container fluid>
             <div className="d-flex justify-content-between">
               <span>SupplyLine MRO Suite &copy; {new Date().getFullYear()}</span>

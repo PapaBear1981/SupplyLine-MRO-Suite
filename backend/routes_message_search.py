@@ -6,9 +6,10 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import or_, and_, func
 
+from auth import jwt_required
+from auth.jwt_manager import JWTManager
 from models import db, User
 from models_messaging import (
     Channel, ChannelMember, ChannelMessage,
@@ -22,7 +23,7 @@ search_bp = Blueprint('message_search', __name__, url_prefix='/api/messages/sear
 
 
 @search_bp.route('', methods=['GET'])
-@jwt_required()
+@jwt_required
 def search_messages():
     """
     Full-text search across all messages accessible to the user.
@@ -40,7 +41,8 @@ def search_messages():
     - offset: Pagination offset (default 0)
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Get search query
         search_query = request.args.get('q', '').strip()
@@ -195,14 +197,15 @@ def search_messages():
 
 
 @search_bp.route('/senders', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_message_senders():
     """
     Get list of users who have sent messages to the current user.
     Useful for sender filter dropdown.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Get kit message senders
         kit_senders = db.session.query(
@@ -250,14 +253,15 @@ def get_message_senders():
 
 
 @search_bp.route('/stats', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_message_stats():
     """
     Get message statistics for the current user.
     Returns counts of total, unread, sent, and received messages.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Kit message stats
         kit_received = KitMessage.query.filter_by(recipient_id=current_user_id).count()

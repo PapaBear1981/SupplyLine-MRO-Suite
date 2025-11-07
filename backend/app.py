@@ -8,6 +8,7 @@ from flask import Flask
 
 # from flask_session import Session  # Disabled due to Flask 3.x compatibility issues - using JWT instead
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 from config import Config
 from models import db
@@ -83,6 +84,14 @@ def create_app():
 
     # Validate security configuration (deferred to allow test fixtures to set values)
     Config.validate_security_config(app.config)
+
+    # Configure JWT for flask-jwt-extended
+    app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+    app.config["JWT_HEADER_NAME"] = "Authorization"
+    app.config["JWT_HEADER_TYPE"] = "Bearer"
+
+    # Initialize JWTManager for flask-jwt-extended
+    jwt = JWTManager(app)
 
     # Configure structured logging
     if hasattr(Config, "LOGGING_CONFIG"):

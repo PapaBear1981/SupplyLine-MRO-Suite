@@ -8,10 +8,11 @@ from datetime import datetime, UTC
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request, send_file
-from flask_jwt_extended import get_jwt_identity, jwt_required
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from auth import jwt_required
+from auth.jwt_manager import JWTManager
 from models import db
 from models_messaging import MessageAttachment, AttachmentDownload
 from models_kits import KitMessage
@@ -94,7 +95,7 @@ def create_thumbnail(image_path, thumbnail_path):
 
 
 @attachments_bp.route('/upload', methods=['POST'])
-@jwt_required()
+@jwt_required
 def upload_attachment():
     """
     Upload a file attachment for a message.
@@ -106,7 +107,8 @@ def upload_attachment():
     Returns attachment metadata.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         # Check if file is in request
         if 'file' not in request.files:
@@ -215,14 +217,15 @@ def upload_attachment():
 
 
 @attachments_bp.route('/<int:attachment_id>/download', methods=['GET'])
-@jwt_required()
+@jwt_required
 def download_attachment(attachment_id):
     """
     Download an attachment file.
     Tracks download in the database.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         attachment = MessageAttachment.query.get(attachment_id)
         if not attachment:
@@ -288,13 +291,14 @@ def download_attachment(attachment_id):
 
 
 @attachments_bp.route('/<int:attachment_id>/thumbnail', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_thumbnail(attachment_id):
     """
     Get thumbnail for an image attachment.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         attachment = MessageAttachment.query.get(attachment_id)
         if not attachment:
@@ -335,13 +339,14 @@ def get_thumbnail(attachment_id):
 
 
 @attachments_bp.route('/<int:attachment_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required
 def delete_attachment(attachment_id):
     """
     Delete an attachment (uploader or message sender only).
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         attachment = MessageAttachment.query.get(attachment_id)
         if not attachment:
@@ -393,13 +398,14 @@ def delete_attachment(attachment_id):
 
 
 @attachments_bp.route('/<int:attachment_id>/info', methods=['GET'])
-@jwt_required()
+@jwt_required
 def get_attachment_info(attachment_id):
     """
     Get detailed information about an attachment.
     """
     try:
-        current_user_id = get_jwt_identity()
+        user_payload = JWTManager.get_current_user()
+        current_user_id = user_payload['user_id']
 
         attachment = MessageAttachment.query.get(attachment_id)
         if not attachment:
