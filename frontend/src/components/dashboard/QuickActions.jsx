@@ -114,7 +114,7 @@ const QuickActions = () => {
   const actions = getQuickActions();
   
   return (
-    <Card className="shadow-sm mb-4" data-testid="quick-actions">
+    <Card className="shadow-sm mb-4 fade-in" data-testid="quick-actions">
       <Card.Header className="bg-light">
         <h4 className="mb-0">Quick Actions</h4>
       </Card.Header>
@@ -127,7 +127,7 @@ const QuickActions = () => {
                 to={action.link}
                 state={action.state}
                 variant={action.variant}
-                className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100"
+                className="w-100 d-flex flex-column align-items-center justify-content-center p-3 h-100 interactive-tile"
               >
                 <i className={`bi bi-${action.icon} fs-4 mb-2`}></i>
                 <span>{action.title}</span>

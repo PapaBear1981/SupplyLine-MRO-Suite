@@ -103,7 +103,7 @@ const RecentActivity = () => {
   }
 
   return (
-    <Card className="shadow-sm mb-4" data-testid="recent-activity">
+    <Card className="shadow-sm mb-4 fade-in" data-testid="recent-activity">
       <Card.Header className="bg-light">
         <h4 className="mb-0">Recent Activity</h4>
       </Card.Header>
@@ -115,7 +115,10 @@ const RecentActivity = () => {
         ) : (
           <ListGroup variant="flush" data-testid="activity-list">
             {activities.slice(0, 10).map((activity) => (
-              <ListGroup.Item key={activity.id} className="d-flex justify-content-between align-items-start">
+              <ListGroup.Item
+                key={activity.id}
+                className="d-flex justify-content-between align-items-start interactive-list-item"
+              >
                 <div className="ms-2 me-auto">
                   <div className="fw-bold">
                     <Badge bg={getActivityBadgeVariant(activity.activity_type)} className="me-2">
