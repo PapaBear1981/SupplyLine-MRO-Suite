@@ -92,6 +92,50 @@ class TestOrderRoutes:
         alerts = alerts_resp.get_json()
         assert any(alert["title"] == "Overdue Order" for alert in alerts)
 
+    def test_requests_user_can_create_order(self, client, auth_headers_requests_user):
+        payload = {
+            "title": "Line maintenance drill",
+            "order_type": "tool",
+            "priority": "high",
+            "status": "ordered",  # should be forced to "new" for request-only users
+            "quantity": 2,
+            "unit": "each",
+        }
+
+        response = client.post("/api/orders", json=payload, headers=auth_headers_requests_user)
+        assert response.status_code == 201
+        order = response.get_json()
+        assert order["status"] == "new"
+        assert order["quantity"] == 2
+        assert order["unit"] == "each"
+
+    def test_requests_user_list_restricted_to_self(
+        self,
+        client,
+        auth_headers,
+        auth_headers_requests_user,
+    ):
+        create_resp = client.post(
+            "/api/orders",
+            json={"title": "Self submitted", "order_type": "expendable"},
+            headers=auth_headers_requests_user,
+        )
+        assert create_resp.status_code == 201
+        own_order = create_resp.get_json()
+
+        other_resp = client.post(
+            "/api/orders",
+            json={"title": "Admin order", "order_type": "tool"},
+            headers=auth_headers,
+        )
+        assert other_resp.status_code == 201
+
+        list_resp = client.get("/api/orders", headers=auth_headers_requests_user)
+        assert list_resp.status_code == 200
+        results = list_resp.get_json()
+        assert any(order["id"] == own_order["id"] for order in results)
+        assert all(order["title"] != "Admin order" for order in results)
+
     def test_order_messages_workflow(
         self,
         client,

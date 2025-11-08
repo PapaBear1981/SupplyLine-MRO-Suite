@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from flask import jsonify, request
 from sqlalchemy import or_
 
-from auth import jwt_required, permission_required
+from auth import jwt_required, permission_required, permission_required_any
 from models import (
     AuditLog,
     ProcurementOrder,
@@ -23,6 +23,7 @@ from utils.error_handler import ValidationError, handle_errors
 logger = logging.getLogger(__name__)
 
 orders_permission = permission_required("page.orders")
+orders_or_requests_permission = permission_required_any("page.orders", "page.requests")
 
 VALID_ORDER_TYPES = {"tool", "chemical", "expendable", "kit"}
 VALID_PRIORITIES = {"low", "normal", "high", "critical"}
@@ -87,12 +88,16 @@ def register_order_routes(app):
     """Register procurement order endpoints."""
 
     @app.route("/api/orders", methods=["GET"])
-    @orders_permission
+    @orders_or_requests_permission
     @handle_errors
     def list_orders():
         """Return procurement orders with filtering support."""
 
         query = ProcurementOrder.query
+
+        current_user = getattr(request, "current_user", {}) or {}
+        permission_set = set(current_user.get("permissions", []))
+        has_orders_permission = bool(current_user.get("is_admin")) or "page.orders" in permission_set
 
         status_filter = request.args.get("status")
         if status_filter:
@@ -122,9 +127,7 @@ def register_order_routes(app):
         if buyer_id:
             query = query.filter(ProcurementOrder.buyer_id == buyer_id)
 
-        requester_id = request.args.get("requester_id", type=int)
-        if requester_id:
-            query = query.filter(ProcurementOrder.requester_id == requester_id)
+        requester_filter = request.args.get("requester_id", type=int)
 
         search_term = request.args.get("search")
         if search_term:
@@ -164,16 +167,30 @@ def register_order_routes(app):
         if limit:
             query = query.limit(limit)
 
+        if has_orders_permission:
+            if requester_filter:
+                query = query.filter(ProcurementOrder.requester_id == requester_filter)
+        else:
+            requester_id = current_user.get("user_id")
+            if requester_id:
+                query = query.filter(ProcurementOrder.requester_id == requester_id)
+            else:
+                return jsonify({"error": "Unable to determine requesting user"}), 403
+
         orders = query.all()
         return jsonify([order.to_dict() for order in orders])
 
     @app.route("/api/orders", methods=["POST"])
-    @orders_permission
+    @orders_or_requests_permission
     @handle_errors
     def create_order():
         """Create a new procurement order."""
 
         data = request.get_json() or {}
+        current_user = getattr(request, "current_user", {}) or {}
+        permission_set = set(current_user.get("permissions", []))
+        has_orders_permission = bool(current_user.get("is_admin")) or "page.orders" in permission_set
+
         title = data.get("title")
         if not title:
             raise ValidationError("Title is required")
@@ -187,14 +204,28 @@ def register_order_routes(app):
             raise ValidationError("Invalid priority")
 
         status = data.get("status", "new").lower()
+        if not has_orders_permission:
+            status = "new"
         if status not in VALID_STATUSES:
             raise ValidationError("Invalid status")
 
         expected_due_date = _parse_datetime(data.get("expected_due_date"), "expected_due_date")
 
-        requester_id = data.get("requester_id") or request.current_user["user_id"]
+        quantity_value = data.get("quantity")
+        if quantity_value is not None and quantity_value != "":
+            try:
+                quantity_int = int(quantity_value)
+            except (TypeError, ValueError) as exc:
+                raise ValidationError("Quantity must be a positive integer") from exc
+            if quantity_int <= 0:
+                raise ValidationError("Quantity must be a positive integer")
+        else:
+            quantity_int = None
+
+        requester_id = data.get("requester_id") if has_orders_permission else current_user.get("user_id")
+        requester_id = requester_id or current_user.get("user_id")
         requester = _load_user(requester_id, "Requester")
-        buyer_id = data.get("buyer_id")
+        buyer_id = data.get("buyer_id") if has_orders_permission else None
         buyer = _load_user(buyer_id, "Buyer") if buyer_id else None
 
         kit_id = data.get("kit_id")
@@ -215,6 +246,8 @@ def register_order_routes(app):
             tracking_number=data.get("tracking_number"),
             expected_due_date=expected_due_date,
             notes=data.get("notes"),
+            quantity=quantity_int,
+            unit=data.get("unit") or None,
             kit_id=kit_id,
             requester_id=requester.id,
             buyer_id=buyer.id if buyer else None,
@@ -295,6 +328,23 @@ def register_order_routes(app):
 
         if "notes" in data:
             order.notes = data.get("notes")
+
+        if "quantity" in data:
+            quantity_value = data.get("quantity")
+            if quantity_value in (None, ""):
+                order.quantity = None
+            else:
+                try:
+                    quantity_int = int(quantity_value)
+                except (TypeError, ValueError) as exc:
+                    raise ValidationError("Quantity must be a positive integer") from exc
+                if quantity_int <= 0:
+                    raise ValidationError("Quantity must be a positive integer")
+                order.quantity = quantity_int
+
+        if "unit" in data:
+            unit_value = data.get("unit")
+            order.unit = unit_value or None
 
         if "kit_id" in data:
             kit_id = data.get("kit_id")

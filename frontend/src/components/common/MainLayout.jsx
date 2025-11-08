@@ -148,6 +148,17 @@ const MainLayout = ({ children }) => {
                 </Nav.Link>
               )}
 
+              {hasPermission(user, 'page.requests') && (
+                <Nav.Link
+                  as={Link}
+                  to="/requests"
+                  className={location.pathname === '/requests' ? 'active' : ''}
+                >
+                  <i className="bi bi-journal-plus"></i>
+                  {!sidebarCollapsed && <span>Requests</span>}
+                </Nav.Link>
+              )}
+
               {hasPermission(user, 'page.checkouts') && (
                 <Nav.Link
                   as={Link}

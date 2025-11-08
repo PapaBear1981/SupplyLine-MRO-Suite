@@ -28,6 +28,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 |----------------|-------------|-------------------|
 | `page.tools` | Access Tools page | /tools, /tools/new, /tools/:id, /tools/:id/edit |
 | `page.orders` | Access Orders page | /orders |
+| `page.requests` | Access Requests page | /requests |
 | `page.checkouts` | Access Checkouts page | /checkouts, /checkouts/all, /checkout/:id |
 | `page.my_checkouts` | Access My Checkouts page | /my-checkouts |
 | `page.kits` | Access Kits page | /kits, /kits/new, /kits/:id, /kits/:id/edit, /kits/reports, /kits/mobile |
@@ -51,6 +52,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 
 - ✅ Tools
 - ✅ Orders
+- ✅ Requests
 - ✅ Checkouts
 - ✅ My Checkouts
 - ✅ Kits
@@ -68,10 +70,11 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 ---
 
 ### Materials Manager Role
-**Page Permissions:** 11 permissions (everything except admin-specific pages)
+**Page Permissions:** 12 permissions (everything except admin-specific pages)
 
 - ✅ Tools
 - ✅ Orders
+- ✅ Requests
 - ✅ Checkouts
 - ✅ My Checkouts
 - ✅ Kits
@@ -89,13 +92,14 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 ---
 
 ### Maintenance User Role (RESTRICTED)
-**Page Permissions:** 3 permissions (minimal access)
+**Page Permissions:** 4 permissions (minimal access)
 
 - ❌ Tools
 - ❌ Orders
 - ❌ Checkouts
 - ✅ My Checkouts (can see their own checkouts)
 - ✅ Kits (primary work area)
+- ✅ Requests (submit procurement needs)
 - ❌ Chemicals
 - ❌ Calibrations
 - ❌ Reports
@@ -105,7 +109,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 - ❌ Aircraft Types
 - ✅ Profile
 
-**Navigation:** Only sees Dashboard, Kits, and Profile menu items
+**Navigation:** Only sees Dashboard, Kits, Requests, and Profile menu items
 
 **Use Case:** This role is designed for maintenance technicians who only need to:
 1. View their dashboard
@@ -116,11 +120,12 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 ---
 
 ### Quality Inspector Role
-**Page Permissions:** 7 permissions
+**Page Permissions:** 8 permissions
 
 - ✅ Tools
 - ✅ Checkouts
 - ✅ My Checkouts
+- ✅ Requests
 - ❌ Orders
 - ❌ Kits
 - ❌ Chemicals
@@ -132,7 +137,7 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 - ❌ Aircraft Types
 - ✅ Profile
 
-**Navigation:** Sees Tools, Checkouts, Calibrations, Reports, Scanner, and Profile
+**Navigation:** Sees Tools, Checkouts, Requests, Calibrations, Reports, Scanner, and Profile
 
 ---
 
@@ -142,9 +147,11 @@ The SupplyLine MRO Suite now includes a comprehensive **page access permission s
 
 **File:** `backend/migrations/add_page_access_permissions.py`
 
-- Creates 14 new permissions in the "Page Access" category
+- Creates the core page permissions in the "Page Access" category
 - Assigns permissions to all 4 default roles
 - Can be run multiple times safely (checks for existing permissions)
+- Use `backend/migrations/add_order_management_permission.py` and `backend/migrations/add_requests_page_permission.py`
+  to provision the Orders and Requests page access controls
 
 **Run Migration:**
 ```bash
