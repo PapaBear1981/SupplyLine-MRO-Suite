@@ -51,7 +51,6 @@ const CalibrationHistoryList = () => {
     e.preventDefault();
     // Search by tool number or serial number
     // This would typically call an API endpoint with the search term
-    console.log('Searching for:', searchTerm);
   };
 
   const handlePageChange = (newPage) => {

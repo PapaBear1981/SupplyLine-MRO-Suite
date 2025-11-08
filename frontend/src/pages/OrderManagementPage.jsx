@@ -29,7 +29,6 @@ import {
   markOrderMessageRead,
 } from '../store/ordersSlice';
 import { fetchUsers } from '../store/usersSlice';
-import { formatDate, formatDateTime } from '../utils/dateUtils';
 
 // Import tab components
 import AllOrdersTab from '../components/orders/AllOrdersTab';
@@ -82,8 +81,6 @@ const STATUS_VARIANTS = {
 const OrderManagementPage = () => {
   const dispatch = useDispatch();
   const {
-    list: orders,
-    loading,
     messages,
     selectedOrder,
     messageActionLoading,

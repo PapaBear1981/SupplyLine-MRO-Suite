@@ -138,23 +138,14 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
 
       const response = await api.post('/transfers', transferData);
 
-      console.log('Transfer response:', response.data);
-      console.log('Lot split?', response.data.lot_split);
-      console.log('Child chemical?', response.data.child_chemical);
-      console.log('Item type:', itemType);
-
       setShowSuccess(true);
 
       // Check if this was a partial transfer that created a child lot
       if (response.data.lot_split && response.data.child_chemical && itemType === 'chemical') {
-        console.log('✅ Showing barcode modal for partial transfer');
-
         // Get destination name
         const destName = formData.to_location_type === 'warehouse'
           ? warehouses.find(w => w.id === parseInt(formData.to_location_id))?.name || 'Unknown'
           : kits.find(k => k.id === parseInt(formData.to_location_id))?.name || 'Unknown';
-
-        console.log('Destination name:', destName);
 
         // Store transfer result for barcode modal
         setTransferResult({
@@ -166,15 +157,8 @@ const ItemTransferModal = ({ show, onHide, item, itemType, onTransferComplete })
 
         // Show barcode modal after a brief delay
         setTimeout(() => {
-          console.log('Opening barcode modal now...');
           setShowBarcodeModal(true);
         }, 1000);
-      } else {
-        console.log('❌ Not showing barcode modal:', {
-          lot_split: response.data.lot_split,
-          has_child: !!response.data.child_chemical,
-          itemType
-        });
       }
 
       setTimeout(() => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Form, Button, Row, Col, Badge, ListGroup, Tabs, Tab, Alert } from 'react-bootstrap';
 import { FaSave, FaEnvelope, FaReply } from 'react-icons/fa';
-import { formatDate, formatDateTime } from '../../utils/dateUtils';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
