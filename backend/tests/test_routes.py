@@ -350,6 +350,39 @@ class TestChemicalRoutes:
         assert len(history) == 1
         assert history[0]["notes"] == "Partial return"
 
+    def test_get_issuances_includes_child_lots(self, client, auth_headers, sample_chemical, regular_user):
+        """Issuance history includes records for child lots issued from a chemical"""
+        issue_payload = {
+            "quantity": 5,
+            "hangar": "Hangar 1",
+            "purpose": "Line maintenance",
+            "user_id": regular_user.id,
+        }
+
+        issue_response = client.post(
+            f"/api/chemicals/{sample_chemical.id}/issue",
+            json=issue_payload,
+            headers=auth_headers,
+        )
+
+        assert issue_response.status_code == 200
+        issue_data = json.loads(issue_response.data)
+        child_chemical = issue_data["child_chemical"]
+
+        history_response = client.get(
+            f"/api/chemicals/{sample_chemical.id}/issuances",
+            headers=auth_headers,
+        )
+
+        assert history_response.status_code == 200
+        history = json.loads(history_response.data)
+
+        assert len(history) == 1
+        issuance_entry = history[0]
+        assert issuance_entry["chemical_id"] == child_chemical["id"]
+        assert issuance_entry["chemical_lot_number"] == child_chemical["lot_number"]
+        assert issuance_entry["user_name"] == regular_user.name
+
 
 class TestUserRoutes:
     """Test user management routes"""

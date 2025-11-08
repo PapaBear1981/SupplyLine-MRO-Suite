@@ -20,6 +20,7 @@ const ChemicalIssuanceHistory = ({ issuances, loading }) => {
               <thead className="bg-light">
                 <tr>
                   <th>Date</th>
+                  <th>Lot Number</th>
                   <th>Issued By</th>
                   <th>Quantity</th>
                   <th>Returned</th>
@@ -32,6 +33,7 @@ const ChemicalIssuanceHistory = ({ issuances, loading }) => {
                 {issuances.map((issuance) => (
                   <tr key={issuance.id}>
                     <td>{new Date(issuance.issue_date).toLocaleString()}</td>
+                    <td>{issuance.chemical_lot_number || 'N/A'}</td>
                     <td>{issuance.user_name}</td>
                     <td>{issuance.quantity}</td>
                     <td>{issuance.total_returned ?? 0}</td>

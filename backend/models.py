@@ -874,6 +874,9 @@ class ChemicalIssuance(db.Model):
             "issue_date": self.issue_date.isoformat(),
             "total_returned": total_returned,
             "remaining_quantity": remaining_quantity,
+            "chemical_part_number": self.chemical.part_number if self.chemical else None,
+            "chemical_lot_number": self.chemical.lot_number if self.chemical else None,
+            "chemical_parent_lot_number": self.chemical.parent_lot_number if self.chemical else None,
         }
 
 

@@ -693,14 +693,30 @@ def register_chemical_routes(app):
     @app.route("/api/chemicals/<int:id>/issuances", methods=["GET"])
     @handle_errors
     def chemical_issuances_route(id):
-        # Get the chemical
-        Chemical.query.get_or_404(id)
+        # Get the chemical and eagerly load any issuances created from child lots
+        chemical = Chemical.query.get_or_404(id)
+
+        related_ids = {chemical.id}
+        lots_to_process = []
+
+        if chemical.lot_number:
+            lots_to_process.append(chemical.lot_number)
+
+        while lots_to_process:
+            current_lot = lots_to_process.pop()
+            children = Chemical.query.filter_by(parent_lot_number=current_lot).all()
+
+            for child in children:
+                if child.id not in related_ids:
+                    related_ids.add(child.id)
+                    if child.lot_number:
+                        lots_to_process.append(child.lot_number)
 
         # Get issuance records with eager loading to avoid N+1 queries
         issuances = ChemicalIssuance.query.options(
             joinedload(ChemicalIssuance.user),
             joinedload(ChemicalIssuance.chemical)
-        ).filter_by(chemical_id=id).order_by(ChemicalIssuance.issue_date.desc()).all()
+        ).filter(ChemicalIssuance.chemical_id.in_(list(related_ids))).order_by(ChemicalIssuance.issue_date.desc()).all()
 
         # Convert to list of dictionaries
         result = [i.to_dict() for i in issuances]
