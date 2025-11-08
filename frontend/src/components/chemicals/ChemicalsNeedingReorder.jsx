@@ -11,6 +11,7 @@ const ChemicalsNeedingReorder = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedChemical, setSelectedChemical] = useState(null);
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
+  const [orderQuantity, setOrderQuantity] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Format status for display
@@ -41,20 +42,29 @@ const ChemicalsNeedingReorder = () => {
   const handleOpenOrderModal = (chemical) => {
     setSelectedChemical(chemical);
     setExpectedDeliveryDate('');
+    setOrderQuantity(chemical.requested_quantity || '');
     setShowOrderModal(true);
   };
 
   // Handle marking a chemical as ordered
   const handleMarkAsOrdered = async () => {
-    if (!selectedChemical || !expectedDeliveryDate) return;
+    if (!selectedChemical || !expectedDeliveryDate || !orderQuantity) return;
+
+    // Validate quantity
+    const qty = parseInt(orderQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      alert('Please enter a valid quantity greater than 0');
+      return;
+    }
 
     setSubmitting(true);
     try {
       await dispatch(markChemicalAsOrdered({
         id: selectedChemical.id,
-        expectedDeliveryDate
+        expectedDeliveryDate,
+        orderQuantity: qty
       })).unwrap();
-      
+
       // Refresh the list
       dispatch(fetchChemicalsNeedingReorder());
       setShowOrderModal(false);
@@ -139,42 +149,82 @@ const ChemicalsNeedingReorder = () => {
       )}
 
       {/* Order Modal */}
-      <Modal show={showOrderModal} onHide={() => setShowOrderModal(false)}>
+      <Modal show={showOrderModal} onHide={() => setShowOrderModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Mark Chemical as Ordered</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedChemical && (
             <>
-              <p>
-                <strong>Part Number:</strong> {selectedChemical.part_number}
-              </p>
-              <p>
-                <strong>Lot Number:</strong> {selectedChemical.lot_number}
-              </p>
-              <p>
-                <strong>Description:</strong> {selectedChemical.description}
-              </p>
-              <Form.Group className="mb-3">
-                <Form.Label>Expected Delivery Date</Form.Label>
+              <Alert variant="info" className="mb-3">
+                <i className="bi bi-info-circle me-2"></i>
+                Review and confirm the order details before marking as ordered.
+              </Alert>
+
+              <div className="mb-3">
+                <p className="mb-1">
+                  <strong>Part Number:</strong> {selectedChemical.part_number}
+                </p>
+                <p className="mb-1">
+                  <strong>Lot Number:</strong> {selectedChemical.lot_number}
+                </p>
+                <p className="mb-1">
+                  <strong>Description:</strong> {selectedChemical.description}
+                </p>
+                <p className="mb-0">
+                  <strong>Manufacturer:</strong> {selectedChemical.manufacturer || 'N/A'}
+                </p>
+              </div>
+
+              <hr />
+
+              <Form.Group className="mb-3" controlId="orderQuantity">
+                <Form.Label>
+                  Order Quantity <span className="text-danger">*</span>
+                </Form.Label>
+                <InputGroup>
+                  <Form.Control
+                    type="number"
+                    value={orderQuantity}
+                    onChange={(e) => setOrderQuantity(e.target.value)}
+                    placeholder="Enter quantity to order"
+                    min="1"
+                    step="1"
+                    required
+                    disabled={submitting}
+                  />
+                  <InputGroup.Text>{selectedChemical.unit}</InputGroup.Text>
+                </InputGroup>
+                <Form.Text className="text-muted">
+                  {selectedChemical.requested_quantity && (
+                    <>Originally requested: {selectedChemical.requested_quantity} {selectedChemical.unit}</>
+                  )}
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="expectedDeliveryDate">
+                <Form.Label>
+                  Expected Delivery Date <span className="text-danger">*</span>
+                </Form.Label>
                 <Form.Control
                   type="date"
                   value={expectedDeliveryDate}
                   onChange={(e) => setExpectedDeliveryDate(e.target.value)}
                   required
+                  disabled={submitting}
                 />
               </Form.Group>
             </>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowOrderModal(false)}>
+          <Button variant="secondary" onClick={() => setShowOrderModal(false)} disabled={submitting}>
             Cancel
           </Button>
-          <Button 
-            variant="success" 
+          <Button
+            variant="success"
             onClick={handleMarkAsOrdered}
-            disabled={!expectedDeliveryDate || submitting}
+            disabled={!expectedDeliveryDate || !orderQuantity || submitting}
           >
             {submitting ? 'Processing...' : 'Mark as Ordered'}
           </Button>

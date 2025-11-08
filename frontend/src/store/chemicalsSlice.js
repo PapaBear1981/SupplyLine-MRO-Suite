@@ -295,9 +295,13 @@ export const requestChemicalReorder = createAsyncThunk(
 
 export const markChemicalAsOrdered = createAsyncThunk(
   'chemicals/markChemicalAsOrdered',
-  async ({ id, expected_delivery_date, notes }, { rejectWithValue }) => {
+  async ({ id, expectedDeliveryDate, orderQuantity, notes }, { rejectWithValue }) => {
     try {
-      const data = await ChemicalService.markChemicalAsOrdered(id, { expected_delivery_date, notes });
+      const data = await ChemicalService.markChemicalAsOrdered(id, {
+        expected_delivery_date: expectedDeliveryDate,
+        order_quantity: orderQuantity,
+        notes
+      });
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to mark chemical as ordered' });

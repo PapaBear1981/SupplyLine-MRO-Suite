@@ -793,6 +793,18 @@ def register_chemical_routes(app):
             if not data.get("expected_delivery_date"):
                 return jsonify({"error": "Missing required field: expected_delivery_date"}), 400
 
+            # Validate order quantity
+            order_quantity = data.get("order_quantity")
+            if order_quantity is None:
+                return jsonify({"error": "Missing required field: order_quantity"}), 400
+
+            try:
+                order_quantity = int(order_quantity)
+                if order_quantity <= 0:
+                    return jsonify({"error": "Order quantity must be greater than 0"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "Order quantity must be a valid number"}), 400
+
             # Parse the expected delivery date
             try:
                 expected_delivery_date = datetime.fromisoformat(data.get("expected_delivery_date"))
@@ -807,17 +819,29 @@ def register_chemical_routes(app):
             # Generate order title
             order_title = f"Chemical Reorder: {chemical.part_number} - {chemical.description or chemical.lot_number}"
 
+            # Build description with quantity information
+            description_parts = [
+                chemical.description or '',
+                f"Lot Number: {chemical.lot_number}",
+                f"Manufacturer: {chemical.manufacturer or 'N/A'}",
+                f"Order Quantity: {order_quantity} {chemical.unit}"
+            ]
+            if chemical.requested_quantity and chemical.requested_quantity != order_quantity:
+                description_parts.append(f"Originally Requested: {chemical.requested_quantity} {chemical.unit}")
+
             # Create the procurement order
             procurement_order = ProcurementOrder(
                 title=order_title,
                 order_type="chemical",
                 part_number=chemical.part_number,
-                description=f"{chemical.description or ''}\nLot Number: {chemical.lot_number}\nManufacturer: {chemical.manufacturer or 'N/A'}",
+                description="\n".join(description_parts),
                 priority="normal",
                 status="pending",
                 requester_id=request.current_user.get("user_id"),
                 expected_due_date=expected_delivery_date,
-                notes=data.get("notes", "")
+                notes=data.get("notes", ""),
+                quantity=order_quantity,
+                unit=chemical.unit
             )
             db.session.add(procurement_order)
             db.session.flush()  # Get the procurement_order.id
@@ -836,7 +860,7 @@ def register_chemical_routes(app):
             user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
                 action_type="chemical_ordered",
-                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}. Procurement order #{procurement_order.id} created."
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}. Procurement order #{procurement_order.id} created for {order_quantity} {chemical.unit}."
             )
             db.session.add(log)
 
@@ -845,7 +869,7 @@ def register_chemical_routes(app):
                 activity = UserActivity(
                     user_id=request.current_user["user_id"],
                     activity_type="chemical_ordered",
-                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered (Order #{procurement_order.id})"
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered (Order #{procurement_order.id}, Qty: {order_quantity} {chemical.unit})"
                 )
                 db.session.add(activity)
 

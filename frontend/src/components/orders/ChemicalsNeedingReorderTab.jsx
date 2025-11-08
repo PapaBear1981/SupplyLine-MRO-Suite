@@ -31,6 +31,7 @@ const ChemicalsNeedingReorderTab = () => {
   const [selectedChemical, setSelectedChemical] = useState(null);
   const [orderForm, setOrderForm] = useState({
     expected_delivery_date: '',
+    order_quantity: '',
     notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +48,7 @@ const ChemicalsNeedingReorderTab = () => {
     setSelectedChemical(chemical);
     setOrderForm({
       expected_delivery_date: '',
+      order_quantity: chemical.requested_quantity || '',
       notes: '',
     });
     setShowOrderModal(true);
@@ -57,6 +59,7 @@ const ChemicalsNeedingReorderTab = () => {
     setSelectedChemical(null);
     setOrderForm({
       expected_delivery_date: '',
+      order_quantity: '',
       notes: '',
     });
   };
@@ -68,9 +71,20 @@ const ChemicalsNeedingReorderTab = () => {
 
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
-    
+
     if (!orderForm.expected_delivery_date) {
       toast.error('Please select an expected delivery date');
+      return;
+    }
+
+    if (!orderForm.order_quantity) {
+      toast.error('Please enter an order quantity');
+      return;
+    }
+
+    const qty = parseInt(orderForm.order_quantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error('Please enter a valid quantity greater than 0');
       return;
     }
 
@@ -78,13 +92,14 @@ const ChemicalsNeedingReorderTab = () => {
     try {
       await dispatch(markChemicalAsOrdered({
         id: selectedChemical.id,
-        expected_delivery_date: orderForm.expected_delivery_date,
+        expectedDeliveryDate: orderForm.expected_delivery_date,
+        orderQuantity: qty,
         notes: orderForm.notes,
       })).unwrap();
-      
+
       toast.success('Chemical marked as ordered and procurement order created!');
       handleCloseOrderModal();
-      
+
       // Refresh the orders list to show the new order
       dispatch(fetchOrders());
       dispatch(fetchChemicalsNeedingReorder());
@@ -126,6 +141,7 @@ const ChemicalsNeedingReorderTab = () => {
                 <th>Lot Number</th>
                 <th>Description</th>
                 <th>Manufacturer</th>
+                <th>Requested Qty</th>
                 <th>Status</th>
                 <th>Reason</th>
                 <th>Actions</th>
@@ -139,13 +155,20 @@ const ChemicalsNeedingReorderTab = () => {
                   <td>{chemical.description}</td>
                   <td>{chemical.manufacturer || '—'}</td>
                   <td>
+                    {chemical.requested_quantity ? (
+                      <strong>{chemical.requested_quantity} {chemical.unit}</strong>
+                    ) : (
+                      <span className="text-muted">Not specified</span>
+                    )}
+                  </td>
+                  <td>
                     <Badge bg={getStatusBadgeVariant(chemical.status)}>
                       {formatStatus(chemical.status)}
                     </Badge>
                   </td>
                   <td>
-                    {chemical.status === 'expired' ? 'Expired' : 
-                     chemical.status === 'out_of_stock' ? 'Out of Stock' : 
+                    {chemical.status === 'expired' ? 'Expired' :
+                     chemical.status === 'out_of_stock' ? 'Out of Stock' :
                      'Low Stock'}
                   </td>
                   <td>
@@ -186,7 +209,30 @@ const ChemicalsNeedingReorderTab = () => {
                 </Alert>
 
                 <Row>
-                  <Col md={12}>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Order Quantity <span className="text-danger">*</span></Form.Label>
+                      <div className="input-group">
+                        <Form.Control
+                          type="number"
+                          name="order_quantity"
+                          value={orderForm.order_quantity}
+                          onChange={handleOrderFormChange}
+                          placeholder="Enter quantity"
+                          min="1"
+                          step="1"
+                          required
+                        />
+                        <span className="input-group-text">{selectedChemical.unit}</span>
+                      </div>
+                      <Form.Text className="text-muted">
+                        {selectedChemical.requested_quantity && (
+                          <>Originally requested: {selectedChemical.requested_quantity} {selectedChemical.unit}</>
+                        )}
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Expected Delivery Date <span className="text-danger">*</span></Form.Label>
                       <Form.Control
