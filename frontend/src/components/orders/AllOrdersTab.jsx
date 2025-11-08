@@ -164,7 +164,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
       ) : (
         <div className="table-responsive">
           <Table hover bordered className="align-middle">
-            <thead className="table-light">
+            <thead>
               <tr>
                 <th>Title</th>
                 <th>Part Number</th>

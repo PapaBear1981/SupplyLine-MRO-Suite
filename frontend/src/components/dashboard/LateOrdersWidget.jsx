@@ -29,7 +29,7 @@ const LateOrdersWidget = () => {
   }, [dispatch, user]);
 
   return (
-    <Card className="h-100 shadow-sm">
+    <Card className="shadow-sm mb-4">
       <Card.Header className="d-flex justify-content-between align-items-center">
         <div className="d-flex align-items-center">
           <FaExclamationTriangle className="me-2 text-warning" />
@@ -76,7 +76,7 @@ const LateOrdersWidget = () => {
           </ListGroup>
         )}
       </Card.Body>
-      <Card.Footer className="text-end bg-light">
+      <Card.Footer className="text-end">
         <Link to="/orders" className="text-decoration-none">
           View all orders <FaExternalLinkAlt className="ms-1" />
         </Link>

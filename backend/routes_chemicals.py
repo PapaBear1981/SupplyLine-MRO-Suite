@@ -751,8 +751,8 @@ def register_chemical_routes(app):
                 description=f"{chemical.description or ''}\nLot Number: {chemical.lot_number}\nManufacturer: {chemical.manufacturer or 'N/A'}",
                 priority="normal",
                 status="pending",
-                requested_by_id=request.current_user.get("user_id"),
-                expected_delivery_date=expected_delivery_date,
+                requester_id=request.current_user.get("user_id"),
+                expected_due_date=expected_delivery_date,
                 notes=data.get("notes", "")
             )
             db.session.add(procurement_order)
@@ -1072,7 +1072,7 @@ def register_chemical_routes(app):
 
             # Check if received quantity is provided
             quantity_log = ""
-            if "received_quantity" in data:
+            if "received_quantity" in data and data["received_quantity"] is not None:
                 try:
                     received_quantity = float(data["received_quantity"])
                     if received_quantity <= 0:
@@ -1112,9 +1112,16 @@ def register_chemical_routes(app):
                 if chemical.procurement_order_id:
                     from models import ProcurementOrder
                     procurement_order = ProcurementOrder.query.get(chemical.procurement_order_id)
-                    if procurement_order and procurement_order.status != "closed":
-                        procurement_order.status = "closed"
-                        procurement_order.actual_delivery_date = datetime.utcnow()
+                    if procurement_order:
+                        print(f"DEBUG: Found procurement order {procurement_order.id} with status '{procurement_order.status}'")
+                        if procurement_order.status not in ["received", "cancelled"]:
+                            print(f"DEBUG: Updating procurement order {procurement_order.id} status to 'received'")
+                            procurement_order.status = "received"
+                            procurement_order.completed_date = datetime.utcnow()
+                        else:
+                            print(f"DEBUG: Procurement order {procurement_order.id} already has status '{procurement_order.status}', skipping update")
+                    else:
+                        print(f"DEBUG: Procurement order {chemical.procurement_order_id} not found")
 
                     # Clear the procurement order link
                     chemical.procurement_order_id = None

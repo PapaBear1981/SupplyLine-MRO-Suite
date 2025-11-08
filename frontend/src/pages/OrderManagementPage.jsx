@@ -184,8 +184,7 @@ const OrderManagementPage = () => {
 
   const handleViewOrder = async (order) => {
     try {
-      await dispatch(fetchOrderById(order.id)).unwrap();
-      await dispatch(fetchOrderMessages(order.id)).unwrap();
+      await dispatch(fetchOrderById({ orderId: order.id, includeMessages: true })).unwrap();
       setShowDetailModal(true);
     } catch (error) {
       toast.error(error.message || 'Failed to load order details');
