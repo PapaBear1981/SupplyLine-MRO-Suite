@@ -1112,16 +1112,9 @@ def register_chemical_routes(app):
                 if chemical.procurement_order_id:
                     from models import ProcurementOrder
                     procurement_order = ProcurementOrder.query.get(chemical.procurement_order_id)
-                    if procurement_order:
-                        print(f"DEBUG: Found procurement order {procurement_order.id} with status '{procurement_order.status}'")
-                        if procurement_order.status not in ["received", "cancelled"]:
-                            print(f"DEBUG: Updating procurement order {procurement_order.id} status to 'received'")
-                            procurement_order.status = "received"
-                            procurement_order.completed_date = datetime.utcnow()
-                        else:
-                            print(f"DEBUG: Procurement order {procurement_order.id} already has status '{procurement_order.status}', skipping update")
-                    else:
-                        print(f"DEBUG: Procurement order {chemical.procurement_order_id} not found")
+                    if procurement_order and procurement_order.status not in ["received", "cancelled"]:
+                        procurement_order.status = "received"
+                        procurement_order.completed_date = datetime.utcnow()
 
                     # Clear the procurement order link
                     chemical.procurement_order_id = None
