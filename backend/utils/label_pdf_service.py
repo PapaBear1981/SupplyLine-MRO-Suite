@@ -210,12 +210,18 @@ def generate_chemical_label_pdf(
     title = f"{chemical.part_number} - {chemical.lot_number}"
 
     # Build fields
+    # For issued child lots, show the originally issued quantity instead of current quantity (which is 0)
+    # Use the relationship to avoid N+1 queries if this is called in a loop
+    display_quantity = chemical.quantity
+    if chemical.status == "issued" and chemical.parent_lot_number and chemical.issuance:
+        display_quantity = chemical.issuance.quantity
+
     fields = [
         {"label": "Part Number", "value": chemical.part_number or "N/A"},
         {"label": "Lot Number", "value": chemical.lot_number or "N/A"},
         {"label": "Description", "value": chemical.description or "N/A"},
         {"label": "Manufacturer", "value": chemical.manufacturer or "N/A"},
-        {"label": "Quantity", "value": f"{chemical.quantity} {chemical.unit or 'each'}" if chemical.quantity is not None else "N/A"},
+        {"label": "Quantity", "value": f"{display_quantity} {chemical.unit or 'each'}" if display_quantity is not None else "N/A"},
         {"label": "Location", "value": chemical.location or "N/A"},
         {"label": "Status", "value": chemical.status or "N/A"},
     ]

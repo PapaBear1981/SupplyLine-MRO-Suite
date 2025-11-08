@@ -693,14 +693,36 @@ def register_chemical_routes(app):
     @app.route("/api/chemicals/<int:id>/issuances", methods=["GET"])
     @handle_errors
     def chemical_issuances_route(id):
-        # Get the chemical
-        Chemical.query.get_or_404(id)
+        # Get the chemical and eagerly load any issuances created from child lots
+        chemical = Chemical.query.get_or_404(id)
+
+        related_ids = {chemical.id}
+        lots_to_process = []
+
+        if chemical.lot_number:
+            lots_to_process.append((chemical.lot_number, chemical.part_number))
+
+        while lots_to_process:
+            current_lot, part_number = lots_to_process.pop()
+            # Filter by both parent_lot_number AND part_number to avoid lot number collisions
+            # between different chemicals that happen to use the same lot number
+            children = Chemical.query.filter_by(
+                parent_lot_number=current_lot,
+                part_number=part_number
+            ).all()
+
+            for child in children:
+                if child.id not in related_ids:
+                    related_ids.add(child.id)
+                    if child.lot_number:
+                        lots_to_process.append((child.lot_number, child.part_number))
 
         # Get issuance records with eager loading to avoid N+1 queries
+        # Include the issuance relationship for issued child lots to populate issued_quantity
         issuances = ChemicalIssuance.query.options(
             joinedload(ChemicalIssuance.user),
-            joinedload(ChemicalIssuance.chemical)
-        ).filter_by(chemical_id=id).order_by(ChemicalIssuance.issue_date.desc()).all()
+            joinedload(ChemicalIssuance.chemical).joinedload(Chemical.issuance)
+        ).filter(ChemicalIssuance.chemical_id.in_(list(related_ids))).order_by(ChemicalIssuance.issue_date.desc()).all()
 
         # Convert to list of dictionaries
         result = [i.to_dict() for i in issuances]

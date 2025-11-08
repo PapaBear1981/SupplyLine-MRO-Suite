@@ -8,6 +8,7 @@ Supports tools, chemicals, expendables, and kit items with multiple label sizes.
 import io
 
 from flask import Blueprint, jsonify, request, send_file
+from sqlalchemy.orm import joinedload
 
 from auth.jwt_manager import jwt_required
 from models import Chemical, Expendable, Tool
@@ -84,8 +85,10 @@ def generate_chemical_barcode_label(chemical_id):
         PDF file for printing
     """
     try:
-        # Get chemical
-        chemical = Chemical.query.get_or_404(chemical_id)
+        # Get chemical with eager loading of issuance relationship for issued child lots
+        chemical = Chemical.query.options(
+            joinedload(Chemical.issuance)
+        ).get_or_404(chemical_id)
 
         # Get query parameters
         label_size = request.args.get("label_size", "4x6")
@@ -217,7 +220,10 @@ def generate_kit_item_barcode_label(kit_id, item_id):
             pdf_bytes = generate_tool_label_pdf(item, label_size, code_type)
             filename = f"kit-{kit_id}-tool-{item.tool_number}-label.pdf"
         elif item_type == "chemical":
-            item = Chemical.query.get_or_404(item_id)
+            # Eager load issuance relationship for issued child lots
+            item = Chemical.query.options(
+                joinedload(Chemical.issuance)
+            ).get_or_404(item_id)
             pdf_bytes = generate_chemical_label_pdf(item, label_size, code_type)
             filename = f"kit-{kit_id}-chemical-{item.part_number}-label.pdf"
         else:  # expendable
