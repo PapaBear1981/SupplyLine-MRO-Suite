@@ -2,7 +2,7 @@
 Tests for database models
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from models import Checkout, Chemical, Permission, Role, RolePermission, Tool, User
 

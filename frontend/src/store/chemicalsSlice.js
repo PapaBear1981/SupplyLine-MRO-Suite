@@ -281,11 +281,27 @@ export const fetchChemicalsExpiringSoon = createAsyncThunk(
   }
 );
 
+export const requestChemicalReorder = createAsyncThunk(
+  'chemicals/requestChemicalReorder',
+  async ({ id, requested_quantity, notes }, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.requestChemicalReorder(id, { requested_quantity, notes });
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to request chemical reorder' });
+    }
+  }
+);
+
 export const markChemicalAsOrdered = createAsyncThunk(
   'chemicals/markChemicalAsOrdered',
-  async ({ id, expected_delivery_date, notes }, { rejectWithValue }) => {
+  async ({ id, expectedDeliveryDate, orderQuantity, notes }, { rejectWithValue }) => {
     try {
-      const data = await ChemicalService.markChemicalAsOrdered(id, { expected_delivery_date, notes });
+      const data = await ChemicalService.markChemicalAsOrdered(id, {
+        expected_delivery_date: expectedDeliveryDate,
+        order_quantity: orderQuantity,
+        notes
+      });
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to mark chemical as ordered' });
@@ -708,6 +724,31 @@ const chemicalsSlice = createSlice({
         state.reorderError = action.payload || { message: 'An error occurred while fetching chemicals expiring soon' };
       })
 
+      // requestChemicalReorder
+      .addCase(requestChemicalReorder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(requestChemicalReorder.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the chemical in the main chemicals list
+        const updatedChemical = action.payload.chemical;
+
+        // Update in main chemicals list
+        const chemicalIndex = state.chemicals.findIndex(c => c.id === updatedChemical.id);
+        if (chemicalIndex !== -1) {
+          state.chemicals[chemicalIndex] = updatedChemical;
+        }
+
+        // Add to chemicals needing reorder if not already there
+        if (!state.chemicalsNeedingReorder.some(c => c.id === updatedChemical.id)) {
+          state.chemicalsNeedingReorder.push(updatedChemical);
+        }
+      })
+      .addCase(requestChemicalReorder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // markChemicalAsOrdered
       .addCase(markChemicalAsOrdered.pending, (state) => {
         state.loading = true;

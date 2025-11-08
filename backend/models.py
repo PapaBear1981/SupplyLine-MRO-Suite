@@ -480,6 +480,8 @@ class ProcurementOrder(db.Model):
     expected_due_date = db.Column(db.DateTime, index=True)
     completed_date = db.Column(db.DateTime)
     notes = db.Column(db.String(4000))
+    quantity = db.Column(db.Integer, nullable=True)  # Order quantity for chemicals and other items
+    unit = db.Column(db.String(20), nullable=True)  # Unit of measurement (e.g., mL, Gallon, each)
     kit_id = db.Column(db.Integer, db.ForeignKey("kits.id"), nullable=True, index=True)
     requester_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     buyer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
@@ -542,6 +544,8 @@ class ProcurementOrder(db.Model):
             "expected_due_date": self.expected_due_date.isoformat() if self.expected_due_date else None,
             "completed_date": self.completed_date.isoformat() if self.completed_date else None,
             "notes": self.notes,
+            "quantity": self.quantity,
+            "unit": self.unit,
             "kit_id": self.kit_id,
             "kit_name": self.kit.name if self.kit else None,
             "requester_id": self.requester_id,
@@ -739,6 +743,7 @@ class Chemical(db.Model):
         needs_reorder = db.Column(db.Boolean, default=False)  # Flag to indicate if the chemical needs to be reordered
         reorder_status = db.Column(db.String, nullable=True, default="not_needed")  # not_needed, needed, ordered
         reorder_date = db.Column(db.DateTime, nullable=True)  # When the reorder was placed
+        requested_quantity = db.Column(db.Integer, nullable=True)  # Quantity requested for reorder
         expected_delivery_date = db.Column(db.DateTime, nullable=True)  # Expected delivery date
 
         # Link to procurement order for integrated order management
@@ -789,6 +794,7 @@ class Chemical(db.Model):
             result["needs_reorder"] = self.needs_reorder
             result["reorder_status"] = self.reorder_status
             result["reorder_date"] = self.reorder_date.isoformat() if self.reorder_date else None
+            result["requested_quantity"] = self.requested_quantity
             result["expected_delivery_date"] = self.expected_delivery_date.isoformat() if self.expected_delivery_date else None
             result["procurement_order_id"] = self.procurement_order_id
         except Exception:
@@ -796,6 +802,7 @@ class Chemical(db.Model):
             result["needs_reorder"] = False
             result["reorder_status"] = "not_needed"
             result["reorder_date"] = None
+            result["requested_quantity"] = None
             result["expected_delivery_date"] = None
 
         return result

@@ -169,6 +169,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <th>Title</th>
                 <th>Part Number</th>
                 <th>Type</th>
+                <th>Quantity</th>
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Due Status</th>
@@ -183,6 +184,13 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   <td>{order.part_number || '—'}</td>
                   <td>
                     <Badge bg="secondary">{ORDER_TYPES.find(t => t.value === order.order_type)?.label || order.order_type}</Badge>
+                  </td>
+                  <td>
+                    {order.quantity ? (
+                      <strong>{order.quantity} {order.unit}</strong>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </td>
                   <td>
                     <Badge bg={PRIORITY_VARIANTS[order.priority]}>{order.priority}</Badge>

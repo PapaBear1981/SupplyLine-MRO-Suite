@@ -121,6 +121,7 @@ const ChemicalsOnOrderTab = () => {
                 <th>Lot Number</th>
                 <th>Description</th>
                 <th>Manufacturer</th>
+                <th>Order Qty</th>
                 <th>Order Date</th>
                 <th>Expected Delivery</th>
                 <th>Status</th>
@@ -131,13 +132,20 @@ const ChemicalsOnOrderTab = () => {
               {chemicalsOnOrder.map((chemical) => {
                 const overdue = isOverdue(chemical.expected_delivery_date);
                 const daysOverdue = getDaysOverdue(chemical.expected_delivery_date);
-                
+
                 return (
                   <tr key={chemical.id} className={overdue ? 'table-danger' : ''}>
                     <td><strong>{chemical.part_number}</strong></td>
                     <td>{chemical.lot_number}</td>
                     <td>{chemical.description}</td>
                     <td>{chemical.manufacturer || '—'}</td>
+                    <td>
+                      {chemical.requested_quantity ? (
+                        <strong>{chemical.requested_quantity} {chemical.unit}</strong>
+                      ) : (
+                        <span className="text-muted">Not specified</span>
+                      )}
+                    </td>
                     <td>{chemical.reorder_date ? formatDate(chemical.reorder_date) : '—'}</td>
                     <td>
                       {chemical.expected_delivery_date ? (

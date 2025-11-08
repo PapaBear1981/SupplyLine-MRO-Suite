@@ -3,13 +3,12 @@ Tests for enhanced messaging models.
 Tests Channel, ChannelMember, ChannelMessage, MessageReaction,
 MessageAttachment, AttachmentDownload, UserPresence, and TypingIndicator models.
 """
-from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from models import User, db
-from models_kits import Kit, KitMessage
+from models import db
+from models_kits import KitMessage
 from models_messaging import (
     AttachmentDownload,
     Channel,

@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_secret_key_required_in_production():
     """Test that SECRET_KEY is required when not in testing mode"""
-    from flask import Flask
 
     from config import Config
 
@@ -80,7 +79,6 @@ def test_secret_key_required_in_production():
 
 def test_jwt_secret_key_required_in_production():
     """Test that JWT_SECRET_KEY is required when not in testing mode"""
-    from flask import Flask
 
     from config import Config
 
@@ -144,7 +142,6 @@ def test_jwt_secret_key_required_in_production():
 
 def test_secret_key_required_in_staging_like_environment():
     """Ensure staging-like deployments require explicit secrets."""
-    from flask import Flask
 
     from config import Config
 

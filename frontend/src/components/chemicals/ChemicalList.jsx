@@ -6,6 +6,7 @@ import { fetchChemicals } from '../../store/chemicalsSlice';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ChemicalBarcode from './ChemicalBarcode';
 import ItemTransferModal from '../common/ItemTransferModal';
+import ChemicalReorderModal from './ChemicalReorderModal';
 import Tooltip from '../common/Tooltip';
 import HelpIcon from '../common/HelpIcon';
 import HelpContent from '../common/HelpContent';
@@ -26,6 +27,7 @@ const ChemicalList = () => {
   const [warehouses, setWarehouses] = useState([]);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
   const [selectedChemical, setSelectedChemical] = useState(null);
 
   // Pagination states
@@ -278,6 +280,12 @@ const ChemicalList = () => {
     setShowTransferModal(true);
   };
 
+  // Handle reorder button click
+  const handleReorderClick = (chemical) => {
+    setSelectedChemical(chemical);
+    setShowReorderModal(true);
+  };
+
   if (loading && !chemicals.length) {
     return <LoadingSpinner />;
   }
@@ -509,6 +517,15 @@ const ChemicalList = () => {
                               <i className="bi bi-arrow-left-right"></i>
                             </Button>
                           </Tooltip>
+                          <Tooltip text="Reorder this chemical" placement="top" show={showTooltips}>
+                            <Button
+                              variant="dark"
+                              size="sm"
+                              onClick={() => handleReorderClick(chemical)}
+                            >
+                              <i className="bi bi-cart-plus"></i>
+                            </Button>
+                          </Tooltip>
                           <Tooltip text="Generate barcode for this chemical" placement="top" show={showTooltips}>
                             <Button
                               variant="info"
@@ -591,6 +608,15 @@ const ChemicalList = () => {
           onTransferComplete={() => {
             dispatch(fetchChemicals());
           }}
+        />
+      )}
+
+      {/* Reorder Modal */}
+      {selectedChemical && (
+        <ChemicalReorderModal
+          show={showReorderModal}
+          onHide={() => setShowReorderModal(false)}
+          chemical={selectedChemical}
         />
       )}
     </>
