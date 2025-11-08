@@ -700,22 +700,28 @@ def register_chemical_routes(app):
         lots_to_process = []
 
         if chemical.lot_number:
-            lots_to_process.append(chemical.lot_number)
+            lots_to_process.append((chemical.lot_number, chemical.part_number))
 
         while lots_to_process:
-            current_lot = lots_to_process.pop()
-            children = Chemical.query.filter_by(parent_lot_number=current_lot).all()
+            current_lot, part_number = lots_to_process.pop()
+            # Filter by both parent_lot_number AND part_number to avoid lot number collisions
+            # between different chemicals that happen to use the same lot number
+            children = Chemical.query.filter_by(
+                parent_lot_number=current_lot,
+                part_number=part_number
+            ).all()
 
             for child in children:
                 if child.id not in related_ids:
                     related_ids.add(child.id)
                     if child.lot_number:
-                        lots_to_process.append(child.lot_number)
+                        lots_to_process.append((child.lot_number, child.part_number))
 
         # Get issuance records with eager loading to avoid N+1 queries
+        # Include the issuance relationship for issued child lots to populate issued_quantity
         issuances = ChemicalIssuance.query.options(
             joinedload(ChemicalIssuance.user),
-            joinedload(ChemicalIssuance.chemical)
+            joinedload(ChemicalIssuance.chemical).joinedload(Chemical.issuance)
         ).filter(ChemicalIssuance.chemical_id.in_(list(related_ids))).order_by(ChemicalIssuance.issue_date.desc()).all()
 
         # Convert to list of dictionaries

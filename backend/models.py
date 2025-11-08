@@ -750,6 +750,9 @@ class Chemical(db.Model):
     # Relationships
     warehouse = db.relationship("Warehouse", back_populates="chemicals")
     procurement_order = db.relationship("ProcurementOrder", foreign_keys=[procurement_order_id], backref="chemicals")
+    # Relationship to issuance (for issued child lots) - one-to-one
+    issuance = db.relationship("ChemicalIssuance", foreign_keys="ChemicalIssuance.chemical_id",
+                               uselist=False, lazy="select", viewonly=True)
 
     def to_dict(self):
         result = {
@@ -774,11 +777,9 @@ class Chemical(db.Model):
         }
 
         # For issued child lots, include the originally issued quantity
-        if self.status == "issued" and self.parent_lot_number:
-            # Get the issuance record for this child lot
-            issuance = ChemicalIssuance.query.filter_by(chemical_id=self.id).first()
-            if issuance:
-                result["issued_quantity"] = issuance.quantity
+        # Use the relationship to avoid N+1 queries when this is called in a loop
+        if self.status == "issued" and self.parent_lot_number and self.issuance:
+            result["issued_quantity"] = self.issuance.quantity
 
         # Add archive fields if they exist
         try:
