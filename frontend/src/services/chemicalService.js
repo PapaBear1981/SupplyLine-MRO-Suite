@@ -265,6 +265,17 @@ const ChemicalService = {
     }
   },
 
+  // Request reorder for a chemical
+  requestChemicalReorder: async (id, data) => {
+    try {
+      const response = await api.post(`/chemicals/${id}/request-reorder`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [POST] /chemicals/${id}/request-reorder:`, error);
+      throw error;
+    }
+  },
+
   // Mark a chemical as ordered
   markChemicalAsOrdered: async (id, data) => {
     try {

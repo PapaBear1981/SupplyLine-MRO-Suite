@@ -1,7 +1,7 @@
 /**
  * ChemicalReorderModal Component Tests
  *
- * Tests the reorder modal functionality for chemicals
+ * Tests the reorder request modal functionality for chemicals
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -21,8 +21,8 @@ vi.mock('../../src/store/chemicalsSlice', async () => {
   const actual = await vi.importActual('../../src/store/chemicalsSlice');
   return {
     ...actual,
-    markChemicalAsOrdered: vi.fn(() => ({
-      type: 'chemicals/markChemicalAsOrdered',
+    requestChemicalReorder: vi.fn(() => ({
+      type: 'chemicals/requestChemicalReorder',
       payload: {},
     })),
     fetchChemicals: vi.fn(() => ({
@@ -51,7 +51,7 @@ describe('ChemicalReorderModal', () => {
         { preloadedState }
       );
 
-      expect(screen.getByText('Reorder Chemical')).toBeInTheDocument();
+      expect(screen.getByText('Request Chemical Reorder')).toBeInTheDocument();
       expect(screen.getByText(/CHEM-001/)).toBeInTheDocument();
       expect(screen.getByText(/LOT-001/)).toBeInTheDocument();
     });
@@ -62,7 +62,7 @@ describe('ChemicalReorderModal', () => {
         { preloadedState }
       );
 
-      expect(screen.queryByText('Reorder Chemical')).not.toBeInTheDocument();
+      expect(screen.queryByText('Request Chemical Reorder')).not.toBeInTheDocument();
     });
 
     it('displays chemical information correctly', () => {
@@ -79,11 +79,22 @@ describe('ChemicalReorderModal', () => {
       expect(screen.getByText(/Test Chemical/)).toBeInTheDocument();
       expect(screen.getByText(/Manufacturer:/)).toBeInTheDocument();
       expect(screen.getByText(/Test Manufacturer/)).toBeInTheDocument();
+      expect(screen.getByText(/Current Quantity:/)).toBeInTheDocument();
+    });
+
+    it('displays informational alert about reorder requests', () => {
+      renderWithProviders(
+        <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
+        { preloadedState }
+      );
+
+      expect(screen.getByText(/This will create a reorder request/)).toBeInTheDocument();
+      expect(screen.getByText(/Chemicals Needing Reorder/)).toBeInTheDocument();
     });
   });
 
   describe('Form Interaction', () => {
-    it('allows user to enter expected delivery date', async () => {
+    it('allows user to enter notes', async () => {
       const user = userEvent.setup();
 
       renderWithProviders(
@@ -91,21 +102,7 @@ describe('ChemicalReorderModal', () => {
         { preloadedState }
       );
 
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
-
-      expect(dateInput.value).toBe('2025-12-31');
-    });
-
-    it('allows user to enter optional notes', async () => {
-      const user = userEvent.setup();
-
-      renderWithProviders(
-        <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
-        { preloadedState }
-      );
-
-      const notesInput = screen.getByLabelText(/Notes \(Optional\)/);
+      const notesInput = screen.getByLabelText(/Request Notes \(Optional\)/);
       await user.type(notesInput, 'Urgent order needed');
 
       expect(notesInput.value).toBe('Urgent order needed');
@@ -119,48 +116,28 @@ describe('ChemicalReorderModal', () => {
         { preloadedState }
       );
 
-      const notesInput = screen.getByLabelText(/Notes \(Optional\)/);
+      const notesInput = screen.getByLabelText(/Request Notes \(Optional\)/);
       await user.type(notesInput, 'Test note');
 
       expect(screen.getByText(/9\/500 characters/)).toBeInTheDocument();
     });
 
-    it('disables submit button when delivery date is not provided', () => {
+    it('submit button is always enabled (notes are optional)', () => {
       renderWithProviders(
         <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
         { preloadedState }
       );
 
-      const submitButton = screen.getByRole('button', { name: /Mark as Ordered/i });
-      expect(submitButton).toBeDisabled();
-    });
-
-    it('enables submit button when delivery date is provided', async () => {
-      const user = userEvent.setup();
-
-      renderWithProviders(
-        <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
-        { preloadedState }
-      );
-
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
-
-      const submitButton = screen.getByRole('button', { name: /Mark as Ordered/i });
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
       expect(submitButton).not.toBeDisabled();
     });
   });
 
   describe('Form Submission', () => {
-    it('calls markChemicalAsOrdered action on submit', async () => {
+    it('calls requestChemicalReorder action on submit', async () => {
       const user = userEvent.setup();
-      const mockDispatch = vi.fn(() => Promise.resolve({ unwrap: () => Promise.resolve({}) }));
-
-      // Mock the dispatch to return a promise
-      chemicalsSlice.markChemicalAsOrdered.mockReturnValue({
-        type: 'chemicals/markChemicalAsOrdered',
-        payload: {},
-      });
+      const mockUnwrap = vi.fn(() => Promise.resolve({ message: 'Success' }));
+      const mockDispatch = vi.fn(() => ({ unwrap: mockUnwrap }));
 
       const { store } = renderWithProviders(
         <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
@@ -168,19 +145,59 @@ describe('ChemicalReorderModal', () => {
       );
 
       // Override dispatch
-      store.dispatch = mockDispatch.mockReturnValue({
-        unwrap: () => Promise.resolve({}),
+      store.dispatch = mockDispatch;
+
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockDispatch).toHaveBeenCalled();
+        expect(mockUnwrap).toHaveBeenCalled();
       });
+    });
 
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
+    it('submits with notes when provided', async () => {
+      const user = userEvent.setup();
+      const mockDispatch = vi.fn(() => ({
+        unwrap: () => Promise.resolve({}),
+      }));
 
-      const submitButton = screen.getByRole('button', { name: /Mark as Ordered/i });
+      const { store } = renderWithProviders(
+        <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
+        { preloadedState }
+      );
+
+      store.dispatch = mockDispatch;
+
+      const notesInput = screen.getByLabelText(/Request Notes \(Optional\)/);
+      await user.type(notesInput, 'Need 5 units ASAP');
+
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(mockDispatch).toHaveBeenCalled();
       });
+    });
+
+    it('displays success message after submission', async () => {
+      const user = userEvent.setup();
+      const mockUnwrap = vi.fn(() => Promise.resolve({ message: 'Success' }));
+      const mockDispatch = vi.fn(() => ({ unwrap: mockUnwrap }));
+
+      const { store } = renderWithProviders(
+        <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
+        { preloadedState }
+      );
+
+      store.dispatch = mockDispatch;
+
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Reorder request submitted successfully!/)).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
 
     it('closes modal after successful submission', async () => {
@@ -196,22 +213,19 @@ describe('ChemicalReorderModal', () => {
 
       store.dispatch = mockDispatch;
 
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
-
-      const submitButton = screen.getByRole('button', { name: /Mark as Ordered/i });
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
       await user.click(submitButton);
 
+      // Wait for the timeout to close the modal (1500ms + buffer)
       await waitFor(() => {
         expect(mockOnHide).toHaveBeenCalled();
-      });
+      }, { timeout: 2000 });
     });
 
     it('displays error message on submission failure', async () => {
       const user = userEvent.setup();
-      const mockDispatch = vi.fn(() => ({
-        unwrap: () => Promise.reject(new Error('Failed to create order')),
-      }));
+      const mockUnwrap = vi.fn(() => Promise.reject(new Error('Failed to request reorder')));
+      const mockDispatch = vi.fn(() => ({ unwrap: mockUnwrap }));
 
       const { store } = renderWithProviders(
         <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />,
@@ -220,15 +234,12 @@ describe('ChemicalReorderModal', () => {
 
       store.dispatch = mockDispatch;
 
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
-
-      const submitButton = screen.getByRole('button', { name: /Mark as Ordered/i });
+      const submitButton = screen.getByRole('button', { name: /Submit Reorder Request/i });
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Failed to create order/)).toBeInTheDocument();
-      });
+        expect(screen.getByText(/Failed to request reorder/)).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
   });
 
@@ -269,8 +280,8 @@ describe('ChemicalReorderModal', () => {
         { preloadedState }
       );
 
-      const dateInput = screen.getByLabelText(/Expected Delivery Date/);
-      await user.type(dateInput, '2025-12-31');
+      const notesInput = screen.getByLabelText(/Request Notes \(Optional\)/);
+      await user.type(notesInput, 'Test notes');
 
       const cancelButton = screen.getByRole('button', { name: /Cancel/i });
       await user.click(cancelButton);
@@ -283,8 +294,8 @@ describe('ChemicalReorderModal', () => {
         <ChemicalReorderModal show={true} onHide={mockOnHide} chemical={mockChemical} />
       );
 
-      const newDateInput = screen.getByLabelText(/Expected Delivery Date/);
-      expect(newDateInput.value).toBe('');
+      const newNotesInput = screen.getByLabelText(/Request Notes \(Optional\)/);
+      expect(newNotesInput.value).toBe('');
     });
   });
 });

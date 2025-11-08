@@ -1,66 +1,59 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import { markChemicalAsOrdered, fetchChemicals } from '../../store/chemicalsSlice';
+import { requestChemicalReorder, fetchChemicals } from '../../store/chemicalsSlice';
 
 const ChemicalReorderModal = ({ show, onHide, chemical }) => {
   const dispatch = useDispatch();
-  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!expectedDeliveryDate) {
-      setError('Expected delivery date is required');
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      await dispatch(markChemicalAsOrdered({
+      const result = await dispatch(requestChemicalReorder({
         id: chemical.id,
-        expected_delivery_date: expectedDeliveryDate,
         notes: notes.trim() || undefined
       })).unwrap();
+
+      // Show success message
+      setSuccess(true);
 
       // Refresh the chemicals list
       dispatch(fetchChemicals());
 
-      // Reset form and close modal
-      handleClose();
+      // Close modal after a short delay to show success message
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
     } catch (err) {
-      console.error('Failed to mark chemical as ordered:', err);
-      setError(err.message || 'Failed to create reorder. Please try again.');
-    } finally {
+      console.error('Failed to request reorder:', err);
+      setError(err.message || 'Failed to request reorder. Please try again.');
       setSubmitting(false);
     }
   };
 
   // Handle modal close
   const handleClose = () => {
-    setExpectedDeliveryDate('');
     setNotes('');
     setError(null);
+    setSuccess(false);
+    setSubmitting(false);
     onHide();
-  };
-
-  // Get minimum date (tomorrow)
-  const getMinDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
   };
 
   return (
     <Modal show={show} onHide={handleClose} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Reorder Chemical</Modal.Title>
+        <Modal.Title>Request Chemical Reorder</Modal.Title>
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
@@ -70,8 +63,20 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
             </Alert>
           )}
 
-          {chemical && (
+          {success && (
+            <Alert variant="success">
+              Reorder request submitted successfully! This chemical will appear in "Chemicals Needing Reorder" on the Orders page.
+            </Alert>
+          )}
+
+          {chemical && !success && (
             <>
+              <Alert variant="info" className="mb-3">
+                <i className="bi bi-info-circle me-2"></i>
+                <strong>Note:</strong> This will create a reorder request. The chemical will appear in the
+                "Chemicals Needing Reorder" section on the Orders page where it can be processed and ordered.
+              </Alert>
+
               <div className="mb-3">
                 <p className="mb-1">
                   <strong>Part Number:</strong> {chemical.part_number}
@@ -82,38 +87,26 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
                 <p className="mb-1">
                   <strong>Description:</strong> {chemical.description || 'N/A'}
                 </p>
-                <p className="mb-0">
+                <p className="mb-1">
                   <strong>Manufacturer:</strong> {chemical.manufacturer || 'N/A'}
+                </p>
+                <p className="mb-0">
+                  <strong>Current Quantity:</strong> {chemical.quantity} {chemical.unit}
                 </p>
               </div>
 
               <hr />
 
-              <Form.Group className="mb-3" controlId="expectedDeliveryDate">
-                <Form.Label>
-                  Expected Delivery Date <span className="text-danger">*</span>
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  value={expectedDeliveryDate}
-                  onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                  min={getMinDate()}
-                  required
-                />
-                <Form.Text className="text-muted">
-                  Select the expected delivery date for this order
-                </Form.Text>
-              </Form.Group>
-
               <Form.Group className="mb-3" controlId="reorderNotes">
-                <Form.Label>Notes (Optional)</Form.Label>
+                <Form.Label>Request Notes (Optional)</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes about this order..."
+                  placeholder="Add any notes about this reorder request (e.g., urgency, preferred vendor, quantity needed)..."
                   maxLength={500}
+                  disabled={submitting}
                 />
                 <Form.Text className="text-muted">
                   {notes.length}/500 characters
@@ -124,15 +117,17 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose} disabled={submitting}>
-            Cancel
+            {success ? 'Close' : 'Cancel'}
           </Button>
-          <Button
-            variant="success"
-            type="submit"
-            disabled={!expectedDeliveryDate || submitting}
-          >
-            {submitting ? 'Processing...' : 'Mark as Ordered'}
-          </Button>
+          {!success && (
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Reorder Request'}
+            </Button>
+          )}
         </Modal.Footer>
       </Form>
     </Modal>

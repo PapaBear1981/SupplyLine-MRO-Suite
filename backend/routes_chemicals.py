@@ -708,6 +708,57 @@ def register_chemical_routes(app):
         # Return the result
         return jsonify(result)
 
+    # Request reorder for a chemical
+    @app.route("/api/chemicals/<int:id>/request-reorder", methods=["POST"])
+    @materials_manager_required
+    def request_chemical_reorder_route(id):
+        try:
+            # Get the chemical
+            chemical = Chemical.query.get_or_404(id)
+
+            # Get request data
+            data = request.get_json() or {}
+
+            # Set the chemical as needing reorder
+            chemical.needs_reorder = True
+            chemical.reorder_status = "needed"
+            chemical.reorder_date = datetime.utcnow()
+
+            # Add notes if provided
+            if data.get("notes"):
+                # Append reorder request notes to existing notes
+                reorder_note = f"\n[Reorder Request {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}]: {data['notes']}"
+                chemical.notes = (chemical.notes or "") + reorder_note
+
+            # Log the action
+            user_name = request.current_user.get("user_name", "Unknown user")
+            log = AuditLog(
+                action_type="chemical_reorder_requested",
+                action_details=f"Reorder requested for chemical {chemical.part_number} - {chemical.lot_number} by {user_name}"
+            )
+            db.session.add(log)
+
+            # Log user activity
+            if hasattr(request, "current_user"):
+                activity = UserActivity(
+                    user_id=request.current_user["user_id"],
+                    activity_type="chemical_reorder_requested",
+                    description=f"Requested reorder for chemical {chemical.part_number} - {chemical.lot_number}"
+                )
+                db.session.add(activity)
+
+            db.session.commit()
+
+            # Return updated chemical
+            return jsonify({
+                "chemical": chemical.to_dict(),
+                "message": "Reorder request created successfully. Chemical will appear in 'Chemicals Needing Reorder' on the Orders page."
+            })
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error in request chemical reorder route: {e!s}")
+            return jsonify({"error": "An error occurred while requesting reorder"}), 500
+
     # Mark a chemical as ordered
     @app.route("/api/chemicals/<int:id>/mark-ordered", methods=["POST"])
     @materials_manager_required
