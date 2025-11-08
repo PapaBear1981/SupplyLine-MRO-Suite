@@ -171,13 +171,24 @@ def upload_attachment():
                 thumbnail_path = None
 
         # Scan file for malware (basic check)
-        is_scanned = True
-        scan_result = "clean"
+        is_scanned = False
+        scan_result = "not_scanned"
         try:
             scan_file_for_malware(file_path)
+            # Only mark as scanned and clean if scan succeeds
+            is_scanned = True
+            scan_result = "clean"
+        except FileValidationError as e:
+            # File failed malware scan - reject it
+            os.remove(file_path)
+            if thumbnail_path and os.path.exists(os.path.join(THUMBNAILS_FOLDER, os.path.basename(thumbnail_path))):
+                os.remove(os.path.join(THUMBNAILS_FOLDER, os.path.basename(thumbnail_path)))
+            logger.warning(f"File failed malware scan: {e!s}")
+            return jsonify({"error": f"File rejected by security scan: {e!s}"}), 400
         except Exception as e:
-            logger.warning(f"File scan failed: {e!s}")
-            scan_result = "not_scanned"
+            # Unexpected error during scan - log but allow upload with warning
+            logger.error(f"Malware scan error: {e!s}", exc_info=True)
+            scan_result = "scan_error"
 
         # Create attachment record
         attachment = MessageAttachment(

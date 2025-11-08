@@ -3,7 +3,7 @@
  * Manages Socket.io connection and event handlers
  */
 import { io } from 'socket.io-client';
-import store from '../store/store';
+import { store } from '../store';
 import {
   setConnected,
   setDisconnected,
