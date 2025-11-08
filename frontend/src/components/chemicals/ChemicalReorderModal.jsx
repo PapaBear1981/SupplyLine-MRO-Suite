@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import { Modal, Button, Form, Alert, InputGroup } from 'react-bootstrap';
 import { requestChemicalReorder, fetchChemicals } from '../../store/chemicalsSlice';
 
 const ChemicalReorderModal = ({ show, onHide, chemical }) => {
   const dispatch = useDispatch();
+  const [requestedQuantity, setRequestedQuantity] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -14,6 +15,13 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate quantity
+    const qty = parseInt(requestedQuantity);
+    if (!requestedQuantity || isNaN(qty) || qty <= 0) {
+      setError('Please enter a valid quantity greater than 0');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(false);
@@ -21,6 +29,7 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
     try {
       const result = await dispatch(requestChemicalReorder({
         id: chemical.id,
+        requested_quantity: qty,
         notes: notes.trim() || undefined
       })).unwrap();
 
@@ -36,13 +45,14 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
       }, 1500);
     } catch (err) {
       console.error('Failed to request reorder:', err);
-      setError(err.message || 'Failed to request reorder. Please try again.');
+      setError(err.error || err.message || 'Failed to request reorder. Please try again.');
       setSubmitting(false);
     }
   };
 
   // Handle modal close
   const handleClose = () => {
+    setRequestedQuantity('');
     setNotes('');
     setError(null);
     setSuccess(false);
@@ -97,6 +107,28 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
 
               <hr />
 
+              <Form.Group className="mb-3" controlId="requestedQuantity">
+                <Form.Label>
+                  Requested Quantity <span className="text-danger">*</span>
+                </Form.Label>
+                <InputGroup>
+                  <Form.Control
+                    type="number"
+                    value={requestedQuantity}
+                    onChange={(e) => setRequestedQuantity(e.target.value)}
+                    placeholder="Enter quantity to order"
+                    min="1"
+                    step="1"
+                    required
+                    disabled={submitting}
+                  />
+                  <InputGroup.Text>{chemical.unit}</InputGroup.Text>
+                </InputGroup>
+                <Form.Text className="text-muted">
+                  How many {chemical.unit} do you need to order?
+                </Form.Text>
+              </Form.Group>
+
               <Form.Group className="mb-3" controlId="reorderNotes">
                 <Form.Label>Request Notes (Optional)</Form.Label>
                 <Form.Control
@@ -104,7 +136,7 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any notes about this reorder request (e.g., urgency, preferred vendor, quantity needed)..."
+                  placeholder="Add any notes about this reorder request (e.g., urgency, preferred vendor)..."
                   maxLength={500}
                   disabled={submitting}
                 />
@@ -123,7 +155,7 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
             <Button
               variant="primary"
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !requestedQuantity}
             >
               {submitting ? 'Submitting...' : 'Submit Reorder Request'}
             </Button>

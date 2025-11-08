@@ -719,22 +719,35 @@ def register_chemical_routes(app):
             # Get request data
             data = request.get_json() or {}
 
+            # Validate requested quantity
+            requested_quantity = data.get("requested_quantity")
+            if requested_quantity is None:
+                return jsonify({"error": "Requested quantity is required"}), 400
+
+            try:
+                requested_quantity = int(requested_quantity)
+                if requested_quantity <= 0:
+                    return jsonify({"error": "Requested quantity must be greater than 0"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "Requested quantity must be a valid number"}), 400
+
             # Set the chemical as needing reorder
             chemical.needs_reorder = True
             chemical.reorder_status = "needed"
             chemical.reorder_date = datetime.utcnow()
+            chemical.requested_quantity = requested_quantity
 
             # Add notes if provided
             if data.get("notes"):
                 # Append reorder request notes to existing notes
-                reorder_note = f"\n[Reorder Request {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}]: {data['notes']}"
+                reorder_note = f"\n[Reorder Request {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} - Qty: {requested_quantity}]: {data['notes']}"
                 chemical.notes = (chemical.notes or "") + reorder_note
 
             # Log the action
             user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
                 action_type="chemical_reorder_requested",
-                action_details=f"Reorder requested for chemical {chemical.part_number} - {chemical.lot_number} by {user_name}"
+                action_details=f"Reorder requested for chemical {chemical.part_number} - {chemical.lot_number} by {user_name} (Qty: {requested_quantity})"
             )
             db.session.add(log)
 
@@ -743,7 +756,7 @@ def register_chemical_routes(app):
                 activity = UserActivity(
                     user_id=request.current_user["user_id"],
                     activity_type="chemical_reorder_requested",
-                    description=f"Requested reorder for chemical {chemical.part_number} - {chemical.lot_number}"
+                    description=f"Requested reorder for chemical {chemical.part_number} - {chemical.lot_number} (Qty: {requested_quantity})"
                 )
                 db.session.add(activity)
 

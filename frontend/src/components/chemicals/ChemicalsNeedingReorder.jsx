@@ -82,6 +82,7 @@ const ChemicalsNeedingReorder = () => {
                 <th>Lot Number</th>
                 <th>Description</th>
                 <th>Manufacturer</th>
+                <th>Requested Qty</th>
                 <th>Status</th>
                 <th>Reason</th>
                 <th>Actions</th>
@@ -95,13 +96,20 @@ const ChemicalsNeedingReorder = () => {
                   <td>{chemical.description}</td>
                   <td>{chemical.manufacturer}</td>
                   <td>
+                    {chemical.requested_quantity ? (
+                      <strong>{chemical.requested_quantity} {chemical.unit}</strong>
+                    ) : (
+                      <span className="text-muted">Not specified</span>
+                    )}
+                  </td>
+                  <td>
                     <Badge bg={getStatusBadgeVariant(chemical.status)}>
                       {formatStatus(chemical.status)}
                     </Badge>
                   </td>
                   <td>
-                    {chemical.status === 'expired' ? 'Expired' : 
-                     chemical.status === 'out_of_stock' ? 'Out of Stock' : 
+                    {chemical.status === 'expired' ? 'Expired' :
+                     chemical.status === 'out_of_stock' ? 'Out of Stock' :
                      'Low Stock'}
                   </td>
                   <td>

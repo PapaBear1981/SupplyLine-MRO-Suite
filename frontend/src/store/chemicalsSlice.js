@@ -283,9 +283,9 @@ export const fetchChemicalsExpiringSoon = createAsyncThunk(
 
 export const requestChemicalReorder = createAsyncThunk(
   'chemicals/requestChemicalReorder',
-  async ({ id, notes }, { rejectWithValue }) => {
+  async ({ id, requested_quantity, notes }, { rejectWithValue }) => {
     try {
-      const data = await ChemicalService.requestChemicalReorder(id, { notes });
+      const data = await ChemicalService.requestChemicalReorder(id, { requested_quantity, notes });
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to request chemical reorder' });
