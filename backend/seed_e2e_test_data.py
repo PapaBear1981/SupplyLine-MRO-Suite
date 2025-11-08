@@ -29,6 +29,8 @@ from models import (
     db,
 )
 from models_kits import AircraftType, Kit
+# Import models_messaging to ensure all models are loaded (fixes Channel relationship)
+import models_messaging  # noqa: F401
 
 
 # Setup logging

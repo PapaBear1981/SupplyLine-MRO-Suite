@@ -25,14 +25,11 @@ async function seedDatabase() {
   const seedScript = path.join(backendDir, 'seed_e2e_test_data.py');
   
   try {
-    // Detect platform and use appropriate Python command
-    const isWindows = process.platform === 'win32';
-    const pythonCmd = isWindows
-      ? path.join(__dirname, '..', '..', '..', '.venv', 'Scripts', 'python.exe')
-      : path.join(__dirname, '..', '..', '..', 'venv', 'bin', 'python');
+    // Use system Python (just 'python' - will use whatever is in PATH)
+    const pythonCmd = 'python';
 
     // Run the seeding script
-    const { stdout, stderr } = await execAsync(`"${pythonCmd}" "${seedScript}"`, {
+    const { stdout, stderr } = await execAsync(`${pythonCmd} "${seedScript}"`, {
       cwd: backendDir,
       timeout: 60000, // 60 second timeout
     });
