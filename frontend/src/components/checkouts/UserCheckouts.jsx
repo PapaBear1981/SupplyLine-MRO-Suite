@@ -24,11 +24,7 @@ const UserCheckouts = () => {
   const canReturnTools = user?.is_admin || user?.department === 'Materials';
 
   useEffect(() => {
-    console.log("UserCheckouts: Fetching user checkouts...");
     dispatch(fetchUserCheckouts())
-      .then(result => {
-        console.log("UserCheckouts: Fetch user checkouts result:", result);
-      })
       .catch(error => {
         console.error("UserCheckouts: Error fetching user checkouts:", error);
       });

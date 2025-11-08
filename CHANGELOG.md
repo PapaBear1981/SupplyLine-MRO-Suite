@@ -2,6 +2,176 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.0] - 2025-11-08 - Enhanced Messaging, Order Management & UI Modernization
+
+### 🚀 MAJOR FEATURE RELEASE
+
+This release introduces a comprehensive real-time messaging system with WebSocket support, procurement order management, modernized sidebar navigation, and dashboard personalization features. The UI has been significantly enhanced with animated transitions, theme support, and improved user experience.
+
+### Added
+
+#### Backend - Real-Time Messaging System
+- **WebSocket Support**:
+  - Flask-SocketIO integration for real-time bidirectional communication
+  - `socketio_config.py` and `socketio_events.py` for event handling
+  - Real-time message delivery, typing indicators, and user presence
+  - Channel-based messaging with member management
+  - Message threading and reactions support
+- **Messaging Models** (`models_messaging.py`):
+  - `Channel` - Team communication channels with privacy controls
+  - `ChannelMember` - Channel membership with role management
+  - `ChannelMessage` - Channel messages with threading support
+  - `MessageReaction` - Emoji reactions for messages
+  - `MessageAttachment` - File attachments with download tracking
+  - `UserPresence` - Real-time user online/offline status
+  - `TypingIndicator` - Live typing indicators
+- **Messaging API Endpoints**:
+  - `/api/channels/*` - Channel CRUD and member management
+  - `/api/channels/:id/messages` - Channel message operations
+  - `/api/messages/search` - Full-text message search
+  - `/api/attachments/*` - File upload and download
+  - WebSocket events for real-time updates
+
+#### Backend - Procurement Order Management
+- **Order Management System**:
+  - `ProcurementOrder` model for tracking chemical orders
+  - Order status workflow (new → in_progress → ordered → shipped → received)
+  - Priority levels (critical, high, normal, low)
+  - Due date tracking and overdue detection
+  - Integration with chemical inventory
+- **Order API Endpoints**:
+  - GET /api/orders - List all orders with filtering
+  - POST /api/orders - Create new order
+  - GET /api/orders/:id - Get order details
+  - PUT /api/orders/:id - Update order
+  - POST /api/orders/:id/mark-delivered - Mark order as delivered
+  - Order messaging and communication threads
+
+#### Frontend - Modern Sidebar Navigation
+- **Collapsible Sidebar**:
+  - Replaced top navbar with modern sidebar navigation
+  - Smooth collapse/expand animations
+  - Theme-aware styling with dark/light mode support
+  - Responsive design for mobile and desktop
+  - User profile moved to bottom with quick access
+  - Settings consolidated in profile modal
+- **Navigation Improvements**:
+  - Icon-based navigation with tooltips
+  - Active route highlighting
+  - Nested menu support for related features
+  - Quick actions accessible from sidebar
+
+#### Frontend - Dashboard Personalization
+- **Customizable Dashboard**:
+  - Widget-based layout system
+  - Drag-and-drop widget reordering
+  - Show/hide widgets based on user preference
+  - Theme customization (light/dark/auto)
+  - Widget size and position persistence
+  - Quick Actions widget with customizable shortcuts
+  - Late Orders widget for procurement tracking
+- **Dashboard Widgets**:
+  - Recent Activity with real-time updates
+  - Announcements with priority indicators
+  - Overdue Chemicals tracking
+  - Late Orders monitoring
+  - Quick Actions for common tasks
+
+#### Frontend - Order Management Dashboard
+- **Tabbed Interface**:
+  - All Orders tab with filtering and search
+  - Chemicals Needing Reorder tab
+  - Chemicals On Order tab with status tracking
+  - Analytics tab with order metrics
+- **Order Detail Modal**:
+  - Complete order information display
+  - Status and priority management
+  - Message thread integration
+  - Order history and audit trail
+- **Features**:
+  - Real-time order status updates
+  - Due date tracking with visual indicators
+  - Priority-based color coding
+  - Bulk actions support
+
+#### Frontend - Enhanced Animations & Transitions
+- **Animation System** (`animations.css`):
+  - Fade-in/fade-out transitions
+  - Slide animations for modals and panels
+  - Hover effects and interactive feedback
+  - Loading state animations
+  - Smooth page transitions
+  - Stagger animations for lists
+- **Visual Feedback**:
+  - Button hover and active states
+  - Card elevation on hover
+  - Smooth color transitions
+  - Progress indicators
+  - Success/error state animations
+
+### Changed
+
+#### UI/UX Improvements
+- Reorganized layout with sidebar-first design
+- Improved mobile responsiveness
+- Enhanced theme consistency across components
+- Better visual hierarchy and spacing
+- Modernized color palette and typography
+- Improved accessibility with ARIA labels
+
+#### Performance Optimizations
+- Reduced bundle size through code splitting
+- Optimized WebSocket connection management
+- Improved database query performance
+- Better caching strategies for static assets
+- Lazy loading for heavy components
+
+### Fixed
+
+- Fixed race conditions in dashboard widget loading
+- Resolved undefined array filter errors in order management
+- Fixed perpetual spinner when aircraft types fail to load
+- Corrected View button functionality in order management
+- Fixed due status tracking for orders
+- Resolved CI/CD linting errors
+- Fixed theme switching edge cases
+
+### Technical Improvements
+
+#### Backend
+- Added comprehensive test coverage for messaging system (470+ tests)
+- Implemented WebSocket event handlers with error handling
+- Added file validation for message attachments
+- Improved database indexing for message queries
+- Enhanced security for channel access control
+
+#### Frontend
+- Updated to React 19
+- Improved Redux state management for orders and messaging
+- Added socket.io-client for WebSocket communication
+- Enhanced error handling and user feedback
+- Better TypeScript type definitions
+- Improved component reusability
+
+### Dependencies
+
+#### Added
+- flask-socketio (5.4.1) - WebSocket support
+- python-socketio (5.14.3) - SocketIO server
+- socket.io-client (4.8.1) - Frontend WebSocket client
+
+#### Updated
+- React to 19.0.0
+- Various security and performance updates
+
+### Migration Notes
+
+- WebSocket support requires Flask-SocketIO configuration
+- New database tables for messaging system (run migrations)
+- Order management requires procurement_orders table
+- Dashboard preferences stored in user settings
+- Theme preferences persist across sessions
+
 ## [5.1.0] - 2025-11-06 - Barcode System Refactoring & Inventory Enhancements
 
 ### 🚀 MAJOR IMPROVEMENTS RELEASE

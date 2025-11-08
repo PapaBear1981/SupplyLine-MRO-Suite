@@ -449,3 +449,62 @@ class TestUtils:
 def test_utils():
     """Provide test utilities"""
     return TestUtils
+
+@pytest.fixture
+def test_user_2(db_session):
+    """Create a second test user"""
+    from models import User
+
+    user = User(
+        name="Test User 2",
+        employee_number="EMP002",
+        department="Engineering",
+        is_admin=False,
+        is_active=True
+    )
+    user.set_password("test456")
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def test_channel(db_session, test_user):
+    """Create a test channel"""
+    from models_messaging import Channel
+
+    channel = Channel(
+        name="Test Channel",
+        description="Test channel for unit tests",
+        channel_type="department",
+        department="Engineering",
+        created_by=test_user.id
+    )
+    db_session.add(channel)
+    db_session.commit()
+    return channel
+
+
+@pytest.fixture
+def test_kit(db_session, test_user):
+    """Create a test kit"""
+    from models_kits import AircraftType, Kit
+
+    # Create aircraft type first
+    aircraft_type = AircraftType(
+        name="Test Aircraft",
+        description="Test aircraft type"
+    )
+    db_session.add(aircraft_type)
+    db_session.flush()
+
+    kit = Kit(
+        name="Test Kit",
+        description="Test kit for unit tests",
+        aircraft_type_id=aircraft_type.id,
+        created_by=test_user.id,
+        status="active"
+    )
+    db_session.add(kit)
+    db_session.commit()
+    return kit

@@ -1,7 +1,7 @@
 {
   "name": "supplyline-mro-suite",
   "private": true,
-  "version": "5.1.0",
+  "version": "5.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -43,6 +43,7 @@
     "react-spinners": "^0.17.0",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.3",
+    "socket.io-client": "^4.8.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

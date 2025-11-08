@@ -1,14 +1,15 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { Modal, Button, Form, ListGroup } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../../store/authSlice';
 import { toggleTheme } from '../../store/themeSlice';
 
-const ProfileModal = ({ show, onHide }) => {
+const ProfileModal = ({ show, onHide, onShowTour, onToggleHelp, onShowCustomize, showHelp }) => {
   const { user } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.theme);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -19,6 +20,33 @@ const ProfileModal = ({ show, onHide }) => {
   const handleThemeToggle = () => {
     dispatch(toggleTheme());
   };
+
+  const handleHelpToggle = () => {
+    if (onToggleHelp) {
+      onToggleHelp();
+    }
+  };
+
+  const handleTourClick = () => {
+    if (onShowTour) {
+      onShowTour();
+      onHide();
+    }
+  };
+
+  const handleCustomizeClick = () => {
+    // Call the global function exposed by UserDashboardPage
+    if (window.openDashboardCustomizer) {
+      window.openDashboardCustomizer();
+      onHide();
+    } else if (onShowCustomize) {
+      onShowCustomize();
+      onHide();
+    }
+  };
+
+  // Check if we're on the dashboard page
+  const isOnDashboard = location.pathname === '/dashboard';
 
   return (
     <Modal show={show} onHide={onHide} centered>
@@ -72,6 +100,39 @@ const ProfileModal = ({ show, onHide }) => {
               onChange={handleThemeToggle}
             />
           </Form>
+        </div>
+
+        <div className="mb-3">
+          <h6 className="mb-3">Application Settings</h6>
+          <div className="d-grid gap-2">
+            {isOnDashboard && (
+              <Button
+                variant="outline-primary"
+                onClick={handleCustomizeClick}
+              >
+                <i className="bi bi-sliders me-2"></i>
+                Customize Dashboard
+              </Button>
+            )}
+            {onToggleHelp && (
+              <Button
+                variant={showHelp ? "info" : "outline-info"}
+                onClick={handleHelpToggle}
+              >
+                <i className="bi bi-question-circle me-2"></i>
+                {showHelp ? 'Hide Help Features' : 'Show Help Features'}
+              </Button>
+            )}
+            {onShowTour && (
+              <Button
+                variant="outline-info"
+                onClick={handleTourClick}
+              >
+                <i className="bi bi-info-circle me-2"></i>
+                Start Guided Tour
+              </Button>
+            )}
+          </div>
         </div>
       </Modal.Body>
       <Modal.Footer>

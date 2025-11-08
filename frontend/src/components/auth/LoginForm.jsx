@@ -29,7 +29,6 @@ const LoginForm = () => {
     // Use the actual backend login API
     try {
       await dispatch(login({ username, password })).unwrap();
-      console.log('Login successful!');
     } catch (err) {
       console.error('Login failed:', err);
     }

@@ -737,11 +737,33 @@ def register_chemical_routes(app):
             except ValueError:
                 return jsonify({"error": "Invalid date format for expected_delivery_date. Use ISO format (YYYY-MM-DDTHH:MM:SS)"}), 400
 
-            # Update chemical reorder status
+            # Create a procurement order for this chemical
+            from models import ProcurementOrder
+
+            # Generate order title
+            order_title = f"Chemical Reorder: {chemical.part_number} - {chemical.description or chemical.lot_number}"
+
+            # Create the procurement order
+            procurement_order = ProcurementOrder(
+                title=order_title,
+                order_type="chemical",
+                part_number=chemical.part_number,
+                description=f"{chemical.description or ''}\nLot Number: {chemical.lot_number}\nManufacturer: {chemical.manufacturer or 'N/A'}",
+                priority="normal",
+                status="pending",
+                requester_id=request.current_user.get("user_id"),
+                expected_due_date=expected_delivery_date,
+                notes=data.get("notes", "")
+            )
+            db.session.add(procurement_order)
+            db.session.flush()  # Get the procurement_order.id
+
+            # Update chemical reorder status and link to procurement order
             try:
                 chemical.reorder_status = "ordered"
                 chemical.reorder_date = datetime.utcnow()
                 chemical.expected_delivery_date = expected_delivery_date
+                chemical.procurement_order_id = procurement_order.id
             except Exception as e:
                 print(f"Error updating reorder status: {e!s}")
                 return jsonify({"error": "Failed to update reorder status"}), 500
@@ -750,7 +772,7 @@ def register_chemical_routes(app):
             user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
                 action_type="chemical_ordered",
-                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}"
+                action_details=f"Chemical {chemical.part_number} - {chemical.lot_number} marked as ordered by {user_name}. Procurement order #{procurement_order.id} created."
             )
             db.session.add(log)
 
@@ -759,16 +781,17 @@ def register_chemical_routes(app):
                 activity = UserActivity(
                     user_id=request.current_user["user_id"],
                     activity_type="chemical_ordered",
-                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered"
+                    description=f"Marked chemical {chemical.part_number} - {chemical.lot_number} as ordered (Order #{procurement_order.id})"
                 )
                 db.session.add(activity)
 
             db.session.commit()
 
-            # Return updated chemical
+            # Return updated chemical and procurement order
             return jsonify({
                 "chemical": chemical.to_dict(),
-                "message": "Chemical marked as ordered successfully"
+                "procurement_order": procurement_order.to_dict(),
+                "message": "Chemical marked as ordered successfully and procurement order created"
             })
         except Exception as e:
             db.session.rollback()
@@ -1049,7 +1072,7 @@ def register_chemical_routes(app):
 
             # Check if received quantity is provided
             quantity_log = ""
-            if "received_quantity" in data:
+            if "received_quantity" in data and data["received_quantity"] is not None:
                 try:
                     received_quantity = float(data["received_quantity"])
                     if received_quantity <= 0:
@@ -1084,6 +1107,17 @@ def register_chemical_routes(app):
                 chemical.is_archived = False
                 chemical.archived_reason = None
                 chemical.archived_date = None
+
+                # Update the linked procurement order status if it exists
+                if chemical.procurement_order_id:
+                    from models import ProcurementOrder
+                    procurement_order = ProcurementOrder.query.get(chemical.procurement_order_id)
+                    if procurement_order and procurement_order.status not in ["received", "cancelled"]:
+                        procurement_order.status = "received"
+                        procurement_order.completed_date = datetime.utcnow()
+
+                    # Clear the procurement order link
+                    chemical.procurement_order_id = None
             except Exception as e:
                 print(f"Error updating chemical status: {e!s}")
                 return jsonify({"error": "Failed to update chemical status"}), 500

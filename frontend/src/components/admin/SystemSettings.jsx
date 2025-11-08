@@ -86,7 +86,6 @@ const SystemSettings = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // In a real implementation, this would save to the backend
-    console.log('Saving settings:', settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

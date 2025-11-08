@@ -25,11 +25,7 @@ const AllCheckouts = () => {
   const canReturnTools = user?.is_admin || user?.department === 'Materials';
 
   useEffect(() => {
-    console.log("AllCheckouts: Fetching all checkouts...");
     dispatch(fetchCheckouts())
-      .then(result => {
-        console.log("AllCheckouts: Fetch all checkouts result:", result);
-      })
       .catch(error => {
         console.error("AllCheckouts: Error fetching all checkouts:", error);
       });
