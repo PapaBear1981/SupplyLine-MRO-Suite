@@ -773,6 +773,13 @@ class Chemical(db.Model):
             "lot_sequence": self.lot_sequence or 0
         }
 
+        # For issued child lots, include the originally issued quantity
+        if self.status == "issued" and self.parent_lot_number:
+            # Get the issuance record for this child lot
+            issuance = ChemicalIssuance.query.filter_by(chemical_id=self.id).first()
+            if issuance:
+                result["issued_quantity"] = issuance.quantity
+
         # Add archive fields if they exist
         try:
             result["is_archived"] = self.is_archived
