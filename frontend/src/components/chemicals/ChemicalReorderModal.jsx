@@ -27,7 +27,7 @@ const ChemicalReorderModal = ({ show, onHide, chemical }) => {
     setSuccess(false);
 
     try {
-      const result = await dispatch(requestChemicalReorder({
+      await dispatch(requestChemicalReorder({
         id: chemical.id,
         requested_quantity: qty,
         notes: notes.trim() || undefined

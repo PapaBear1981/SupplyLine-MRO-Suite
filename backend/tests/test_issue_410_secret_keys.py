@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_secret_key_required_in_production():
     """Test that SECRET_KEY is required when not in testing mode"""
-    from flask import Flask
 
     from config import Config
 
@@ -80,7 +79,6 @@ def test_secret_key_required_in_production():
 
 def test_jwt_secret_key_required_in_production():
     """Test that JWT_SECRET_KEY is required when not in testing mode"""
-    from flask import Flask
 
     from config import Config
 
@@ -144,7 +142,6 @@ def test_jwt_secret_key_required_in_production():
 
 def test_secret_key_required_in_staging_like_environment():
     """Ensure staging-like deployments require explicit secrets."""
-    from flask import Flask
 
     from config import Config
 
@@ -185,9 +182,8 @@ def test_secret_key_required_in_staging_like_environment():
 
 def test_secrets_allowed_in_testing_mode():
     """Test that secrets can be set via config in testing mode"""
-    from flask import Flask
-
     from config import Config
+    from flask import Flask
 
     # Save original environment
     original_flask_env = os.environ.get("FLASK_ENV")
@@ -240,9 +236,8 @@ def test_secrets_allowed_in_testing_mode():
 
 def test_ephemeral_secrets_generated_in_ci_environment():
     """Ensure CI environments receive generated secrets instead of raising errors."""
-    from flask import Flask
-
     from config import Config
+    from flask import Flask
 
     original_env = {
         "SECRET_KEY": os.environ.get("SECRET_KEY"),
@@ -294,8 +289,9 @@ def test_secrets_work_when_provided():
         # Reload config and app modules to pick up new environment variables
         import importlib
 
-        import app
         import config
+
+        import app
         importlib.reload(config)
         importlib.reload(app)
 

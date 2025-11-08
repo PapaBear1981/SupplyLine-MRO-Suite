@@ -15,9 +15,9 @@ Tests all kit-related API endpoints including:
 import json
 
 import pytest
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
 
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance
 
 
 @pytest.fixture
@@ -703,8 +703,9 @@ class TestKitIssuanceEndpoints:
 
     def test_issue_tool_from_kit_rejected(self, client, auth_headers_user, test_kit, test_kit_box, db_session):
         """Test that tools cannot be issued from kits (should fail)"""
-        from models import Tool
         from models_kits import KitItem
+
+        from models import Tool
 
         # Create a tool
         tool = Tool(

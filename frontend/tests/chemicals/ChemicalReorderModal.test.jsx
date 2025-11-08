@@ -14,7 +14,7 @@ import {
   mockChemicalsState,
 } from './helpers/testUtils';
 import ChemicalReorderModal from '../../src/components/chemicals/ChemicalReorderModal';
-import * as chemicalsSlice from '../../src/store/chemicalsSlice';
+
 
 // Mock the Redux actions
 vi.mock('../../src/store/chemicalsSlice', async () => {

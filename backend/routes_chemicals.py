@@ -821,7 +821,7 @@ def register_chemical_routes(app):
 
             # Build description with quantity information
             description_parts = [
-                chemical.description or '',
+                chemical.description or "",
                 f"Lot Number: {chemical.lot_number}",
                 f"Manufacturer: {chemical.manufacturer or 'N/A'}",
                 f"Order Quantity: {order_quantity} {chemical.unit}"

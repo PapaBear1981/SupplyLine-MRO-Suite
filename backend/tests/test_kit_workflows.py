@@ -13,9 +13,9 @@ Tests end-to-end workflows that span multiple API endpoints:
 import json
 
 import pytest
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitReorderRequest, KitTransfer
 
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitReorderRequest, KitTransfer
 
 
 @pytest.fixture

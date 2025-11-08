@@ -1,7 +1,8 @@
 import os
 
-from app import create_app
 from socketio_config import socketio
+
+from app import create_app
 
 
 app = create_app()

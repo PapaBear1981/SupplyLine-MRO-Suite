@@ -18,9 +18,9 @@ Tests all reorder-related API endpoints including:
 import json
 
 import pytest
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitReorderRequest
 
 from models import User
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitReorderRequest
 
 
 @pytest.fixture

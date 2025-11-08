@@ -1,12 +1,12 @@
-import pytest
-
-import app as app_module
 import migrate_database_constraints
 import migrate_performance_indexes
 import migrate_reorder_fields
 import migrate_tool_calibration
-from app import create_app
+import pytest
 from config import Config
+
+import app as app_module
+from app import create_app
 from models import db
 from utils import logging_utils, resource_monitor, session_cleanup
 

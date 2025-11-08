@@ -16,9 +16,10 @@ import os
 import sys
 from datetime import UTC, datetime, timedelta
 
-from flask import Flask
-
 from config import Config
+from flask import Flask
+from models_kits import AircraftType, Kit
+
 from models import (
     Checkout,
     Chemical,
@@ -28,7 +29,6 @@ from models import (
     Warehouse,
     db,
 )
-from models_kits import AircraftType, Kit
 
 
 # Setup logging

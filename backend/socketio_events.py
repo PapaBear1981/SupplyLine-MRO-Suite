@@ -10,11 +10,11 @@ from flask import request
 from flask_jwt_extended import decode_token
 from flask_socketio import emit, join_room, leave_room
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-
-from models import db
 from models_kits import KitMessage
 from models_messaging import ChannelMember, ChannelMessage, MessageReaction, UserPresence
 from socketio_config import socketio
+
+from models import db
 
 
 logger = logging.getLogger(__name__)

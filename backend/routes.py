@@ -5,20 +5,6 @@ from datetime import UTC, datetime, timedelta
 from functools import wraps
 
 from flask import current_app, jsonify, request, session
-
-import utils as password_utils
-from models import (
-    AuditLog,
-    Checkout,
-    Chemical,
-    Tool,
-    ToolCalibration,
-    ToolCalibrationStandard,
-    ToolServiceRecord,
-    User,
-    UserActivity,
-    db,
-)
 from routes_announcements import register_announcement_routes
 from routes_attachments import register_attachments_routes
 from routes_auth import register_auth_routes
@@ -46,6 +32,20 @@ from routes_scanner import register_scanner_routes
 from routes_security import register_security_routes
 from routes_transfers import transfers_bp
 from routes_warehouses import warehouses_bp
+
+import utils as password_utils
+from models import (
+    AuditLog,
+    Checkout,
+    Chemical,
+    Tool,
+    ToolCalibration,
+    ToolCalibrationStandard,
+    ToolServiceRecord,
+    User,
+    UserActivity,
+    db,
+)
 from utils.error_handler import ValidationError, handle_errors, log_security_event
 from utils.file_validation import FileValidationError, validate_image_upload
 from utils.password_reset_security import get_password_reset_tracker

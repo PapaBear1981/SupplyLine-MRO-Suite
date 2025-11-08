@@ -8,11 +8,11 @@ import logging
 from datetime import datetime, timedelta
 
 from flask import jsonify, request
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance, KitItem, KitReorderRequest, KitTransfer
 from sqlalchemy import and_, or_
 
 from auth import admin_required, department_required, jwt_required
 from models import AuditLog, Chemical, Tool, Warehouse, WarehouseTransfer, db
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitIssuance, KitItem, KitReorderRequest, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
 
 
@@ -1244,8 +1244,9 @@ def register_kit_routes(app):
     @handle_errors
     def get_reorder_report():
         """Get reorder report across all kits"""
-        from models import User
         from models_kits import KitReorderRequest
+
+        from models import User
 
         # Get filter parameters
         aircraft_type_id = request.args.get("aircraft_type_id", type=int)
@@ -1300,9 +1301,8 @@ def register_kit_routes(app):
     @handle_errors
     def get_kit_utilization_analytics():
         """Get kit utilization analytics across all kits"""
-        from sqlalchemy import func
-
         from models_kits import KitIssuance, KitTransfer
+        from sqlalchemy import func
 
         days = request.args.get("days", 30, type=int)
         aircraft_type_id = request.args.get("aircraft_type_id", type=int)
