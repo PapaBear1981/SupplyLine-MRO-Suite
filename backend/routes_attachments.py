@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 attachments_bp = Blueprint("attachments", __name__, url_prefix="/api/attachments")
 
 # Configuration
-UPLOAD_FOLDER = os.environ.get("ATTACHMENTS_FOLDER", "/tmp/supplyline_attachments")
+# nosec B108: /tmp is a safe fallback for development; production should set ATTACHMENTS_FOLDER env var
+UPLOAD_FOLDER = os.environ.get("ATTACHMENTS_FOLDER", "/tmp/supplyline_attachments")  # nosec B108
 THUMBNAILS_FOLDER = os.path.join(UPLOAD_FOLDER, "thumbnails")
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {
