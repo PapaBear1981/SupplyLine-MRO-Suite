@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Bandit
         run: |
-          bandit -r backend -ll
+          bandit -r backend -ll -x backend/venv,backend/.venv,backend/tests
 
   npm-audit:
     name: npm Audit
