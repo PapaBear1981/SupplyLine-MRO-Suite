@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { Container, Card, Form, Button, Row, Col, Badge, Alert, Spinner, Pagination } from 'react-bootstrap';
-import { FaSearch, FaHistory, FaBox, FaWarehouse, FaTruck, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaTools, FaFlask, FaBoxOpen, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { Card, Form, Button, Row, Col, Badge, Alert, Spinner, Pagination, Table } from 'react-bootstrap';
 import axios from 'axios';
-import './ItemHistoryPage.css';
 
 const ItemHistoryPage = () => {
   const [searchForm, setSearchForm] = useState({
@@ -97,28 +95,17 @@ const ItemHistoryPage = () => {
     }
   };
 
-  const getItemTypeIcon = (itemType) => {
+  const getItemTypeLabel = (itemType) => {
     switch (itemType) {
       case 'tool':
-        return <FaTools className="me-2" />;
+        return 'Tool';
       case 'chemical':
-        return <FaFlask className="me-2" />;
+        return 'Chemical';
       case 'expendable':
-        return <FaBoxOpen className="me-2" />;
+        return 'Expendable';
       default:
-        return <FaBox className="me-2" />;
+        return 'Item';
     }
-  };
-
-  const getEventIcon = (eventType) => {
-    if (eventType.includes('transfer')) return <FaTruck />;
-    if (eventType === 'issuance' || eventType === 'kit_issuance') return <FaCheckCircle />;
-    if (eventType === 'checkout') return <FaCheckCircle />;
-    if (eventType === 'return') return <FaCheckCircle />;
-    if (eventType === 'retirement') return <FaTimesCircle />;
-    if (eventType === 'creation') return <FaBox />;
-    if (eventType === 'status_change') return <FaExclamationTriangle />;
-    return <FaHistory />;
   };
 
   const getEventColor = (eventType) => {
@@ -159,11 +146,8 @@ const ItemHistoryPage = () => {
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Scroll to timeline section
-    const timelineElement = document.querySelector('.history-timeline-card');
-    if (timelineElement) {
-      timelineElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getStatusBadgeColor = (status) => {
@@ -177,25 +161,24 @@ const ItemHistoryPage = () => {
   };
 
   return (
-    <Container fluid className="item-history-page">
-      <div className="page-header fade-in">
-        <h1 className="page-title">
-          <FaHistory className="me-3" />
-          Item History Lookup
-        </h1>
-        <p className="page-subtitle">
-          Search for complete history of any chemical, expendable, or tool item
-        </p>
+    <div className="w-100">
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+          <h1 className="mb-0">Item History Lookup</h1>
+          <p className="text-muted mb-0 mt-2">
+            Search for complete history of any chemical, expendable, or tool item
+          </p>
+        </div>
       </div>
 
       {/* Search Form */}
-      <Card className="search-card fade-in stagger-1">
+      <Card className="mb-4 shadow-sm">
         <Card.Body>
           <Form onSubmit={handleSearch}>
             <Row>
               <Col md={5}>
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">
+                  <Form.Label className="fw-semibold">
                     Part Number / Tool Number
                   </Form.Label>
                   <Form.Control
@@ -204,7 +187,6 @@ const ItemHistoryPage = () => {
                     value={searchForm.identifier}
                     onChange={handleInputChange}
                     placeholder="e.g., T-12345 or CHEM-001"
-                    className="search-input"
                     disabled={loading}
                   />
                   <Form.Text className="text-muted">
@@ -214,7 +196,7 @@ const ItemHistoryPage = () => {
               </Col>
               <Col md={5}>
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">
+                  <Form.Label className="fw-semibold">
                     Lot Number / Serial Number
                   </Form.Label>
                   <Form.Control
@@ -223,7 +205,6 @@ const ItemHistoryPage = () => {
                     value={searchForm.tracking_number}
                     onChange={handleInputChange}
                     placeholder="e.g., LOT-251014-0001 or SN-001"
-                    className="search-input"
                     disabled={loading}
                   />
                   <Form.Text className="text-muted">
@@ -236,7 +217,7 @@ const ItemHistoryPage = () => {
                   <Button
                     type="submit"
                     variant="primary"
-                    className="w-100 search-button"
+                    className="w-100"
                     disabled={loading}
                   >
                     {loading ? (
@@ -246,7 +227,7 @@ const ItemHistoryPage = () => {
                       </>
                     ) : (
                       <>
-                        <FaSearch className="me-2" />
+                        <i className="bi bi-search me-2"></i>
                         Search
                       </>
                     )}
@@ -270,41 +251,40 @@ const ItemHistoryPage = () => {
 
       {/* Error Message */}
       {error && (
-        <Alert variant="danger" className="mt-4 fade-in" onClose={() => setError(null)} dismissible>
-          <FaExclamationTriangle className="me-2" />
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
           {error}
         </Alert>
       )}
 
       {/* No Results Message */}
       {searched && !loading && !historyData && !error && (
-        <Alert variant="info" className="mt-4 fade-in">
-          <FaExclamationTriangle className="me-2" />
+        <Alert variant="info">
+          <i className="bi bi-info-circle-fill me-2"></i>
           No item found with the provided identifiers. Please check your input and try again.
         </Alert>
       )}
 
       {/* Results */}
       {historyData && historyData.item_found && (
-        <div className="results-container fade-in stagger-2">
+        <div>
           {/* Item Details Card */}
-          <Card className="item-details-card mb-4">
-            <Card.Header className="item-details-header">
+          <Card className="mb-4 shadow-sm">
+            <Card.Header className="bg-light">
               <h4 className="mb-0">
-                {getItemTypeIcon(historyData.item_type)}
-                {historyData.item_type.charAt(0).toUpperCase() + historyData.item_type.slice(1)} Details
+                {getItemTypeLabel(historyData.item_type)} Details
               </h4>
             </Card.Header>
             <Card.Body>
               <Row>
                 <Col md={6}>
-                  <div className="detail-item">
-                    <strong>Identifier:</strong>
-                    <span>{historyData.item_details.part_number || historyData.item_details.tool_number}</span>
+                  <div className="mb-3">
+                    <strong className="text-muted d-block mb-1">Identifier</strong>
+                    <div>{historyData.item_details.part_number || historyData.item_details.tool_number}</div>
                   </div>
-                  <div className="detail-item">
-                    <strong>Tracking Number:</strong>
-                    <span>
+                  <div className="mb-3">
+                    <strong className="text-muted d-block mb-1">Tracking Number</strong>
+                    <div>
                       <Button
                         variant="link"
                         size="sm"
@@ -315,44 +295,46 @@ const ItemHistoryPage = () => {
                         )}
                         title="Click to refresh history for this item"
                       >
-                        <Badge bg="success" className="clickable-lot-badge">
-                          {historyData.item_details.serial_number || historyData.item_details.lot_number} <FaSearch className="ms-1" size={10} />
+                        <Badge bg="success">
+                          {historyData.item_details.serial_number || historyData.item_details.lot_number} <i className="bi bi-search ms-1"></i>
                         </Badge>
                       </Button>
-                    </span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <strong>Description:</strong>
-                    <span>{historyData.item_details.description || 'N/A'}</span>
+                  <div className="mb-3">
+                    <strong className="text-muted d-block mb-1">Description</strong>
+                    <div>{historyData.item_details.description || 'N/A'}</div>
                   </div>
                   {historyData.item_details.category && (
-                    <div className="detail-item">
-                      <strong>Category:</strong>
-                      <span>{historyData.item_details.category}</span>
+                    <div className="mb-3">
+                      <strong className="text-muted d-block mb-1">Category</strong>
+                      <div>{historyData.item_details.category}</div>
                     </div>
                   )}
                 </Col>
                 <Col md={6}>
-                  <div className="detail-item">
-                    <strong>Status:</strong>
-                    <Badge bg={historyData.item_details.status === 'available' ? 'success' : 
-                               historyData.item_details.status === 'retired' ? 'danger' : 'warning'}>
-                      {historyData.item_details.status}
-                    </Badge>
+                  <div className="mb-3">
+                    <strong className="text-muted d-block mb-1">Status</strong>
+                    <div>
+                      <Badge bg={historyData.item_details.status === 'available' ? 'success' :
+                                 historyData.item_details.status === 'retired' ? 'danger' : 'warning'}>
+                        {historyData.item_details.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <strong>Current Location:</strong>
-                    <span>
-                      {historyData.current_location.type === 'warehouse' && <FaWarehouse className="me-1" />}
-                      {historyData.current_location.type === 'kit' && <FaBox className="me-1" />}
+                  <div className="mb-3">
+                    <strong className="text-muted d-block mb-1">Current Location</strong>
+                    <div>
+                      {historyData.current_location.type === 'warehouse' && <i className="bi bi-building me-1"></i>}
+                      {historyData.current_location.type === 'kit' && <i className="bi bi-box me-1"></i>}
                       {historyData.current_location.name}
                       {historyData.current_location.details && ` - ${historyData.current_location.details}`}
-                    </span>
+                    </div>
                   </div>
                   {historyData.item_details.quantity !== undefined && (
-                    <div className="detail-item">
-                      <strong>Quantity:</strong>
-                      <span>{historyData.item_details.quantity} {historyData.item_details.unit || ''}</span>
+                    <div className="mb-3">
+                      <strong className="text-muted d-block mb-1">Quantity</strong>
+                      <div>{historyData.item_details.quantity} {historyData.item_details.unit || ''}</div>
                     </div>
                   )}
                 </Col>
@@ -360,7 +342,7 @@ const ItemHistoryPage = () => {
 
               {/* Parent/Child Lot Information */}
               {(historyData.parent_lot || (historyData.child_lots && historyData.child_lots.length > 0)) && (
-                <div className="lot-lineage mt-4">
+                <div className="border-top pt-4 mt-4">
                   <h6 className="text-muted mb-3">Lot Lineage</h6>
                   {historyData.parent_lot && (
                     <Alert variant="info" className="mb-2">
@@ -372,8 +354,8 @@ const ItemHistoryPage = () => {
                         onClick={() => handleLotClick(historyData.parent_lot.part_number, historyData.parent_lot.lot_number)}
                         title="Click to view history of this parent lot"
                       >
-                        <Badge bg="warning" className="clickable-lot-badge me-2">
-                          {historyData.parent_lot.lot_number} <FaSearch className="ms-1" size={10} />
+                        <Badge bg="warning" className="me-2">
+                          {historyData.parent_lot.lot_number} <i className="bi bi-search ms-1"></i>
                         </Badge>
                       </Button>
                       {historyData.parent_lot.description}
@@ -392,8 +374,8 @@ const ItemHistoryPage = () => {
                               onClick={() => handleLotClick(child.part_number, child.lot_number)}
                               title="Click to view history of this child lot"
                             >
-                              <Badge bg="info" className="clickable-lot-badge me-2">
-                                {child.lot_number} <FaSearch className="ms-1" size={10} />
+                              <Badge bg="info" className="me-2">
+                                {child.lot_number} <i className="bi bi-search ms-1"></i>
                               </Badge>
                             </Button>
                             {child.description} ({child.quantity} - {child.status})
@@ -408,10 +390,10 @@ const ItemHistoryPage = () => {
           </Card>
 
           {/* History Timeline */}
-          <Card className="history-timeline-card">
-            <Card.Header className="history-timeline-header">
+          <Card className="shadow-sm">
+            <Card.Header className="bg-light">
               <h4 className="mb-0">
-                <FaHistory className="me-2" />
+                <i className="bi bi-clock-history me-2"></i>
                 Complete History ({historyData.history.length} events)
               </h4>
             </Card.Header>
@@ -420,116 +402,118 @@ const ItemHistoryPage = () => {
                 <Alert variant="info">No history events found for this item.</Alert>
               ) : (
                 <>
-                  <div className="timeline">
-                    {getPaginatedEvents().map((event, index) => (
-                      <div key={index} className={`timeline-item fade-in stagger-${Math.min(index, 5)}`}>
-                        <div className="timeline-marker">
-                          <div className={`timeline-icon bg-${getEventColor(event.event_type)}`}>
-                            {getEventIcon(event.event_type)}
-                          </div>
-                        </div>
-                        <div className="timeline-content">
-                          <div className="timeline-header">
-                            <Badge bg={getEventColor(event.event_type)} className="event-badge">
+                  <Table hover responsive>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '15%' }}>Event Type</th>
+                        <th style={{ width: '18%' }}>Date & Time</th>
+                        <th style={{ width: '35%' }}>Description</th>
+                        <th style={{ width: '12%' }}>User</th>
+                        <th style={{ width: '20%' }}>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getPaginatedEvents().map((event, index) => (
+                        <tr key={index}>
+                          <td>
+                            <Badge bg={getEventColor(event.event_type)}>
                               {event.event_type.replace(/_/g, ' ').toUpperCase()}
                             </Badge>
-                            <span className="timeline-date">{formatDate(event.timestamp)}</span>
-                          </div>
-                          <div className="timeline-description">{event.description}</div>
-                          <div className="timeline-user">
-                            <small className="text-muted">By: {event.user}</small>
-                          </div>
-                          {event.details && Object.keys(event.details).length > 0 && (
-                            <div className="timeline-details">
-                              {Object.entries(event.details).map(([key, value]) => (
-                                value && key !== 'child_lot_status' && (
-                                  <div key={key} className="detail-row">
-                                    <span className="detail-key">{key.replace(/_/g, ' ')}:</span>
-                                    <span className="detail-value">
-                                      {key === 'child_lot_number' ? (
-                                        <div className="d-inline-flex align-items-center gap-2">
-                                          <Button
-                                            variant="link"
-                                            size="sm"
-                                            className="p-0 text-decoration-none"
-                                            onClick={() => handleLotClick(historyData.item_details.part_number, value)}
-                                            title="Click to view history of this child lot"
-                                          >
-                                            <Badge bg="info" className="clickable-lot-badge">
-                                              {value} <FaSearch className="ms-1" size={10} />
-                                            </Badge>
-                                          </Button>
-                                          {event.details.child_lot_status && (
-                                            <Badge bg={getStatusBadgeColor(event.details.child_lot_status)} className="ms-2">
-                                              {event.details.child_lot_status}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        typeof value === 'object' ? JSON.stringify(value) : value
-                                      )}
-                                    </span>
-                                  </div>
-                                )
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          </td>
+                          <td>
+                            <small className="text-muted">{formatDate(event.timestamp)}</small>
+                          </td>
+                          <td>{event.description}</td>
+                          <td>
+                            <small className="text-muted">{event.user}</small>
+                          </td>
+                          <td>
+                            {event.details && Object.keys(event.details).length > 0 && (
+                              <div>
+                                {Object.entries(event.details).map(([key, value]) => (
+                                  value && key !== 'child_lot_status' && (
+                                    <div key={key} className="mb-1">
+                                      <small>
+                                        <strong className="text-muted">{key.replace(/_/g, ' ')}:</strong>{' '}
+                                        {key === 'child_lot_number' ? (
+                                          <span className="d-inline-flex align-items-center gap-1">
+                                            <Button
+                                              variant="link"
+                                              size="sm"
+                                              className="p-0 text-decoration-none"
+                                              onClick={() => handleLotClick(historyData.item_details.part_number, value)}
+                                              title="Click to view history of this child lot"
+                                            >
+                                              <Badge bg="info">
+                                                {value} <i className="bi bi-search ms-1"></i>
+                                              </Badge>
+                                            </Button>
+                                            {event.details.child_lot_status && (
+                                              <Badge bg={getStatusBadgeColor(event.details.child_lot_status)}>
+                                                {event.details.child_lot_status}
+                                              </Badge>
+                                            )}
+                                          </span>
+                                        ) : (
+                                          typeof value === 'object' ? JSON.stringify(value) : value
+                                        )}
+                                      </small>
+                                    </div>
+                                  )
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
 
                   {/* Pagination Controls */}
                   {getTotalPages() > 1 && (
-                    <div className="pagination-container mt-4">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="pagination-info">
-                          <small className="text-muted">
-                            Showing {((currentPage - 1) * eventsPerPage) + 1} - {Math.min(currentPage * eventsPerPage, historyData.history.length)} of {historyData.history.length} events
-                          </small>
-                        </div>
-                        <Pagination className="mb-0">
-                          <Pagination.Prev
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                          >
-                            <FaChevronLeft className="me-1" /> Previous
-                          </Pagination.Prev>
-
-                          {[...Array(getTotalPages())].map((_, idx) => {
-                            const pageNum = idx + 1;
-                            // Show first page, last page, current page, and pages around current
-                            if (
-                              pageNum === 1 ||
-                              pageNum === getTotalPages() ||
-                              (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                            ) {
-                              return (
-                                <Pagination.Item
-                                  key={pageNum}
-                                  active={pageNum === currentPage}
-                                  onClick={() => handlePageChange(pageNum)}
-                                >
-                                  {pageNum}
-                                </Pagination.Item>
-                              );
-                            } else if (
-                              pageNum === currentPage - 2 ||
-                              pageNum === currentPage + 2
-                            ) {
-                              return <Pagination.Ellipsis key={pageNum} disabled />;
-                            }
-                            return null;
-                          })}
-
-                          <Pagination.Next
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === getTotalPages()}
-                          >
-                            Next <FaChevronRight className="ms-1" />
-                          </Pagination.Next>
-                        </Pagination>
+                    <div className="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
+                      <div>
+                        <small className="text-muted">
+                          Showing {((currentPage - 1) * eventsPerPage) + 1} - {Math.min(currentPage * eventsPerPage, historyData.history.length)} of {historyData.history.length} events
+                        </small>
                       </div>
+                      <Pagination className="mb-0">
+                        <Pagination.Prev
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        />
+
+                        {[...Array(getTotalPages())].map((_, idx) => {
+                          const pageNum = idx + 1;
+                          // Show first page, last page, current page, and pages around current
+                          if (
+                            pageNum === 1 ||
+                            pageNum === getTotalPages() ||
+                            (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                          ) {
+                            return (
+                              <Pagination.Item
+                                key={pageNum}
+                                active={pageNum === currentPage}
+                                onClick={() => handlePageChange(pageNum)}
+                              >
+                                {pageNum}
+                              </Pagination.Item>
+                            );
+                          } else if (
+                            pageNum === currentPage - 2 ||
+                            pageNum === currentPage + 2
+                          ) {
+                            return <Pagination.Ellipsis key={pageNum} disabled />;
+                          }
+                          return null;
+                        })}
+
+                        <Pagination.Next
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === getTotalPages()}
+                        />
+                      </Pagination>
                     </div>
                   )}
                 </>
@@ -538,7 +522,7 @@ const ItemHistoryPage = () => {
           </Card>
         </div>
       )}
-    </Container>
+    </div>
   );
 };
 
