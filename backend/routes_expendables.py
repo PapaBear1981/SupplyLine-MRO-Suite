@@ -16,10 +16,10 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request
-from models_kits import Kit, KitBox, KitItem
 
 from auth import department_required, jwt_required
 from models import AuditLog, Expendable, LotNumberSequence, db
+from models_kits import Kit, KitBox, KitItem
 from utils.error_handler import ValidationError, handle_errors
 
 

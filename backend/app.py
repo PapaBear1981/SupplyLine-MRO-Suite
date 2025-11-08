@@ -4,16 +4,16 @@ import logging.config
 import os
 import time
 
-from config import Config
 from flask import Flask
 
 # from flask_session import Session  # Disabled due to Flask 3.x compatibility issues - using JWT instead
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from socketio_config import init_socketio
 
+from config import Config
 from models import db
 from routes import register_routes
+from socketio_config import init_socketio
 from utils.logging_utils import setup_request_logging
 from utils.resource_monitor import init_resource_monitoring
 from utils.scheduled_backup import init_scheduled_backup, shutdown_scheduled_backup

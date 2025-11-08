@@ -9,7 +9,6 @@ import logging
 from datetime import timedelta
 
 from flask import jsonify, request
-from models_kits import Kit, KitExpendable, KitIssuance, KitItem, KitTransfer
 from sqlalchemy import and_, or_
 
 from auth import jwt_required
@@ -25,6 +24,7 @@ from models import (
     WarehouseTransfer,
     db,
 )
+from models_kits import Kit, KitExpendable, KitIssuance, KitItem, KitTransfer
 from utils.error_handler import ValidationError, handle_errors
 
 

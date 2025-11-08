@@ -7,9 +7,8 @@ across all inventory types (tools, chemicals, expendables).
 
 import logging
 
-from models_kits import KitExpendable, KitItem
-
 from models import Chemical, InventoryTransaction, Tool, db
+from models_kits import KitExpendable, KitItem
 
 
 logger = logging.getLogger(__name__)

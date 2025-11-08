@@ -19,9 +19,9 @@ Tests all messaging-related API endpoints including:
 import json
 
 import pytest
-from models_kits import AircraftType, Kit, KitMessage, KitReorderRequest
 
 from models import User
+from models_kits import AircraftType, Kit, KitMessage, KitReorderRequest
 
 
 @pytest.fixture

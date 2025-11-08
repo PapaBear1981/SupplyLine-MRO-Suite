@@ -6,13 +6,13 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from models_kits import KitMessage
-from models_messaging import ChannelMember, ChannelMessage, MessageAttachment
 from sqlalchemy import or_
 
 from auth import jwt_required
 from auth.jwt_manager import JWTManager
 from models import User, db
+from models_kits import KitMessage
+from models_messaging import ChannelMember, ChannelMessage, MessageAttachment
 
 
 logger = logging.getLogger(__name__)

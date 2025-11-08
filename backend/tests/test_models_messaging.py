@@ -5,6 +5,9 @@ MessageAttachment, AttachmentDownload, UserPresence, and TypingIndicator models.
 """
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+
+from models import db
 from models_kits import KitMessage
 from models_messaging import (
     AttachmentDownload,
@@ -16,9 +19,6 @@ from models_messaging import (
     TypingIndicator,
     UserPresence,
 )
-from sqlalchemy.exc import IntegrityError
-
-from models import db
 
 
 class TestChannelModel:

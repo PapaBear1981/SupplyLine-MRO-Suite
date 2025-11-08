@@ -14,9 +14,9 @@ Tests all transfer-related API endpoints including:
 import json
 
 import pytest
-from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitTransfer
 
 from models import InventoryTransaction, Tool, User, Warehouse
+from models_kits import AircraftType, Kit, KitBox, KitExpendable, KitTransfer
 
 
 @pytest.fixture

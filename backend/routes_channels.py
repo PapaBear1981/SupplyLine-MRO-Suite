@@ -5,11 +5,11 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from models_messaging import Channel, ChannelMember, ChannelMessage
 
 from auth import jwt_required
 from auth.jwt_manager import JWTManager
 from models import db
+from models_messaging import Channel, ChannelMember, ChannelMessage
 
 
 logger = logging.getLogger(__name__)

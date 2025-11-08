@@ -8,10 +8,10 @@ import logging
 from datetime import datetime
 
 from flask import jsonify, request
-from models_kits import Kit, KitMessage
 
 from auth import jwt_required
 from models import AuditLog, db
+from models_kits import Kit, KitMessage
 from utils.error_handler import ValidationError, handle_errors
 
 

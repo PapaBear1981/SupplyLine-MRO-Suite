@@ -7,14 +7,14 @@ import secrets
 from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, request, send_file
-from models_kits import KitMessage
-from models_messaging import AttachmentDownload, MessageAttachment
 from PIL import Image
 from werkzeug.utils import secure_filename
 
 from auth import jwt_required
 from auth.jwt_manager import JWTManager
 from models import db
+from models_kits import KitMessage
+from models_messaging import AttachmentDownload, MessageAttachment
 from utils.file_validation import FileValidationError, get_file_type, scan_file_for_malware, validate_file_upload
 
 

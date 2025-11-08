@@ -4,9 +4,8 @@ Tests /api/channels endpoints for CRUD operations, members, and messages.
 """
 import json
 
-from models_messaging import ChannelMember, ChannelMessage
-
 from models import db
+from models_messaging import ChannelMember, ChannelMessage
 
 
 class TestChannelRoutes:

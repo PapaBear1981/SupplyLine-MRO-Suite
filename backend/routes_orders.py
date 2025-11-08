@@ -5,7 +5,6 @@ from collections import Counter
 from datetime import datetime, timezone
 
 from flask import jsonify, request
-from models_kits import Kit
 from sqlalchemy import or_
 
 from auth import jwt_required, permission_required
@@ -17,6 +16,7 @@ from models import (
     db,
     get_current_time,
 )
+from models_kits import Kit
 from utils.error_handler import ValidationError, handle_errors
 
 
