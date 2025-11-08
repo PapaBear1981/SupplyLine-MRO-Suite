@@ -99,7 +99,7 @@ const ChemicalsNeedingReorderTab = () => {
     <>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <strong>{chemicalsNeedingReorder.length}</strong> chemical{chemicalsNeedingReorder.length !== 1 ? 's' : ''} need{chemicalsNeedingReorder.length === 1 ? 's' : ''} reordering
+          <strong>{Array.isArray(chemicalsNeedingReorder) ? chemicalsNeedingReorder.length : 0}</strong> chemical{(Array.isArray(chemicalsNeedingReorder) ? chemicalsNeedingReorder.length : 0) !== 1 ? 's' : ''} need{(Array.isArray(chemicalsNeedingReorder) ? chemicalsNeedingReorder.length : 0) === 1 ? 's' : ''} reordering
         </div>
         <Button variant="outline-primary" size="sm" onClick={handleRefresh}>
           <FaSync className="me-1" />Refresh
@@ -112,7 +112,7 @@ const ChemicalsNeedingReorderTab = () => {
             <span className="visually-hidden">Loading...</span>
           </div>
         </div>
-      ) : chemicalsNeedingReorder.length === 0 ? (
+      ) : !Array.isArray(chemicalsNeedingReorder) || chemicalsNeedingReorder.length === 0 ? (
         <Alert variant="success">
           <i className="bi bi-check-circle-fill me-2"></i>
           No chemicals currently need reordering. All chemical inventory levels are adequate!

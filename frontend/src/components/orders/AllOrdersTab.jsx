@@ -56,7 +56,7 @@ const DUE_STATUS_VARIANTS = {
 
 const AllOrdersTab = ({ onViewOrder }) => {
   const dispatch = useDispatch();
-  const { orders, loading } = useSelector((state) => state.orders);
+  const { list: orders, loading } = useSelector((state) => state.orders);
   
   const [filters, setFilters] = useState({
     order_type: 'all',
@@ -75,6 +75,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
   };
 
   const filteredOrders = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
     return orders.filter((order) => {
       if (filters.order_type !== 'all' && order.order_type !== filters.order_type) return false;
       if (filters.status !== 'all' && order.status !== filters.status) return false;

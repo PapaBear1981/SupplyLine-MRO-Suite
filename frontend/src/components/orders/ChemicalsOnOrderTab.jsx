@@ -94,7 +94,7 @@ const ChemicalsOnOrderTab = () => {
     <>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <strong>{chemicalsOnOrder.length}</strong> chemical{chemicalsOnOrder.length !== 1 ? 's' : ''} on order
+          <strong>{Array.isArray(chemicalsOnOrder) ? chemicalsOnOrder.length : 0}</strong> chemical{(Array.isArray(chemicalsOnOrder) ? chemicalsOnOrder.length : 0) !== 1 ? 's' : ''} on order
         </div>
         <Button variant="outline-primary" size="sm" onClick={handleRefresh}>
           <FaSync className="me-1" />Refresh
@@ -107,7 +107,7 @@ const ChemicalsOnOrderTab = () => {
             <span className="visually-hidden">Loading...</span>
           </div>
         </div>
-      ) : chemicalsOnOrder.length === 0 ? (
+      ) : !Array.isArray(chemicalsOnOrder) || chemicalsOnOrder.length === 0 ? (
         <Alert variant="info">
           <i className="bi bi-info-circle-fill me-2"></i>
           No chemicals are currently on order.
