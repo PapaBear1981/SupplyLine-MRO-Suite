@@ -1,7 +1,7 @@
 """API routes for procurement order management."""
 
-from collections import Counter
 import logging
+from collections import Counter
 from datetime import datetime, timezone
 
 from flask import jsonify, request
@@ -18,6 +18,7 @@ from models import (
 )
 from models_kits import Kit
 from utils.error_handler import ValidationError, handle_errors
+
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +250,7 @@ def register_order_routes(app):
         order = ProcurementOrder.query.get_or_404(order_id)
         data = request.get_json() or {}
 
-        if "title" in data and data["title"]:
+        if data.get("title"):
             order.title = data["title"]
 
         if "part_number" in data:
@@ -439,9 +440,7 @@ def register_order_routes(app):
         if not recipient_id:
             if sender_id == order.requester_id and order.buyer_id:
                 recipient_id = order.buyer_id
-            elif order.buyer_id and sender_id == order.buyer_id:
-                recipient_id = order.requester_id
-            elif sender_id != order.requester_id:
+            elif (order.buyer_id and sender_id == order.buyer_id) or sender_id != order.requester_id:
                 recipient_id = order.requester_id
 
         if recipient_id == sender_id:
