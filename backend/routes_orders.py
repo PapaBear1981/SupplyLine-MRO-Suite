@@ -205,6 +205,7 @@ def register_order_routes(app):
         order = ProcurementOrder(
             title=title,
             order_type=order_type,
+            part_number=data.get("part_number"),
             description=data.get("description"),
             priority=priority,
             status=status,
@@ -250,6 +251,9 @@ def register_order_routes(app):
 
         if "title" in data and data["title"]:
             order.title = data["title"]
+
+        if "part_number" in data:
+            order.part_number = data.get("part_number")
 
         if "description" in data:
             order.description = data["description"]

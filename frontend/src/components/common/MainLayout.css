@@ -256,19 +256,20 @@
   margin-left: 250px;
   margin-top: 0;
   min-height: 100vh;
-  transition: margin-left 0.3s ease;
+  transition: margin-left 0.3s ease, background 0.3s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-/* Light theme main content background */
+/* Light theme main content background with subtle gradient */
 [data-bs-theme="light"] .main-content {
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.03) 0%, rgba(248, 249, 250, 1) 65%);
 }
 
-/* Dark theme main content background */
+/* Dark theme main content background with subtle gradient */
 [data-bs-theme="dark"] .main-content {
-  background-color: #212529;
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.08) 0%, rgba(33, 37, 41, 1) 65%);
 }
 
 .main-content.sidebar-collapsed {
@@ -289,10 +290,12 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* On mobile, sidebar is always collapsed (icon-only) by default */
   .sidebar {
     width: 70px;
   }
 
+  /* Hide text elements on mobile */
   .sidebar-brand,
   .sidebar-user-name,
   .sidebar .nav-link span,
@@ -305,6 +308,12 @@
     padding: 1.25rem 0.5rem;
   }
 
+  .sidebar .nav-link {
+    padding: 0.875rem 1.25rem;
+    justify-content: center;
+    gap: 0;
+  }
+
   .sidebar-user-btn {
     justify-content: center;
     padding: 0.5rem;
@@ -315,19 +324,18 @@
     padding: 0.75rem 0.5rem;
   }
 
+  /* Main content adjusts to 70px sidebar on mobile */
   .main-content {
     margin-left: 70px;
   }
 
-  .main-content.sidebar-collapsed {
-    margin-left: 70px;
-  }
-
+  /* When collapsed on mobile, sidebar disappears completely */
   .sidebar.collapsed {
     width: 0;
     overflow: hidden;
   }
 
+  /* When sidebar is collapsed on mobile, content takes full width */
   .main-content.sidebar-collapsed {
     margin-left: 0;
   }

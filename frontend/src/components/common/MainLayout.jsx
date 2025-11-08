@@ -21,12 +21,31 @@ const MainLayout = ({ children }) => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [transitionStage, setTransitionStage] = useState('idle');
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const transitionTimers = useRef({ exit: null, enter: null });
   const initialRenderRef = useRef(true);
 
   useInactivityLogout();
+
+  // Handle responsive behavior on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // On mobile, always start with sidebar visible (not collapsed)
+      // On desktop, maintain current state
+      if (mobile && !sidebarCollapsed) {
+        // Mobile view detected, keep sidebar visible by default
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Call once on mount
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (isAuthenticated && !securityLoaded && !securityLoading) {

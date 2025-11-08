@@ -266,11 +266,9 @@ const ChemicalService = {
   },
 
   // Mark a chemical as ordered
-  markChemicalAsOrdered: async (id, expectedDeliveryDate) => {
+  markChemicalAsOrdered: async (id, data) => {
     try {
-      const response = await api.post(`/chemicals/${id}/mark-ordered`, {
-        expected_delivery_date: expectedDeliveryDate
-      });
+      const response = await api.post(`/chemicals/${id}/mark-ordered`, data);
       return response.data;
     } catch (error) {
       console.error(`API Error [POST] /chemicals/${id}/mark-ordered:`, error);
@@ -279,17 +277,9 @@ const ChemicalService = {
   },
 
   // Mark a chemical as delivered
-  markChemicalAsDelivered: async (id, receivedQuantity = null) => {
+  markChemicalAsDelivered: async (id, data) => {
     try {
-      // Create request data object
-      const requestData = {};
-
-      // Add received quantity if provided
-      if (receivedQuantity !== null) {
-        requestData.received_quantity = receivedQuantity;
-      }
-
-      const response = await api.post(`/chemicals/${id}/mark-delivered`, requestData);
+      const response = await api.post(`/chemicals/${id}/mark-delivered`, data);
       return response.data;
     } catch (error) {
       console.error(`API Error [POST] /chemicals/${id}/mark-delivered:`, error);

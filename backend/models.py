@@ -470,6 +470,7 @@ class ProcurementOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     order_type = db.Column(db.String(50), nullable=False, default="tool")
+    part_number = db.Column(db.String(100), nullable=True, index=True)  # Track items by part number
     description = db.Column(db.String(4000))
     priority = db.Column(db.String(20), nullable=False, default="normal")
     status = db.Column(db.String(50), nullable=False, default="new")
@@ -531,6 +532,7 @@ class ProcurementOrder(db.Model):
             "id": self.id,
             "title": self.title,
             "order_type": self.order_type,
+            "part_number": self.part_number,
             "description": self.description,
             "priority": self.priority,
             "status": self.status,
@@ -738,12 +740,16 @@ class Chemical(db.Model):
         reorder_status = db.Column(db.String, nullable=True, default="not_needed")  # not_needed, needed, ordered
         reorder_date = db.Column(db.DateTime, nullable=True)  # When the reorder was placed
         expected_delivery_date = db.Column(db.DateTime, nullable=True)  # Expected delivery date
+
+        # Link to procurement order for integrated order management
+        procurement_order_id = db.Column(db.Integer, db.ForeignKey("procurement_orders.id"), nullable=True, index=True)
     except Exception:
         # If the columns don't exist, we'll create them later with a migration
         pass
 
     # Relationships
     warehouse = db.relationship("Warehouse", back_populates="chemicals")
+    procurement_order = db.relationship("ProcurementOrder", foreign_keys=[procurement_order_id], backref="chemicals")
 
     def to_dict(self):
         result = {
@@ -784,6 +790,7 @@ class Chemical(db.Model):
             result["reorder_status"] = self.reorder_status
             result["reorder_date"] = self.reorder_date.isoformat() if self.reorder_date else None
             result["expected_delivery_date"] = self.expected_delivery_date.isoformat() if self.expected_delivery_date else None
+            result["procurement_order_id"] = self.procurement_order_id
         except Exception:
             # If the columns don't exist, set default values
             result["needs_reorder"] = False
