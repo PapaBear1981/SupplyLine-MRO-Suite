@@ -97,7 +97,7 @@ const RequestsPage = () => {
 
   const myRequests = useMemo(() => {
     if (!user) return [];
-    const mine = list.filter((order) => order.requester_id === user.user_id);
+    const mine = list.filter((order) => order.requester_id === user.id);
     return mine
       .slice()
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -136,7 +136,7 @@ const RequestsPage = () => {
 
     const payload = {
       ...formState,
-      requester_id: user?.user_id,
+      requester_id: user?.id,
       quantity: formState.quantity ? Number(formState.quantity) : undefined,
     };
 
