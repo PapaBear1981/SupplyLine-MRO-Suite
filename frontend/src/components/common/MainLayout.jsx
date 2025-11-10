@@ -306,7 +306,7 @@ const MainLayout = ({ children }) => {
 
       {/* Main Content */}
       <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Container fluid className="flex-grow-1 mb-4 px-4 pt-3 pb-0">
+        <Container fluid className="flex-grow-1 px-4 py-0">
           <div key={location.pathname} className={transitionClassName}>
             {children}
           </div>
