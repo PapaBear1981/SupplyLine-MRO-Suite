@@ -16,7 +16,11 @@ export const HotkeyProvider = ({ children }) => {
     // Load preferences from localStorage on init
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } : DEFAULT_PREFERENCES;
+      const prefs = stored ? { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } : DEFAULT_PREFERENCES;
+      if (import.meta.env.DEV) {
+        console.log('[Hotkey] Initializing with preferences:', prefs);
+      }
+      return prefs;
     } catch (error) {
       console.error('Failed to load hotkey preferences:', error);
       return DEFAULT_PREFERENCES;
