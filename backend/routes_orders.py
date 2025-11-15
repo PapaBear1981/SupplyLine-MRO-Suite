@@ -1,11 +1,14 @@
 """API routes for procurement order management."""
 
 import logging
+import os
+import secrets
 from collections import Counter
 from datetime import datetime, timezone
 
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from sqlalchemy import or_
+from werkzeug.utils import secure_filename
 
 from auth import jwt_required, permission_required, permission_required_any
 from models import (
@@ -18,6 +21,12 @@ from models import (
 )
 from models_kits import Kit
 from utils.error_handler import ValidationError, handle_errors
+from utils.file_validation import (
+    ALLOWED_ATTACHMENT_EXTENSIONS,
+    FileValidationError,
+    scan_file_for_malware,
+    validate_file_upload,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -186,7 +195,13 @@ def register_order_routes(app):
     def create_order():
         """Create a new procurement order."""
 
-        data = request.get_json() or {}
+        if request.content_type and "multipart/form-data" in request.content_type:
+            data = request.form.to_dict()
+            documentation_file = request.files.get("documentation")
+        else:
+            data = request.get_json() or {}
+            documentation_file = None
+
         current_user = getattr(request, "current_user", {}) or {}
         permission_set = set(current_user.get("permissions", []))
         has_orders_permission = bool(current_user.get("is_admin")) or "page.orders" in permission_set
@@ -234,6 +249,40 @@ def register_order_routes(app):
             if not kit:
                 raise ValidationError("Kit not found")
 
+        documentation_path = None
+        if documentation_file and documentation_file.filename:
+            original_filename = secure_filename(documentation_file.filename)
+            ext = os.path.splitext(original_filename)[1].lower()
+
+            if ext and ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+                allowed_list = ", ".join(sorted(ALLOWED_ATTACHMENT_EXTENSIONS))
+                raise ValidationError(
+                    f"File type not allowed. Allowed extensions: {allowed_list}"
+                )
+
+            static_folder = current_app.static_folder or "static"
+            order_docs_folder = os.path.join(static_folder, "order_documents")
+            os.makedirs(order_docs_folder, exist_ok=True)
+
+            unique_id = secrets.token_urlsafe(16)
+            timestamp = get_current_time().strftime("%Y%m%d_%H%M%S")
+            safe_basename = f"{timestamp}_{unique_id}{ext or ''}"
+            disk_path = os.path.join(order_docs_folder, safe_basename)
+
+            documentation_file.save(disk_path)
+
+            try:
+                # Validate file content and perform a basic malware scan
+                validate_file_upload(disk_path)
+                scan_file_for_malware(disk_path)
+            except FileValidationError as exc:
+                # Remove invalid file and bubble up the validation error
+                if os.path.exists(disk_path):
+                    os.remove(disk_path)
+                raise exc
+
+            documentation_path = f"/api/static/order_documents/{safe_basename}"
+
         order = ProcurementOrder(
             title=title,
             order_type=order_type,
@@ -244,6 +293,7 @@ def register_order_routes(app):
             reference_type=data.get("reference_type"),
             reference_number=data.get("reference_number"),
             tracking_number=data.get("tracking_number"),
+            documentation_path=documentation_path,
             expected_due_date=expected_due_date,
             notes=data.get("notes"),
             quantity=quantity_int,

@@ -1,5 +1,6 @@
 """Tests for procurement order management API."""
 
+import io
 from datetime import timedelta
 
 import pytest
@@ -33,6 +34,28 @@ class TestOrderRoutes:
         assert response.status_code == 200
         results = response.get_json()
         assert any(item["id"] == order["id"] for item in results)
+
+    def test_create_order_with_documentation_upload(self, client, auth_headers):
+        file_content = io.BytesIO(b"%PDF-1.4 test document")
+        data = {
+            "title": "Order with docs",
+            "order_type": "tool",
+            "priority": "normal",
+            "expected_due_date": (get_current_time() + timedelta(days=3)).isoformat(),
+            "description": "With attached documentation",
+            "documentation": (file_content, "supporting.pdf"),
+        }
+
+        response = client.post(
+            "/api/orders",
+            data=data,
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 201
+        order = response.get_json()
+        assert order["documentation_path"]
+        assert order["documentation_path"].startswith("/api/static/order_documents/")
 
     def test_update_order(self, client, auth_headers, create_order):
         order = create_order(order_type="chemical", priority="high")

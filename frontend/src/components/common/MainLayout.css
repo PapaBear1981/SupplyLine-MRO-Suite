@@ -352,7 +352,7 @@
 
 /* Ensure proper spacing for container */
 .main-content .container-fluid {
-  padding-top: 1rem;
+  padding-top: 0;
 }
 
 /* Avatar styles (if not already defined elsewhere) */

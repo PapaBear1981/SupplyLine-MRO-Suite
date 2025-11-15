@@ -1,0 +1,12 @@
+.Toastify {
+  /* Prevent the toast container from reserving vertical space at the top of the app */
+  padding: 0;
+  margin: 0;
+  height: 0;
+}
+
+/* Ensure toasts remain interactive even though the root container has no height */
+.Toastify__toast-container {
+  pointer-events: auto;
+}
+

@@ -31,7 +31,32 @@ export const createOrder = createAsyncThunk(
   'orders/createOrder',
   async (orderData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/orders', orderData);
+      let payload = orderData;
+      let config;
+
+      // When a documentation file is present, send multipart/form-data instead of JSON
+      if (orderData?.documentation) {
+        const formData = new FormData();
+
+        Object.entries(orderData).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+
+          if (key === 'documentation') {
+            formData.append('documentation', value);
+          } else {
+            formData.append(key, value);
+          }
+        });
+
+        payload = formData;
+        config = {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        };
+      }
+
+      const response = await api.post('/orders', payload, config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to create order' });

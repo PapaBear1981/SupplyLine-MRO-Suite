@@ -6,6 +6,11 @@ import { fetchCurrentUser } from './store/authSlice';
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Import react-toastify CSS and ToastContainer
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import './styles/toastifyOverrides.css';
+
 // Import Help Provider
 import { HelpProvider } from './context/HelpContext';
 
@@ -120,6 +125,18 @@ function App() {
 
   return (
     <HelpProvider>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={theme === 'dark' ? 'dark' : 'light'}
+      />
       <Router>
         <Routes>
         {/* Public routes */}

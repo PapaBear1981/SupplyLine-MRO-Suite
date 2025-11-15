@@ -10,7 +10,7 @@ import {
   Row,
   Spinner,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import { createOrder, fetchOrders } from '../store/ordersSlice';
@@ -90,6 +90,8 @@ const RequestsPage = () => {
 
   const [formState, setFormState] = useState(INITIAL_FORM_STATE);
   const [submitting, setSubmitting] = useState(false);
+  const [documentationFile, setDocumentationFile] = useState(null);
+
 
   useEffect(() => {
     dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
@@ -97,7 +99,7 @@ const RequestsPage = () => {
 
   const myRequests = useMemo(() => {
     if (!user) return [];
-    const mine = list.filter((order) => order.requester_id === user.user_id);
+    const mine = list.filter((order) => order.requester_id === user.id);
     return mine
       .slice()
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -123,8 +125,14 @@ const RequestsPage = () => {
     setFormState((previous) => ({ ...previous, [name]: value }));
   };
 
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setDocumentationFile(file);
+  };
+
   const resetForm = () => {
     setFormState(INITIAL_FORM_STATE);
+    setDocumentationFile(null);
   };
 
   const handleSubmit = async (event) => {
@@ -136,8 +144,9 @@ const RequestsPage = () => {
 
     const payload = {
       ...formState,
-      requester_id: user?.user_id,
+      requester_id: user?.id,
       quantity: formState.quantity ? Number(formState.quantity) : undefined,
+      documentation: documentationFile || undefined,
     };
 
     if (payload.quantity !== undefined && (Number.isNaN(payload.quantity) || payload.quantity <= 0)) {
@@ -341,6 +350,28 @@ const RequestsPage = () => {
                     placeholder="Share why this item is needed or any special instructions."
                   />
                 </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="d-flex align-items-center gap-2">
+                    <FaPaperclip />
+                    <span>Supporting Documentation</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.bmp,.txt,.rtf,.zip,.7z,.tar,.gz"
+                  />
+                  <Form.Text className="text-muted">
+                    Not required, but highly recommended. Attach quotes, spec sheets, drawings, or approval emails to
+                    help purchasing process your request faster.
+                  </Form.Text>
+                  {documentationFile && (
+                    <div className="mt-2 small text-muted">
+                      Selected file: <strong>{documentationFile.name}</strong>
+                    </div>
+                  )}
+                </Form.Group>
+
 
                 <div className="d-flex justify-content-end">
                   <Button type="submit" variant="primary" disabled={submitting}>
