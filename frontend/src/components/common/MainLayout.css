@@ -350,9 +350,9 @@
   transform: scale(1.2);
 }
 
-/* Ensure proper spacing for container */
+/* Container spacing - no top padding needed */
 .main-content .container-fluid {
-  padding-top: 1rem;
+  /* padding-top removed to eliminate gap at top of pages */
 }
 
 /* Avatar styles (if not already defined elsewhere) */
