@@ -272,6 +272,11 @@
   background: linear-gradient(135deg, rgba(13, 110, 253, 0.08) 0%, rgba(33, 37, 41, 1) 65%);
 }
 
+/* Ensure container inside main-content is transparent to show background */
+.main-content .container-fluid {
+  background: transparent;
+}
+
 .main-content.sidebar-collapsed {
   margin-left: 70px;
 }
