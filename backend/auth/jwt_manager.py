@@ -295,10 +295,11 @@ def admin_required(f):
 
 
 def permission_required(permission_name: str):
-    """Decorator for specific permission requirement
+    """Decorator for specific permission requirement.
 
     Admins (is_admin: true) automatically have ALL permissions and bypass this check.
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -322,7 +323,40 @@ def permission_required(permission_name: str):
             # Add user info to request context
             request.current_user = user_payload
             return f(*args, **kwargs)
+
         return decorated_function
+
+    return decorator
+
+
+def permission_required_any(*permission_names: str):
+    """Decorator that authorizes users with any of the provided permissions."""
+
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_payload = JWTManager.get_current_user()
+            if not user_payload:
+                return jsonify({"error": "Authentication required", "code": "AUTH_REQUIRED"}), 401
+
+            # Admins automatically satisfy all permission checks.
+            if user_payload.get("is_admin", False):
+                request.current_user = user_payload
+                return f(*args, **kwargs)
+
+            permissions = set(user_payload.get("permissions", []))
+            if not any(name in permissions for name in permission_names):
+                joined = ", ".join(permission_names)
+                return jsonify({
+                    "error": f"One of the following permissions is required: {joined}",
+                    "code": "PERMISSION_REQUIRED",
+                }), 403
+
+            request.current_user = user_payload
+            return f(*args, **kwargs)
+
+        return decorated_function
+
     return decorator
 
 

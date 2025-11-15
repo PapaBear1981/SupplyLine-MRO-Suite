@@ -350,6 +350,52 @@ def auth_headers_return_manager(client, db_session, regular_user, jwt_manager):
     access_token = tokens["access_token"]
     return {"Authorization": f"Bearer {access_token}"}
 
+
+@pytest.fixture
+def auth_headers_requests_user(client, db_session, regular_user, jwt_manager):
+    """Get auth headers for a user with the procurement requests permission."""
+
+    permission = db_session.query(Permission).filter_by(name="page.requests").first()
+    if not permission:
+        permission = Permission(
+            name="page.requests",
+            description="Access Requests page",
+            category="Page Access",
+        )
+        db_session.add(permission)
+        db_session.flush()
+
+    role = db_session.query(Role).filter_by(name="Request Submitter").first()
+    if not role:
+        role = Role(name="Request Submitter", description="Can submit procurement requests")
+        db_session.add(role)
+        db_session.flush()
+
+    role_permission = (
+        db_session.query(RolePermission)
+        .filter_by(role_id=role.id, permission_id=permission.id)
+        .first()
+    )
+    if not role_permission:
+        role_permission = RolePermission(role_id=role.id, permission_id=permission.id)
+        db_session.add(role_permission)
+        db_session.flush()
+
+    user_role = (
+        db_session.query(UserRole)
+        .filter_by(user_id=regular_user.id, role_id=role.id)
+        .first()
+    )
+    if not user_role:
+        user_role = UserRole(user_id=regular_user.id, role_id=role.id)
+        db_session.add(user_role)
+
+    db_session.commit()
+
+    with client.application.app_context():
+        tokens = jwt_manager.generate_tokens(regular_user)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
 @pytest.fixture
 def sample_data(db_session, admin_user, regular_user):
     """Create comprehensive sample data for testing"""
