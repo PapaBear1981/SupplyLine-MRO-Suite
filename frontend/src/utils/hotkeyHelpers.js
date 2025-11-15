@@ -60,21 +60,37 @@ export const matchesHotkey = (event, hotkeyString) => {
 
   // Check if the base key matches
   const keyMatches = event.key.toLowerCase() === key.toLowerCase();
+  if (!keyMatches) return false;
 
-  // Check if modifiers match
-  const modMatches = !modifiers.mod || isModKey(event);
-  const shiftMatches = modifiers.shift === event.shiftKey;
-  const altMatches = modifiers.alt === event.altKey;
-  const ctrlMatches = !modifiers.ctrl || event.ctrlKey;
-
-  // For "mod" key, we need to ensure the opposite modifier is NOT pressed
-  // (e.g., on Mac, if we're checking for Cmd, Ctrl should not be pressed)
+  // Platform detection
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const noConflictingMod = !modifiers.mod || (
-    isMac ? !event.ctrlKey : !event.metaKey
-  );
 
-  return keyMatches && modMatches && shiftMatches && altMatches && ctrlMatches && noConflictingMod;
+  // Check if required modifiers are pressed
+  // For 'mod' key: Cmd on Mac, Ctrl on Windows/Linux
+  if (modifiers.mod) {
+    const modKeyPressed = isMac ? event.metaKey : event.ctrlKey;
+    if (!modKeyPressed) return false;
+  }
+
+  // For explicit 'ctrl' key (rare, but supported)
+  if (modifiers.ctrl && !event.ctrlKey) return false;
+
+  // Shift key - must be pressed if required
+  if (modifiers.shift && !event.shiftKey) return false;
+
+  // Alt key - must be pressed if required
+  if (modifiers.alt && !event.altKey) return false;
+
+  // Check that shift is NOT pressed if not required (for single-key hotkeys)
+  // This prevents 'n' from matching when user presses Shift+N
+  if (!modifiers.shift && !modifiers.mod && !modifiers.ctrl && !modifiers.alt) {
+    // For single-key hotkeys, no modifiers should be pressed
+    if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 /**
