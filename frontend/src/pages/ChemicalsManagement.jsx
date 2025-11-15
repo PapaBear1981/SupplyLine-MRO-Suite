@@ -7,6 +7,7 @@ import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
 import ChemicalReturnModal from '../components/chemicals/ChemicalReturnModal';
+import useHotkeys from '../hooks/useHotkeys';
 import {
   fetchChemicals,
   fetchArchivedChemicals
@@ -19,6 +20,18 @@ const ChemicalsManagement = () => {
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
   const [activeTab, setActiveTab] = useState('active');
   const [showReturnModal, setShowReturnModal] = useState(false);
+
+  // Page-specific hotkeys
+  useHotkeys({
+    'n': () => {
+      if (isAuthorized) {
+        navigate('/chemicals/new');
+      }
+    }
+  }, {
+    enabled: isAuthorized,
+    deps: [navigate, isAuthorized]
+  });
 
   // Fetch data based on active tab
   useEffect(() => {

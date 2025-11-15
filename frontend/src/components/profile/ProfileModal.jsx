@@ -3,6 +3,7 @@ import { Modal, Button, Form, ListGroup } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../../store/authSlice';
 import { toggleTheme } from '../../store/themeSlice';
+import { useHotkeyContext } from '../../context/HotkeyContext';
 
 const ProfileModal = ({ show, onHide, onShowTour, onToggleHelp, onShowCustomize, showHelp }) => {
   const { user } = useSelector((state) => state.auth);
@@ -10,6 +11,7 @@ const ProfileModal = ({ show, onHide, onShowTour, onToggleHelp, onShowCustomize,
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const { preferences, setHotkeysEnabled, toggleHelpModal } = useHotkeyContext();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -98,6 +100,14 @@ const ProfileModal = ({ show, onHide, onShowTour, onToggleHelp, onShowCustomize,
               label={`Theme: ${theme === 'light' ? 'Light' : 'Dark'}`}
               checked={theme === 'dark'}
               onChange={handleThemeToggle}
+              className="mb-2"
+            />
+            <Form.Check
+              type="switch"
+              id="hotkeys-switch"
+              label={`Keyboard Shortcuts: ${preferences.enabled ? 'Enabled' : 'Disabled'}`}
+              checked={preferences.enabled}
+              onChange={(e) => setHotkeysEnabled(e.target.checked)}
             />
           </Form>
         </div>
@@ -114,6 +124,17 @@ const ProfileModal = ({ show, onHide, onShowTour, onToggleHelp, onShowCustomize,
                 Customize Dashboard
               </Button>
             )}
+            <Button
+              variant="outline-secondary"
+              onClick={() => {
+                toggleHelpModal();
+                onHide();
+              }}
+              disabled={!preferences.enabled}
+            >
+              <i className="bi bi-keyboard me-2"></i>
+              View Keyboard Shortcuts
+            </Button>
             {onToggleHelp && (
               <Button
                 variant={showHelp ? "info" : "outline-info"}

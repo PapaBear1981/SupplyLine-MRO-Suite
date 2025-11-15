@@ -14,8 +14,12 @@ import './styles/toastifyOverrides.css';
 // Import Help Provider
 import { HelpProvider } from './context/HelpContext';
 
+// Import Hotkey Provider
+import { HotkeyProvider } from './context/HotkeyContext';
+
 // Import components
 import MainLayout from './components/common/MainLayout';
+import GlobalHotkeys from './components/common/GlobalHotkeys';
 import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/ProtectedRoute';
 
 // Import pages
@@ -125,20 +129,22 @@ function App() {
 
   return (
     <HelpProvider>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={theme === 'dark' ? 'dark' : 'light'}
-      />
-      <Router>
-        <Routes>
+      <HotkeyProvider>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme={theme === 'dark' ? 'dark' : 'light'}
+        />
+        <Router>
+          <GlobalHotkeys />
+          <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -573,6 +579,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Router>
+      </HotkeyProvider>
     </HelpProvider>
   );
 }
