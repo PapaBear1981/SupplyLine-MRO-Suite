@@ -96,7 +96,7 @@ const OrderManagementPage = () => {
     order_type: 'tool',
     part_number: '',
     priority: 'normal',
-    expected_delivery_date: '',
+    expected_due_date: '',
     description: '',
     notes: '',
     tracking_number: '',
@@ -129,8 +129,8 @@ const OrderManagementPage = () => {
         part_number: selectedOrder.part_number || '',
         status: selectedOrder.status,
         priority: selectedOrder.priority,
-        expected_delivery_date: selectedOrder.expected_delivery_date
-          ? selectedOrder.expected_delivery_date.substring(0, 10)
+        expected_due_date: selectedOrder.expected_due_date
+          ? selectedOrder.expected_due_date.substring(0, 10)
           : '',
         description: selectedOrder.description || '',
         notes: selectedOrder.notes || '',
@@ -149,7 +149,7 @@ const OrderManagementPage = () => {
       order_type: 'tool',
       part_number: '',
       priority: 'normal',
-      expected_delivery_date: '',
+      expected_due_date: '',
       description: '',
       notes: '',
       tracking_number: '',
@@ -200,10 +200,25 @@ const OrderManagementPage = () => {
   const handleSubmitUpdate = async (e) => {
     e.preventDefault();
     try {
-      await dispatch(updateOrder({ id: detailForm.id, updates: detailForm })).unwrap();
+      // Convert date-only string to ISO 8601 datetime format with timezone
+      const orderData = { ...detailForm };
+      if (orderData.expected_due_date) {
+        // If it's a date-only string (YYYY-MM-DD), convert to ISO datetime with UTC timezone
+        if (orderData.expected_due_date.length === 10) {
+          orderData.expected_due_date = `${orderData.expected_due_date}T00:00:00Z`;
+        }
+      }
+
+      // Remove requester_id if it's empty to avoid validation errors
+      if (!orderData.requester_id) {
+        delete orderData.requester_id;
+      }
+
+      await dispatch(updateOrder({ orderId: detailForm.id, orderData })).unwrap();
       toast.success('Order updated successfully!');
       dispatch(fetchOrders());
-      dispatch(fetchOrderById(detailForm.id));
+      dispatch(fetchOrderById({ orderId: detailForm.id, includeMessages: true }));
+      handleCloseDetail(); // Close the modal after successful save
     } catch (error) {
       toast.error(error.message || 'Failed to update order');
     }
@@ -366,11 +381,11 @@ const OrderManagementPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Expected Delivery Date</Form.Label>
+                  <Form.Label>Expected Due Date</Form.Label>
                   <Form.Control
                     type="date"
-                    name="expected_delivery_date"
-                    value={createForm.expected_delivery_date}
+                    name="expected_due_date"
+                    value={createForm.expected_due_date}
                     onChange={handleCreateFormChange}
                   />
                 </Form.Group>
