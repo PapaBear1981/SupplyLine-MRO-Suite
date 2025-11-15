@@ -350,8 +350,9 @@
   transform: scale(1.2);
 }
 
-/* Ensure proper spacing for container */
+/* Ensure proper spacing and transparent background for container */
 .main-content .container-fluid {
+  background: transparent;
   padding-top: 0;
 }
 
