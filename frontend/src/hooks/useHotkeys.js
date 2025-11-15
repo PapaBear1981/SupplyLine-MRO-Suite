@@ -48,6 +48,7 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
     }
 
     // Check each hotkey in the map
+    let matched = false;
     Object.entries(hotkeyMapRef.current).forEach(([hotkey, callback]) => {
       // Skip if hotkey should be ignored (e.g., typing in input)
       if (!enableOnFormTags && shouldIgnoreHotkey(event, hotkey)) {
@@ -56,6 +57,14 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
 
       // Check if the event matches this hotkey
       if (matchesHotkey(event, hotkey)) {
+        matched = true;
+
+        // Log in development mode
+        if (import.meta.env.DEV) {
+          console.log(`[Hotkey] Matched: ${hotkey}`);
+        }
+
+        // Prevent default browser behavior and stop propagation
         if (preventDefault) {
           event.preventDefault();
           event.stopPropagation();
@@ -76,7 +85,7 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
       return;
     }
 
-    // Use capture phase to intercept events before browser handles them
+    // Use capture phase to catch events before browser defaults
     window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {

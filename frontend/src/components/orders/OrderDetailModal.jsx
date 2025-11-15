@@ -146,11 +146,11 @@ const OrderDetailModal = ({
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Expected Delivery Date</Form.Label>
+                    <Form.Label>Expected Due Date</Form.Label>
                     <Form.Control
                       type="date"
-                      name="expected_delivery_date"
-                      value={detailForm.expected_delivery_date}
+                      name="expected_due_date"
+                      value={detailForm.expected_due_date}
                       onChange={onDetailFormChange}
                     />
                   </Form.Group>

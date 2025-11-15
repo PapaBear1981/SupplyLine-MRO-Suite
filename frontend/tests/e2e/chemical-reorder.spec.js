@@ -44,7 +44,7 @@ test.describe('Chemical Reorder Functionality', () => {
     // Verify modal content
     await expect(page.locator('.modal-title')).toContainText('Reorder Chemical');
     await expect(page.locator('text=Part Number:')).toBeVisible();
-    await expect(page.locator('text=Expected Delivery Date')).toBeVisible();
+    await expect(page.locator('text=Expected Due Date')).toBeVisible();
   });
 
   test('should display chemical information in modal', async ({ page }) => {
