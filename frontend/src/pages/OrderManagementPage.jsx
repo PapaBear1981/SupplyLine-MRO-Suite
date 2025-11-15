@@ -381,7 +381,7 @@ const OrderManagementPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Expected Delivery Date</Form.Label>
+                  <Form.Label>Expected Due Date</Form.Label>
                   <Form.Control
                     type="date"
                     name="expected_due_date"

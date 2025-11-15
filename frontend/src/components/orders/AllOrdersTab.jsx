@@ -173,7 +173,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Due Status</th>
-                <th>Expected Delivery</th>
+                <th>Expected Due Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -201,7 +201,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   <td>
                     <Badge bg={DUE_STATUS_VARIANTS[order.due_status]}>{order.due_status?.replace('_', ' ') || 'N/A'}</Badge>
                   </td>
-                  <td>{order.expected_delivery_date ? formatDate(order.expected_delivery_date) : '—'}</td>
+                  <td>{order.expected_due_date ? formatDate(order.expected_due_date) : '—'}</td>
                   <td>
                     <Button variant="primary" size="sm" onClick={() => onViewOrder(order)}>
                       View
