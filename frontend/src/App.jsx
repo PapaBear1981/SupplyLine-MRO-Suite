@@ -9,6 +9,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 // Import react-toastify CSS and ToastContainer
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './styles/toastifyOverrides.css';
 
 // Import Help Provider
 import { HelpProvider } from './context/HelpContext';
