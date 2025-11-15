@@ -6,7 +6,7 @@ import secrets
 from collections import Counter
 from datetime import datetime, timezone
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import current_app, jsonify, request
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 

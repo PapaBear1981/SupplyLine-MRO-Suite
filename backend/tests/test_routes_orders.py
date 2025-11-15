@@ -1,8 +1,7 @@
 """Tests for procurement order management API."""
 
-from datetime import timedelta
 import io
-
+from datetime import timedelta
 
 import pytest
 
