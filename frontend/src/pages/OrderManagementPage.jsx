@@ -218,7 +218,7 @@ const OrderManagementPage = () => {
       toast.success('Order updated successfully!');
       dispatch(fetchOrders());
       dispatch(fetchOrderById({ orderId: detailForm.id, includeMessages: true }));
-      setShowDetailModal(false); // Close the modal after successful save
+      handleCloseDetail(); // Close the modal after successful save
     } catch (error) {
       toast.error(error.message || 'Failed to update order');
     }
