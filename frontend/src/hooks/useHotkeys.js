@@ -48,7 +48,6 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
     }
 
     // Check each hotkey in the map
-    let matched = false;
     Object.entries(hotkeyMapRef.current).forEach(([hotkey, callback]) => {
       // Skip if hotkey should be ignored (e.g., typing in input)
       if (!enableOnFormTags && shouldIgnoreHotkey(event, hotkey)) {
@@ -57,8 +56,6 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
 
       // Check if the event matches this hotkey
       if (matchesHotkey(event, hotkey)) {
-        matched = true;
-
         // Log in development mode
         if (import.meta.env.DEV) {
           console.log(`[Hotkey] Matched: ${hotkey}`);
