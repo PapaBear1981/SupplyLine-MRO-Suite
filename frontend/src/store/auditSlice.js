@@ -4,9 +4,16 @@ import AuditService from '../services/auditService';
 // Async thunks
 export const fetchAuditLogs = createAsyncThunk(
   'audit/fetchAuditLogs',
-  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, actionType, startDate, endDate, userId }, { rejectWithValue }) => {
     try {
-      const data = await AuditService.getAllLogs(page, limit);
+      // Build filters object
+      const filters = {};
+      if (actionType) filters.actionType = actionType;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (userId) filters.userId = userId;
+
+      const data = await AuditService.getAllLogs(page, limit, filters);
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch audit logs' });

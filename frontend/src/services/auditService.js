@@ -2,9 +2,29 @@ import api from './api';
 
 const AuditService = {
   // Get all audit logs
-  getAllLogs: async (page = 1, limit = 20) => {
+  getAllLogs: async (page = 1, limit = 20, filters = {}) => {
     try {
-      const response = await api.get(`/audit/logs?page=${page}&limit=${limit}`);
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      // Add filter parameters if provided
+      if (filters.actionType) {
+        params.append('actionType', filters.actionType);
+      }
+      if (filters.startDate) {
+        params.append('startDate', filters.startDate);
+      }
+      if (filters.endDate) {
+        params.append('endDate', filters.endDate);
+      }
+      if (filters.userId) {
+        params.append('userId', filters.userId);
+      }
+
+      const response = await api.get(`/audit/logs?${params.toString()}`);
       return response.data;
     } catch (error) {
       throw error;

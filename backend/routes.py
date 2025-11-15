@@ -1809,18 +1809,58 @@ def register_routes(app):
         page = request.args.get("page", 1, type=int)
         limit = request.args.get("limit", 20, type=int)
 
+        # Get filter parameters
+        action_type = request.args.get("actionType", "")
+        start_date = request.args.get("startDate", "")
+        end_date = request.args.get("endDate", "")
+        user_id = request.args.get("userId", "")
+
+        # Build query with filters
+        query = AuditLog.query
+
+        # Filter by action type (partial match)
+        if action_type:
+            query = query.filter(AuditLog.action_type.like(f"%{action_type}%"))
+
+        # Filter by start date
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(AuditLog.timestamp >= start_datetime)
+            except ValueError:
+                pass  # Invalid date format, skip filter
+
+        # Filter by end date
+        if end_date:
+            try:
+                # Add 1 day to include the entire end date
+                end_datetime = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+                query = query.filter(AuditLog.timestamp < end_datetime)
+            except ValueError:
+                pass  # Invalid date format, skip filter
+
+        # Filter by user ID (search in action_details)
+        if user_id:
+            query = query.filter(AuditLog.action_details.like(f"%{user_id}%"))
+
+        # Get total count for pagination
+        total = query.count()
+
         # Calculate offset
         offset = (page - 1) * limit
 
         # Get logs with pagination
-        logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit).all()
+        logs = query.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit).all()
 
-        return jsonify([{
-            "id": a.id,
-            "action_type": a.action_type,
-            "action_details": a.action_details,
-            "timestamp": a.timestamp.isoformat()
-        } for a in logs])
+        return jsonify({
+            "items": [{
+                "id": a.id,
+                "action_type": a.action_type,
+                "action_details": a.action_details,
+                "timestamp": a.timestamp.isoformat()
+            } for a in logs],
+            "total": total
+        })
 
     @app.route("/api/audit/metrics", methods=["GET"])
     def audit_metrics_route():
