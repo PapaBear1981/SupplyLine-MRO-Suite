@@ -89,3 +89,7 @@ portable-build/
 # Temporary debugging scripts
 check_*.py
 backend/check_*.py
+
+
+# Uploaded order documentation
+backend/static/order_documents/
