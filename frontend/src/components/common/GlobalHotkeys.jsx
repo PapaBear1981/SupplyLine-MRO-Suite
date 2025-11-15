@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { toggleTheme } from '../../store/themeSlice';
 import { useHotkeyContext } from '../../context/HotkeyContext';
 import useHotkeys from '../../hooks/useHotkeys';
@@ -12,10 +11,8 @@ import HotkeyHelp from './HotkeyHelp';
  */
 const GlobalHotkeys = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const { showHelpModal, setShowHelpModal, toggleHelpModal } = useHotkeyContext();
-  const { user } = useSelector((state) => state.auth);
 
   // Global navigation hotkeys (using Alt to avoid browser conflicts)
   // Note: Routes themselves handle permission checks, so hotkeys just navigate
@@ -73,7 +70,7 @@ const GlobalHotkeys = () => {
     }
   }, {
     enableOnFormTags: false,
-    deps: [navigate, dispatch, user]
+    deps: [navigate, dispatch, toggleHelpModal]
   });
 
   return (
