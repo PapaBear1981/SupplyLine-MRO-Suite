@@ -17,60 +17,39 @@ const GlobalHotkeys = () => {
   const { showHelpModal, setShowHelpModal, toggleHelpModal } = useHotkeyContext();
   const { user } = useSelector((state) => state.auth);
 
-  // Check if user has permission for a page
-  const hasPermission = (permission) => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission) || user.role === 'admin' || user.isAdmin;
-  };
-
-  // Global navigation hotkeys
+  // Global navigation hotkeys (using Alt to avoid browser conflicts)
+  // Note: Routes themselves handle permission checks, so hotkeys just navigate
   useHotkeys({
     // Navigation shortcuts
-    'mod+d': () => {
+    'alt+d': () => {
       navigate('/dashboard');
     },
-    'mod+t': () => {
-      if (hasPermission('page.tools')) {
-        navigate('/tools');
-      }
+    'alt+t': () => {
+      navigate('/tools');
     },
-    'mod+k': () => {
-      if (hasPermission('page.kits')) {
-        navigate('/kits');
-      }
+    'alt+k': () => {
+      navigate('/kits');
     },
-    'mod+c': () => {
-      if (hasPermission('page.chemicals')) {
-        navigate('/chemicals');
-      }
+    'alt+c': () => {
+      navigate('/chemicals');
     },
-    'mod+o': () => {
-      if (hasPermission('page.orders')) {
-        navigate('/orders');
-      }
+    'alt+o': () => {
+      navigate('/orders');
     },
-    'mod+h': () => {
+    'alt+h': () => {
       navigate('/history');
     },
-    'mod+s': () => {
-      if (hasPermission('page.scanner')) {
-        navigate('/scanner');
-      }
+    'alt+s': () => {
+      navigate('/scanner');
     },
-    'mod+r': () => {
+    'alt+r': () => {
       navigate('/reports');
     },
-    'mod+shift+c': () => {
-      if (hasPermission('page.checkouts')) {
-        navigate('/checkouts/all');
-      } else if (hasPermission('page.my_checkouts')) {
-        navigate('/checkouts');
-      }
+    'alt+shift+c': () => {
+      navigate('/checkouts');
     },
-    'mod+w': () => {
-      if (hasPermission('page.warehouses')) {
-        navigate('/warehouses');
-      }
+    'alt+w': () => {
+      navigate('/warehouses');
     },
 
     // Action shortcuts
@@ -88,11 +67,9 @@ const GlobalHotkeys = () => {
       toggleHelpModal();
     },
 
-    // Admin shortcuts
+    // Admin shortcuts (route will handle permission check)
     'mod+shift+a': () => {
-      if (hasPermission('page.admin_dashboard') || user?.role === 'admin' || user?.isAdmin) {
-        navigate('/admin/dashboard');
-      }
+      navigate('/admin/dashboard');
     }
   }, {
     enableOnFormTags: false,

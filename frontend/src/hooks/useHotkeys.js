@@ -58,6 +58,7 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
       if (matchesHotkey(event, hotkey)) {
         if (preventDefault) {
           event.preventDefault();
+          event.stopPropagation();
         }
 
         // Call the callback
@@ -75,10 +76,11 @@ export const useHotkeys = (hotkeyMap, options = {}) => {
       return;
     }
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Use capture phase to intercept events before browser handles them
+    window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [enabled, handleKeyDown, isEnabled]);
 };

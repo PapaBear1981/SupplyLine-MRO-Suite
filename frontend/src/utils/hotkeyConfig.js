@@ -12,63 +12,63 @@ export const HOTKEY_CATEGORIES = {
 };
 
 export const HOTKEYS = {
-  // Navigation hotkeys
+  // Navigation hotkeys (using Alt to avoid browser conflicts)
   DASHBOARD: {
-    key: 'mod+d',
+    key: 'alt+d',
     description: 'Go to Dashboard',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   TOOLS: {
-    key: 'mod+t',
+    key: 'alt+t',
     description: 'Go to Tools',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   KITS: {
-    key: 'mod+k',
+    key: 'alt+k',
     description: 'Go to Kits',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   CHEMICALS: {
-    key: 'mod+c',
+    key: 'alt+c',
     description: 'Go to Chemicals',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   ORDERS: {
-    key: 'mod+o',
+    key: 'alt+o',
     description: 'Go to Orders',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   HISTORY: {
-    key: 'mod+h',
+    key: 'alt+h',
     description: 'Go to History',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   SCANNER: {
-    key: 'mod+s',
+    key: 'alt+s',
     description: 'Go to Scanner',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   REPORTS: {
-    key: 'mod+r',
+    key: 'alt+r',
     description: 'Go to Reports',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   CHECKOUTS: {
-    key: 'mod+shift+c',
+    key: 'alt+shift+c',
     description: 'Go to Checkouts',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
   },
   WAREHOUSES: {
-    key: 'mod+w',
+    key: 'alt+w',
     description: 'Go to Warehouses',
     category: HOTKEY_CATEGORIES.NAVIGATION,
     global: true
