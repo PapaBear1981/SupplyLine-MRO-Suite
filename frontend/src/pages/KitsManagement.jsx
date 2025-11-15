@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Form, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -6,16 +6,26 @@ import { FaPlus, FaSearch, FaExclamationTriangle, FaBox, FaPlane } from 'react-i
 import { fetchKits, fetchAircraftTypes } from '../store/kitsSlice';
 import { fetchUnreadCount } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import useHotkeys from '../hooks/useHotkeys';
 
 const KitsManagement = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { kits, aircraftTypes, loading } = useSelector((state) => state.kits);
   const { unreadCount } = useSelector((state) => state.kitMessages);
-  
+
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAircraftType, setSelectedAircraftType] = useState('');
+  const searchInputRef = useRef(null);
+
+  // Page-specific hotkeys
+  useHotkeys({
+    'n': () => navigate('/kits/new'),
+    '/': () => searchInputRef.current?.focus()
+  }, {
+    deps: [navigate]
+  });
 
   useEffect(() => {
     dispatch(fetchKits());
@@ -145,6 +155,7 @@ const KitsManagement = () => {
               <FaSearch />
             </InputGroup.Text>
             <Form.Control
+              ref={searchInputRef}
               type="text"
               placeholder="Search kits..."
               value={searchTerm}

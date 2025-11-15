@@ -1,14 +1,28 @@
 import { useSelector } from 'react-redux';
 import { Button, Alert, Badge } from 'react-bootstrap';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
 import BulkImportTools from '../components/tools/BulkImportTools';
+import useHotkeys from '../hooks/useHotkeys';
 
 const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdmin = user?.is_admin || user?.department === 'Materials';
   const unauthorized = location.state?.unauthorized;
+
+  // Page-specific hotkeys
+  useHotkeys({
+    'n': () => {
+      if (isAdmin) {
+        navigate('/tools/new');
+      }
+    }
+  }, {
+    enabled: isAdmin,
+    deps: [navigate, isAdmin]
+  });
 
   return (
     <div className="w-100">

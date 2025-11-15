@@ -1,0 +1,99 @@
+.hotkey-help-modal .modal-content {
+  border-radius: 12px;
+}
+
+.hotkey-category {
+  margin-bottom: 1.5rem;
+}
+
+.hotkey-category-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.hotkey-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background-color: var(--bs-light);
+  transition: background-color 0.2s ease;
+}
+
+.hotkey-item:hover {
+  background-color: var(--bs-secondary-bg);
+}
+
+.hotkey-keys {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.hotkey-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--bs-body-color);
+  background-color: var(--bs-white);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 var(--bs-border-color);
+  white-space: nowrap;
+}
+
+.hotkey-description {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+}
+
+.hotkey-tips ul {
+  list-style-position: inside;
+  padding-left: 0;
+}
+
+.hotkey-tips li {
+  margin-bottom: 0.25rem;
+}
+
+/* Dark mode support */
+[data-bs-theme="dark"] .hotkey-item {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] .hotkey-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .hotkey-badge {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Inline kbd styles for general use */
+kbd {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.875rem;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--bs-body-color);
+  background-color: var(--bs-light);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] kbd {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+}
