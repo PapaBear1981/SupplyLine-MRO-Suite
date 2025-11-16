@@ -480,28 +480,19 @@ class TestReorderApprovalFulfillmentWorkflow:
         reorder_id = reorder["id"]
 
         # Step 2: Approve the reorder (Materials user)
+        # Approval now sets status directly to "ordered" and creates ProcurementOrder
         response = client.put(f"/api/reorder-requests/{reorder_id}/approve",
                             headers=auth_headers_materials)
 
         assert response.status_code == 200
         approved_reorder = json.loads(response.data)
 
-        # Verify approval
-        assert approved_reorder["status"] == "approved"
+        # Verify approval and ordered status (approval now sets status to "ordered")
+        assert approved_reorder["status"] == "ordered"
         assert approved_reorder["approved_by"] is not None
         assert approved_reorder["approved_date"] is not None
 
-        # Step 3: Mark as ordered
-        response = client.put(f"/api/reorder-requests/{reorder_id}/order",
-                            headers=auth_headers_materials)
-
-        assert response.status_code == 200
-        ordered_reorder = json.loads(response.data)
-
-        # Verify ordered status
-        assert ordered_reorder["status"] == "ordered"
-
-        # Step 4: Fulfill the reorder
+        # Step 3: Fulfill the reorder
         response = client.put(f"/api/reorder-requests/{reorder_id}/fulfill",
                             headers=auth_headers_materials)
 
