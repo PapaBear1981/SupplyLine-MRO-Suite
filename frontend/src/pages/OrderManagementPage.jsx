@@ -266,10 +266,7 @@ const OrderManagementPage = () => {
 
   const handleMarkMessageRead = async (messageId) => {
     try {
-      await dispatch(markOrderMessageRead({
-        orderId: selectedOrder.id,
-        messageId,
-      })).unwrap();
+      await dispatch(markOrderMessageRead(messageId)).unwrap();
       dispatch(fetchOrderMessages(selectedOrder.id));
     } catch (error) {
       toast.error(error.message || 'Failed to mark message as read');
