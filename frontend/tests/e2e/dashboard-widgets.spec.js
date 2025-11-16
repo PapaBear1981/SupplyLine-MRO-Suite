@@ -114,11 +114,6 @@ test.describe('Dashboard Widgets', () => {
     const dashboardRoot = page.locator('.dashboard-root');
     await expect(dashboardRoot).toBeVisible();
 
-    // Should have one of the theme classes
-    const hasAdminTheme = await dashboardRoot.locator('.dashboard-theme-admin').count() > 0;
-    const hasMaterialsTheme = await dashboardRoot.locator('.dashboard-theme-materials').count() > 0;
-    const hasStandardTheme = await dashboardRoot.locator('.dashboard-theme-standard').count() > 0;
-
     // Admin user should have admin theme
     const classAttribute = await dashboardRoot.getAttribute('class');
     expect(classAttribute).toContain('dashboard-theme-admin');

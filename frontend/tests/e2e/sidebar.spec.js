@@ -287,9 +287,9 @@ test.describe('Page Transitions', () => {
     // Navigate to a different page
     await page.click('.sidebar a[href="/tools"]');
 
-    // Loading overlay may appear briefly
-    const loadingOverlay = page.locator('.page-loading-overlay');
+    // Loading overlay may appear briefly - we just verify it exists in DOM
     // It's ok if it's not visible (fast transition) or visible briefly
+    await expect(page.locator('.page-loading-overlay')).toHaveCount(1);
     await page.waitForLoadState('networkidle');
 
     // Should end up on tools page
