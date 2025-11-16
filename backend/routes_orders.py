@@ -688,10 +688,14 @@ def register_order_routes(app):
         # Update order fields
         order.status = "ordered"
 
+        # Set ordered date to current time
+        from datetime import datetime
+        from utils.timezone_utils import get_current_time
+        order.ordered_date = get_current_time()
+
         # Set expected due date if provided
         if data.get("expected_due_date"):
             try:
-                from datetime import datetime
                 order.expected_due_date = datetime.fromisoformat(data["expected_due_date"].replace("Z", "+00:00"))
             except (ValueError, AttributeError) as e:
                 return jsonify({"error": f"Invalid date format for expected_due_date: {e}"}), 400

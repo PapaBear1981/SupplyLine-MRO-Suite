@@ -305,6 +305,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <th>Quantity</th>
                 <th>Priority</th>
                 <th>Status</th>
+                <th>Created Date</th>
                 <th>Due Status</th>
                 <th>Expected Due Date</th>
                 <th>Actions</th>
@@ -331,6 +332,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   <td>
                     <Badge bg={STATUS_VARIANTS[order.status]}>{order.status.replace('_', ' ')}</Badge>
                   </td>
+                  <td>{order.created_at ? formatDate(order.created_at) : '—'}</td>
                   <td>
                     <Badge bg={DUE_STATUS_VARIANTS[order.due_status]}>{order.due_status?.replace('_', ' ') || 'N/A'}</Badge>
                   </td>

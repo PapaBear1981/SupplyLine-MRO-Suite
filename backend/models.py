@@ -479,6 +479,7 @@ class ProcurementOrder(db.Model):
     tracking_number = db.Column(db.String(120))
     vendor = db.Column(db.String(200))
     documentation_path = db.Column(db.String(500))
+    ordered_date = db.Column(db.DateTime)
     expected_due_date = db.Column(db.DateTime, index=True)
     completed_date = db.Column(db.DateTime)
     notes = db.Column(db.String(4000))
@@ -546,6 +547,7 @@ class ProcurementOrder(db.Model):
             "tracking_number": self.tracking_number,
             "vendor": self.vendor,
             "documentation_path": self.documentation_path,
+            "ordered_date": self.ordered_date.isoformat() if self.ordered_date else None,
             "expected_due_date": self.expected_due_date.isoformat() if self.expected_due_date else None,
             "completed_date": self.completed_date.isoformat() if self.completed_date else None,
             "notes": self.notes,
