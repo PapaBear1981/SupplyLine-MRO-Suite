@@ -641,6 +641,45 @@ const kitsSlice = createSlice({
       })
 
       // Kit Issuances
+      .addCase(issueFromKit.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(issueFromKit.fulfilled, (state, action) => {
+        state.loading = false;
+        const { kitId, issuance } = action.payload;
+        // Update the kit items to reflect the issuance
+        if (state.kitItems[kitId]) {
+          const items = state.kitItems[kitId];
+          // Find and update the issued item quantity
+          if (items.items) {
+            const itemIndex = items.items.findIndex(item => item.id === issuance.item_id);
+            if (itemIndex !== -1) {
+              items.items[itemIndex].quantity -= issuance.quantity;
+              if (items.items[itemIndex].quantity <= 0) {
+                items.items[itemIndex].status = 'issued';
+              }
+            }
+          }
+          if (items.expendables) {
+            const expIndex = items.expendables.findIndex(exp => exp.id === issuance.item_id);
+            if (expIndex !== -1) {
+              items.expendables[expIndex].quantity -= issuance.quantity;
+              if (items.expendables[expIndex].quantity <= 0) {
+                items.expendables[expIndex].status = items.expendables[expIndex].source === 'item' ? 'issued' : 'out_of_stock';
+              }
+            }
+          }
+        }
+        // Add to issuances list
+        if (state.kitIssuances[kitId]) {
+          state.kitIssuances[kitId].unshift(issuance);
+        }
+      })
+      .addCase(issueFromKit.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       .addCase(fetchKitIssuances.fulfilled, (state, action) => {
         state.kitIssuances[action.payload.kitId] = action.payload.issuances;
       })
