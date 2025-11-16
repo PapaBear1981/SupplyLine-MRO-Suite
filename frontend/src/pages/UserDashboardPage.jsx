@@ -13,6 +13,7 @@ import MyKits from '../components/dashboard/MyKits';
 import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
 import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
+import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -98,6 +99,13 @@ const DASHBOARD_WIDGETS = [
     component: LateOrdersWidget,
     isAvailable: ({ hasOrderPermission }) => hasOrderPermission,
   },
+  {
+    id: 'myRequests',
+    label: 'My Open Requests',
+    defaultColumn: COLUMN_SIDEBAR,
+    component: MyRequestsWidget,
+    isAvailable: ({ hasRequestPermission }) => hasRequestPermission,
+  },
 ];
 
 const UserDashboardPage = () => {
@@ -106,6 +114,7 @@ const UserDashboardPage = () => {
   const isMaterials = user?.department === 'Materials';
   const canViewAdminWidgets = isAdmin || isMaterials;
   const hasOrderPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.orders'));
+  const hasRequestPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.requests') || (user?.permissions || []).includes('page.orders'));
 
   const widgetLookup = useMemo(() => {
     const lookup = {};
@@ -116,8 +125,8 @@ const UserDashboardPage = () => {
   }, []);
 
   const roleFlags = useMemo(
-    () => ({ isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission }),
-    [isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission]
+    () => ({ isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission, hasRequestPermission }),
+    [isAdmin, isMaterials, canViewAdminWidgets, hasOrderPermission, hasRequestPermission]
   );
 
   const availableWidgets = useMemo(
