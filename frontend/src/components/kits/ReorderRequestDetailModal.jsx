@@ -161,12 +161,12 @@ const ReorderRequestDetailModal = ({
               </div>
             </Col>
           </Row>
-          {request.approved_by_name && (
+          {request.approver_name && (
             <Row className="mt-2">
               <Col md={6}>
                 <div className="mb-2">
                   <strong className="text-muted d-block mb-1">Approved By</strong>
-                  <div>{request.approved_by_name}</div>
+                  <div>{request.approver_name}</div>
                 </div>
               </Col>
               <Col md={6}>
