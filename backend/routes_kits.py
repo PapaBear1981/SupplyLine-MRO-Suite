@@ -970,45 +970,95 @@ def register_kit_routes(app):
 
         # Get the item and update quantity
         if data["item_type"] == "expendable":
-            item = KitExpendable.query.filter_by(id=data["item_id"], kit_id=kit_id).first()
-            if not item:
-                raise ValidationError("Expendable not found in this kit")
+            # First check KitItem table (new expendables are stored here)
+            item = KitItem.query.filter_by(id=data["item_id"], kit_id=kit_id, item_type="expendable").first()
 
-            if item.quantity < quantity:
-                raise ValidationError(f"Insufficient quantity. Available: {item.quantity}")
+            if item:
+                # This is an expendable from the KitItem table
+                if item.quantity < quantity:
+                    raise ValidationError(f"Insufficient quantity. Available: {item.quantity}")
 
-            item.quantity -= quantity
+                item.quantity -= quantity
+                # Round to avoid floating-point precision errors
+                item.quantity = round(item.quantity, 2)
 
-            # Update status if out of stock
-            if item.quantity <= 0:
-                item.status = "out_of_stock"
-            elif item.is_low_stock():
-                item.status = "low_stock"
+                # Update status if out of stock or low stock
+                # Use a default minimum stock level threshold (e.g., 10 units or 20% of reasonable stock)
+                default_min_stock = 10
+                is_low = item.quantity <= default_min_stock and item.quantity > 0
 
-            # Check if reorder needed
-            if item.is_low_stock() or item.quantity <= 0:
-                # Create automatic reorder request
-                existing_request = KitReorderRequest.query.filter_by(
-                    kit_id=kit_id,
-                    item_type="expendable",
-                    item_id=item.id,
-                    status="pending"
-                ).first()
+                if item.quantity <= 0:
+                    item.status = "issued"
+                elif is_low:
+                    item.status = "low_stock"
 
-                if not existing_request:
-                    reorder = KitReorderRequest(
+                # Check if reorder needed for KitItem expendables
+                if is_low or item.quantity <= 0:
+                    # Create automatic reorder request
+                    existing_request = KitReorderRequest.query.filter_by(
                         kit_id=kit_id,
                         item_type="expendable",
                         item_id=item.id,
-                        part_number=item.part_number,
-                        description=item.description,
-                        quantity_requested=item.minimum_stock_level if item.minimum_stock_level else 10,
-                        priority="medium" if item.quantity > 0 else "high",
-                        requested_by=request.current_user["user_id"],
-                        status="pending",
-                        is_automatic=True
-                    )
-                    db.session.add(reorder)
+                        status="pending"
+                    ).first()
+
+                    if not existing_request:
+                        reorder = KitReorderRequest(
+                            kit_id=kit_id,
+                            item_type="expendable",
+                            item_id=item.id,
+                            part_number=item.part_number,
+                            description=item.description,
+                            quantity_requested=default_min_stock,
+                            priority="medium" if item.quantity > 0 else "high",
+                            requested_by=request.current_user["user_id"],
+                            status="pending",
+                            is_automatic=True
+                        )
+                        db.session.add(reorder)
+            else:
+                # Fall back to old KitExpendable table for backward compatibility
+                item = KitExpendable.query.filter_by(id=data["item_id"], kit_id=kit_id).first()
+                if not item:
+                    raise ValidationError("Expendable not found in this kit")
+
+                if item.quantity < quantity:
+                    raise ValidationError(f"Insufficient quantity. Available: {item.quantity}")
+
+                item.quantity -= quantity
+                # Round to avoid floating-point precision errors
+                item.quantity = round(item.quantity, 2)
+
+                # Update status if out of stock
+                if item.quantity <= 0:
+                    item.status = "out_of_stock"
+                elif item.is_low_stock():
+                    item.status = "low_stock"
+
+                # Check if reorder needed
+                if item.is_low_stock() or item.quantity <= 0:
+                    # Create automatic reorder request
+                    existing_request = KitReorderRequest.query.filter_by(
+                        kit_id=kit_id,
+                        item_type="expendable",
+                        item_id=item.id,
+                        status="pending"
+                    ).first()
+
+                    if not existing_request:
+                        reorder = KitReorderRequest(
+                            kit_id=kit_id,
+                            item_type="expendable",
+                            item_id=item.id,
+                            part_number=item.part_number,
+                            description=item.description,
+                            quantity_requested=item.minimum_stock_level if item.minimum_stock_level else 10,
+                            priority="medium" if item.quantity > 0 else "high",
+                            requested_by=request.current_user["user_id"],
+                            status="pending",
+                            is_automatic=True
+                        )
+                        db.session.add(reorder)
 
         else:  # tool or chemical from kit_items
             item = KitItem.query.filter_by(id=data["item_id"], kit_id=kit_id).first()
