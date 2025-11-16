@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Container, Row, Col, Button, Modal, ListGroup, ButtonGroup } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { fetchRegistrationRequests } from '../store/adminSlice';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 import UserCheckoutStatus from '../components/dashboard/UserCheckoutStatus';
 import RecentActivity from '../components/dashboard/RecentActivity';
@@ -13,6 +14,7 @@ import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
 import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
+import PendingUserRequests from '../components/admin/PendingUserRequests';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -98,15 +100,30 @@ const DASHBOARD_WIDGETS = [
     component: MyRequestsWidget,
     isAvailable: ({ hasRequestPermission }) => hasRequestPermission,
   },
+  {
+    id: 'pendingUserRequests',
+    label: 'Pending User Requests',
+    defaultColumn: COLUMN_SIDEBAR,
+    component: PendingUserRequests,
+    isAvailable: ({ isAdmin }) => isAdmin,
+  },
 ];
 
 const UserDashboardPage = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin;
   const isMaterials = user?.department === 'Materials';
   const canViewAdminWidgets = isAdmin || isMaterials;
   const hasOrderPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.orders'));
   const hasRequestPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.requests') || (user?.permissions || []).includes('page.orders'));
+
+  // Fetch registration requests for admins
+  useEffect(() => {
+    if (isAdmin) {
+      dispatch(fetchRegistrationRequests('pending'));
+    }
+  }, [dispatch, isAdmin]);
 
   const widgetLookup = useMemo(() => {
     const lookup = {};

@@ -1,10 +1,21 @@
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Card, ListGroup, Badge, Alert, Button } from 'react-bootstrap';
 import { FaUserPlus, FaBuilding, FaIdBadge } from 'react-icons/fa';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const PendingUserRequests = ({ onNavigateToRequests }) => {
+  const navigate = useNavigate();
   const { registrationRequests, loading, error } = useSelector((state) => state.admin);
+
+  const handleNavigateToRequests = () => {
+    if (onNavigateToRequests) {
+      onNavigateToRequests();
+    } else {
+      // Navigate to admin page with registrations tab
+      navigate('/admin/dashboard?tab=registrations');
+    }
+  };
 
   const pendingRequests = registrationRequests.pending || [];
 
@@ -107,7 +118,7 @@ const PendingUserRequests = ({ onNavigateToRequests }) => {
             <Button
               variant="primary"
               size="sm"
-              onClick={onNavigateToRequests}
+              onClick={handleNavigateToRequests}
             >
               Review All Requests ({pendingRequests.length})
             </Button>
