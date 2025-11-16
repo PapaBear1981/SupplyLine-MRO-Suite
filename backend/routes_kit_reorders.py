@@ -145,25 +145,58 @@ def register_kit_reorder_routes(app):
     @materials_required
     @handle_errors
     def approve_reorder_request(id):
-        """Approve a reorder request"""
+        """Approve a reorder request and create procurement order"""
         reorder = KitReorderRequest.query.get_or_404(id)
 
         if reorder.status != "pending":
             raise ValidationError("Can only approve pending requests")
 
-        reorder.status = "approved"
+        reorder.status = "ordered"
         reorder.approved_by = request.current_user["user_id"]
         reorder.approved_date = datetime.now()
+
+        # Create a ProcurementOrder to track this on the Orders page
+        # Map kit reorder priority to procurement order priority
+        priority_map = {
+            "low": "low",
+            "medium": "normal",
+            "high": "high",
+            "urgent": "critical"
+        }
+        procurement_priority = priority_map.get(reorder.priority, "normal")
+
+        procurement_order = ProcurementOrder(
+            title=f"Kit Reorder: {reorder.part_number}",
+            order_type=reorder.item_type,
+            part_number=reorder.part_number,
+            description=reorder.description,
+            priority=procurement_priority,
+            status="new",
+            reference_type="kit_reorder",
+            reference_number=str(reorder.id),
+            notes=f"Auto-created from kit reorder request #{reorder.id}. {reorder.notes or ''}",
+            quantity=int(reorder.quantity_requested) if reorder.quantity_requested else 1,
+            unit="ea",
+            kit_id=reorder.kit_id,
+            requester_id=reorder.requested_by,
+            buyer_id=request.current_user["user_id"]
+        )
+        db.session.add(procurement_order)
 
         db.session.commit()
 
         # Log action
         log = AuditLog(
             action_type="kit_reorder_approved",
-            action_details=f"Reorder request approved: ID {reorder.id}"
+            action_details=f"Reorder request approved and ordered: ID {reorder.id}, ProcurementOrder ID {procurement_order.id}"
         )
         db.session.add(log)
         db.session.commit()
+
+        logger.info("Created procurement order on approval", extra={
+            "reorder_id": reorder.id,
+            "procurement_order_id": procurement_order.id
+        })
 
         return jsonify(reorder.to_dict()), 200
 
@@ -195,7 +228,7 @@ def register_kit_reorder_routes(app):
             part_number=reorder.part_number,
             description=reorder.description,
             priority=procurement_priority,
-            status="ordered",
+            status="new",
             reference_type="kit_reorder",
             reference_number=str(reorder.id),
             notes=f"Auto-created from kit reorder request #{reorder.id}. {reorder.notes or ''}",
