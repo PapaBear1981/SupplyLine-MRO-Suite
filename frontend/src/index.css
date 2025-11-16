@@ -386,6 +386,12 @@ code {
   color: var(--bs-body-color);
 }
 
+/* Fix for card footers with bg-light class in dark mode */
+[data-bs-theme="dark"] .card-footer.bg-light {
+  background-color: var(--bs-dark) !important;
+  color: var(--bs-body-color);
+}
+
 /* Dark mode - Item info section */
 [data-bs-theme="dark"] .item-info-section {
   background-color: var(--bs-dark) !important;

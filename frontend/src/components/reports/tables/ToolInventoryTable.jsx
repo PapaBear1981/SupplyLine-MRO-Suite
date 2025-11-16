@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Table, Form, InputGroup, Badge, Card, Row, Col } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Table, Form, InputGroup, Badge, Card, Row, Col, Pagination } from 'react-bootstrap';
 
 const ToolInventoryTable = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('tool_number');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   if (!data || data.length === 0) {
     return (
@@ -42,6 +44,67 @@ const ToolInventoryTable = ({ data }) => {
       return bValue.localeCompare(aValue);
     }
   });
+
+  // Reset to page 1 when search term or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortField, sortDirection]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedTools.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTools = sortedTools.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      if (startPage > 2) {
+        pages.push('...');
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+
+      if (endPage < totalPages - 1) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   // Handle sort click
   const handleSort = (field) => {
@@ -203,7 +266,7 @@ const ToolInventoryTable = ({ data }) => {
                 </tr>
               </thead>
               <tbody>
-                {sortedTools.map((tool) => (
+                {paginatedTools.map((tool) => (
                   <tr key={tool.id}>
                     <td>{tool.tool_number}</td>
                     <td>{tool.serial_number}</td>
@@ -213,7 +276,7 @@ const ToolInventoryTable = ({ data }) => {
                     <td>{getStatusBadge(tool.status)}</td>
                   </tr>
                 ))}
-                {sortedTools.length === 0 && (
+                {paginatedTools.length === 0 && (
                   <tr>
                     <td colSpan="6" className="text-center py-4">
                       No tools found matching your search criteria
@@ -223,10 +286,55 @@ const ToolInventoryTable = ({ data }) => {
               </tbody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top">
+              <div className="text-muted">
+                <small>
+                  Showing {startIndex + 1}-{Math.min(endIndex, sortedTools.length)} of {sortedTools.length} tools
+                </small>
+              </div>
+              <Pagination className="mb-0">
+                <Pagination.First
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                />
+                <Pagination.Prev
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                />
+
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <Pagination.Ellipsis key={`ellipsis-${index}`} disabled />
+                  ) : (
+                    <Pagination.Item
+                      key={page}
+                      active={page === currentPage}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Pagination.Item>
+                  )
+                ))}
+
+                <Pagination.Next
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                />
+                <Pagination.Last
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                />
+              </Pagination>
+            </div>
+          )}
         </Card.Body>
-        <Card.Footer className="bg-light">
+        <Card.Footer>
           <small className="text-muted">
             Showing {sortedTools.length} of {data.length} tools
+            {searchTerm && ` (filtered by "${searchTerm}")`}
           </small>
         </Card.Footer>
       </Card>
