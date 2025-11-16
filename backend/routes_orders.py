@@ -671,6 +671,78 @@ def register_order_routes(app):
             "message": "Order marked as delivered successfully"
         })
 
+    @app.route("/api/orders/<int:order_id>/mark-ordered", methods=["POST"])
+    @orders_permission
+    @handle_errors
+    def mark_order_as_ordered(order_id):
+        """Mark a procurement order as ordered with vendor details and expected due date"""
+        order = ProcurementOrder.query.get_or_404(order_id)
+
+        # Only allow marking as ordered if order is in appropriate status
+        if order.status not in ["new", "awaiting_info", "in_progress"]:
+            return jsonify({"error": f"Cannot mark order as ordered when status is '{order.status}'"}), 400
+
+        # Get order details from request
+        data = request.get_json() or {}
+
+        # Update order fields
+        order.status = "ordered"
+
+        # Set expected due date if provided
+        if data.get("expected_due_date"):
+            try:
+                from datetime import datetime
+                order.expected_due_date = datetime.fromisoformat(data["expected_due_date"].replace("Z", "+00:00"))
+            except (ValueError, AttributeError) as e:
+                return jsonify({"error": f"Invalid date format for expected_due_date: {e}"}), 400
+
+        # Set tracking number if provided
+        if data.get("tracking_number"):
+            order.tracking_number = data["tracking_number"]
+
+        # Set vendor if provided
+        if data.get("vendor"):
+            order.vendor = data["vendor"]
+
+        # Append any additional notes
+        if data.get("notes"):
+            existing_notes = order.notes or ""
+            if existing_notes:
+                order.notes = existing_notes + f"\n\n--- Marked as Ordered ---\n{data['notes']}"
+            else:
+                order.notes = data["notes"]
+
+        # Log the action
+        user_name = request.current_user.get("user_name", "Unknown user")
+        log_details = f"Order '{order.title}' (ID: {order.id}) marked as ordered by {user_name}"
+        if order.vendor:
+            log_details += f", Vendor: {order.vendor}"
+        if order.tracking_number:
+            log_details += f", Tracking: {order.tracking_number}"
+
+        log = AuditLog(
+            action_type="order_marked_ordered",
+            action_details=log_details
+        )
+        db.session.add(log)
+
+        # Log user activity
+        if hasattr(request, "current_user"):
+            activity = UserActivity(
+                user_id=request.current_user["user_id"],
+                activity_type="order_marked_ordered",
+                description=f"Marked order '{order.title}' as ordered"
+            )
+            db.session.add(activity)
+
+        db.session.commit()
+
+        logger.info("Order marked as ordered", extra={"order_id": order.id, "user": user_name, "vendor": order.vendor})
+        return jsonify({
+            "order": order.to_dict(),
+            "message": "Order marked as ordered successfully"
+        })
+
     @app.route("/api/orders/messages/<int:message_id>/read", methods=["PUT"])
     @jwt_required
     @handle_errors
