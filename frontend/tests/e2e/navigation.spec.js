@@ -19,21 +19,21 @@ test.describe('Navigation', () => {
       page.click('button[type="submit"]')
     ]);
 
-    // Wait for navigation to be visible
-    await expect(page.locator('nav')).toBeVisible();
+    // Wait for sidebar navigation to be visible
+    await expect(page.locator('.sidebar')).toBeVisible();
   });
 
   test('should display main navigation menu', async ({ page }) => {
-    // Check for main navigation items (common to all users) - use more specific selectors
-    await expect(page.locator('nav')).toBeVisible();
-    await expect(page.locator('nav a[href="/dashboard"]:has-text("Dashboard")').first()).toBeVisible();
-    await expect(page.locator('nav a[href="/tools"]:has-text("Tools")')).toBeVisible();
-    await expect(page.locator('nav a[href="/checkouts"]:has-text("Checkouts")')).toBeVisible();
-    await expect(page.locator('nav a[href="/kits"]:has-text("Kits")')).toBeVisible();
+    // Check for sidebar navigation items (common to all users)
+    await expect(page.locator('.sidebar')).toBeVisible();
+    await expect(page.locator('.sidebar a[href="/dashboard"]')).toBeVisible();
+    await expect(page.locator('.sidebar a[href="/tools"]')).toBeVisible();
+    await expect(page.locator('.sidebar a[href="/checkouts"]')).toBeVisible();
+    await expect(page.locator('.sidebar a[href="/kits"]')).toBeVisible();
 
     // Admin-specific navigation items - check for at least some admin items
     // Use more flexible selectors that work with the actual navigation structure
-    const navLinks = await page.locator('nav a').allTextContents();
+    const navLinks = await page.locator('.sidebar a').allTextContents();
     const hasAdminItems = navLinks.some(text =>
       text.includes('Chemicals') ||
       text.includes('Calibrations') ||
@@ -60,8 +60,8 @@ test.describe('Navigation', () => {
   });
 
   test('should navigate to checkouts page', async ({ page }) => {
-    // Click on Checkouts navigation
-    await page.click('nav >> text=Checkouts');
+    // Click on Checkouts navigation in sidebar
+    await page.click('.sidebar a[href="/checkouts"]');
 
     // Should navigate to checkouts page
     await expect(page).toHaveURL('/checkouts');
@@ -70,7 +70,7 @@ test.describe('Navigation', () => {
 
   test('should navigate to chemicals page (if user has access)', async ({ page }) => {
     // Admin should have access to chemicals
-    const chemicalsLink = page.locator('nav >> text=Chemicals');
+    const chemicalsLink = page.locator('.sidebar a[href="/chemicals"]');
 
     await expect(chemicalsLink).toBeVisible();
     await chemicalsLink.click();
@@ -80,7 +80,7 @@ test.describe('Navigation', () => {
 
   test('should navigate to reports page', async ({ page }) => {
     // Admin should have access to reports
-    const reportsLink = page.locator('nav >> text=Reports');
+    const reportsLink = page.locator('.sidebar a[href="/reports"]');
 
     await expect(reportsLink).toBeVisible();
     await reportsLink.click();
@@ -90,7 +90,7 @@ test.describe('Navigation', () => {
 
   test('should navigate to admin dashboard (admin only)', async ({ page }) => {
     // Admin should have access to Admin Dashboard
-    const adminLink = page.locator('nav >> text=Admin Dashboard');
+    const adminLink = page.locator('.sidebar a[href="/admin/dashboard"]');
 
     await expect(adminLink).toBeVisible();
     await adminLink.click();
@@ -160,44 +160,50 @@ test.describe('Navigation', () => {
   test('should be responsive on mobile', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    
-    // Should show mobile menu toggle
-    await expect(page.locator('[data-testid="mobile-menu-toggle"]')).toBeVisible();
-    
-    // Click mobile menu toggle
-    await page.click('[data-testid="mobile-menu-toggle"]');
-    
-    // Should show mobile navigation menu
-    await expect(page.locator('[data-testid="mobile-menu"]')).toBeVisible();
-    await expect(page.locator('[data-testid="mobile-menu"] >> text=Tools')).toBeVisible();
+
+    // Sidebar should still be visible on mobile (it may be collapsed)
+    await expect(page.locator('.sidebar')).toBeVisible();
+
+    // Should be able to toggle sidebar collapse
+    const toggleButton = page.locator('.sidebar-toggle-btn');
+    await expect(toggleButton).toBeVisible();
+
+    // Sidebar should contain navigation links
+    await expect(page.locator('.sidebar a[href="/tools"]')).toBeVisible();
   });
 
-  test('should close mobile menu when navigation item is clicked', async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    
-    // Open mobile menu
-    await page.click('[data-testid="mobile-menu-toggle"]');
-    await expect(page.locator('[data-testid="mobile-menu"]')).toBeVisible();
-    
-    // Click a navigation item
-    await page.click('[data-testid="mobile-menu"] >> text=Tools');
-    
-    // Should navigate and close menu
-    await expect(page).toHaveURL('/tools');
-    await expect(page.locator('[data-testid="mobile-menu"]')).not.toBeVisible();
+  test('should toggle sidebar collapse', async ({ page }) => {
+    // Click sidebar toggle button
+    const toggleButton = page.locator('.sidebar-toggle-btn');
+    await expect(toggleButton).toBeVisible();
+
+    // Initially sidebar should not be collapsed
+    await expect(page.locator('.sidebar:not(.collapsed)')).toBeVisible();
+
+    // Click to collapse
+    await toggleButton.click();
+
+    // Sidebar should now be collapsed
+    await expect(page.locator('.sidebar.collapsed')).toBeVisible();
+
+    // Click again to expand
+    await toggleButton.click();
+
+    // Sidebar should be expanded again
+    await expect(page.locator('.sidebar:not(.collapsed)')).toBeVisible();
   });
 
   test('should navigate to tool detail page', async ({ page }) => {
     // Navigate to tools
-    await page.click('nav >> text=Tools');
+    await page.click('.sidebar a[href="/tools"]');
     await expect(page).toHaveURL('/tools');
+    await page.waitForLoadState('networkidle');
 
     // If there are tools, click on one to go to detail page
-    const firstTool = page.locator('[data-testid="tool-item"]').first();
+    const firstViewButton = page.locator('[data-testid="tool-item"]').first().locator('a:has-text("View")');
 
-    if (await firstTool.isVisible()) {
-      await firstTool.click();
+    if (await firstViewButton.isVisible()) {
+      await firstViewButton.click();
 
       // Should navigate to tool detail page
       await expect(page).toHaveURL(/\/tools\/\d+/);

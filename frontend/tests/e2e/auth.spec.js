@@ -35,9 +35,10 @@ test.describe('Authentication', () => {
   test('should show validation errors for empty fields', async ({ page }) => {
     // Try to submit empty form
     await page.click('button[type="submit"]');
-    
-    // Check for validation messages
-    await expect(page.locator('.invalid-feedback')).toContainText(['Please provide your employee number', 'Please provide a password']);
+
+    // Check for validation messages - look for each message separately
+    await expect(page.locator('.invalid-feedback').first()).toContainText('Please provide your employee number');
+    await expect(page.locator('.invalid-feedback').nth(1)).toContainText('Please provide a password');
   });
 
   test('should show error for invalid credentials', async ({ page }) => {

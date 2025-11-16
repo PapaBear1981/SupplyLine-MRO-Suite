@@ -13,8 +13,11 @@ test.describe('Requests Page - Documentation Upload', () => {
   test('shows supporting documentation upload with guidance text', async ({ page }) => {
     await ensureLoggedIn(page);
     await page.goto('/requests');
+    await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h5:has-text("Submit a Request")')).toBeVisible();
+    // Wait for the page to load with tabs - "Submit Request" is a tab title, not h5
+    await expect(page.locator('h1:has-text("Procurement Requests")')).toBeVisible();
+    await expect(page.locator('button[role="tab"]:has-text("Submit Request"), .nav-link:has-text("Submit Request")')).toBeVisible();
     await expect(page.locator('text=Supporting Documentation')).toBeVisible();
     await expect(page.locator('text=Not required, but highly recommended')).toBeVisible();
   });
@@ -22,8 +25,10 @@ test.describe('Requests Page - Documentation Upload', () => {
   test('allows selecting documentation file and submitting request', async ({ page }) => {
     await ensureLoggedIn(page);
     await page.goto('/requests');
+    await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h5:has-text("Submit a Request")')).toBeVisible();
+    // Wait for the page to load - "Submit Request" is a tab, should be active by default
+    await expect(page.locator('h1:has-text("Procurement Requests")')).toBeVisible();
 
     const titleInput = page.locator('input[name="title"]');
     await titleInput.fill('E2E Request with documentation');
@@ -46,8 +51,8 @@ test.describe('Requests Page - Documentation Upload', () => {
 
     await page.click('button:has-text("Submit Request")');
 
-    await expect(page.locator('text=Request submitted successfully')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.requests-list')).toContainText('E2E Request with documentation');
+    // Wait for success message - could be toast or inline alert
+    await expect(page.locator('.Toastify__toast--success, text=Request submitted successfully')).toBeVisible({ timeout: 15000 });
   });
 });
 

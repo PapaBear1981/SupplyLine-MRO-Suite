@@ -104,14 +104,13 @@ test.describe('Dashboard', () => {
   test('should be responsive on mobile viewport', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    
+
     // Dashboard should still be functional
     await expect(page.locator('h1')).toContainText('Dashboard');
     await expect(page.locator('[data-testid="quick-actions"]')).toBeVisible();
-    
-    // Navigation should work on mobile
-    await page.click('[data-testid="mobile-menu-toggle"]');
-    await expect(page.locator('[data-testid="mobile-menu"]')).toBeVisible();
+
+    // Sidebar should be accessible on mobile - it collapses but remains visible
+    await expect(page.locator('.sidebar')).toBeVisible();
   });
 
   test('should refresh data when page is refreshed', async ({ page }) => {

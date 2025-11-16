@@ -26,8 +26,8 @@ test.describe('Tools Management', () => {
     await page.goto('/tools');
     await page.waitForLoadState('networkidle');
 
-    // Check for search input
-    await expect(page.locator('input[placeholder*="Search"]')).toBeVisible();
+    // Check for search input - use exact placeholder from ToolList component
+    await expect(page.locator('input[placeholder="Search tools..."]')).toBeVisible();
 
     // Expand filters if they're collapsed
     const filtersButton = page.locator('button:has-text("Filters")');
@@ -44,8 +44,8 @@ test.describe('Tools Management', () => {
     await page.goto('/tools');
     await page.waitForLoadState('networkidle');
 
-    // Enter search term
-    await page.fill('input[placeholder*="Search"]', 'T001');
+    // Enter search term - use exact placeholder from ToolList component
+    await page.fill('input[placeholder="Search tools..."]', 'T001');
 
     // Wait for search to filter (debounce is typically 300-500ms)
     await page.waitForTimeout(600);
