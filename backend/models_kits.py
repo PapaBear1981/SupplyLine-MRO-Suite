@@ -441,6 +441,13 @@ class KitReorderRequest(db.Model):
 
     def to_dict(self):
         """Convert model to dictionary"""
+        # Get linked procurement order status if exists
+        from models import ProcurementOrder
+        linked_order = ProcurementOrder.query.filter_by(
+            reference_type="kit_reorder",
+            reference_number=str(self.id)
+        ).first()
+
         return {
             "id": self.id,
             "kit_id": self.kit_id,
@@ -455,6 +462,7 @@ class KitReorderRequest(db.Model):
             "requester_name": self.requester.name if self.requester else None,
             "requested_date": self.requested_date.isoformat() if self.requested_date else None,
             "status": self.status,
+            "order_status": linked_order.status if linked_order else None,
             "approved_by": self.approved_by,
             "approver_name": self.approver.name if self.approver else None,
             "approved_date": self.approved_date.isoformat() if self.approved_date else None,
