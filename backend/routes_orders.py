@@ -689,8 +689,6 @@ def register_order_routes(app):
         order.status = "ordered"
 
         # Set ordered date to current time
-        from datetime import datetime
-        from utils.timezone_utils import get_current_time
         order.ordered_date = get_current_time()
 
         # Set expected due date if provided
