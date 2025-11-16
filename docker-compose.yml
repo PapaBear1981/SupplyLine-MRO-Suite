@@ -8,6 +8,7 @@ services:
     volumes:
       - database:/database
       - flask_session:/flask_session
+      - static_uploads:/app/static
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - FLASK_DEBUG=${FLASK_DEBUG:-False}
@@ -81,3 +82,5 @@ volumes:
     name: supplyline-database
   flask_session:
     name: supplyline-flask-session
+  static_uploads:
+    name: supplyline-static-uploads
