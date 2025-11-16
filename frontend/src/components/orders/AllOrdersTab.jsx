@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Button, Badge, Form, Row, Col, Alert, Modal } from 'react-bootstrap';
-import { FaFilter, FaSync, FaCheckCircle } from 'react-icons/fa';
+import { FaFilter, FaSync, FaCheckCircle, FaShoppingCart } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/dateUtils';
-import { fetchOrders, markOrderAsDelivered } from '../../store/ordersSlice';
+import { fetchOrders, markOrderAsDelivered, markOrderAsOrdered } from '../../store/ordersSlice';
 import { markChemicalAsDelivered } from '../../store/chemicalsSlice';
 
 const ORDER_TYPES = [
@@ -68,9 +68,16 @@ const AllOrdersTab = ({ onViewOrder }) => {
   });
 
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [showOrderedModal, setShowOrderedModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deliveryForm, setDeliveryForm] = useState({
     received_quantity: '',
+  });
+  const [orderedForm, setOrderedForm] = useState({
+    expected_due_date: '',
+    tracking_number: '',
+    vendor: '',
+    notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -131,6 +138,70 @@ const AllOrdersTab = ({ onViewOrder }) => {
       dispatch(fetchOrders());
     } catch (error) {
       toast.error(error.message || 'Failed to mark order as delivered');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenOrderedModal = (order) => {
+    setSelectedOrder(order);
+    setOrderedForm({
+      expected_due_date: '',
+      tracking_number: order.tracking_number || '',
+      vendor: order.vendor || '',
+      notes: '',
+    });
+    setShowOrderedModal(true);
+  };
+
+  const handleCloseOrderedModal = () => {
+    setShowOrderedModal(false);
+    setSelectedOrder(null);
+    setOrderedForm({
+      expected_due_date: '',
+      tracking_number: '',
+      vendor: '',
+      notes: '',
+    });
+  };
+
+  const handleOrderedFormChange = (e) => {
+    const { name, value } = e.target;
+    setOrderedForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitOrdered = async (e) => {
+    e.preventDefault();
+
+    setSubmitting(true);
+    try {
+      const orderData = {};
+
+      if (orderedForm.expected_due_date) {
+        orderData.expected_due_date = orderedForm.expected_due_date;
+      }
+      if (orderedForm.tracking_number) {
+        orderData.tracking_number = orderedForm.tracking_number;
+      }
+      if (orderedForm.vendor) {
+        orderData.vendor = orderedForm.vendor;
+      }
+      if (orderedForm.notes) {
+        orderData.notes = orderedForm.notes;
+      }
+
+      await dispatch(markOrderAsOrdered({
+        orderId: selectedOrder.id,
+        orderData,
+      })).unwrap();
+
+      toast.success('Order marked as ordered successfully!');
+      handleCloseOrderedModal();
+
+      // Refresh the orders list
+      dispatch(fetchOrders());
+    } catch (error) {
+      toast.error(error.message || 'Failed to mark order as ordered');
     } finally {
       setSubmitting(false);
     }
@@ -234,6 +305,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <th>Quantity</th>
                 <th>Priority</th>
                 <th>Status</th>
+                <th>Created Date</th>
                 <th>Due Status</th>
                 <th>Expected Due Date</th>
                 <th>Actions</th>
@@ -260,22 +332,34 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   <td>
                     <Badge bg={STATUS_VARIANTS[order.status]}>{order.status.replace('_', ' ')}</Badge>
                   </td>
+                  <td>{order.created_at ? formatDate(order.created_at) : '—'}</td>
                   <td>
                     <Badge bg={DUE_STATUS_VARIANTS[order.due_status]}>{order.due_status?.replace('_', ' ') || 'N/A'}</Badge>
                   </td>
                   <td>{order.expected_due_date ? formatDate(order.expected_due_date) : '—'}</td>
                   <td>
-                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-2">
+                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-1" title="View Details">
                       View
                     </Button>
+                    {(order.status === 'new' || order.status === 'awaiting_info' || order.status === 'in_progress') && (
+                      <Button
+                        variant="info"
+                        size="sm"
+                        onClick={() => handleOpenOrderedModal(order)}
+                        className="me-1"
+                        title="Mark as Ordered"
+                      >
+                        <FaShoppingCart />
+                      </Button>
+                    )}
                     {(order.status === 'new' || order.status === 'ordered' || order.status === 'shipped' || order.status === 'in_progress') && (
                       <Button
                         variant="success"
                         size="sm"
                         onClick={() => handleOpenDeliveryModal(order)}
+                        title="Mark as Delivered"
                       >
-                        <FaCheckCircle className="me-1" />
-                        Mark Delivered
+                        <FaCheckCircle />
                       </Button>
                     )}
                   </td>
@@ -359,6 +443,121 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <>
                   <FaCheckCircle className="me-1" />
                   Mark as Delivered
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Mark as Ordered Modal */}
+      <Modal show={showOrderedModal} onHide={handleCloseOrderedModal} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Mark Request as Ordered</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmitOrdered}>
+          <Modal.Body>
+            {selectedOrder && (
+              <>
+                <Alert variant="info">
+                  <strong>Request Details:</strong>
+                  <ul className="mb-0 mt-2">
+                    <li><strong>Type:</strong> {selectedOrder.order_type}</li>
+                    <li><strong>Title:</strong> {selectedOrder.title}</li>
+                    <li><strong>Part Number:</strong> {selectedOrder.part_number || 'N/A'}</li>
+                    <li><strong>Description:</strong> {selectedOrder.description || 'N/A'}</li>
+                    <li><strong>Quantity:</strong> {selectedOrder.quantity} {selectedOrder.unit}</li>
+                    <li><strong>Current Status:</strong> {selectedOrder.status}</li>
+                  </ul>
+                </Alert>
+
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Expected Due Date</Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="expected_due_date"
+                        value={orderedForm.expected_due_date}
+                        onChange={handleOrderedFormChange}
+                      />
+                      <Form.Text className="text-muted">
+                        When do you expect the order to arrive?
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Tracking Number (Optional)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="tracking_number"
+                        value={orderedForm.tracking_number}
+                        onChange={handleOrderedFormChange}
+                        placeholder="Enter tracking number if available"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row>
+                  <Col md={12}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Vendor (Optional)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="vendor"
+                        value={orderedForm.vendor}
+                        onChange={handleOrderedFormChange}
+                        placeholder="Enter vendor/supplier name"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row>
+                  <Col md={12}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Additional Notes (Optional)</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        name="notes"
+                        value={orderedForm.notes}
+                        onChange={handleOrderedFormChange}
+                        placeholder="Any additional notes about the order..."
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Alert variant="warning" className="mb-0">
+                  <i className="bi bi-info-circle-fill me-2"></i>
+                  <strong>Note:</strong> Marking this request as ordered will:
+                  <ul className="mb-0 mt-2">
+                    <li>Update the status to &quot;ordered&quot;</li>
+                    <li>Set the expected due date (if provided)</li>
+                    <li>Record the vendor and tracking information</li>
+                    <li>Log this action for audit purposes</li>
+                  </ul>
+                </Alert>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseOrderedModal} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button variant="info" type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <FaShoppingCart className="me-1" />
+                  Mark as Ordered
                 </>
               )}
             </Button>
