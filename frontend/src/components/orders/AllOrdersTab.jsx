@@ -4,7 +4,7 @@ import { Table, Button, Badge, Form, Row, Col, Alert, Modal } from 'react-bootst
 import { FaFilter, FaSync, FaCheckCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/dateUtils';
-import { fetchOrders } from '../../store/ordersSlice';
+import { fetchOrders, markOrderAsDelivered } from '../../store/ordersSlice';
 import { markChemicalAsDelivered } from '../../store/chemicalsSlice';
 
 const ORDER_TYPES = [
@@ -109,18 +109,28 @@ const AllOrdersTab = ({ onViewOrder }) => {
 
     setSubmitting(true);
     try {
-      await dispatch(markChemicalAsDelivered({
-        id: selectedOrder.chemical_id || selectedOrder.id,
-        received_quantity: deliveryForm.received_quantity ? parseFloat(deliveryForm.received_quantity) : null,
-      })).unwrap();
+      // For chemical orders, use the chemical-specific endpoint
+      if (selectedOrder.order_type === 'chemical' && selectedOrder.chemical_id) {
+        await dispatch(markChemicalAsDelivered({
+          id: selectedOrder.chemical_id,
+          received_quantity: deliveryForm.received_quantity ? parseFloat(deliveryForm.received_quantity) : null,
+        })).unwrap();
+        toast.success('Chemical marked as delivered and order updated!');
+      } else {
+        // For all other order types, use the general order endpoint
+        await dispatch(markOrderAsDelivered({
+          orderId: selectedOrder.id,
+          received_quantity: deliveryForm.received_quantity ? parseFloat(deliveryForm.received_quantity) : null,
+        })).unwrap();
+        toast.success('Order marked as delivered successfully!');
+      }
 
-      toast.success('Chemical marked as delivered and order updated!');
       handleCloseDeliveryModal();
 
       // Refresh the orders list
       dispatch(fetchOrders());
     } catch (error) {
-      toast.error(error.message || 'Failed to mark chemical as delivered');
+      toast.error(error.message || 'Failed to mark order as delivered');
     } finally {
       setSubmitting(false);
     }
@@ -258,7 +268,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                     <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-2">
                       View
                     </Button>
-                    {order.order_type === 'chemical' && (order.status === 'ordered' || order.status === 'shipped') && (
+                    {(order.status === 'new' || order.status === 'ordered' || order.status === 'shipped' || order.status === 'in_progress') && (
                       <Button
                         variant="success"
                         size="sm"
@@ -279,7 +289,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
       {/* Delivery Modal */}
       <Modal show={showDeliveryModal} onHide={handleCloseDeliveryModal} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Mark Chemical as Delivered</Modal.Title>
+          <Modal.Title>Mark Order as Delivered</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmitDelivery}>
           <Modal.Body>
@@ -288,6 +298,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                 <Alert variant="info">
                   <strong>Order Details:</strong>
                   <ul className="mb-0 mt-2">
+                    <li><strong>Type:</strong> {selectedOrder.order_type}</li>
                     <li><strong>Title:</strong> {selectedOrder.title}</li>
                     <li><strong>Part Number:</strong> {selectedOrder.part_number || 'N/A'}</li>
                     <li><strong>Description:</strong> {selectedOrder.description || 'N/A'}</li>
@@ -318,12 +329,17 @@ const AllOrdersTab = ({ onViewOrder }) => {
 
                 <Alert variant="warning" className="mb-0">
                   <i className="bi bi-info-circle-fill me-2"></i>
-                  <strong>Note:</strong> Marking this chemical as delivered will:
+                  <strong>Note:</strong> Marking this order as delivered will:
                   <ul className="mb-0 mt-2">
-                    <li>Update the chemical status to "available"</li>
-                    <li>Clear the reorder status</li>
-                    <li>Close the associated procurement order</li>
-                    <li>Add the chemical back to active inventory</li>
+                    <li>Update the order status to "received"</li>
+                    <li>Set the completion date to today</li>
+                    {selectedOrder.order_type === 'chemical' && (
+                      <>
+                        <li>Update the chemical status to "available"</li>
+                        <li>Clear the chemical reorder status</li>
+                        <li>Add the chemical back to active inventory</li>
+                      </>
+                    )}
                   </ul>
                 </Alert>
               </>
