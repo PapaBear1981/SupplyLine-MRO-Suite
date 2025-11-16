@@ -276,6 +276,23 @@ const OrderManagementPage = () => {
     }
   };
 
+  const handleToggleNeedsMoreInfo = async (needsInfo) => {
+    try {
+      await dispatch(updateOrder({
+        orderId: selectedOrder.id,
+        orderData: { needs_more_info: needsInfo },
+      })).unwrap();
+      toast.success(needsInfo
+        ? 'Order marked as needing more information'
+        : 'Order information request resolved'
+      );
+      dispatch(fetchOrders());
+      dispatch(fetchOrderById({ orderId: selectedOrder.id, includeMessages: true }));
+    } catch (error) {
+      toast.error(error.message || 'Failed to update order');
+    }
+  };
+
   return (
     <div className="container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -459,6 +476,7 @@ const OrderManagementPage = () => {
         onMarkMessageRead={handleMarkMessageRead}
         users={users}
         messageActionLoading={messageActionLoading}
+        onToggleNeedsMoreInfo={handleToggleNeedsMoreInfo}
       />
     </div>
   );
