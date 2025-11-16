@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Form, Button, Row, Col, Badge, ListGroup, Tabs, Tab, Alert } from 'react-bootstrap';
-import { FaSave, FaEnvelope, FaReply } from 'react-icons/fa';
+import { FaSave, FaEnvelope, FaReply, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
 import { formatDateTime } from '../../utils/dateUtils';
 
 const ORDER_TYPES = [
@@ -63,6 +63,7 @@ const OrderDetailModal = ({
   onMarkMessageRead,
   users,
   messageActionLoading,
+  onToggleNeedsMoreInfo,
 }) => {
   const [activeTab, setActiveTab] = useState('details');
 
@@ -74,6 +75,24 @@ const OrderDetailModal = ({
         <Modal.Title>Order Details - {order.title}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {order.needs_more_info && (
+          <Alert variant="warning" className="mb-3 d-flex justify-content-between align-items-center">
+            <div>
+              <FaInfoCircle className="me-2" />
+              <strong>Attention Required:</strong> This order needs more information from the requester.
+            </div>
+            {onToggleNeedsMoreInfo && (
+              <Button
+                size="sm"
+                variant="outline-success"
+                onClick={() => onToggleNeedsMoreInfo(false)}
+              >
+                <FaCheckCircle className="me-1" />
+                Mark as Resolved
+              </Button>
+            )}
+          </Alert>
+        )}
         <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
           {/* Details Tab */}
           <Tab eventKey="details" title="Details">
@@ -191,7 +210,18 @@ const OrderDetailModal = ({
                   </Form.Group>
                 </Col>
               </Row>
-              <div className="d-flex justify-content-end">
+              <div className="d-flex justify-content-between">
+                <div>
+                  {onToggleNeedsMoreInfo && !order.needs_more_info && (
+                    <Button
+                      variant="warning"
+                      onClick={() => onToggleNeedsMoreInfo(true)}
+                    >
+                      <FaInfoCircle className="me-1" />
+                      Request More Information
+                    </Button>
+                  )}
+                </div>
                 <Button variant="primary" type="submit">
                   <FaSave className="me-1" />
                   Save Changes

@@ -483,6 +483,7 @@ class ProcurementOrder(db.Model):
     notes = db.Column(db.String(4000))
     quantity = db.Column(db.Integer, nullable=True)  # Order quantity for chemicals and other items
     unit = db.Column(db.String(20), nullable=True)  # Unit of measurement (e.g., mL, Gallon, each)
+    needs_more_info = db.Column(db.Boolean, default=False, nullable=False)  # Flag when order needs more information
     kit_id = db.Column(db.Integer, db.ForeignKey("kits.id"), nullable=True, index=True)
     requester_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     buyer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
@@ -548,6 +549,7 @@ class ProcurementOrder(db.Model):
             "notes": self.notes,
             "quantity": self.quantity,
             "unit": self.unit,
+            "needs_more_info": self.needs_more_info,
             "kit_id": self.kit_id,
             "kit_name": self.kit.name if self.kit else None,
             "requester_id": self.requester_id,

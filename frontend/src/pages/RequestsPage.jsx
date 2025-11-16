@@ -9,11 +9,14 @@ import {
   ListGroup,
   Row,
   Spinner,
+  Tabs,
+  Tab,
+  Alert,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
-import { createOrder, fetchOrders } from '../store/ordersSlice';
+import { createOrder, fetchOrders, updateOrder } from '../store/ordersSlice';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -88,9 +91,12 @@ const RequestsPage = () => {
   const { list, loading } = useSelector((state) => state.orders);
   const { user } = useSelector((state) => state.auth);
 
+  const [activeTab, setActiveTab] = useState('submit');
   const [formState, setFormState] = useState(INITIAL_FORM_STATE);
   const [submitting, setSubmitting] = useState(false);
   const [documentationFile, setDocumentationFile] = useState(null);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [editFormState, setEditFormState] = useState(null);
 
 
   useEffect(() => {
@@ -117,6 +123,11 @@ const RequestsPage = () => {
 
   const awaitingInfoRequests = useMemo(
     () => myRequests.filter((order) => order.status === 'awaiting_info').length,
+    [myRequests],
+  );
+
+  const needsAttentionRequests = useMemo(
+    () => myRequests.filter((order) => order.needs_more_info),
     [myRequests],
   );
 
@@ -167,6 +178,68 @@ const RequestsPage = () => {
     }
   };
 
+  const handleEditRequest = (request) => {
+    setEditingRequest(request.id);
+    setEditFormState({
+      description: request.description || '',
+      notes: request.notes || '',
+    });
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = async (requestId) => {
+    try {
+      await dispatch(updateOrder({
+        orderId: requestId,
+        orderData: editFormState,
+      })).unwrap();
+      toast.success('Request updated successfully.');
+      setEditingRequest(null);
+      setEditFormState(null);
+      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+    } catch (error) {
+      toast.error(error.message || 'Failed to update request.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRequest(null);
+    setEditFormState(null);
+  };
+
+  const handleResolveNeedsInfo = async (requestId) => {
+    try {
+      await dispatch(updateOrder({
+        orderId: requestId,
+        orderData: { needs_more_info: false },
+      })).unwrap();
+      toast.success('Request marked as resolved.');
+      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+    } catch (error) {
+      toast.error(error.message || 'Failed to update request.');
+    }
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    if (!window.confirm('Are you sure you want to cancel this request?')) {
+      return;
+    }
+    try {
+      await dispatch(updateOrder({
+        orderId: requestId,
+        orderData: { status: 'cancelled' },
+      })).unwrap();
+      toast.success('Request cancelled successfully.');
+      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+    } catch (error) {
+      toast.error(error.message || 'Failed to cancel request.');
+    }
+  };
+
   return (
     <div className="requests-page">
       <div className="d-flex align-items-center justify-content-between mb-4">
@@ -182,7 +255,7 @@ const RequestsPage = () => {
       </div>
 
       <Row className="g-4 mb-4">
-        <Col md={4}>
+        <Col md={3}>
           <Card className="h-100 shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
@@ -196,21 +269,35 @@ const RequestsPage = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
+          <Card className="h-100 shadow-sm border-warning" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('attention')}>
+            <Card.Body>
+              <div className="d-flex align-items-center gap-3 mb-3">
+                <FaInfoCircle className="text-warning" size={28} />
+                <div>
+                  <h5 className="mb-0">Needs Attention</h5>
+                  <small className="text-muted">Requests needing more info</small>
+                </div>
+              </div>
+              <h2 className="display-6 fw-bold mb-0 text-warning">{needsAttentionRequests.length}</h2>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
           <Card className="h-100 shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
-                <FaPaperPlane className="text-warning" size={28} />
+                <FaPaperPlane className="text-info" size={28} />
                 <div>
-                  <h5 className="mb-0">Needs Info</h5>
-                  <small className="text-muted">Requests awaiting more detail</small>
+                  <h5 className="mb-0">Awaiting Info</h5>
+                  <small className="text-muted">Requests awaiting status update</small>
                 </div>
               </div>
               <h2 className="display-6 fw-bold mb-0">{awaitingInfoRequests}</h2>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className="h-100 shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
@@ -226,13 +313,13 @@ const RequestsPage = () => {
         </Col>
       </Row>
 
-      <Row className="g-4">
-        <Col lg={6}>
-          <Card className="shadow-sm">
-            <Card.Header>
-              <h5 className="mb-0">Submit a Request</h5>
-            </Card.Header>
-            <Card.Body>
+      <Card>
+        <Card.Body>
+          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
+            {/* Submit Request Tab */}
+            <Tab eventKey="submit" title="Submit Request">
+              <Row className="g-4">
+                <Col lg={8} className="mx-auto">
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                   <Form.Label>Title <span className="text-danger">*</span></Form.Label>
@@ -389,28 +476,33 @@ const RequestsPage = () => {
                   </Button>
                 </div>
               </Form>
-            </Card.Body>
-          </Card>
-        </Col>
+                </Col>
+              </Row>
+            </Tab>
 
-        <Col lg={6}>
-          <Card className="shadow-sm h-100">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">My Recent Requests</h5>
-              {loading && <Spinner animation="border" size="sm" />}
-            </Card.Header>
-            <Card.Body>
-              {myRequests.length === 0 ? (
-                <div className="text-center py-4 text-muted">
+            {/* My Requests Tab */}
+            <Tab eventKey="requests" title={`My Requests (${myRequests.length})`}>
+              {loading ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" />
+                </div>
+              ) : myRequests.length === 0 ? (
+                <div className="text-center py-5 text-muted">
                   <p className="mb-1">No requests yet.</p>
-                  <small>Submit your first request using the form on the left.</small>
+                  <small>Submit your first request using the Submit Request tab.</small>
                 </div>
               ) : (
                 <ListGroup variant="flush" className="requests-list">
                   {myRequests.map((order) => (
                     <ListGroup.Item key={order.id} className="py-3">
-                      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-                        <div>
+                      {order.needs_more_info && (
+                        <Alert variant="warning" className="mb-2">
+                          <FaInfoCircle className="me-2" />
+                          <strong>Attention Required:</strong> This request needs more information.
+                        </Alert>
+                      )}
+                      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+                        <div className="flex-grow-1">
                           <h6 className="mb-1">{order.title}</h6>
                           <div className="text-muted small">
                             Requested {order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : 'N/A'}
@@ -429,27 +521,199 @@ const RequestsPage = () => {
                               {order.unit ? ` ${order.unit}` : ''}
                             </div>
                           )}
+                          {editingRequest === order.id ? (
+                            <div className="mt-3">
+                              <Form.Group className="mb-2">
+                                <Form.Label>Description</Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  name="description"
+                                  value={editFormState.description}
+                                  onChange={handleEditFormChange}
+                                />
+                              </Form.Group>
+                              <Form.Group className="mb-2">
+                                <Form.Label>Notes</Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  name="notes"
+                                  value={editFormState.notes}
+                                  onChange={handleEditFormChange}
+                                />
+                              </Form.Group>
+                              <div className="d-flex gap-2">
+                                <Button size="sm" variant="primary" onClick={() => handleSaveEdit(order.id)}>
+                                  <FaCheckCircle className="me-1" />
+                                  Save
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={handleCancelEdit}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {order.description && (
+                                <div className="mt-2 small">
+                                  <strong>Description:</strong> {order.description}
+                                </div>
+                              )}
+                              {order.notes && (
+                                <div className="mt-1 small">
+                                  <strong>Notes:</strong> {order.notes}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-                        <div className="d-flex flex-wrap gap-2">
-                          <Badge bg="light" text="dark">
-                            Type: {getOrderTypeLabel(order.order_type)}
-                          </Badge>
-                          <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
-                            Priority: {PRIORITIES.find((item) => item.value === order.priority)?.label || order.priority}
-                          </Badge>
-                          <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
-                            Status: {formatStatusLabel(order.status)}
-                          </Badge>
+                        <div className="d-flex flex-column gap-2 align-items-end">
+                          <div className="d-flex flex-wrap gap-2">
+                            <Badge bg="light" text="dark">
+                              Type: {getOrderTypeLabel(order.order_type)}
+                            </Badge>
+                            <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
+                              Priority: {PRIORITIES.find((item) => item.value === order.priority)?.label || order.priority}
+                            </Badge>
+                            <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
+                              Status: {formatStatusLabel(order.status)}
+                            </Badge>
+                          </div>
+                          {order.status !== 'cancelled' && order.status !== 'received' && editingRequest !== order.id && (
+                            <div className="d-flex gap-2 flex-wrap">
+                              <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(order)}>
+                                <FaEdit className="me-1" />
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="outline-danger" onClick={() => handleCancelRequest(order.id)}>
+                                <FaTimes className="me-1" />
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
               )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+            </Tab>
+
+            {/* Needs Attention Tab */}
+            <Tab eventKey="attention" title={
+              <>
+                Needs Attention
+                {needsAttentionRequests.length > 0 && (
+                  <Badge bg="warning" className="ms-2">{needsAttentionRequests.length}</Badge>
+                )}
+              </>
+            }>
+              {needsAttentionRequests.length === 0 ? (
+                <div className="text-center py-5 text-muted">
+                  <FaCheckCircle size={48} className="text-success mb-3" />
+                  <p className="mb-1">All caught up!</p>
+                  <small>No requests need attention at the moment.</small>
+                </div>
+              ) : (
+                <>
+                  <Alert variant="info" className="mb-3">
+                    <FaInfoCircle className="me-2" />
+                    The following requests need more information. Please provide additional details or clarification.
+                  </Alert>
+                  <ListGroup variant="flush">
+                    {needsAttentionRequests.map((order) => (
+                      <ListGroup.Item key={order.id} className="py-3">
+                        <div className="d-flex flex-column gap-3">
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div className="flex-grow-1">
+                              <h6 className="mb-1">{order.title}</h6>
+                              <div className="text-muted small">
+                                Requested {order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : 'N/A'}
+                              </div>
+                              {order.part_number && (
+                                <div className="text-muted small">Part #: {order.part_number}</div>
+                              )}
+                              {editingRequest === order.id ? (
+                                <div className="mt-3">
+                                  <Form.Group className="mb-2">
+                                    <Form.Label>Description</Form.Label>
+                                    <Form.Control
+                                      as="textarea"
+                                      rows={3}
+                                      name="description"
+                                      value={editFormState.description}
+                                      onChange={handleEditFormChange}
+                                      placeholder="Add more details about what you need..."
+                                    />
+                                  </Form.Group>
+                                  <Form.Group className="mb-3">
+                                    <Form.Label>Notes</Form.Label>
+                                    <Form.Control
+                                      as="textarea"
+                                      rows={2}
+                                      name="notes"
+                                      value={editFormState.notes}
+                                      onChange={handleEditFormChange}
+                                      placeholder="Add any additional notes or clarifications..."
+                                    />
+                                  </Form.Group>
+                                  <div className="d-flex gap-2">
+                                    <Button size="sm" variant="success" onClick={() => handleSaveEdit(order.id)}>
+                                      <FaCheckCircle className="me-1" />
+                                      Save & Mark Resolved
+                                    </Button>
+                                    <Button size="sm" variant="secondary" onClick={handleCancelEdit}>
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {order.description && (
+                                    <div className="mt-2 small">
+                                      <strong>Description:</strong> {order.description}
+                                    </div>
+                                  )}
+                                  {order.notes && (
+                                    <div className="mt-1 small">
+                                      <strong>Notes:</strong> {order.notes}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                            <div className="d-flex flex-wrap gap-2">
+                              <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
+                                {PRIORITIES.find((item) => item.value === order.priority)?.label || order.priority}
+                              </Badge>
+                              <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
+                                {formatStatusLabel(order.status)}
+                              </Badge>
+                            </div>
+                          </div>
+                          {editingRequest !== order.id && (
+                            <div className="d-flex gap-2">
+                              <Button size="sm" variant="primary" onClick={() => handleEditRequest(order)}>
+                                <FaEdit className="me-1" />
+                                Add Information
+                              </Button>
+                              <Button size="sm" variant="outline-success" onClick={() => handleResolveNeedsInfo(order.id)}>
+                                <FaCheckCircle className="me-1" />
+                                Mark as Resolved
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                </>
+              )}
+            </Tab>
+          </Tabs>
+        </Card.Body>
+      </Card>
     </div>
   );
 };

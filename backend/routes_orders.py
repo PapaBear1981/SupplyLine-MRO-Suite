@@ -299,6 +299,7 @@ def register_order_routes(app):
             notes=data.get("notes"),
             quantity=quantity_int,
             unit=data.get("unit") or None,
+            needs_more_info=bool(data.get("needs_more_info", False)),
             kit_id=kit_id,
             requester_id=requester.id,
             buyer_id=buyer.id if buyer else None,
@@ -396,6 +397,9 @@ def register_order_routes(app):
         if "unit" in data:
             unit_value = data.get("unit")
             order.unit = unit_value or None
+
+        if "needs_more_info" in data:
+            order.needs_more_info = bool(data.get("needs_more_info"))
 
         if "kit_id" in data:
             kit_id = data.get("kit_id")
