@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Button, Badge, Form, Row, Col, Alert, Modal } from 'react-bootstrap';
-import { FaFilter, FaSync, FaCheckCircle, FaShoppingCart } from 'react-icons/fa';
+import { FaFilter, FaSync, FaCheckCircle, FaShoppingCart, FaEnvelope } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/dateUtils';
 import { fetchOrders, markOrderAsDelivered, markOrderAsOrdered } from '../../store/ordersSlice';
@@ -314,7 +314,23 @@ const AllOrdersTab = ({ onViewOrder }) => {
             <tbody>
               {filteredOrders.map((order) => (
                 <tr key={order.id}>
-                  <td>{order.title}</td>
+                  <td>
+                    <div className="d-flex align-items-center gap-2">
+                      {order.title}
+                      {order.unread_message_count > 0 && (
+                        <Badge bg="danger" pill title={`${order.unread_message_count} unread message(s) - update request pending`}>
+                          <FaEnvelope className="me-1" />
+                          {order.unread_message_count} unread
+                        </Badge>
+                      )}
+                      {order.message_count > 0 && order.unread_message_count === 0 && (
+                        <Badge bg="secondary" pill title={`${order.message_count} message(s)`}>
+                          <FaEnvelope className="me-1" />
+                          {order.message_count}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
                   <td>{order.part_number || '—'}</td>
                   <td>
                     <Badge bg="secondary">{ORDER_TYPES.find(t => t.value === order.order_type)?.label || order.order_type}</Badge>

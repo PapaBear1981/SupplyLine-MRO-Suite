@@ -529,8 +529,10 @@ class ProcurementOrder(db.Model):
 
         latest_message = None
         message_count = 0
+        unread_message_count = 0
         if self.messages is not None:
             message_count = self.messages.count()
+            unread_message_count = self.messages.filter_by(is_read=False).count()
             if message_count:
                 latest_message = self.messages.order_by(ProcurementOrderMessage.sent_date.desc()).first()
 
@@ -563,6 +565,7 @@ class ProcurementOrder(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "message_count": message_count,
+            "unread_message_count": unread_message_count,
             "latest_message_at": latest_message.sent_date.isoformat() if latest_message else None,
             "due_status": self._due_state(),
             "is_late": self._due_state() == "late",
