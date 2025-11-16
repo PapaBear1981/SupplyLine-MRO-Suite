@@ -6,8 +6,9 @@ import KitStatistics from './KitStatistics';
 import PendingKitTransfers from './PendingKitTransfers';
 import PendingReorderApprovals from './PendingReorderApprovals';
 import KitUtilizationStats from './KitUtilizationStats';
+import PendingUserRequests from './PendingUserRequests';
 
-const DashboardStats = ({ stats, loading }) => {
+const DashboardStats = ({ stats, loading, onNavigateToTab }) => {
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -64,6 +65,9 @@ const DashboardStats = ({ stats, loading }) => {
           </Row>
         </Card.Body>
       </Card>
+
+      {/* Pending User Requests Widget */}
+      <PendingUserRequests onNavigateToRequests={() => onNavigateToTab && onNavigateToTab('registrations')} />
 
       {/* Kit Statistics */}
       <KitStatistics />

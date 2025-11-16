@@ -163,7 +163,7 @@ const AdminDashboard = () => {
             <Tab.Content>
               <Tab.Pane eventKey="dashboard">
                 {canViewDashboard && (
-                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
+                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} onNavigateToTab={setActiveTab} />
                 )}
               </Tab.Pane>
               <Tab.Pane eventKey="users">
