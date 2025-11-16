@@ -15,6 +15,7 @@ import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
 import PendingUserRequests from '../components/admin/PendingUserRequests';
+import PendingUpdateRequestsWidget from '../components/dashboard/PendingUpdateRequestsWidget';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -99,6 +100,13 @@ const DASHBOARD_WIDGETS = [
     defaultColumn: COLUMN_SIDEBAR,
     component: MyRequestsWidget,
     isAvailable: ({ hasRequestPermission }) => hasRequestPermission,
+  },
+  {
+    id: 'pendingUpdateRequests',
+    label: 'Pending Update Requests',
+    defaultColumn: COLUMN_SIDEBAR,
+    component: PendingUpdateRequestsWidget,
+    isAvailable: ({ hasOrderPermission }) => hasOrderPermission,
   },
   {
     id: 'pendingUserRequests',

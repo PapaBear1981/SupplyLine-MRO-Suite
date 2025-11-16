@@ -13,10 +13,13 @@ import {
   Tab,
   Alert,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import { createOrder, fetchOrders, updateOrder } from '../store/ordersSlice';
+import GenerateUpdateRequestModal from '../components/requests/GenerateUpdateRequestModal';
+import ViewMessagesModal from '../components/requests/ViewMessagesModal';
+import { PRIORITY_VARIANTS, STATUS_VARIANTS } from '../constants/orderConstants';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -32,13 +35,6 @@ const PRIORITIES = [
   { value: 'low', label: 'Low' },
 ];
 
-const PRIORITY_VARIANTS = {
-  critical: 'danger',
-  high: 'warning',
-  normal: 'secondary',
-  low: 'info',
-};
-
 const getOrderTypeLabel = (orderType) => {
   const match = ORDER_TYPES.find((option) => option.value === orderType);
   if (match) {
@@ -50,16 +46,6 @@ const getOrderTypeLabel = (orderType) => {
   }
 
   return orderType.charAt(0).toUpperCase() + orderType.slice(1);
-};
-
-const STATUS_VARIANTS = {
-  new: 'secondary',
-  awaiting_info: 'warning',
-  in_progress: 'info',
-  ordered: 'primary',
-  shipped: 'info',
-  received: 'success',
-  cancelled: 'secondary',
 };
 
 const formatStatusLabel = (status) => {
@@ -97,7 +83,8 @@ const RequestsPage = () => {
   const [documentationFile, setDocumentationFile] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
-
+  const [updateRequestOrder, setUpdateRequestOrder] = useState(null);
+  const [viewMessagesOrder, setViewMessagesOrder] = useState(null);
 
   useEffect(() => {
     dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
@@ -579,17 +566,37 @@ const RequestsPage = () => {
                             <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
                               Status: {formatStatusLabel(order.status)}
                             </Badge>
+                            {order.message_count > 0 && (
+                              <Badge bg="info" title="Messages on this request">
+                                <FaEnvelope className="me-1" />
+                                {order.message_count}
+                              </Badge>
+                            )}
                           </div>
-                          {order.status !== 'cancelled' && order.status !== 'received' && editingRequest !== order.id && (
+                          {editingRequest !== order.id && (
                             <div className="d-flex gap-2 flex-wrap">
-                              <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(order)}>
-                                <FaEdit className="me-1" />
-                                Edit
-                              </Button>
-                              <Button size="sm" variant="outline-danger" onClick={() => handleCancelRequest(order.id)}>
-                                <FaTimes className="me-1" />
-                                Cancel
-                              </Button>
+                              {order.message_count > 0 && (
+                                <Button size="sm" variant="outline-secondary" onClick={() => setViewMessagesOrder(order)}>
+                                  <FaEnvelope className="me-1" />
+                                  View Messages
+                                </Button>
+                              )}
+                              {order.status !== 'cancelled' && order.status !== 'received' && (
+                                <>
+                                  <Button size="sm" variant="outline-info" onClick={() => setUpdateRequestOrder(order)}>
+                                    <FaSync className="me-1" />
+                                    Request Update
+                                  </Button>
+                                  <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(order)}>
+                                    <FaEdit className="me-1" />
+                                    Edit
+                                  </Button>
+                                  <Button size="sm" variant="outline-danger" onClick={() => handleCancelRequest(order.id)}>
+                                    <FaTimes className="me-1" />
+                                    Cancel
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -714,6 +721,20 @@ const RequestsPage = () => {
           </Tabs>
         </Card.Body>
       </Card>
+
+      {/* Generate Update Request Modal */}
+      <GenerateUpdateRequestModal
+        show={!!updateRequestOrder}
+        onHide={() => setUpdateRequestOrder(null)}
+        order={updateRequestOrder || {}}
+      />
+
+      {/* View Messages Modal */}
+      <ViewMessagesModal
+        show={!!viewMessagesOrder}
+        onHide={() => setViewMessagesOrder(null)}
+        order={viewMessagesOrder || {}}
+      />
     </div>
   );
 };
