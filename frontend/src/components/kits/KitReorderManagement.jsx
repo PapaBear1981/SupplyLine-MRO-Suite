@@ -61,6 +61,35 @@ const KitReorderManagement = ({ kitId = null }) => {
     return <Badge bg={variants[status] || 'secondary'}>{status.toUpperCase()}</Badge>;
   };
 
+  const getOrderStatusBadge = (request) => {
+    // Show order status if available, otherwise show reorder request status
+    if (request.order_status) {
+      // Map order statuses to badge variants (matching orders page)
+      const variants = {
+        new: 'info',           // Display as "approved" (blue)
+        awaiting_info: 'warning',
+        in_progress: 'info',
+        ordered: 'primary',
+        shipped: 'info',
+        received: 'success',
+        cancelled: 'secondary',
+      };
+
+      // Map "new" to display as "approved", otherwise format the status
+      let displayStatus = request.order_status;
+      if (displayStatus === 'new') {
+        displayStatus = 'approved';
+      } else {
+        displayStatus = displayStatus.replace('_', ' ');
+      }
+
+      return <Badge bg={variants[request.order_status] || 'secondary'}>{displayStatus.toUpperCase()}</Badge>;
+    }
+
+    // Fallback to reorder request status (for pending requests without orders)
+    return getStatusBadge(request.status);
+  };
+
   const getPriorityBadge = (priority) => {
     const variants = {
       low: 'secondary',
@@ -255,7 +284,7 @@ const KitReorderManagement = ({ kitId = null }) => {
                       <td>{request.description}</td>
                       <td><strong>{request.quantity_requested}</strong></td>
                       <td>{getPriorityBadge(request.priority)}</td>
-                      <td>{getStatusBadge(request.status)}</td>
+                      <td>{getOrderStatusBadge(request)}</td>
                       <td>
                         {request.is_automatic ? (
                           <Badge bg="info">Auto</Badge>
