@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
 import { FaPaperPlane, FaSync } from 'react-icons/fa';
@@ -8,6 +8,7 @@ const GenerateUpdateRequestModal = ({ show, onHide, order }) => {
   const dispatch = useDispatch();
   const { messageActionLoading } = useSelector((state) => state.orders);
 
+  const closeTimeoutRef = useRef(null);
   const [message, setMessage] = useState('');
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -18,12 +19,39 @@ const GenerateUpdateRequestModal = ({ show, onHide, order }) => {
       setMessage('');
       setSubmitError(null);
       setSubmitSuccess(false);
+
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
     }
+
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
   }, [show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+
+    if (!order?.id) {
+      setSubmitError('Order information is missing.');
+      return;
+    }
+
+    if (!order?.buyer_id) {
+      setSubmitError('A buyer has not been assigned yet. Please try again after a buyer is assigned.');
+      return;
+    }
+
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
 
     try {
       await dispatch(sendOrderMessage({
@@ -37,8 +65,9 @@ const GenerateUpdateRequestModal = ({ show, onHide, order }) => {
       setSubmitSuccess(true);
 
       // Close modal after short delay to show success message
-      setTimeout(() => {
+      closeTimeoutRef.current = setTimeout(() => {
         onHide();
+        closeTimeoutRef.current = null;
       }, 1500);
     } catch (err) {
       console.error('Failed to send update request:', err);
@@ -61,6 +90,12 @@ const GenerateUpdateRequestModal = ({ show, onHide, order }) => {
           {submitSuccess && (
             <Alert variant="success">
               Update request sent successfully!
+            </Alert>
+          )}
+
+          {!order?.buyer_id && !submitSuccess && (
+            <Alert variant="warning" className="mb-3">
+              A buyer has not been assigned to this request yet. Update requests can be sent once a buyer is assigned.
             </Alert>
           )}
 
@@ -98,7 +133,7 @@ const GenerateUpdateRequestModal = ({ show, onHide, order }) => {
           <Button
             type="submit"
             variant="primary"
-            disabled={messageActionLoading || submitSuccess}
+            disabled={messageActionLoading || submitSuccess || !order?.buyer_id}
           >
             {messageActionLoading ? (
               <>

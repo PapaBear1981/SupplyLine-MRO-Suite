@@ -5,23 +5,7 @@ import { FaEnvelope, FaExternalLinkAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { fetchOrders } from '../../store/ordersSlice';
 import { formatDistanceToNow } from 'date-fns';
-
-const statusVariantMap = {
-  new: 'secondary',
-  awaiting_info: 'warning',
-  in_progress: 'info',
-  ordered: 'primary',
-  shipped: 'info',
-  received: 'success',
-  cancelled: 'secondary',
-};
-
-const priorityVariantMap = {
-  critical: 'danger',
-  high: 'warning',
-  normal: 'secondary',
-  low: 'info',
-};
+import { PRIORITY_VARIANTS, STATUS_VARIANTS } from '../../constants/orderConstants';
 
 const PendingUpdateRequestsWidget = () => {
   const dispatch = useDispatch();
@@ -120,10 +104,10 @@ const PendingUpdateRequestsWidget = () => {
                   </div>
                   <div className="text-end">
                     <div className="d-flex flex-column gap-1 align-items-end">
-                      <Badge bg={statusVariantMap[order.status] || 'secondary'} className="text-uppercase">
+                      <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'} className="text-uppercase">
                         {order.status.replace('_', ' ')}
                       </Badge>
-                      <Badge bg={priorityVariantMap[order.priority] || 'secondary'}>
+                      <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
                         {order.priority}
                       </Badge>
                     </div>

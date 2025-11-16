@@ -19,6 +19,7 @@ import { toast } from 'react-toastify';
 import { createOrder, fetchOrders, updateOrder } from '../store/ordersSlice';
 import GenerateUpdateRequestModal from '../components/requests/GenerateUpdateRequestModal';
 import ViewMessagesModal from '../components/requests/ViewMessagesModal';
+import { PRIORITY_VARIANTS, STATUS_VARIANTS } from '../constants/orderConstants';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -34,13 +35,6 @@ const PRIORITIES = [
   { value: 'low', label: 'Low' },
 ];
 
-const PRIORITY_VARIANTS = {
-  critical: 'danger',
-  high: 'warning',
-  normal: 'secondary',
-  low: 'info',
-};
-
 const getOrderTypeLabel = (orderType) => {
   const match = ORDER_TYPES.find((option) => option.value === orderType);
   if (match) {
@@ -52,16 +46,6 @@ const getOrderTypeLabel = (orderType) => {
   }
 
   return orderType.charAt(0).toUpperCase() + orderType.slice(1);
-};
-
-const STATUS_VARIANTS = {
-  new: 'secondary',
-  awaiting_info: 'warning',
-  in_progress: 'info',
-  ordered: 'primary',
-  shipped: 'info',
-  received: 'success',
-  cancelled: 'secondary',
 };
 
 const formatStatusLabel = (status) => {
@@ -101,7 +85,6 @@ const RequestsPage = () => {
   const [editFormState, setEditFormState] = useState(null);
   const [updateRequestOrder, setUpdateRequestOrder] = useState(null);
   const [viewMessagesOrder, setViewMessagesOrder] = useState(null);
-
 
   useEffect(() => {
     dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
