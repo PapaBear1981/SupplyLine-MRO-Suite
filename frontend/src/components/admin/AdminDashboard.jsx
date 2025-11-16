@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Nav, Tab, Alert } from 'react-bootstrap';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
@@ -16,6 +17,7 @@ import DatabaseManagement from './DatabaseManagement';
 import { fetchDashboardStats, fetchRegistrationRequests } from '../../store/adminSlice';
 
 const AdminDashboard = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
   const dispatch = useDispatch();
   const { user: currentUser, isLoading: authLoading } = useSelector((state) => state.auth);
@@ -23,6 +25,16 @@ const AdminDashboard = () => {
     dashboardStats,
     loading: adminLoading
   } = useSelector((state) => state.admin);
+
+  // Read tab from URL parameter on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+      // Clear the tab param from URL after reading
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Memoize permission checks to prevent unnecessary recalculations
   // Admins (is_admin: true) have FULL access to all features
@@ -163,7 +175,7 @@ const AdminDashboard = () => {
             <Tab.Content>
               <Tab.Pane eventKey="dashboard">
                 {canViewDashboard && (
-                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} />
+                  <DashboardStats stats={dashboardStats} loading={adminLoading.dashboardStats} onNavigateToTab={setActiveTab} />
                 )}
               </Tab.Pane>
               <Tab.Pane eventKey="users">
