@@ -497,6 +497,26 @@ def test_utils():
     return TestUtils
 
 @pytest.fixture
+def auth_headers_admin(auth_headers):
+    """Alias for auth_headers to provide admin authentication headers"""
+    return auth_headers
+
+@pytest.fixture
+def auth_headers_user(user_auth_headers):
+    """Alias for user_auth_headers to provide regular user authentication headers"""
+    return user_auth_headers
+
+@pytest.fixture
+def test_tool(sample_tool):
+    """Alias for sample_tool fixture"""
+    return sample_tool
+
+@pytest.fixture
+def test_chemical(sample_chemical):
+    """Alias for sample_chemical fixture"""
+    return sample_chemical
+
+@pytest.fixture
 def test_user_2(db_session):
     """Create a second test user"""
     from models import User
