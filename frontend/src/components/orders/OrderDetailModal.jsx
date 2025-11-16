@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Modal, Form, Button, Row, Col, Badge, ListGroup, Tabs, Tab, Alert } from 'react-bootstrap';
-import { FaSave, FaEnvelope, FaReply, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
+import { Modal, Form, Button, Row, Col, Badge, ListGroup, Tabs, Tab, Alert, Card } from 'react-bootstrap';
+import { FaSave, FaEnvelope, FaReply, FaInfoCircle, FaCheckCircle, FaDownload, FaFile, FaFilePdf, FaFileImage, FaFileWord, FaFileExcel, FaFileArchive } from 'react-icons/fa';
 import { formatDateTime } from '../../utils/dateUtils';
 
 const ORDER_TYPES = [
@@ -42,6 +42,62 @@ const STATUS_VARIANTS = {
   shipped: 'info',
   received: 'success',
   cancelled: 'secondary',
+};
+
+// Helper function to get file icon based on extension
+const getFileIcon = (filename) => {
+  if (!filename) return <FaFile />;
+  const ext = filename.split('.').pop()?.toLowerCase();
+
+  switch (ext) {
+    case 'pdf':
+      return <FaFilePdf className="text-danger" />;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'webp':
+      return <FaFileImage className="text-info" />;
+    case 'doc':
+    case 'docx':
+    case 'odt':
+    case 'rtf':
+    case 'txt':
+      return <FaFileWord className="text-primary" />;
+    case 'xls':
+    case 'xlsx':
+    case 'csv':
+    case 'ods':
+      return <FaFileExcel className="text-success" />;
+    case 'zip':
+    case 'tar':
+    case 'gz':
+    case '7z':
+      return <FaFileArchive className="text-warning" />;
+    default:
+      return <FaFile className="text-secondary" />;
+  }
+};
+
+// Helper function to extract filename from path
+const getFilenameFromPath = (path) => {
+  if (!path) return '';
+  const parts = path.split('/');
+  return parts[parts.length - 1];
+};
+
+// Helper function to format file size (for future use if needed)
+const formatFileSize = (bytes) => {
+  if (!bytes) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
 };
 
 const OrderDetailModal = ({
@@ -243,6 +299,46 @@ const OrderDetailModal = ({
                 )}
               </Col>
             </Row>
+
+            {/* Supporting Documents Section */}
+            <hr className="my-4" />
+            <h5 className="mb-3">Supporting Documents</h5>
+            {order.documentation_path ? (
+              <Card className="border-primary">
+                <Card.Body>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div className="d-flex align-items-center">
+                      <span className="me-3 fs-4">
+                        {getFileIcon(getFilenameFromPath(order.documentation_path))}
+                      </span>
+                      <div>
+                        <p className="mb-0 fw-semibold">
+                          {getFilenameFromPath(order.documentation_path)}
+                        </p>
+                        <small className="text-muted">
+                          Attached documentation for this order
+                        </small>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline-primary"
+                      href={order.documentation_path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      <FaDownload className="me-2" />
+                      Download
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            ) : (
+              <Alert variant="light" className="border">
+                <FaFile className="me-2 text-muted" />
+                No supporting documents attached to this order.
+              </Alert>
+            )}
           </Tab>
 
           {/* Messages Tab */}
