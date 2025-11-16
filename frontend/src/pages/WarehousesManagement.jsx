@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Form, InputGroup, Alert, Modal } from 'react-bootstrap';
-import { FaWarehouse, FaPlus, FaSearch, FaMapMarkerAlt, FaBox, FaFlask } from 'react-icons/fa';
+import { FaWarehouse, FaPlus, FaSearch, FaMapMarkerAlt, FaBox, FaFlask, FaEdit } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import api from '../services/api';
@@ -15,10 +15,11 @@ const WarehousesManagement = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
 
-  // Create warehouse form
+  // Create/Edit warehouse form
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -26,7 +27,10 @@ const WarehousesManagement = () => {
     state: '',
     zip_code: '',
     country: 'USA',
-    warehouse_type: 'satellite'
+    warehouse_type: 'satellite',
+    contact_person: '',
+    contact_phone: '',
+    contact_email: ''
   });
   const [validated, setValidated] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -86,7 +90,10 @@ const WarehousesManagement = () => {
       state: '',
       zip_code: '',
       country: 'USA',
-      warehouse_type: 'satellite'
+      warehouse_type: 'satellite',
+      contact_person: '',
+      contact_phone: '',
+      contact_email: ''
     });
     setValidated(false);
     setSubmitError(null);
@@ -95,13 +102,57 @@ const WarehousesManagement = () => {
   const handleViewDetails = async (warehouse) => {
     setSelectedWarehouse(warehouse);
     setShowDetailsPanel(true);
-    
+
     // Fetch warehouse stats
     try {
       const response = await api.get(`/warehouses/${warehouse.id}/stats`);
       setSelectedWarehouse(prev => ({ ...prev, stats: response.data }));
     } catch (err) {
       console.error('Failed to fetch warehouse stats:', err);
+    }
+  };
+
+  const handleEditWarehouse = (warehouse) => {
+    setFormData({
+      name: warehouse.name || '',
+      address: warehouse.address || '',
+      city: warehouse.city || '',
+      state: warehouse.state || '',
+      zip_code: warehouse.zip_code || '',
+      country: warehouse.country || 'USA',
+      warehouse_type: warehouse.warehouse_type || 'satellite',
+      contact_person: warehouse.contact_person || '',
+      contact_phone: warehouse.contact_phone || '',
+      contact_email: warehouse.contact_email || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateWarehouse = async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    if (form.checkValidity() === false) {
+      e.stopPropagation();
+      setValidated(true);
+      return;
+    }
+
+    setValidated(true);
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await api.put(`/warehouses/${selectedWarehouse.id}`, formData);
+      setShowEditModal(false);
+      resetForm();
+      fetchWarehouses();
+      setShowDetailsPanel(false);
+    } catch (err) {
+      console.error('Failed to update warehouse:', err);
+      setSubmitError(err.response?.data?.error || 'Failed to update warehouse');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -257,16 +308,31 @@ const WarehousesManagement = () => {
             <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Warehouse Details</h5>
-                <Button 
-                  variant="link" 
-                  size="sm" 
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => setShowDetailsPanel(false)}
                 >
                   ×
                 </Button>
               </Card.Header>
               <Card.Body>
-                <h6>{selectedWarehouse.name}</h6>
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                  <h6>{selectedWarehouse.name}</h6>
+                  {isAdmin && (
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditWarehouse(selectedWarehouse);
+                      }}
+                    >
+                      <FaEdit className="me-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 <p className="text-muted small mb-3">
                   {selectedWarehouse.address}<br />
                   {selectedWarehouse.city}, {selectedWarehouse.state} {selectedWarehouse.zip_code}
@@ -281,6 +347,28 @@ const WarehousesManagement = () => {
                     {selectedWarehouse.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+
+                {(selectedWarehouse.contact_person || selectedWarehouse.contact_phone || selectedWarehouse.contact_email) && (
+                  <>
+                    <hr />
+                    <h6>Contact Information</h6>
+                    {selectedWarehouse.contact_person && (
+                      <div className="mb-2">
+                        <strong>Contact:</strong> {selectedWarehouse.contact_person}
+                      </div>
+                    )}
+                    {selectedWarehouse.contact_phone && (
+                      <div className="mb-2">
+                        <strong>Phone:</strong> {selectedWarehouse.contact_phone}
+                      </div>
+                    )}
+                    {selectedWarehouse.contact_email && (
+                      <div className="mb-2">
+                        <strong>Email:</strong> {selectedWarehouse.contact_email}
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <hr />
 
@@ -377,6 +465,44 @@ const WarehousesManagement = () => {
                 </Form.Group>
               </Col>
             </Row>
+
+            <hr className="my-4" />
+            <h6 className="mb-3">Contact Information (Optional)</h6>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Contact Person</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.contact_person}
+                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                placeholder="Name of primary contact"
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Contact Phone</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Contact Email</Form.Label>
+                  <Form.Control
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                    placeholder="contact@example.com"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => { setShowCreateModal(false); resetForm(); }}>
@@ -384,6 +510,134 @@ const WarehousesManagement = () => {
             </Button>
             <Button variant="primary" type="submit" disabled={submitting}>
               {submitting ? 'Creating...' : 'Create Warehouse'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Edit Warehouse Modal */}
+      <Modal show={showEditModal} onHide={() => { setShowEditModal(false); resetForm(); }} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Warehouse</Modal.Title>
+        </Modal.Header>
+        <Form noValidate validated={validated} onSubmit={handleUpdateWarehouse}>
+          <Modal.Body>
+            {submitError && <Alert variant="danger">{submitError}</Alert>}
+
+            <Form.Group className="mb-3">
+              <Form.Label>Warehouse Name *</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                placeholder="e.g., Main Warehouse, Satellite A"
+              />
+              <Form.Control.Feedback type="invalid">
+                Warehouse name is required
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Warehouse Type *</Form.Label>
+              <Form.Select
+                value={formData.warehouse_type}
+                onChange={(e) => setFormData({ ...formData, warehouse_type: e.target.value })}
+                required
+              >
+                <option value="main">Main Warehouse</option>
+                <option value="satellite">Satellite Warehouse</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Address</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Street address"
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>City</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group className="mb-3">
+                  <Form.Label>State</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    maxLength={2}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Zip Code</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.zip_code}
+                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <hr className="my-4" />
+            <h6 className="mb-3">Contact Information (Optional)</h6>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Contact Person</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.contact_person}
+                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                placeholder="Name of primary contact"
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Contact Phone</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Contact Email</Form.Label>
+                  <Form.Control
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                    placeholder="contact@example.com"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => { setShowEditModal(false); resetForm(); }}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </Modal.Footer>
         </Form>
