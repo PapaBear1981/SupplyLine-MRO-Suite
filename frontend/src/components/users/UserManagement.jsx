@@ -69,9 +69,9 @@ const UserManagement = () => {
   // Filter users based on search query and active status
   const filteredUsers = users.filter(user => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.employee_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.department.toLowerCase().includes(searchQuery.toLowerCase());
+      (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.employee_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.department || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = showInactive ? true : user.is_active;
 
