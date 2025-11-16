@@ -228,7 +228,7 @@ const RequestsPage = () => {
 
       <Row className="g-4">
         <Col lg={6}>
-          <Card className="shadow-sm h-100">
+          <Card className="shadow-sm">
             <Card.Header>
               <h5 className="mb-0">Submit a Request</h5>
             </Card.Header>
