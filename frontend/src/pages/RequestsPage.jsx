@@ -13,10 +13,11 @@ import {
   Tab,
   Alert,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import { createOrder, fetchOrders, updateOrder } from '../store/ordersSlice';
+import GenerateUpdateRequestModal from '../components/requests/GenerateUpdateRequestModal';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -97,6 +98,7 @@ const RequestsPage = () => {
   const [documentationFile, setDocumentationFile] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
+  const [updateRequestOrder, setUpdateRequestOrder] = useState(null);
 
 
   useEffect(() => {
@@ -582,6 +584,10 @@ const RequestsPage = () => {
                           </div>
                           {order.status !== 'cancelled' && order.status !== 'received' && editingRequest !== order.id && (
                             <div className="d-flex gap-2 flex-wrap">
+                              <Button size="sm" variant="outline-info" onClick={() => setUpdateRequestOrder(order)}>
+                                <FaSync className="me-1" />
+                                Request Update
+                              </Button>
                               <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(order)}>
                                 <FaEdit className="me-1" />
                                 Edit
@@ -714,6 +720,13 @@ const RequestsPage = () => {
           </Tabs>
         </Card.Body>
       </Card>
+
+      {/* Generate Update Request Modal */}
+      <GenerateUpdateRequestModal
+        show={!!updateRequestOrder}
+        onHide={() => setUpdateRequestOrder(null)}
+        order={updateRequestOrder || {}}
+      />
     </div>
   );
 };
