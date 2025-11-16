@@ -336,7 +336,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   </td>
                   <td>{order.expected_due_date ? formatDate(order.expected_due_date) : '—'}</td>
                   <td>
-                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-2">
+                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-1" title="View Details">
                       View
                     </Button>
                     {(order.status === 'new' || order.status === 'awaiting_info' || order.status === 'in_progress') && (
@@ -344,10 +344,10 @@ const AllOrdersTab = ({ onViewOrder }) => {
                         variant="info"
                         size="sm"
                         onClick={() => handleOpenOrderedModal(order)}
-                        className="me-2"
+                        className="me-1"
+                        title="Mark as Ordered"
                       >
-                        <FaShoppingCart className="me-1" />
-                        Mark Ordered
+                        <FaShoppingCart />
                       </Button>
                     )}
                     {(order.status === 'new' || order.status === 'ordered' || order.status === 'shipped' || order.status === 'in_progress') && (
@@ -355,9 +355,9 @@ const AllOrdersTab = ({ onViewOrder }) => {
                         variant="success"
                         size="sm"
                         onClick={() => handleOpenDeliveryModal(order)}
+                        title="Mark as Delivered"
                       >
-                        <FaCheckCircle className="me-1" />
-                        Mark Delivered
+                        <FaCheckCircle />
                       </Button>
                     )}
                   </td>
