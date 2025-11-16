@@ -12,20 +12,26 @@ import {
   Tabs,
   Tab,
   Alert,
+  Table,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaPaperclip, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
-import { createOrder, fetchOrders, updateOrder } from '../store/ordersSlice';
-import GenerateUpdateRequestModal from '../components/requests/GenerateUpdateRequestModal';
-import ViewMessagesModal from '../components/requests/ViewMessagesModal';
-import { PRIORITY_VARIANTS, STATUS_VARIANTS } from '../constants/orderConstants';
+import {
+  createUserRequest,
+  fetchUserRequests,
+  updateUserRequest,
+  cancelUserRequest,
+  fetchRequestMessages,
+  sendRequestMessage,
+} from '../store/userRequestsSlice';
+import { PRIORITY_VARIANTS } from '../constants/orderConstants';
 
-const ORDER_TYPES = [
+const ITEM_TYPES = [
   { value: 'tool', label: 'Tool' },
   { value: 'chemical', label: 'Chemical' },
   { value: 'expendable', label: 'Expendable' },
-  { value: 'kit', label: 'Kit Component' },
+  { value: 'other', label: 'Other' },
 ];
 
 const PRIORITIES = [
@@ -35,24 +41,26 @@ const PRIORITIES = [
   { value: 'low', label: 'Low' },
 ];
 
-const getOrderTypeLabel = (orderType) => {
-  const match = ORDER_TYPES.find((option) => option.value === orderType);
-  if (match) {
-    return match.label;
-  }
+const STATUS_VARIANTS = {
+  new: 'primary',
+  awaiting_info: 'warning',
+  in_progress: 'info',
+  partially_ordered: 'info',
+  ordered: 'success',
+  partially_received: 'info',
+  received: 'success',
+  cancelled: 'secondary',
+  pending: 'warning',
+  shipped: 'info',
+};
 
-  if (!orderType) {
-    return 'Other';
-  }
-
-  return orderType.charAt(0).toUpperCase() + orderType.slice(1);
+const getItemTypeLabel = (itemType) => {
+  const match = ITEM_TYPES.find((option) => option.value === itemType);
+  return match ? match.label : itemType?.charAt(0).toUpperCase() + itemType?.slice(1) || 'Other';
 };
 
 const formatStatusLabel = (status) => {
-  if (!status) {
-    return 'Unknown';
-  }
-
+  if (!status) return 'Unknown';
   return status
     .replace(/_/g, ' ')
     .split(' ')
@@ -60,77 +68,108 @@ const formatStatusLabel = (status) => {
     .join(' ');
 };
 
+const INITIAL_ITEM = {
+  item_type: 'tool',
+  part_number: '',
+  description: '',
+  quantity: 1,
+  unit: 'each',
+};
+
 const INITIAL_FORM_STATE = {
   title: '',
-  order_type: 'tool',
-  part_number: '',
-  quantity: '',
-  unit: '',
+  description: '',
   priority: 'normal',
   expected_due_date: '',
-  description: '',
   notes: '',
+  items: [{ ...INITIAL_ITEM }],
 };
 
 const RequestsPage = () => {
   const dispatch = useDispatch();
-  const { list, loading } = useSelector((state) => state.orders);
+  const { list, loading } = useSelector((state) => state.userRequests);
   const { user } = useSelector((state) => state.auth);
 
   const [activeTab, setActiveTab] = useState('submit');
   const [formState, setFormState] = useState(INITIAL_FORM_STATE);
   const [submitting, setSubmitting] = useState(false);
-  const [documentationFile, setDocumentationFile] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
-  const [updateRequestOrder, setUpdateRequestOrder] = useState(null);
-  const [viewMessagesOrder, setViewMessagesOrder] = useState(null);
+  const [viewRequestDetails, setViewRequestDetails] = useState(null);
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [selectedRequestForMessage, setSelectedRequestForMessage] = useState(null);
+  const [messageSubject, setMessageSubject] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [requestMessages, setRequestMessages] = useState([]);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+    dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
   }, [dispatch]);
 
   const myRequests = useMemo(() => {
     if (!user) return [];
-    const mine = list.filter((order) => order.requester_id === user.id);
-    return mine
-      .slice()
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const mine = list.filter((req) => req.requester_id === user.id);
+    return mine.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [list, user]);
 
   const openRequests = useMemo(
-    () => myRequests.filter((order) => !['received', 'cancelled'].includes(order.status)).length,
+    () => myRequests.filter((req) => !['received', 'cancelled'].includes(req.status)).length,
     [myRequests],
   );
 
   const completedRequests = useMemo(
-    () => myRequests.filter((order) => ['received'].includes(order.status)).length,
+    () => myRequests.filter((req) => req.status === 'received').length,
     [myRequests],
   );
 
   const awaitingInfoRequests = useMemo(
-    () => myRequests.filter((order) => order.status === 'awaiting_info').length,
+    () => myRequests.filter((req) => req.status === 'awaiting_info').length,
     [myRequests],
   );
 
   const needsAttentionRequests = useMemo(
-    () => myRequests.filter((order) => order.needs_more_info),
+    () => myRequests.filter((req) => req.needs_more_info),
     [myRequests],
   );
+
+  const totalItemsRequested = useMemo(() => {
+    return myRequests.reduce((sum, req) => sum + (req.item_count || 0), 0);
+  }, [myRequests]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormState((previous) => ({ ...previous, [name]: value }));
   };
 
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0] || null;
-    setDocumentationFile(file);
+  const handleItemChange = (index, field, value) => {
+    setFormState((prev) => {
+      const newItems = [...prev.items];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return { ...prev, items: newItems };
+    });
+  };
+
+  const addItem = () => {
+    setFormState((prev) => ({
+      ...prev,
+      items: [...prev.items, { ...INITIAL_ITEM }],
+    }));
+  };
+
+  const removeItem = (index) => {
+    if (formState.items.length <= 1) {
+      toast.warning('At least one item is required.');
+      return;
+    }
+    setFormState((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
   };
 
   const resetForm = () => {
     setFormState(INITIAL_FORM_STATE);
-    setDocumentationFile(null);
   };
 
   const handleSubmit = async (event) => {
@@ -140,24 +179,40 @@ const RequestsPage = () => {
       return;
     }
 
-    const payload = {
-      ...formState,
-      requester_id: user?.id,
-      quantity: formState.quantity ? Number(formState.quantity) : undefined,
-      documentation: documentationFile || undefined,
-    };
-
-    if (payload.quantity !== undefined && (Number.isNaN(payload.quantity) || payload.quantity <= 0)) {
-      toast.error('Quantity must be a positive number.');
-      return;
+    // Validate items
+    for (let i = 0; i < formState.items.length; i++) {
+      const item = formState.items[i];
+      if (!item.description.trim()) {
+        toast.error(`Item ${i + 1} is missing a description.`);
+        return;
+      }
+      if (!item.quantity || item.quantity < 1) {
+        toast.error(`Item ${i + 1} must have a valid quantity.`);
+        return;
+      }
     }
+
+    const payload = {
+      title: formState.title.trim(),
+      description: formState.description.trim() || undefined,
+      priority: formState.priority,
+      expected_due_date: formState.expected_due_date || undefined,
+      notes: formState.notes.trim() || undefined,
+      items: formState.items.map((item) => ({
+        item_type: item.item_type,
+        part_number: item.part_number.trim() || undefined,
+        description: item.description.trim(),
+        quantity: parseInt(item.quantity, 10),
+        unit: item.unit.trim() || 'each',
+      })),
+    };
 
     setSubmitting(true);
     try {
-      await dispatch(createOrder(payload)).unwrap();
-      toast.success('Request submitted successfully.');
+      await dispatch(createUserRequest(payload)).unwrap();
+      toast.success(`Request submitted with ${payload.items.length} item(s).`);
       resetForm();
-      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+      dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
     } catch (error) {
       toast.error(error.message || 'Unable to submit request.');
     } finally {
@@ -180,14 +235,14 @@ const RequestsPage = () => {
 
   const handleSaveEdit = async (requestId) => {
     try {
-      await dispatch(updateOrder({
-        orderId: requestId,
-        orderData: editFormState,
+      await dispatch(updateUserRequest({
+        requestId,
+        requestData: editFormState,
       })).unwrap();
       toast.success('Request updated successfully.');
       setEditingRequest(null);
       setEditFormState(null);
-      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+      dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
     } catch (error) {
       toast.error(error.message || 'Failed to update request.');
     }
@@ -200,12 +255,12 @@ const RequestsPage = () => {
 
   const handleResolveNeedsInfo = async (requestId) => {
     try {
-      await dispatch(updateOrder({
-        orderId: requestId,
-        orderData: { needs_more_info: false },
+      await dispatch(updateUserRequest({
+        requestId,
+        requestData: { needs_more_info: false },
       })).unwrap();
       toast.success('Request marked as resolved.');
-      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+      dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
     } catch (error) {
       toast.error(error.message || 'Failed to update request.');
     }
@@ -216,15 +271,55 @@ const RequestsPage = () => {
       return;
     }
     try {
-      await dispatch(updateOrder({
-        orderId: requestId,
-        orderData: { status: 'cancelled' },
-      })).unwrap();
+      await dispatch(cancelUserRequest(requestId)).unwrap();
       toast.success('Request cancelled successfully.');
-      dispatch(fetchOrders({ sort: 'created', limit: 50 })).catch(() => {});
+      dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
     } catch (error) {
       toast.error(error.message || 'Failed to cancel request.');
     }
+  };
+
+  const handleViewMessages = async (request) => {
+    setSelectedRequestForMessage(request);
+    setShowMessagesModal(true);
+    try {
+      const result = await dispatch(fetchRequestMessages(request.id)).unwrap();
+      setRequestMessages(result.messages || []);
+    } catch (error) {
+      toast.error('Failed to load messages.');
+      setRequestMessages([]);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageSubject.trim() || !messageText.trim()) {
+      toast.error('Please provide both subject and message.');
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const result = await dispatch(sendRequestMessage({
+        requestId: selectedRequestForMessage.id,
+        messageData: {
+          subject: messageSubject.trim(),
+          message: messageText.trim(),
+        },
+      })).unwrap();
+      setRequestMessages([result.message, ...requestMessages]);
+      setMessageSubject('');
+      setMessageText('');
+      toast.success('Message sent successfully.');
+    } catch (error) {
+      toast.error(error.message || 'Failed to send message.');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const renderItemStatusBadge = (status) => {
+    const variant = STATUS_VARIANTS[status] || 'secondary';
+    return <Badge bg={variant}>{formatStatusLabel(status)}</Badge>;
   };
 
   return (
@@ -236,7 +331,7 @@ const RequestsPage = () => {
             Procurement Requests
           </h1>
           <p className="text-muted mb-0">
-            Submit requests for tools, chemicals, expendables, or other materials that need to be ordered.
+            Submit multi-item requests for tools, chemicals, expendables, or other materials.
           </p>
         </div>
       </div>
@@ -249,7 +344,7 @@ const RequestsPage = () => {
                 <FaPlusCircle className="text-primary" size={28} />
                 <div>
                   <h5 className="mb-0">Open Requests</h5>
-                  <small className="text-muted">Awaiting processing or fulfillment</small>
+                  <small className="text-muted">Awaiting processing</small>
                 </div>
               </div>
               <h2 className="display-6 fw-bold mb-0">{openRequests}</h2>
@@ -274,13 +369,13 @@ const RequestsPage = () => {
           <Card className="h-100 shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
-                <FaPaperPlane className="text-info" size={28} />
+                <FaBoxes className="text-info" size={28} />
                 <div>
-                  <h5 className="mb-0">Awaiting Info</h5>
-                  <small className="text-muted">Requests awaiting status update</small>
+                  <h5 className="mb-0">Total Items</h5>
+                  <small className="text-muted">Across all requests</small>
                 </div>
               </div>
-              <h2 className="display-6 fw-bold mb-0">{awaitingInfoRequests}</h2>
+              <h2 className="display-6 fw-bold mb-0">{totalItemsRequested}</h2>
             </Card.Body>
           </Card>
         </Col>
@@ -288,10 +383,10 @@ const RequestsPage = () => {
           <Card className="h-100 shadow-sm">
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
-                <FaClipboardList className="text-success" size={28} />
+                <FaCheckCircle className="text-success" size={28} />
                 <div>
                   <h5 className="mb-0">Completed</h5>
-                  <small className="text-muted">Delivered or picked up</small>
+                  <small className="text-muted">Fully received</small>
                 </div>
               </div>
               <h2 className="display-6 fw-bold mb-0">{completedRequests}</h2>
@@ -306,163 +401,183 @@ const RequestsPage = () => {
             {/* Submit Request Tab */}
             <Tab eventKey="submit" title="Submit Request">
               <Row className="g-4">
-                <Col lg={8} className="mx-auto">
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Title <span className="text-danger">*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="title"
-                    value={formState.title}
-                    onChange={handleChange}
-                    placeholder="What do you need to order?"
-                    required
-                  />
-                </Form.Group>
+                <Col lg={10} className="mx-auto">
+                  <Form onSubmit={handleSubmit}>
+                    <Card className="mb-4">
+                      <Card.Header>
+                        <h5 className="mb-0">Request Details</h5>
+                      </Card.Header>
+                      <Card.Body>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Request Title <span className="text-danger">*</span></Form.Label>
+                          <Form.Control
+                            type="text"
+                            name="title"
+                            value={formState.title}
+                            onChange={handleChange}
+                            placeholder="Brief description of what you need"
+                            required
+                          />
+                        </Form.Group>
 
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Order Type</Form.Label>
-                      <Form.Select name="order_type" value={formState.order_type} onChange={handleChange}>
-                        {ORDER_TYPES.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
+                        <Row className="g-3">
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label>Priority</Form.Label>
+                              <Form.Select name="priority" value={formState.priority} onChange={handleChange}>
+                                {PRIORITIES.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </Form.Select>
+                            </Form.Group>
+                          </Col>
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label>Needed By</Form.Label>
+                              <Form.Control
+                                type="date"
+                                name="expected_due_date"
+                                value={formState.expected_due_date}
+                                onChange={handleChange}
+                              />
+                            </Form.Group>
+                          </Col>
+                        </Row>
+
+                        <Form.Group className="mb-3 mt-3">
+                          <Form.Label>Overall Description</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={2}
+                            name="description"
+                            value={formState.description}
+                            onChange={handleChange}
+                            placeholder="General description or purpose of this request"
+                          />
+                        </Form.Group>
+
+                        <Form.Group>
+                          <Form.Label>Additional Notes</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={2}
+                            name="notes"
+                            value={formState.notes}
+                            onChange={handleChange}
+                            placeholder="Any special instructions or justifications"
+                          />
+                        </Form.Group>
+                      </Card.Body>
+                    </Card>
+
+                    <Card className="mb-4">
+                      <Card.Header className="d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0">Items to Request ({formState.items.length})</h5>
+                        <Button variant="outline-primary" size="sm" onClick={addItem}>
+                          <FaPlus className="me-1" />
+                          Add Item
+                        </Button>
+                      </Card.Header>
+                      <Card.Body>
+                        {formState.items.map((item, index) => (
+                          <Card key={index} className="mb-3 border">
+                            <Card.Header className="d-flex justify-content-between align-items-center py-2">
+                              <strong>Item #{index + 1}</strong>
+                              {formState.items.length > 1 && (
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => removeItem(index)}
+                                >
+                                  <FaTrash />
+                                </Button>
+                              )}
+                            </Card.Header>
+                            <Card.Body>
+                              <Row className="g-3">
+                                <Col md={4}>
+                                  <Form.Group>
+                                    <Form.Label>Type</Form.Label>
+                                    <Form.Select
+                                      value={item.item_type}
+                                      onChange={(e) => handleItemChange(index, 'item_type', e.target.value)}
+                                    >
+                                      {ITEM_TYPES.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </Form.Select>
+                                  </Form.Group>
+                                </Col>
+                                <Col md={4}>
+                                  <Form.Group>
+                                    <Form.Label>Part Number</Form.Label>
+                                    <Form.Control
+                                      type="text"
+                                      value={item.part_number}
+                                      onChange={(e) => handleItemChange(index, 'part_number', e.target.value)}
+                                      placeholder="Optional"
+                                    />
+                                  </Form.Group>
+                                </Col>
+                                <Col md={2}>
+                                  <Form.Group>
+                                    <Form.Label>Quantity <span className="text-danger">*</span></Form.Label>
+                                    <Form.Control
+                                      type="number"
+                                      min="1"
+                                      value={item.quantity}
+                                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                    />
+                                  </Form.Group>
+                                </Col>
+                                <Col md={2}>
+                                  <Form.Group>
+                                    <Form.Label>Unit</Form.Label>
+                                    <Form.Control
+                                      type="text"
+                                      value={item.unit}
+                                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                      placeholder="each"
+                                    />
+                                  </Form.Group>
+                                </Col>
+                              </Row>
+                              <Form.Group className="mt-3">
+                                <Form.Label>Description <span className="text-danger">*</span></Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  value={item.description}
+                                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                  placeholder="Describe what you need, including specifications, size, material, etc."
+                                />
+                              </Form.Group>
+                            </Card.Body>
+                          </Card>
                         ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Priority</Form.Label>
-                      <Form.Select name="priority" value={formState.priority} onChange={handleChange}>
-                        {PRIORITIES.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                </Row>
+                      </Card.Body>
+                    </Card>
 
-                <Row className="g-3 mt-1">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Part Number</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="part_number"
-                        value={formState.part_number}
-                        onChange={handleChange}
-                        placeholder="Optional reference number"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Quantity</Form.Label>
-                      <Form.Control
-                        type="number"
-                        min="1"
-                        name="quantity"
-                        value={formState.quantity}
-                        onChange={handleChange}
-                        placeholder="e.g. 5"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Unit</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="unit"
-                        value={formState.unit}
-                        onChange={handleChange}
-                        placeholder="Each, case, etc."
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-1">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Needed By</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="expected_due_date"
-                        value={formState.expected_due_date}
-                        onChange={handleChange}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Form.Group className="mb-3 mt-3">
-                  <Form.Label>Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="description"
-                    value={formState.description}
-                    onChange={handleChange}
-                    placeholder="Include details such as size, material, or specifications."
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-4">
-                  <Form.Label>Justification / Additional Notes</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={2}
-                    name="notes"
-                    value={formState.notes}
-                    onChange={handleChange}
-                    placeholder="Share why this item is needed or any special instructions."
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-4">
-                  <Form.Label className="d-flex align-items-center gap-2">
-                    <FaPaperclip />
-                    <span>Supporting Documentation</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.bmp,.txt,.rtf,.zip,.7z,.tar,.gz"
-                  />
-                  <Form.Text className="text-muted">
-                    Not required, but highly recommended. Attach quotes, spec sheets, drawings, or approval emails to
-                    help purchasing process your request faster.
-                  </Form.Text>
-                  {documentationFile && (
-                    <div className="mt-2 small text-muted">
-                      Selected file: <strong>{documentationFile.name}</strong>
+                    <div className="d-flex justify-content-end">
+                      <Button type="submit" variant="primary" size="lg" disabled={submitting}>
+                        {submitting ? (
+                          <>
+                            <Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <FaPaperPlane className="me-2" />
+                            Submit Request ({formState.items.length} item{formState.items.length !== 1 ? 's' : ''})
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  )}
-                </Form.Group>
-
-
-                <div className="d-flex justify-content-end">
-                  <Button type="submit" variant="primary" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <FaPaperPlane className="me-2" />
-                        Submit Request
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Form>
+                  </Form>
                 </Col>
               </Row>
             </Tab>
@@ -480,126 +595,162 @@ const RequestsPage = () => {
                 </div>
               ) : (
                 <ListGroup variant="flush" className="requests-list">
-                  {myRequests.map((order) => (
-                    <ListGroup.Item key={order.id} className="py-3">
-                      {order.needs_more_info && (
+                  {myRequests.map((req) => (
+                    <ListGroup.Item key={req.id} className="py-3">
+                      {req.needs_more_info && (
                         <Alert variant="warning" className="mb-2">
                           <FaInfoCircle className="me-2" />
                           <strong>Attention Required:</strong> This request needs more information.
                         </Alert>
                       )}
-                      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
-                        <div className="flex-grow-1">
-                          <h6 className="mb-1">{order.title}</h6>
-                          <div className="text-muted small">
-                            Requested {order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : 'N/A'}
-                          </div>
-                          {order.part_number && (
-                            <div className="text-muted small">Part #: {order.part_number}</div>
-                          )}
-                          {order.expected_due_date && (
+                      <div className="d-flex flex-column gap-3">
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="flex-grow-1">
+                            <h5 className="mb-1">{req.title}</h5>
                             <div className="text-muted small">
-                              Needed by {new Date(order.expected_due_date).toLocaleDateString()}
+                              Requested {req.created_at ? formatDistanceToNow(new Date(req.created_at), { addSuffix: true }) : 'N/A'}
+                              {' | '}
+                              {req.item_count} item{req.item_count !== 1 ? 's' : ''}
                             </div>
-                          )}
-                          {order.quantity && (
-                            <div className="text-muted small">
-                              Quantity: {order.quantity}
-                              {order.unit ? ` ${order.unit}` : ''}
-                            </div>
-                          )}
-                          {editingRequest === order.id ? (
-                            <div className="mt-3">
-                              <Form.Group className="mb-2">
-                                <Form.Label>Description</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  name="description"
-                                  value={editFormState.description}
-                                  onChange={handleEditFormChange}
-                                />
-                              </Form.Group>
-                              <Form.Group className="mb-2">
-                                <Form.Label>Notes</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  name="notes"
-                                  value={editFormState.notes}
-                                  onChange={handleEditFormChange}
-                                />
-                              </Form.Group>
-                              <div className="d-flex gap-2">
-                                <Button size="sm" variant="primary" onClick={() => handleSaveEdit(order.id)}>
-                                  <FaCheckCircle className="me-1" />
-                                  Save
-                                </Button>
-                                <Button size="sm" variant="secondary" onClick={handleCancelEdit}>
-                                  Cancel
-                                </Button>
+                            {req.expected_due_date && (
+                              <div className="text-muted small">
+                                Needed by {new Date(req.expected_due_date).toLocaleDateString()}
                               </div>
-                            </div>
-                          ) : (
-                            <>
-                              {order.description && (
-                                <div className="mt-2 small">
-                                  <strong>Description:</strong> {order.description}
-                                </div>
-                              )}
-                              {order.notes && (
-                                <div className="mt-1 small">
-                                  <strong>Notes:</strong> {order.notes}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        <div className="d-flex flex-column gap-2 align-items-end">
+                            )}
+                          </div>
                           <div className="d-flex flex-wrap gap-2">
-                            <Badge bg="light" text="dark">
-                              Type: {getOrderTypeLabel(order.order_type)}
+                            <Badge bg={PRIORITY_VARIANTS[req.priority] || 'secondary'}>
+                              {PRIORITIES.find((p) => p.value === req.priority)?.label || req.priority}
                             </Badge>
-                            <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
-                              Priority: {PRIORITIES.find((item) => item.value === order.priority)?.label || order.priority}
+                            <Badge bg={STATUS_VARIANTS[req.status] || 'secondary'}>
+                              {formatStatusLabel(req.status)}
                             </Badge>
-                            <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
-                              Status: {formatStatusLabel(order.status)}
-                            </Badge>
-                            {order.message_count > 0 && (
-                              <Badge bg="info" title="Messages on this request">
+                            {req.message_count > 0 && (
+                              <Badge bg="info" title="Messages">
                                 <FaEnvelope className="me-1" />
-                                {order.message_count}
+                                {req.message_count}
                               </Badge>
                             )}
                           </div>
-                          {editingRequest !== order.id && (
-                            <div className="d-flex gap-2 flex-wrap">
-                              {order.message_count > 0 && (
-                                <Button size="sm" variant="outline-secondary" onClick={() => setViewMessagesOrder(order)}>
-                                  <FaEnvelope className="me-1" />
-                                  View Messages
-                                </Button>
-                              )}
-                              {order.status !== 'cancelled' && order.status !== 'received' && (
-                                <>
-                                  <Button size="sm" variant="outline-info" onClick={() => setUpdateRequestOrder(order)}>
-                                    <FaSync className="me-1" />
-                                    Request Update
-                                  </Button>
-                                  <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(order)}>
-                                    <FaEdit className="me-1" />
-                                    Edit
-                                  </Button>
-                                  <Button size="sm" variant="outline-danger" onClick={() => handleCancelRequest(order.id)}>
-                                    <FaTimes className="me-1" />
-                                    Cancel
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          )}
                         </div>
+
+                        {editingRequest === req.id ? (
+                          <div className="mt-2">
+                            <Form.Group className="mb-2">
+                              <Form.Label>Description</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={2}
+                                name="description"
+                                value={editFormState.description}
+                                onChange={handleEditFormChange}
+                              />
+                            </Form.Group>
+                            <Form.Group className="mb-2">
+                              <Form.Label>Notes</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={2}
+                                name="notes"
+                                value={editFormState.notes}
+                                onChange={handleEditFormChange}
+                              />
+                            </Form.Group>
+                            <div className="d-flex gap-2">
+                              <Button size="sm" variant="primary" onClick={() => handleSaveEdit(req.id)}>
+                                <FaCheckCircle className="me-1" />
+                                Save
+                              </Button>
+                              <Button size="sm" variant="secondary" onClick={handleCancelEdit}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {req.description && (
+                              <div className="small">
+                                <strong>Description:</strong> {req.description}
+                              </div>
+                            )}
+                            {req.notes && (
+                              <div className="small">
+                                <strong>Notes:</strong> {req.notes}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Items Table */}
+                        {req.items && req.items.length > 0 && (
+                          <div className="mt-2">
+                            <h6 className="mb-2">Items:</h6>
+                            <Table size="sm" bordered hover responsive>
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Type</th>
+                                  <th>Description</th>
+                                  <th>Part #</th>
+                                  <th>Qty</th>
+                                  <th>Status</th>
+                                  <th>Vendor</th>
+                                  <th>Tracking</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {req.items.map((item) => (
+                                  <tr key={item.id}>
+                                    <td>{getItemTypeLabel(item.item_type)}</td>
+                                    <td className="text-truncate" style={{ maxWidth: '200px' }}>
+                                      {item.description}
+                                    </td>
+                                    <td>{item.part_number || '-'}</td>
+                                    <td>{item.quantity} {item.unit}</td>
+                                    <td>{renderItemStatusBadge(item.status)}</td>
+                                    <td>{item.vendor || '-'}</td>
+                                    <td>
+                                      {item.tracking_number ? (
+                                        <span className="text-info">
+                                          <FaTruck className="me-1" />
+                                          {item.tracking_number}
+                                        </span>
+                                      ) : '-'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </Table>
+                          </div>
+                        )}
+
+                        {editingRequest !== req.id && (
+                          <div className="d-flex gap-2 flex-wrap">
+                            {req.message_count > 0 && (
+                              <Button size="sm" variant="outline-secondary" onClick={() => handleViewMessages(req)}>
+                                <FaEnvelope className="me-1" />
+                                View Messages
+                              </Button>
+                            )}
+                            {req.buyer_id && req.status !== 'cancelled' && req.status !== 'received' && (
+                              <Button size="sm" variant="outline-info" onClick={() => handleViewMessages(req)}>
+                                <FaSync className="me-1" />
+                                Send Message
+                              </Button>
+                            )}
+                            {req.status !== 'cancelled' && req.status !== 'received' && (
+                              <>
+                                <Button size="sm" variant="outline-primary" onClick={() => handleEditRequest(req)}>
+                                  <FaEdit className="me-1" />
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="outline-danger" onClick={() => handleCancelRequest(req.id)}>
+                                  <FaTimes className="me-1" />
+                                  Cancel
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </ListGroup.Item>
                   ))}
@@ -608,14 +759,19 @@ const RequestsPage = () => {
             </Tab>
 
             {/* Needs Attention Tab */}
-            <Tab eventKey="attention" title={
-              <>
-                Needs Attention
-                {needsAttentionRequests.length > 0 && (
-                  <Badge bg="warning" className="ms-2">{needsAttentionRequests.length}</Badge>
-                )}
-              </>
-            }>
+            <Tab
+              eventKey="attention"
+              title={
+                <>
+                  Needs Attention
+                  {needsAttentionRequests.length > 0 && (
+                    <Badge bg="warning" className="ms-2">
+                      {needsAttentionRequests.length}
+                    </Badge>
+                  )}
+                </>
+              }
+            >
               {needsAttentionRequests.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <FaCheckCircle size={48} className="text-success mb-3" />
@@ -626,22 +782,20 @@ const RequestsPage = () => {
                 <>
                   <Alert variant="info" className="mb-3">
                     <FaInfoCircle className="me-2" />
-                    The following requests need more information. Please provide additional details or clarification.
+                    The following requests need more information. Please provide additional details.
                   </Alert>
                   <ListGroup variant="flush">
-                    {needsAttentionRequests.map((order) => (
-                      <ListGroup.Item key={order.id} className="py-3">
+                    {needsAttentionRequests.map((req) => (
+                      <ListGroup.Item key={req.id} className="py-3">
                         <div className="d-flex flex-column gap-3">
                           <div className="d-flex justify-content-between align-items-start">
                             <div className="flex-grow-1">
-                              <h6 className="mb-1">{order.title}</h6>
+                              <h6 className="mb-1">{req.title}</h6>
                               <div className="text-muted small">
-                                Requested {order.created_at ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true }) : 'N/A'}
+                                {req.item_count} item{req.item_count !== 1 ? 's' : ''} |{' '}
+                                Requested {req.created_at ? formatDistanceToNow(new Date(req.created_at), { addSuffix: true }) : 'N/A'}
                               </div>
-                              {order.part_number && (
-                                <div className="text-muted small">Part #: {order.part_number}</div>
-                              )}
-                              {editingRequest === order.id ? (
+                              {editingRequest === req.id ? (
                                 <div className="mt-3">
                                   <Form.Group className="mb-2">
                                     <Form.Label>Description</Form.Label>
@@ -651,7 +805,7 @@ const RequestsPage = () => {
                                       name="description"
                                       value={editFormState.description}
                                       onChange={handleEditFormChange}
-                                      placeholder="Add more details about what you need..."
+                                      placeholder="Add more details..."
                                     />
                                   </Form.Group>
                                   <Form.Group className="mb-3">
@@ -662,13 +816,13 @@ const RequestsPage = () => {
                                       name="notes"
                                       value={editFormState.notes}
                                       onChange={handleEditFormChange}
-                                      placeholder="Add any additional notes or clarifications..."
+                                      placeholder="Add clarifications..."
                                     />
                                   </Form.Group>
                                   <div className="d-flex gap-2">
-                                    <Button size="sm" variant="success" onClick={() => handleSaveEdit(order.id)}>
+                                    <Button size="sm" variant="success" onClick={() => handleSaveEdit(req.id)}>
                                       <FaCheckCircle className="me-1" />
-                                      Save & Mark Resolved
+                                      Save
                                     </Button>
                                     <Button size="sm" variant="secondary" onClick={handleCancelEdit}>
                                       Cancel
@@ -677,35 +831,32 @@ const RequestsPage = () => {
                                 </div>
                               ) : (
                                 <>
-                                  {order.description && (
+                                  {req.description && (
                                     <div className="mt-2 small">
-                                      <strong>Description:</strong> {order.description}
+                                      <strong>Description:</strong> {req.description}
                                     </div>
                                   )}
-                                  {order.notes && (
+                                  {req.notes && (
                                     <div className="mt-1 small">
-                                      <strong>Notes:</strong> {order.notes}
+                                      <strong>Notes:</strong> {req.notes}
                                     </div>
                                   )}
                                 </>
                               )}
                             </div>
                             <div className="d-flex flex-wrap gap-2">
-                              <Badge bg={PRIORITY_VARIANTS[order.priority] || 'secondary'}>
-                                {PRIORITIES.find((item) => item.value === order.priority)?.label || order.priority}
-                              </Badge>
-                              <Badge bg={STATUS_VARIANTS[order.status] || 'secondary'}>
-                                {formatStatusLabel(order.status)}
+                              <Badge bg={PRIORITY_VARIANTS[req.priority] || 'secondary'}>
+                                {PRIORITIES.find((p) => p.value === req.priority)?.label || req.priority}
                               </Badge>
                             </div>
                           </div>
-                          {editingRequest !== order.id && (
+                          {editingRequest !== req.id && (
                             <div className="d-flex gap-2">
-                              <Button size="sm" variant="primary" onClick={() => handleEditRequest(order)}>
+                              <Button size="sm" variant="primary" onClick={() => handleEditRequest(req)}>
                                 <FaEdit className="me-1" />
                                 Add Information
                               </Button>
-                              <Button size="sm" variant="outline-success" onClick={() => handleResolveNeedsInfo(order.id)}>
+                              <Button size="sm" variant="outline-success" onClick={() => handleResolveNeedsInfo(req.id)}>
                                 <FaCheckCircle className="me-1" />
                                 Mark as Resolved
                               </Button>
@@ -722,19 +873,84 @@ const RequestsPage = () => {
         </Card.Body>
       </Card>
 
-      {/* Generate Update Request Modal */}
-      <GenerateUpdateRequestModal
-        show={!!updateRequestOrder}
-        onHide={() => setUpdateRequestOrder(null)}
-        order={updateRequestOrder || {}}
-      />
+      {/* Messages Modal */}
+      {showMessagesModal && selectedRequestForMessage && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  Messages for: {selectedRequestForMessage.title}
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowMessagesModal(false)} />
+              </div>
+              <div className="modal-body">
+                {selectedRequestForMessage.buyer_id && (
+                  <Card className="mb-3">
+                    <Card.Header>Send New Message</Card.Header>
+                    <Card.Body>
+                      <Form.Group className="mb-2">
+                        <Form.Label>Subject</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={messageSubject}
+                          onChange={(e) => setMessageSubject(e.target.value)}
+                          placeholder="Message subject"
+                        />
+                      </Form.Group>
+                      <Form.Group className="mb-2">
+                        <Form.Label>Message</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={3}
+                          value={messageText}
+                          onChange={(e) => setMessageText(e.target.value)}
+                          placeholder="Your message..."
+                        />
+                      </Form.Group>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleSendMessage}
+                        disabled={sendingMessage}
+                      >
+                        {sendingMessage ? 'Sending...' : 'Send Message'}
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                )}
 
-      {/* View Messages Modal */}
-      <ViewMessagesModal
-        show={!!viewMessagesOrder}
-        onHide={() => setViewMessagesOrder(null)}
-        order={viewMessagesOrder || {}}
-      />
+                <h6>Message History</h6>
+                {requestMessages.length === 0 ? (
+                  <div className="text-muted">No messages yet.</div>
+                ) : (
+                  <ListGroup>
+                    {requestMessages.map((msg) => (
+                      <ListGroup.Item key={msg.id}>
+                        <div className="d-flex justify-content-between">
+                          <strong>{msg.subject}</strong>
+                          <small className="text-muted">
+                            {msg.sent_date ? new Date(msg.sent_date).toLocaleString() : ''}
+                          </small>
+                        </div>
+                        <div className="small text-muted mb-1">
+                          From: {msg.sender_name} | To: {msg.recipient_name}
+                        </div>
+                        <div>{msg.message}</div>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                )}
+              </div>
+              <div className="modal-footer">
+                <Button variant="secondary" onClick={() => setShowMessagesModal(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
