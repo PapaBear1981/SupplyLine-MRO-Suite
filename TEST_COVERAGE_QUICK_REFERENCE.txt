@@ -1,0 +1,253 @@
+================================================================================
+QUICK REFERENCE: TEST COVERAGE SUMMARY
+================================================================================
+
+TEST STATISTICS:
+  - Total Test Files: 23
+  - Total Test Functions: 404
+  - Total Lines of Test Code: 9,638
+  - Source Code Files: 75
+  - Overall Coverage: 19% of source files have dedicated tests
+
+COVERAGE BY CATEGORY:
+
+Models (3 files):
+  Status: FULLY TESTED (100%)
+  Files:
+    - models.py (15 tests)
+    - models_kits.py (22 tests)
+    - models_messaging.py (18 tests)
+
+Routes/Endpoints (27 files):
+  Status: PARTIALLY TESTED (26%)
+  Tested (7 files, 234 tests):
+    - routes.py (23 tests)
+    - routes_kits.py (48 tests)
+    - routes_kit_messages.py (51 tests)
+    - routes_kit_reorders.py (49 tests)
+    - routes_kit_transfers.py (30 tests)
+    - routes_channels.py (22 tests)
+    - routes_orders.py (11 tests)
+    
+  NOT TESTED (21 files):
+    CRITICAL:
+    - routes_auth.py (524 lines) - Authentication endpoints
+    - routes_chemicals.py (1,262 lines) - Chemical management
+    
+    IMPORTANT:
+    - routes_calibration.py (616 lines)
+    - routes_history.py (613 lines)
+    - routes_chemical_analytics.py (573 lines)
+    - routes_reports.py (575 lines)
+    - routes_warehouses.py (539 lines)
+    - routes_scanner.py (684 lines)
+    - routes_bulk_import.py
+    - routes_attachments.py
+    - routes_barcode.py
+    - routes_database.py
+    - routes_departments.py
+    - routes_expendables.py
+    - routes_inventory.py
+    - routes_message_search.py
+    - routes_password_reset.py
+    - routes_rbac.py
+    - routes_security.py
+    - routes_transfers.py
+    - routes_announcements.py
+
+Security (2 files):
+  Status: NOT TESTED (0%)
+  Files:
+    - security/input_validation.py (637 lines)
+    - security/middleware.py
+
+Utilities (23 files):
+  Status: ALMOST NOT TESTED (9%)
+  Only 2 files with indirect testing:
+    - utils/password_reset_security.py (tested via test_issue_411_password_reset.py)
+    - utils/rate_limiter.py (tested via test_rate_limiting.py)
+    
+  NOT TESTED (21 files, 6,309 LOC):
+    CRITICAL:
+    - utils/validation.py (497 lines)
+    - utils/error_handler.py (469 lines)
+    - utils/bulk_import.py (500 lines)
+    
+    IMPORTANT:
+    - utils/bulk_operations.py
+    - utils/database_utils.py
+    - utils/file_validation.py
+    - utils/barcode_service.py
+    - utils/export_utils.py
+    - utils/label_pdf_service.py
+    - utils/label_config.py
+    - utils/session_manager.py
+    - utils/logging_utils.py
+    - utils/system_settings.py
+    - utils/lot_utils.py
+    - utils/scheduled_backup.py
+    - utils/scheduled_maintenance.py
+    - utils/session_cleanup.py
+    - utils/resource_monitor.py
+    - utils/database_backup.py
+    - utils/admin_init.py
+    - utils/transaction_helper.py
+
+Authentication (1 file):
+  Status: TESTED (100%)
+  Files:
+    - auth/jwt_manager.py (covered by test_auth*.py files)
+
+Other/Core (6 files):
+  Status: MINIMALLY TESTED (17%)
+  Only 1 file with tests:
+    - routes.py (general routes tested)
+    
+  NOT TESTED:
+    - app.py (Flask factory)
+    - config.py
+    - socketio_events.py (585 lines) - Real-time WebSocket handlers
+    - socketio_config.py
+    - time_utils.py
+    - utils.py
+    - rate_limiter.py
+
+================================================================================
+TOP TESTING PRIORITIES
+================================================================================
+
+PHASE 1 - CRITICAL (Address immediately):
+  1. routes_auth.py (524 lines)
+     - Authentication endpoints
+     - HIGH SECURITY IMPACT
+     
+  2. routes_chemicals.py (1,262 lines)
+     - Largest untested route file
+     - Core business logic
+     
+  3. utils/validation.py (497 lines)
+     - Core validation logic
+     - Used throughout application
+     
+  4. security/* (637 lines)
+     - Input validation middleware
+     - Security-critical
+
+PHASE 2 - IMPORTANT (Next priority):
+  5. routes_bulk_import.py + utils/bulk_import.py
+     - CSV import functionality
+     - Data migration capability
+     
+  6. utils/error_handler.py (469 lines)
+     - Error handling throughout app
+     
+  7. socketio_events.py (585 lines)
+     - Real-time communication
+     - WebSocket functionality
+
+  8. routes_calibration.py (616 lines)
+     - Tool calibration management
+     
+  9. routes_warehouses.py (539 lines)
+     - Warehouse management
+     
+  10. routes_reports.py (575 lines)
+      - Reporting functionality
+
+PHASE 3 - SECONDARY:
+  11-21. Remaining route files (departments, RBAC, etc.)
+  22+. Remaining utility files
+
+================================================================================
+LARGEST UNTESTED FILES (by LOC)
+
+Routes:
+  1. routes_chemicals.py - 1,262 lines
+  2. routes_scanner.py - 684 lines
+  3. routes_calibration.py - 616 lines
+  4. routes_history.py - 613 lines
+  5. routes_reports.py - 575 lines
+  6. routes_chemical_analytics.py - 573 lines
+  7. routes_warehouses.py - 539 lines
+  8. routes_auth.py - 524 lines
+
+Utilities:
+  1. utils/validation.py - 497 lines
+  2. utils/bulk_import.py - 500 lines
+  3. utils/error_handler.py - 469 lines
+
+Other:
+  1. socketio_events.py - 585 lines
+
+================================================================================
+KEY TESTING FRAMEWORK INFORMATION
+================================================================================
+
+Configuration: /backend/pytest.ini
+Test Location: /backend/tests/
+Test Count: 404 total tests
+Test Fixtures: Comprehensive in conftest.py (557 lines)
+
+Running Tests:
+  pytest -v                    # Run all tests verbosely
+  pytest tests/test_models.py  # Run specific test file
+  pytest -m auth              # Run tests with @auth marker
+  pytest -m "not slow"        # Exclude slow tests
+
+Key Fixtures Available:
+  - app: Flask test application
+  - client: Flask test client
+  - db_session: Database session
+  - admin_user: Admin test user
+  - test_user, regular_user: Regular test users
+  - auth_headers: Authentication token
+  - sample_tool, sample_chemical: Sample data
+  - And many more...
+
+================================================================================
+RECOMMENDED TEST FILE STRUCTURE
+================================================================================
+
+New test_routes_auth.py should include:
+  - Login functionality
+  - Logout functionality
+  - Token refresh
+  - Password change
+  - Session management
+  - Multi-factor authentication (if applicable)
+
+New test_routes_chemicals.py should include:
+  - Chemical CRUD operations
+  - Inventory tracking
+  - Issuance/return workflows
+  - Lot number validation
+  - Category filtering
+  - Pagination
+  - Search functionality
+  - Warehouse isolation
+
+New test_utils_validation.py should include:
+  - Schema validation
+  - Lot number format validation
+  - Warehouse ID validation
+  - Employee number validation
+  - Data type validation
+  - Special character handling
+
+New test_security_input_validation.py should include:
+  - Input validation decorator
+  - XSS prevention
+  - SQL injection prevention
+  - Path traversal prevention
+  - Special character handling
+  - Unicode handling
+
+New test_socketio_events.py should include:
+  - WebSocket authentication
+  - Message broadcasting
+  - Typing indicators
+  - Presence tracking
+  - Channel subscription
+  - Message history
+
+================================================================================
