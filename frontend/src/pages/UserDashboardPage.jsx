@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Container, Row, Col, Button, Modal, ListGroup, ButtonGroup } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import OverdueChemicals from '../components/dashboard/OverdueChemicals';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 import UserCheckoutStatus from '../components/dashboard/UserCheckoutStatus';
 import RecentActivity from '../components/dashboard/RecentActivity';
@@ -28,13 +27,6 @@ const DASHBOARD_WIDGETS = [
     defaultColumn: COLUMN_MAIN,
     component: CalibrationNotifications,
     isAvailable: () => true,
-  },
-  {
-    id: 'overdueChemicals',
-    label: 'Overdue Chemicals',
-    defaultColumn: COLUMN_MAIN,
-    component: OverdueChemicals,
-    isAvailable: ({ canViewAdminWidgets }) => canViewAdminWidgets,
   },
   {
     id: 'pastDueTools',
