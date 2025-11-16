@@ -982,9 +982,40 @@ def register_kit_routes(app):
                 # Round to avoid floating-point precision errors
                 item.quantity = round(item.quantity, 2)
 
-                # Update status if out of stock
+                # Update status if out of stock or low stock
+                # Use a default minimum stock level threshold (e.g., 10 units or 20% of reasonable stock)
+                default_min_stock = 10
+                is_low = item.quantity <= default_min_stock and item.quantity > 0
+
                 if item.quantity <= 0:
                     item.status = "issued"
+                elif is_low:
+                    item.status = "low_stock"
+
+                # Check if reorder needed for KitItem expendables
+                if is_low or item.quantity <= 0:
+                    # Create automatic reorder request
+                    existing_request = KitReorderRequest.query.filter_by(
+                        kit_id=kit_id,
+                        item_type="expendable",
+                        item_id=item.id,
+                        status="pending"
+                    ).first()
+
+                    if not existing_request:
+                        reorder = KitReorderRequest(
+                            kit_id=kit_id,
+                            item_type="expendable",
+                            item_id=item.id,
+                            part_number=item.part_number,
+                            description=item.description,
+                            quantity_requested=default_min_stock,
+                            priority="medium" if item.quantity > 0 else "high",
+                            requested_by=request.current_user["user_id"],
+                            status="pending",
+                            is_automatic=True
+                        )
+                        db.session.add(reorder)
             else:
                 # Fall back to old KitExpendable table for backward compatibility
                 item = KitExpendable.query.filter_by(id=data["item_id"], kit_id=kit_id).first()
@@ -995,6 +1026,8 @@ def register_kit_routes(app):
                     raise ValidationError(f"Insufficient quantity. Available: {item.quantity}")
 
                 item.quantity -= quantity
+                # Round to avoid floating-point precision errors
+                item.quantity = round(item.quantity, 2)
 
                 # Update status if out of stock
                 if item.quantity <= 0:
