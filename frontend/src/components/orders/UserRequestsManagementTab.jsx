@@ -19,7 +19,6 @@ import { toast } from 'react-toastify';
 import {
   fetchUserRequests,
   updateUserRequest,
-  updateRequestItem,
   markItemsOrdered,
   markItemsReceived,
   sendRequestMessage,
@@ -230,7 +229,7 @@ const UserRequestsManagementTab = () => {
     try {
       const result = await dispatch(fetchRequestMessages(request.id)).unwrap();
       setMessages(result.messages || []);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load messages.');
       setMessages([]);
     }

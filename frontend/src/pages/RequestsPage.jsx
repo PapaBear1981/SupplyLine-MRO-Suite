@@ -95,7 +95,6 @@ const RequestsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormState, setEditFormState] = useState(null);
-  const [viewRequestDetails, setViewRequestDetails] = useState(null);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [selectedRequestForMessage, setSelectedRequestForMessage] = useState(null);
   const [messageSubject, setMessageSubject] = useState('');
@@ -120,11 +119,6 @@ const RequestsPage = () => {
 
   const completedRequests = useMemo(
     () => myRequests.filter((req) => req.status === 'received').length,
-    [myRequests],
-  );
-
-  const awaitingInfoRequests = useMemo(
-    () => myRequests.filter((req) => req.status === 'awaiting_info').length,
     [myRequests],
   );
 
@@ -285,7 +279,7 @@ const RequestsPage = () => {
     try {
       const result = await dispatch(fetchRequestMessages(request.id)).unwrap();
       setRequestMessages(result.messages || []);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load messages.');
       setRequestMessages([]);
     }
