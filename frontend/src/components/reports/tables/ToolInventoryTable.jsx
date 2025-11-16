@@ -8,6 +8,11 @@ const ToolInventoryTable = ({ data }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
+  // Reset to page 1 when search term or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortField, sortDirection]);
+
   if (!data || data.length === 0) {
     return (
       <Card className="shadow-sm">
@@ -44,11 +49,6 @@ const ToolInventoryTable = ({ data }) => {
       return bValue.localeCompare(aValue);
     }
   });
-
-  // Reset to page 1 when search term or sort changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, sortField, sortDirection]);
 
   // Calculate pagination
   const totalPages = Math.ceil(sortedTools.length / itemsPerPage);
