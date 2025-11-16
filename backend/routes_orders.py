@@ -16,6 +16,7 @@ from models import (
     ProcurementOrder,
     ProcurementOrderMessage,
     User,
+    UserActivity,
     db,
     get_current_time,
 )
@@ -620,6 +621,55 @@ def register_order_routes(app):
         db.session.commit()
 
         return jsonify(reply.to_dict()), 201
+
+    @app.route("/api/orders/<int:order_id>/mark-delivered", methods=["POST"])
+    @orders_permission
+    @handle_errors
+    def mark_order_delivered(order_id):
+        """Mark any procurement order as delivered/received"""
+        order = ProcurementOrder.query.get_or_404(order_id)
+
+        # Only allow marking as delivered if order is in an open status
+        if order.status not in ["new", "ordered", "shipped", "in_progress"]:
+            return jsonify({"error": f"Cannot mark order as delivered when status is '{order.status}'"}), 400
+
+        # Get optional received quantity from request
+        data = request.get_json() or {}
+        received_quantity = data.get("received_quantity")
+
+        # Update order status to received
+        order.status = "received"
+        order.completed_date = get_current_time()
+
+        # Add note about received quantity if provided
+        if received_quantity is not None:
+            quantity_note = f"\n\nReceived Quantity: {received_quantity} {order.unit or 'units'}"
+            order.notes = (order.notes or "") + quantity_note
+
+        # Log the action
+        user_name = request.current_user.get("user_name", "Unknown user")
+        log = AuditLog(
+            action_type="order_delivered",
+            action_details=f"Order '{order.title}' (ID: {order.id}) marked as delivered by {user_name}"
+        )
+        db.session.add(log)
+
+        # Log user activity
+        if hasattr(request, "current_user"):
+            activity = UserActivity(
+                user_id=request.current_user["user_id"],
+                activity_type="order_delivered",
+                description=f"Marked order '{order.title}' as delivered"
+            )
+            db.session.add(activity)
+
+        db.session.commit()
+
+        logger.info("Order marked as delivered", extra={"order_id": order.id, "user": user_name})
+        return jsonify({
+            "order": order.to_dict(),
+            "message": "Order marked as delivered successfully"
+        })
 
     @app.route("/api/orders/messages/<int:message_id>/read", methods=["PUT"])
     @jwt_required

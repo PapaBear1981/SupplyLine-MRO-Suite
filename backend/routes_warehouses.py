@@ -97,7 +97,7 @@ def create_warehouse():
     """
     Create a new warehouse (admin only).
     Required fields: name
-    Optional fields: address, city, state, zip_code, country, warehouse_type
+    Optional fields: address, city, state, zip_code, country, warehouse_type, contact_person, contact_phone, contact_email
     """
     # Check admin privileges
     admin_check = require_admin()
@@ -126,6 +126,9 @@ def create_warehouse():
             zip_code=data.get("zip_code"),
             country=data.get("country", "USA"),
             warehouse_type=data.get("warehouse_type", "satellite"),
+            contact_person=data.get("contact_person"),
+            contact_phone=data.get("contact_phone"),
+            contact_email=data.get("contact_email"),
             is_active=True,
             created_by_id=current_user_id,
             created_at=datetime.now(),
@@ -169,7 +172,7 @@ def get_warehouse(warehouse_id):
 def update_warehouse(warehouse_id):
     """
     Update warehouse details (admin only).
-    Updatable fields: name, address, city, state, zip_code, country, warehouse_type, is_active
+    Updatable fields: name, address, city, state, zip_code, country, warehouse_type, is_active, contact_person, contact_phone, contact_email
     """
     # Check admin privileges
     admin_check = require_admin()
@@ -207,6 +210,12 @@ def update_warehouse(warehouse_id):
             warehouse.warehouse_type = data["warehouse_type"]
         if "is_active" in data:
             warehouse.is_active = data["is_active"]
+        if "contact_person" in data:
+            warehouse.contact_person = data["contact_person"]
+        if "contact_phone" in data:
+            warehouse.contact_phone = data["contact_phone"]
+        if "contact_email" in data:
+            warehouse.contact_email = data["contact_email"]
 
         warehouse.updated_at = datetime.now()
 

@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Table, Button, Badge, Form, Row, Col, Alert } from 'react-bootstrap';
-import { FaFilter, FaSync } from 'react-icons/fa';
+import { Table, Button, Badge, Form, Row, Col, Alert, Modal } from 'react-bootstrap';
+import { FaFilter, FaSync, FaCheckCircle } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/dateUtils';
-import { fetchOrders } from '../../store/ordersSlice';
+import { fetchOrders, markOrderAsDelivered } from '../../store/ordersSlice';
+import { markChemicalAsDelivered } from '../../store/chemicalsSlice';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -57,13 +59,20 @@ const DUE_STATUS_VARIANTS = {
 const AllOrdersTab = ({ onViewOrder }) => {
   const dispatch = useDispatch();
   const { list: orders, loading } = useSelector((state) => state.orders);
-  
+
   const [filters, setFilters] = useState({
     order_type: 'all',
     status: 'all',
     priority: 'all',
     search: '',
   });
+
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [deliveryForm, setDeliveryForm] = useState({
+    received_quantity: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -72,6 +81,59 @@ const AllOrdersTab = ({ onViewOrder }) => {
 
   const handleRefresh = () => {
     dispatch(fetchOrders());
+  };
+
+  const handleOpenDeliveryModal = (order) => {
+    setSelectedOrder(order);
+    setDeliveryForm({
+      received_quantity: order.quantity || '',
+    });
+    setShowDeliveryModal(true);
+  };
+
+  const handleCloseDeliveryModal = () => {
+    setShowDeliveryModal(false);
+    setSelectedOrder(null);
+    setDeliveryForm({
+      received_quantity: '',
+    });
+  };
+
+  const handleDeliveryFormChange = (e) => {
+    const { name, value } = e.target;
+    setDeliveryForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitDelivery = async (e) => {
+    e.preventDefault();
+
+    setSubmitting(true);
+    try {
+      // For chemical orders, use the chemical-specific endpoint
+      if (selectedOrder.order_type === 'chemical' && selectedOrder.chemical_id) {
+        await dispatch(markChemicalAsDelivered({
+          id: selectedOrder.chemical_id,
+          received_quantity: deliveryForm.received_quantity ? parseFloat(deliveryForm.received_quantity) : null,
+        })).unwrap();
+        toast.success('Chemical marked as delivered and order updated!');
+      } else {
+        // For all other order types, use the general order endpoint
+        await dispatch(markOrderAsDelivered({
+          orderId: selectedOrder.id,
+          received_quantity: deliveryForm.received_quantity ? parseFloat(deliveryForm.received_quantity) : null,
+        })).unwrap();
+        toast.success('Order marked as delivered successfully!');
+      }
+
+      handleCloseDeliveryModal();
+
+      // Refresh the orders list
+      dispatch(fetchOrders());
+    } catch (error) {
+      toast.error(error.message || 'Failed to mark order as delivered');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const filteredOrders = useMemo(() => {
@@ -203,9 +265,19 @@ const AllOrdersTab = ({ onViewOrder }) => {
                   </td>
                   <td>{order.expected_due_date ? formatDate(order.expected_due_date) : '—'}</td>
                   <td>
-                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)}>
+                    <Button variant="primary" size="sm" onClick={() => onViewOrder(order)} className="me-2">
                       View
                     </Button>
+                    {(order.status === 'new' || order.status === 'ordered' || order.status === 'shipped' || order.status === 'in_progress') && (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleOpenDeliveryModal(order)}
+                      >
+                        <FaCheckCircle className="me-1" />
+                        Mark Delivered
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -213,6 +285,86 @@ const AllOrdersTab = ({ onViewOrder }) => {
           </Table>
         </div>
       )}
+
+      {/* Delivery Modal */}
+      <Modal show={showDeliveryModal} onHide={handleCloseDeliveryModal} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Mark Order as Delivered</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmitDelivery}>
+          <Modal.Body>
+            {selectedOrder && (
+              <>
+                <Alert variant="info">
+                  <strong>Order Details:</strong>
+                  <ul className="mb-0 mt-2">
+                    <li><strong>Type:</strong> {selectedOrder.order_type}</li>
+                    <li><strong>Title:</strong> {selectedOrder.title}</li>
+                    <li><strong>Part Number:</strong> {selectedOrder.part_number || 'N/A'}</li>
+                    <li><strong>Description:</strong> {selectedOrder.description || 'N/A'}</li>
+                    <li><strong>Order Quantity:</strong> {selectedOrder.quantity} {selectedOrder.unit}</li>
+                    <li><strong>Status:</strong> {selectedOrder.status}</li>
+                    <li><strong>Expected Due Date:</strong> {selectedOrder.expected_due_date ? formatDate(selectedOrder.expected_due_date) : 'N/A'}</li>
+                  </ul>
+                </Alert>
+
+                <Row>
+                  <Col md={12}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Received Quantity (Optional)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        name="received_quantity"
+                        value={deliveryForm.received_quantity}
+                        onChange={handleDeliveryFormChange}
+                        placeholder="Enter quantity received (if different from ordered)"
+                      />
+                      <Form.Text className="text-muted">
+                        Leave blank to keep the current quantity ({selectedOrder.quantity || 0} {selectedOrder.unit})
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Alert variant="warning" className="mb-0">
+                  <i className="bi bi-info-circle-fill me-2"></i>
+                  <strong>Note:</strong> Marking this order as delivered will:
+                  <ul className="mb-0 mt-2">
+                    <li>Update the order status to "received"</li>
+                    <li>Set the completion date to today</li>
+                    {selectedOrder.order_type === 'chemical' && (
+                      <>
+                        <li>Update the chemical status to "available"</li>
+                        <li>Clear the chemical reorder status</li>
+                        <li>Add the chemical back to active inventory</li>
+                      </>
+                    )}
+                  </ul>
+                </Alert>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleCloseDeliveryModal} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button variant="success" type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle className="me-1" />
+                  Mark as Delivered
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </>
   );
 };

@@ -148,6 +148,20 @@ export const markOrderMessageRead = createAsyncThunk(
   }
 );
 
+export const markOrderAsDelivered = createAsyncThunk(
+  'orders/markOrderAsDelivered',
+  async ({ orderId, received_quantity }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/orders/${orderId}/mark-delivered`, {
+        received_quantity,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to mark order as delivered' });
+    }
+  }
+);
+
 const initialState = {
   list: [],
   filters: {},
@@ -305,6 +319,22 @@ const ordersSlice = createSlice({
         }
       })
       .addCase(markOrderMessageRead.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(markOrderAsDelivered.fulfilled, (state, action) => {
+        const updatedOrder = action.payload?.order || action.payload;
+        if (!updatedOrder?.id) return;
+
+        const index = state.list.findIndex((item) => item.id === updatedOrder.id);
+        if (index !== -1) {
+          state.list[index] = updatedOrder;
+        }
+
+        if (state.selectedOrder?.id === updatedOrder.id) {
+          state.selectedOrder = updatedOrder;
+        }
+      })
+      .addCase(markOrderAsDelivered.rejected, (state, action) => {
         state.error = action.payload;
       });
   },
