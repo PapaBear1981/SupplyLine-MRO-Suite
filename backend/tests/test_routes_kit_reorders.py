@@ -398,7 +398,8 @@ class TestApproveReorderRequest:
         assert response.status_code == 200
         data = json.loads(response.data)
 
-        assert data["status"] == "approved"
+        # Approval now sets status directly to "ordered" and creates ProcurementOrder
+        assert data["status"] == "ordered"
         assert data["approved_by"] is not None
         assert data["approved_date"] is not None
 

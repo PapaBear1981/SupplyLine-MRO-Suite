@@ -569,7 +569,7 @@ const KitReports = () => {
                             <Badge bg="danger">Cancelled</Badge>
                           )}
                         </td>
-                        <td>{reorder.requested_by_name || `User ${reorder.requested_by}`}</td>
+                        <td>{reorder.requester_name || `User ${reorder.requested_by}`}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -125,9 +125,9 @@ const PendingReorderApprovals = () => {
                     {request.part_number && ` | Part: ${request.part_number}`}
                   </div>
                   <div className="text-muted small">
-                    Qty: {request.quantity_requested} | 
+                    Qty: {request.quantity_requested} |
                     Requested: {formatDate(request.requested_date)}
-                    {request.requested_by_name && ` | By: ${request.requested_by_name}`}
+                    {request.requester_name && ` | By: ${request.requester_name}`}
                   </div>
                 </div>
                 <div className="d-flex flex-column align-items-end">

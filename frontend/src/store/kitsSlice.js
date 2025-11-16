@@ -681,6 +681,12 @@ const kitsSlice = createSlice({
           state.reorderRequests[index] = action.payload;
         }
       })
+      .addCase(markReorderAsOrdered.fulfilled, (state, action) => {
+        const index = state.reorderRequests.findIndex(r => r.id === action.payload.id);
+        if (index !== -1) {
+          state.reorderRequests[index] = action.payload;
+        }
+      })
       .addCase(fulfillReorderRequest.fulfilled, (state, action) => {
         const index = state.reorderRequests.findIndex(r => r.id === action.payload.id);
         if (index !== -1) {
