@@ -1,6 +1,5 @@
 """Unified request system utilities for creating requests from different sources."""
 
-from datetime import datetime
 
 from sqlalchemy import text
 
@@ -35,7 +34,7 @@ def create_chemical_reorder_request(chemical, requested_quantity, requester_id, 
         title = f"{title} - {chemical.description[:100]}"
 
     description_parts = [
-        f"Automatic reorder request for chemical.",
+        "Automatic reorder request for chemical.",
         f"Lot Number: {chemical.lot_number}",
         f"Manufacturer: {chemical.manufacturer or 'N/A'}",
         f"Current Stock: {chemical.quantity} {chemical.unit}",
@@ -113,12 +112,12 @@ def create_kit_reorder_request(kit, reorder_request, requester_id):
         UserRequest: The created request with its items
     """
     # Handle both model instances and dicts
-    if hasattr(kit, 'name'):
+    if hasattr(kit, "name"):
         kit_name = kit.name
         kit_id = kit.id
     else:
-        kit_name = kit.get('name', 'Unknown Kit')
-        kit_id = kit.get('id')
+        kit_name = kit.get("name", "Unknown Kit")
+        kit_id = kit.get("id")
 
     # Create the request
     title = f"Kit Reorder: {reorder_request.part_number}"
@@ -133,7 +132,7 @@ def create_kit_reorder_request(kit, reorder_request, requester_id):
     ]
     if reorder_request.notes:
         description_parts.append(f"Notes: {reorder_request.notes}")
-    if hasattr(reorder_request, 'is_automatic') and reorder_request.is_automatic:
+    if hasattr(reorder_request, "is_automatic") and reorder_request.is_automatic:
         description_parts.append("Type: Automatic reorder (low stock detected)")
 
     request_description = "\n".join(description_parts)

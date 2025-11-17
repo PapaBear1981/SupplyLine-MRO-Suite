@@ -99,8 +99,8 @@ class TestUnifiedRequestHelpers:
 
     def test_create_chemical_reorder_request(self, app, unified_setup):
         """Test that creating a chemical reorder creates a UserRequest."""
+        from models import RequestItem, UserRequest, db
         from utils.unified_requests import create_chemical_reorder_request
-        from models import UserRequest, RequestItem, db
 
         with app.app_context():
             chemical = unified_setup["chemical"]
@@ -141,9 +141,9 @@ class TestUnifiedRequestHelpers:
 
     def test_create_kit_reorder_request(self, app, unified_setup):
         """Test that creating a kit reorder creates a UserRequest."""
-        from utils.unified_requests import create_kit_reorder_request
-        from models import UserRequest, RequestItem, db
+        from models import RequestItem, UserRequest, db
         from models_kits import KitReorderRequest
+        from utils.unified_requests import create_kit_reorder_request
 
         with app.app_context():
             kit = unified_setup["kit"]
@@ -198,11 +198,11 @@ class TestUnifiedRequestHelpers:
 
     def test_update_request_item_status_chemical(self, app, unified_setup):
         """Test updating request item status for chemical reorders."""
+        from models import db
         from utils.unified_requests import (
             create_chemical_reorder_request,
             update_request_item_status,
         )
-        from models import db
 
         with app.app_context():
             chemical = unified_setup["chemical"]
@@ -237,12 +237,12 @@ class TestUnifiedRequestHelpers:
 
     def test_update_request_item_status_kit(self, app, unified_setup):
         """Test updating request item status for kit reorders."""
+        from models import db
+        from models_kits import KitReorderRequest
         from utils.unified_requests import (
             create_kit_reorder_request,
             update_request_item_status,
         )
-        from models import db
-        from models_kits import KitReorderRequest
 
         with app.app_context():
             kit = unified_setup["kit"]
@@ -291,8 +291,8 @@ class TestUnifiedRequestHelpers:
 
     def test_chemical_priority_based_on_stock(self, app, unified_setup):
         """Test that chemical reorder priority is based on stock status."""
-        from utils.unified_requests import create_chemical_reorder_request
         from models import db
+        from utils.unified_requests import create_chemical_reorder_request
 
         with app.app_context():
             chemical = unified_setup["chemical"]
@@ -329,8 +329,8 @@ class TestUnifiedRequestHelpers:
 
     def test_request_number_generation(self, app, unified_setup):
         """Test that request numbers are generated uniquely."""
-        from utils.unified_requests import create_chemical_reorder_request
         from models import db
+        from utils.unified_requests import create_chemical_reorder_request
 
         with app.app_context():
             chemical = unified_setup["chemical"]
@@ -367,8 +367,8 @@ class TestRequestItemSourceTracking:
 
     def test_request_item_to_dict_includes_source_fields(self, app, unified_setup):
         """Test that RequestItem.to_dict() includes source tracking fields."""
-        from utils.unified_requests import create_chemical_reorder_request
         from models import db
+        from utils.unified_requests import create_chemical_reorder_request
 
         with app.app_context():
             chemical = unified_setup["chemical"]
@@ -398,7 +398,7 @@ class TestRequestItemSourceTracking:
 
     def test_manual_request_has_manual_source_type(self, app, unified_setup):
         """Test that manually created RequestItems have 'manual' source type."""
-        from models import UserRequest, RequestItem, db, get_current_time
+        from models import RequestItem, UserRequest, db, get_current_time
 
         with app.app_context():
             user = unified_setup["user"]
