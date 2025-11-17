@@ -80,9 +80,9 @@ export const uploadAttachment = createAsyncThunk(
         formData.append('message_id', messageId);
       }
 
-      const response = await api.post('/api/attachments/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Don't set Content-Type header manually - axios will automatically
+      // set it with the correct boundary when it detects FormData
+      const response = await api.post('/api/attachments/upload', formData);
       return response.data.attachment;
     } catch (error) {
       return rejectWithValue(error.response?.data?.error || 'Failed to upload file');

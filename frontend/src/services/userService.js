@@ -64,11 +64,9 @@ const UserService = {
   // Upload user avatar
   uploadAvatar: async (formData) => {
     try {
-      const response = await api.post('/user/avatar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Don't set Content-Type header manually - axios will automatically
+      // set it with the correct boundary when it detects FormData
+      const response = await api.post('/user/avatar', formData);
       return response.data;
     } catch (error) {
       throw error;

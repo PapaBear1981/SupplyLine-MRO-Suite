@@ -46,12 +46,9 @@ const CalibrationCertificateUpload = ({ toolId, calibrationId, onSuccess }) => {
       // Upload certificate
       const response = await api.post(
         `/tools/${toolId}/calibrations/${calibrationId}/certificate`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
+        formData
+        // Don't set Content-Type header manually - axios will automatically
+        // set it with the correct boundary when it detects FormData
       );
       
       setSuccess(true);

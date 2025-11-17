@@ -49,11 +49,9 @@ export const createOrder = createAsyncThunk(
         });
 
         payload = formData;
-        config = {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        };
+        // Don't set Content-Type header manually - axios will automatically
+        // set it with the correct boundary when it detects FormData
+        config = {};
       }
 
       const response = await api.post('/orders', payload, config);

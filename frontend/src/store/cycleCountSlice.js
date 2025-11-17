@@ -299,11 +299,9 @@ export const importCycleCountResults = createAsyncThunk(
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post(`/api/cycle-counts/batches/${batchId}/import`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Don't set Content-Type header manually - axios will automatically
+      // set it with the correct boundary when it detects FormData
+      const response = await axios.post(`/api/cycle-counts/batches/${batchId}/import`, formData);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: 'Failed to import cycle count results' });
@@ -319,11 +317,9 @@ export const importCycleCountSchedules = createAsyncThunk(
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('/api/cycle-counts/schedules/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Don't set Content-Type header manually - axios will automatically
+      // set it with the correct boundary when it detects FormData
+      const response = await axios.post('/api/cycle-counts/schedules/import', formData);
 
       return response.data;
     } catch (error) {
@@ -340,11 +336,9 @@ export const importCycleCountBatches = createAsyncThunk(
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('/api/cycle-counts/batches/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Don't set Content-Type header manually - axios will automatically
+      // set it with the correct boundary when it detects FormData
+      const response = await axios.post('/api/cycle-counts/batches/import', formData);
 
       return response.data;
     } catch (error) {
