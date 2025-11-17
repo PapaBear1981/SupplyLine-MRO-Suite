@@ -3,22 +3,22 @@
    Dark, Modern, High-End Design
    =================================== */
 
-/* Color Palette */
+/* Color Palette - Katana Purple Theme */
 :root {
   --bg-dark-primary: #0a0a0a;
   --bg-dark-secondary: #121212;
   --bg-dark-tertiary: #1a1a1a;
   --bg-dark-card: #1e1e1e;
-  --accent-blue: #0066ff;
-  --accent-blue-light: #00a3ff;
+  --accent-blue: #7f57ff;
+  --accent-blue-light: #9879ff;
   --accent-silver: #c0c0c0;
   --accent-silver-light: #e8e8e8;
   --text-primary: #ffffff;
   --text-secondary: #b0b0b0;
   --text-muted: #808080;
-  --gradient-primary: linear-gradient(135deg, #0066ff 0%, #00a3ff 100%);
+  --gradient-primary: linear-gradient(135deg, #7f57ff 0%, #9879ff 100%);
   --gradient-dark: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.3);
+  --shadow-glow: 0 0 20px rgba(127, 87, 255, 0.3);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -134,9 +134,9 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(0, 102, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(0, 163, 255, 0.15) 0%, transparent 50%);
+  background:
+    radial-gradient(circle at 20% 50%, rgba(127, 87, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(152, 121, 255, 0.15) 0%, transparent 50%);
   animation: gradientShift 15s ease infinite;
 }
 
@@ -186,7 +186,7 @@
 .hero-cta .btn-primary {
   background: var(--gradient-primary);
   border: none;
-  box-shadow: 0 4px 15px rgba(0, 102, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(127, 87, 255, 0.4);
 }
 
 .hero-cta .btn-primary:hover {
@@ -323,8 +323,8 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(circle at 50% 50%, rgba(0, 102, 255, 0.05) 0%, transparent 70%);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(127, 87, 255, 0.05) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -423,7 +423,7 @@ section {
 .testimonial-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-card);
-  border-color: rgba(0, 102, 255, 0.3);
+  border-color: rgba(127, 87, 255, 0.3);
 }
 
 .testimonial-card:hover::before {
@@ -559,7 +559,7 @@ section {
 
 .contact-form-card .form-control:focus {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 0.2rem rgba(0, 102, 255, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(127, 87, 255, 0.25);
 }
 
 .contact-form-card .form-control::placeholder {
