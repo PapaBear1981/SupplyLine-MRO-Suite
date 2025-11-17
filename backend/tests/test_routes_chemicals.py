@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from models import Chemical, ChemicalIssuance, AuditLog, UserActivity, Warehouse
+from models import AuditLog, Chemical, ChemicalIssuance, UserActivity, Warehouse
 
 
 class TestChemicalListEndpoint:

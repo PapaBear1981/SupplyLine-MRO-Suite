@@ -9,14 +9,14 @@ This module tests the input validation and sanitization functionality including:
 """
 
 import pytest
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 
 from security.input_validation import (
+    ALLOWED_VALUES,
+    PATTERNS,
+    VALIDATION_SCHEMAS,
     InputValidator,
     ValidationError,
-    PATTERNS,
-    ALLOWED_VALUES,
-    VALIDATION_SCHEMAS,
     validate_request_data,
 )
 
