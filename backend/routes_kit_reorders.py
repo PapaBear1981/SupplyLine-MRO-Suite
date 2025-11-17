@@ -89,10 +89,20 @@ def register_kit_reorder_routes(app):
         )
 
         db.session.add(reorder)
+        db.session.flush()  # Get the ID before creating unified request
+
+        # Create unified request for the kit reorder
+        from utils.unified_requests import create_kit_reorder_request
+        user_request = create_kit_reorder_request(
+            kit=kit,
+            reorder_request=reorder,
+            requester_id=request.current_user["user_id"]
+        )
+
         db.session.commit()
 
         # Log action
-        log_details = f"Reorder requested for kit {kit.name}: {reorder.part_number}"
+        log_details = f"Reorder requested for kit {kit.name}: {reorder.part_number}. Request #{user_request.request_number} created."
         if image_path:
             log_details += " (with image)"
         log = AuditLog(
@@ -102,8 +112,10 @@ def register_kit_reorder_routes(app):
         db.session.add(log)
         db.session.commit()
 
-        logger.info("Reorder request created", extra={"reorder_id": reorder.id})
-        return jsonify(reorder.to_dict()), 201
+        logger.info("Reorder request created", extra={"reorder_id": reorder.id, "request_number": user_request.request_number})
+        result = reorder.to_dict()
+        result["user_request"] = user_request.to_dict()
+        return jsonify(result), 201
 
     @app.route("/api/reorder-requests", methods=["GET"])
     @jwt_required
@@ -183,6 +195,16 @@ def register_kit_reorder_routes(app):
         )
         db.session.add(procurement_order)
 
+        # Update the unified request system if a request item exists for this kit reorder
+        from utils.unified_requests import update_request_item_status
+        update_request_item_status(
+            source_type="kit_reorder",
+            source_id=reorder.id,
+            new_status="ordered",
+            ordered_date=datetime.now(),
+            order_notes=f"Procurement Order #{procurement_order.id}"
+        )
+
         db.session.commit()
 
         # Log action
@@ -239,6 +261,16 @@ def register_kit_reorder_routes(app):
             buyer_id=request.current_user["user_id"]
         )
         db.session.add(procurement_order)
+
+        # Update the unified request system if a request item exists for this kit reorder
+        from utils.unified_requests import update_request_item_status
+        update_request_item_status(
+            source_type="kit_reorder",
+            source_id=reorder.id,
+            new_status="ordered",
+            ordered_date=datetime.now(),
+            order_notes=f"Procurement Order #{procurement_order.id}"
+        )
 
         db.session.commit()
 
@@ -622,6 +654,16 @@ def register_kit_reorder_routes(app):
                     "item_id": warehouse_item.id,
                     "kit_id": reorder.kit_id
                 })
+
+        # Update the unified request system if a request item exists for this kit reorder
+        from utils.unified_requests import update_request_item_status
+        update_request_item_status(
+            source_type="kit_reorder",
+            source_id=reorder.id,
+            new_status="received",
+            received_date=datetime.now(),
+            received_quantity=int(reorder.quantity_requested)
+        )
 
         db.session.commit()
 

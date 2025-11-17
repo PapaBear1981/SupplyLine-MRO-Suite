@@ -14,7 +14,7 @@ import {
   Alert,
   Table,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck, FaFlask, FaSuitcase } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import {
@@ -66,6 +66,24 @@ const formatStatusLabel = (status) => {
     .split(' ')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+};
+
+const SOURCE_TYPE_CONFIG = {
+  manual: { label: 'Manual', variant: 'secondary', icon: null },
+  chemical_reorder: { label: 'Chemical Reorder', variant: 'warning', icon: FaFlask },
+  kit_reorder: { label: 'Kit Reorder', variant: 'info', icon: FaSuitcase },
+};
+
+const renderSourceBadge = (sourceType) => {
+  if (!sourceType || sourceType === 'manual') return null;
+  const config = SOURCE_TYPE_CONFIG[sourceType] || SOURCE_TYPE_CONFIG.manual;
+  const Icon = config.icon;
+  return (
+    <Badge bg={config.variant} className="ms-1" style={{ fontSize: '0.7em' }}>
+      {Icon && <Icon className="me-1" />}
+      {config.label}
+    </Badge>
+  );
 };
 
 const INITIAL_ITEM = {
@@ -692,6 +710,7 @@ const RequestsPage = () => {
                                   <th>Part #</th>
                                   <th>Qty</th>
                                   <th>Status</th>
+                                  <th>Source</th>
                                   <th>Vendor</th>
                                   <th>Tracking</th>
                                 </tr>
@@ -706,6 +725,7 @@ const RequestsPage = () => {
                                     <td>{item.part_number || '-'}</td>
                                     <td>{item.quantity} {item.unit}</td>
                                     <td>{renderItemStatusBadge(item.status)}</td>
+                                    <td>{renderSourceBadge(item.source_type) || '-'}</td>
                                     <td>{item.vendor || '-'}</td>
                                     <td>
                                       {item.tracking_number ? (

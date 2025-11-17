@@ -760,16 +760,26 @@ def register_chemical_routes(app):
             chemical.requested_quantity = requested_quantity
 
             # Add notes if provided
-            if data.get("notes"):
+            notes = data.get("notes", "")
+            if notes:
                 # Append reorder request notes to existing notes
-                reorder_note = f"\n[Reorder Request {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} - Qty: {requested_quantity}]: {data['notes']}"
+                reorder_note = f"\n[Reorder Request {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} - Qty: {requested_quantity}]: {notes}"
                 chemical.notes = (chemical.notes or "") + reorder_note
+
+            # Create unified request for the chemical reorder
+            from utils.unified_requests import create_chemical_reorder_request
+            user_request = create_chemical_reorder_request(
+                chemical=chemical,
+                requested_quantity=requested_quantity,
+                requester_id=request.current_user["user_id"],
+                notes=notes
+            )
 
             # Log the action
             user_name = request.current_user.get("user_name", "Unknown user")
             log = AuditLog(
                 action_type="chemical_reorder_requested",
-                action_details=f"Reorder requested for chemical {chemical.part_number} - {chemical.lot_number} by {user_name} (Qty: {requested_quantity})"
+                action_details=f"Reorder requested for chemical {chemical.part_number} - {chemical.lot_number} by {user_name} (Qty: {requested_quantity}). Request #{user_request.request_number} created."
             )
             db.session.add(log)
 
@@ -778,16 +788,17 @@ def register_chemical_routes(app):
                 activity = UserActivity(
                     user_id=request.current_user["user_id"],
                     activity_type="chemical_reorder_requested",
-                    description=f"Requested reorder for chemical {chemical.part_number} - {chemical.lot_number} (Qty: {requested_quantity})"
+                    description=f"Requested reorder for chemical {chemical.part_number} - {chemical.lot_number} (Qty: {requested_quantity}). Request #{user_request.request_number}"
                 )
                 db.session.add(activity)
 
             db.session.commit()
 
-            # Return updated chemical
+            # Return updated chemical and request info
             return jsonify({
                 "chemical": chemical.to_dict(),
-                "message": "Reorder request created successfully. Chemical will appear in 'Chemicals Needing Reorder' on the Orders page."
+                "request": user_request.to_dict(),
+                "message": f"Reorder request created successfully. Request #{user_request.request_number} has been added to the Requests system."
             })
         except Exception as e:
             db.session.rollback()
@@ -877,6 +888,17 @@ def register_chemical_routes(app):
             except Exception as e:
                 print(f"Error updating reorder status: {e!s}")
                 return jsonify({"error": "Failed to update reorder status"}), 500
+
+            # Update the unified request system if a request item exists for this chemical
+            from utils.unified_requests import update_request_item_status
+            update_request_item_status(
+                source_type="chemical_reorder",
+                source_id=chemical.id,
+                new_status="ordered",
+                ordered_date=datetime.utcnow(),
+                expected_delivery_date=expected_delivery_date,
+                order_notes=f"Procurement Order #{procurement_order.id}"
+            )
 
             # Log the action
             user_name = request.current_user.get("user_name", "Unknown user")
@@ -1228,6 +1250,17 @@ def register_chemical_routes(app):
 
                     # Clear the procurement order link
                     chemical.procurement_order_id = None
+
+                # Update the unified request system if a request item exists for this chemical
+                from utils.unified_requests import update_request_item_status
+                received_qty = data.get("received_quantity") if "received_quantity" in data else None
+                update_request_item_status(
+                    source_type="chemical_reorder",
+                    source_id=chemical.id,
+                    new_status="received",
+                    received_date=datetime.utcnow(),
+                    received_quantity=received_qty
+                )
             except Exception as e:
                 print(f"Error updating chemical status: {e!s}")
                 return jsonify({"error": "Failed to update chemical status"}), 500

@@ -314,7 +314,7 @@ const OrderManagementPage = () => {
             onSelect={(k) => setActiveTab(k)}
             className="mb-3"
           >
-            <Tab eventKey="user-requests" title="User Requests">
+            <Tab eventKey="user-requests" title="Requests">
               <UserRequestsManagementTab />
             </Tab>
 
