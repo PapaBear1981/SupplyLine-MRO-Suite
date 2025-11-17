@@ -194,10 +194,11 @@ def update_request_item_status(source_type, source_id, new_status, **kwargs):
         **kwargs: Additional fields to update (vendor, tracking_number, etc.)
     """
     if source_type == "chemical_reorder":
+        # Get the most recent request item for this chemical (order by created_at desc)
         item = RequestItem.query.filter_by(
             source_type="chemical_reorder",
             chemical_id=source_id
-        ).first()
+        ).order_by(RequestItem.created_at.desc()).first()
     elif source_type == "kit_reorder":
         item = RequestItem.query.filter_by(
             source_type="kit_reorder",

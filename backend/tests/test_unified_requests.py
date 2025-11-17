@@ -36,10 +36,8 @@ def unified_setup(app):
 
         # Create test user
         user = User(
-            employee_id="TEST001",
+            employee_number="TEST001",
             name="Test User",
-            username="testuser",
-            email="test@example.com",
             department="Materials",
             is_admin=True,
             is_active=True,
