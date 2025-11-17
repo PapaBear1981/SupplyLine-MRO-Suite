@@ -374,8 +374,23 @@ def register_chemical_routes(app):
             elif chemical.is_low_stock():
                 chemical.status = "low_stock"
 
+            # Track if reorder was triggered
+            reorder_was_needed = chemical.needs_reorder
             # Update reorder status for parent
             chemical.update_reorder_status()
+
+            # Create unified request if reorder was just triggered
+            auto_request = None
+            if chemical.needs_reorder and not reorder_was_needed:
+                from utils.unified_requests import create_chemical_reorder_request
+                auto_request = create_chemical_reorder_request(
+                    chemical=chemical,
+                    requested_quantity=chemical.minimum_stock_level or 1,
+                    requester_id=request.current_user["user_id"],
+                    notes="Automatic reorder triggered by low stock after issuance"
+                )
+                # Set requested_quantity on the chemical
+                chemical.requested_quantity = chemical.minimum_stock_level or 1
 
             # Log the action for child lot creation
             log_child = AuditLog(
@@ -396,6 +411,10 @@ def register_chemical_routes(app):
             # Update chemical quantity
             chemical.quantity -= quantity
 
+            # Track if reorder was triggered
+            reorder_was_needed = chemical.needs_reorder
+            auto_request = None
+
             # Update chemical status based on new quantity
             if chemical.quantity <= 0:
                 chemical.status = "out_of_stock"
@@ -405,6 +424,18 @@ def register_chemical_routes(app):
                 chemical.status = "low_stock"
                 # Update reorder status
                 chemical.update_reorder_status()
+
+            # Create unified request if reorder was just triggered
+            if chemical.needs_reorder and not reorder_was_needed:
+                from utils.unified_requests import create_chemical_reorder_request
+                auto_request = create_chemical_reorder_request(
+                    chemical=chemical,
+                    requested_quantity=chemical.minimum_stock_level or 1,
+                    requester_id=request.current_user["user_id"],
+                    notes="Automatic reorder triggered by low stock after issuance"
+                )
+                # Set requested_quantity on the chemical
+                chemical.requested_quantity = chemical.minimum_stock_level or 1
 
         db.session.add(issuance)
 
@@ -451,6 +482,12 @@ def register_chemical_routes(app):
 
         if child_chemical:
             response_data["child_chemical"] = child_chemical.to_dict()
+
+        # Include auto-created request info if reorder was triggered
+        if auto_request:
+            response_data["auto_reorder_request"] = auto_request.to_dict()
+            response_data["message"] = f"Low stock detected. Automatic reorder request #{auto_request.request_number} has been created."
+            logger.info(f"Auto-created reorder request {auto_request.request_number} for chemical {chemical.part_number}")
 
         return jsonify(response_data)
 
