@@ -326,7 +326,12 @@ const UserRequestsManagementTab = () => {
             <ListGroup.Item key={req.id} className="py-3">
               <div className="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                  <h5 className="mb-1">{req.title}</h5>
+                  <h5 className="mb-1">
+                    {req.request_number && (
+                      <Badge bg="dark" className="me-2">{req.request_number}</Badge>
+                    )}
+                    {req.title}
+                  </h5>
                   <div className="text-muted small">
                     <FaUser className="me-1" />
                     {req.requester_name || 'Unknown'} |{' '}
@@ -368,7 +373,7 @@ const UserRequestsManagementTab = () => {
               {/* Items Summary Table */}
               {req.items && req.items.length > 0 && (
                 <Table size="sm" bordered className="mb-2">
-                  <thead className="table-light">
+                  <thead>
                     <tr>
                       <th>Type</th>
                       <th>Description</th>

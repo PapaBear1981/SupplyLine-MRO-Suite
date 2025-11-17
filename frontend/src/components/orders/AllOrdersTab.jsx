@@ -299,6 +299,7 @@ const AllOrdersTab = ({ onViewOrder }) => {
           <Table hover bordered className="align-middle">
             <thead>
               <tr>
+                <th>Order #</th>
                 <th>Title</th>
                 <th>Part Number</th>
                 <th>Type</th>
@@ -314,6 +315,13 @@ const AllOrdersTab = ({ onViewOrder }) => {
             <tbody>
               {filteredOrders.map((order) => (
                 <tr key={order.id}>
+                  <td>
+                    {order.order_number ? (
+                      <Badge bg="dark">{order.order_number}</Badge>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
                   <td>
                     <div className="d-flex align-items-center gap-2">
                       {order.title}

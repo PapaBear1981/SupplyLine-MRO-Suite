@@ -72,7 +72,9 @@ const OrderDetailModal = ({
   return (
     <Modal show={show} onHide={onHide} size="xl">
       <Modal.Header closeButton>
-        <Modal.Title>Order Details - {order.title}</Modal.Title>
+        <Modal.Title>
+          Order Details {order.order_number && `(${order.order_number})`} - {order.title}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {order.needs_more_info && (

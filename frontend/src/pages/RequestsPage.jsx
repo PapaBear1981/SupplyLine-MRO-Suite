@@ -600,7 +600,12 @@ const RequestsPage = () => {
                       <div className="d-flex flex-column gap-3">
                         <div className="d-flex justify-content-between align-items-start">
                           <div className="flex-grow-1">
-                            <h5 className="mb-1">{req.title}</h5>
+                            <h5 className="mb-1">
+                              {req.request_number && (
+                                <Badge bg="dark" className="me-2">{req.request_number}</Badge>
+                              )}
+                              {req.title}
+                            </h5>
                             <div className="text-muted small">
                               Requested {req.created_at ? formatDistanceToNow(new Date(req.created_at), { addSuffix: true }) : 'N/A'}
                               {' | '}
@@ -680,7 +685,7 @@ const RequestsPage = () => {
                           <div className="mt-2">
                             <h6 className="mb-2">Items:</h6>
                             <Table size="sm" bordered hover responsive>
-                              <thead className="table-light">
+                              <thead>
                                 <tr>
                                   <th>Type</th>
                                   <th>Description</th>
@@ -784,7 +789,12 @@ const RequestsPage = () => {
                         <div className="d-flex flex-column gap-3">
                           <div className="d-flex justify-content-between align-items-start">
                             <div className="flex-grow-1">
-                              <h6 className="mb-1">{req.title}</h6>
+                              <h6 className="mb-1">
+                                {req.request_number && (
+                                  <Badge bg="dark" className="me-2">{req.request_number}</Badge>
+                                )}
+                                {req.title}
+                              </h6>
                               <div className="text-muted small">
                                 {req.item_count} item{req.item_count !== 1 ? 's' : ''} |{' '}
                                 Requested {req.created_at ? formatDistanceToNow(new Date(req.created_at), { addSuffix: true }) : 'N/A'}
@@ -874,7 +884,7 @@ const RequestsPage = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  Messages for: {selectedRequestForMessage.title}
+                  Messages for: {selectedRequestForMessage.request_number && `${selectedRequestForMessage.request_number} - `}{selectedRequestForMessage.title}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setShowMessagesModal(false)} />
               </div>

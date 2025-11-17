@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import datetime, timezone
 
 from flask import current_app, jsonify, request
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from werkzeug.utils import secure_filename
 
 from auth import jwt_required, permission_required, permission_required_any
@@ -92,6 +92,15 @@ def _load_user(user_id, field_name):
     if not user:
         raise ValidationError(f"{field_name} not found")
     return user
+
+
+def _generate_order_number():
+    """Generate a unique order number in format ORD-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(order_number, 5) AS INTEGER)) FROM procurement_orders WHERE order_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"ORD-{next_number:05d}"
 
 
 def register_order_routes(app):
@@ -306,11 +315,16 @@ def register_order_routes(app):
         )
 
         db.session.add(order)
+        db.session.flush()  # Get the ID
+
+        # Generate and assign order number
+        order.order_number = _generate_order_number()
+
         db.session.commit()
 
         log = AuditLog(
             action_type="procurement_order_created",
-            action_details=f"Order {order.id} created with status {order.status}",
+            action_details=f"Order {order.order_number} ({order.id}) created with status {order.status}",
         )
         db.session.add(log)
         db.session.commit()

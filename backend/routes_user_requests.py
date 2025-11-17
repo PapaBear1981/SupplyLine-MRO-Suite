@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 
 from flask import jsonify, request
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 
 from auth import jwt_required, permission_required_any
 from models import (
@@ -39,6 +39,15 @@ VALID_REQUEST_STATUSES = {
 VALID_ITEM_STATUSES = {"pending", "ordered", "shipped", "received", "cancelled"}
 CLOSED_STATUSES = {"received", "cancelled"}
 OPEN_STATUSES = VALID_REQUEST_STATUSES - CLOSED_STATUSES
+
+
+def _generate_request_number():
+    """Generate a unique request number in format REQ-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(request_number, 5) AS INTEGER)) FROM user_requests WHERE request_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"REQ-{next_number:05d}"
 
 
 def _parse_datetime(value, field_name="timestamp"):
@@ -233,6 +242,9 @@ def register_user_request_routes(app):
         )
         db.session.add(user_request)
         db.session.flush()  # Get the ID
+
+        # Generate and assign request number
+        user_request.request_number = _generate_request_number()
 
         # Validate and create items
         for idx, item_data in enumerate(items):
@@ -741,7 +753,7 @@ def register_user_request_routes(app):
     @app.route("/api/user-requests/messages/<int:message_id>/read", methods=["PUT"])
     @jwt_required
     @handle_errors
-    def mark_message_read(message_id):
+    def mark_user_request_message_read(message_id):
         """Mark a message as read."""
 
         message = db.session.get(UserRequestMessage, message_id)

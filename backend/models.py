@@ -468,6 +468,7 @@ class ProcurementOrder(db.Model):
     __tablename__ = "procurement_orders"
 
     id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(20), unique=True, nullable=True, index=True)  # ORD-00001
     title = db.Column(db.String(200), nullable=False)
     order_type = db.Column(db.String(50), nullable=False, default="tool")
     part_number = db.Column(db.String(100), nullable=True, index=True)  # Track items by part number
@@ -538,6 +539,7 @@ class ProcurementOrder(db.Model):
 
         data = {
             "id": self.id,
+            "order_number": self.order_number,
             "title": self.title,
             "order_type": self.order_type,
             "part_number": self.part_number,
@@ -641,6 +643,7 @@ class UserRequest(db.Model):
     __tablename__ = "user_requests"
 
     id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(20), unique=True, nullable=True, index=True)  # REQ-00001
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.String(4000), nullable=True)
     priority = db.Column(db.String(20), nullable=False, default="normal")  # low, normal, high, critical
@@ -744,6 +747,7 @@ class UserRequest(db.Model):
 
         data = {
             "id": self.id,
+            "request_number": self.request_number,
             "title": self.title,
             "description": self.description,
             "priority": self.priority,
