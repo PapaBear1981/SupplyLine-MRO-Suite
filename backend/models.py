@@ -1451,6 +1451,10 @@ class WarehouseTransfer(db.Model):
         """Convert transfer to dictionary representation."""
         return {
             "id": self.id,
+            "from_warehouse_id": self.from_warehouse_id,
+            "to_warehouse_id": self.to_warehouse_id,
+            "to_kit_id": self.to_kit_id,
+            "from_kit_id": self.from_kit_id,
             "from_warehouse": self.from_warehouse.name if self.from_warehouse else None,
             "to_warehouse": self.to_warehouse.name if self.to_warehouse else None,
             "to_kit": self.to_kit.name if self.to_kit else None,
@@ -1459,7 +1463,7 @@ class WarehouseTransfer(db.Model):
             "item_id": self.item_id,
             "quantity": self.quantity,
             "transfer_date": self.transfer_date.isoformat() if self.transfer_date else None,
-            "transferred_by": self.transferred_by.username if self.transferred_by else None,
+            "transferred_by": self.transferred_by.name if self.transferred_by else None,
             "notes": self.notes,
             "status": self.status
         }

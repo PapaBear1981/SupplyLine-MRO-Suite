@@ -6,8 +6,8 @@ Handles transfers between warehouses and kits.
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required  # type: ignore[import-not-found]
 
+from auth.jwt_manager import jwt_required
 from models import Chemical, Tool, Warehouse, WarehouseTransfer, db
 from models_kits import Kit, KitBox, KitItem
 from utils.transaction_helper import record_transaction
@@ -17,7 +17,7 @@ transfers_bp = Blueprint("transfers", __name__)
 
 
 @transfers_bp.route("/transfers/warehouse-to-kit", methods=["POST"])
-@jwt_required()
+@jwt_required
 def transfer_warehouse_to_kit():
     """
     Transfer a tool or chemical from warehouse to kit.
@@ -33,7 +33,7 @@ def transfer_warehouse_to_kit():
     """
     try:
         data = request.get_json()
-        current_user_id = get_jwt_identity()
+        current_user_id = request.current_user["user_id"]
 
         # Validate required fields
         required_fields = ["from_warehouse_id", "to_kit_id", "box_id", "item_type", "item_id"]
@@ -154,7 +154,7 @@ def transfer_warehouse_to_kit():
 
 
 @transfers_bp.route("/transfers/kit-to-warehouse", methods=["POST"])
-@jwt_required()
+@jwt_required
 def transfer_kit_to_warehouse():
     """
     Transfer a tool or chemical from kit back to warehouse.
@@ -166,7 +166,7 @@ def transfer_kit_to_warehouse():
     """
     try:
         data = request.get_json()
-        current_user_id = get_jwt_identity()
+        current_user_id = request.current_user["user_id"]
 
         # Validate required fields
         required_fields = ["from_kit_id", "kit_item_id", "to_warehouse_id"]
@@ -240,7 +240,7 @@ def transfer_kit_to_warehouse():
 
 
 @transfers_bp.route("/transfers/warehouse-to-warehouse", methods=["POST"])
-@jwt_required()
+@jwt_required
 def transfer_warehouse_to_warehouse():
     """
     Transfer a tool or chemical between warehouses.
@@ -254,7 +254,7 @@ def transfer_warehouse_to_warehouse():
     """
     try:
         data = request.get_json()
-        current_user_id = get_jwt_identity()
+        current_user_id = request.current_user["user_id"]
 
         # Validate required fields
         required_fields = ["from_warehouse_id", "to_warehouse_id", "item_type", "item_id"]
@@ -336,7 +336,7 @@ def transfer_warehouse_to_warehouse():
 
 
 @transfers_bp.route("/transfers", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_transfers():
     """
     Get transfer history with filters.

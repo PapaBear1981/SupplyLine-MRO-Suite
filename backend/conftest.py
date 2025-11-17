@@ -285,6 +285,7 @@ def auth_headers_materials(materials_token):
 @pytest.fixture
 def sample_roles_permissions(db_session):
     """Create sample roles and permissions for testing"""
+    _ensure_imports()
     # Create permissions
     permissions = [
         Permission(name="view_tools", description="View tools"),
