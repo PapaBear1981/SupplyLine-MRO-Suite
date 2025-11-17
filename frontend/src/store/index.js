@@ -19,6 +19,7 @@ import departmentsReducer from './departmentsSlice';
 import securityReducer from './securitySlice';
 import messagingReducer from './messagingSlice';
 import ordersReducer from './ordersSlice';
+import userRequestsReducer from './userRequestsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -42,6 +43,7 @@ export const store = configureStore({
     security: securityReducer,
     messaging: messagingReducer,
     orders: ordersReducer,
+    userRequests: userRequestsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

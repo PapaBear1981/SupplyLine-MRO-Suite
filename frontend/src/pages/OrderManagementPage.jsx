@@ -36,6 +36,7 @@ import ChemicalsNeedingReorderTab from '../components/orders/ChemicalsNeedingReo
 import ChemicalsOnOrderTab from '../components/orders/ChemicalsOnOrderTab';
 import AnalyticsTab from '../components/orders/AnalyticsTab';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
+import UserRequestsManagementTab from '../components/orders/UserRequestsManagementTab';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -88,7 +89,7 @@ const OrderManagementPage = () => {
   const { users } = useSelector((state) => state.users);
   const { user } = useSelector((state) => state.auth);
 
-  const [activeTab, setActiveTab] = useState('all-orders');
+  const [activeTab, setActiveTab] = useState('user-requests');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -313,18 +314,22 @@ const OrderManagementPage = () => {
             onSelect={(k) => setActiveTab(k)}
             className="mb-3"
           >
+            <Tab eventKey="user-requests" title="User Requests">
+              <UserRequestsManagementTab />
+            </Tab>
+
             <Tab eventKey="all-orders" title="All Orders">
               <AllOrdersTab onViewOrder={handleViewOrder} />
             </Tab>
-            
+
             <Tab eventKey="chemicals-needing-reorder" title="Chemicals Needing Reorder">
               <ChemicalsNeedingReorderTab />
             </Tab>
-            
+
             <Tab eventKey="chemicals-on-order" title="Chemicals On Order">
               <ChemicalsOnOrderTab />
             </Tab>
-            
+
             <Tab eventKey="analytics" title="Analytics">
               <AnalyticsTab />
             </Tab>

@@ -45,6 +45,7 @@ from routes_reports import register_report_routes
 from routes_scanner import register_scanner_routes
 from routes_security import register_security_routes
 from routes_transfers import transfers_bp
+from routes_user_requests import register_user_request_routes
 from routes_warehouses import warehouses_bp
 from utils.error_handler import ValidationError, handle_errors, log_security_event
 from utils.file_validation import FileValidationError, validate_image_upload
@@ -208,6 +209,7 @@ def register_routes(app):
     register_kit_reorder_routes(app)
     register_kit_message_routes(app)
     register_order_routes(app)
+    register_user_request_routes(app)
 
     # Register enhanced messaging routes (channels, real-time chat)
     register_channels_routes(app)

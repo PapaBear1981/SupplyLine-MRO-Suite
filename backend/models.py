@@ -468,6 +468,7 @@ class ProcurementOrder(db.Model):
     __tablename__ = "procurement_orders"
 
     id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(20), unique=True, nullable=True, index=True)  # ORD-00001
     title = db.Column(db.String(200), nullable=False)
     order_type = db.Column(db.String(50), nullable=False, default="tool")
     part_number = db.Column(db.String(100), nullable=True, index=True)  # Track items by part number
@@ -538,6 +539,7 @@ class ProcurementOrder(db.Model):
 
         data = {
             "id": self.id,
+            "order_number": self.order_number,
             "title": self.title,
             "order_type": self.order_type,
             "part_number": self.part_number,
@@ -615,6 +617,261 @@ class ProcurementOrderMessage(db.Model):
         data = {
             "id": self.id,
             "order_id": self.order_id,
+            "subject": self.subject,
+            "message": self.message,
+            "sender_id": self.sender_id,
+            "sender_name": self.sender.name if self.sender else None,
+            "recipient_id": self.recipient_id,
+            "recipient_name": self.recipient.name if self.recipient else None,
+            "is_read": self.is_read,
+            "sent_date": self.sent_date.isoformat() if self.sent_date else None,
+            "read_date": self.read_date.isoformat() if self.read_date else None,
+            "parent_message_id": self.parent_message_id,
+            "attachments": self.attachments,
+            "reply_count": len(self.replies) if hasattr(self, "replies") else 0,
+        }
+
+        if include_replies and hasattr(self, "replies"):
+            data["replies"] = [reply.to_dict() for reply in self.replies]
+
+        return data
+
+
+class UserRequest(db.Model):
+    """Multi-item user request for procurement items."""
+
+    __tablename__ = "user_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(20), unique=True, nullable=True, index=True)  # REQ-00001
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.String(4000), nullable=True)
+    priority = db.Column(db.String(20), nullable=False, default="normal")  # low, normal, high, critical
+    status = db.Column(db.String(50), nullable=False, default="new")  # new, awaiting_info, in_progress, partially_ordered, ordered, partially_received, received, cancelled
+    requester_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    buyer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    notes = db.Column(db.String(4000), nullable=True)
+    needs_more_info = db.Column(db.Boolean, default=False, nullable=False)
+    expected_due_date = db.Column(db.DateTime, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_current_time, onupdate=get_current_time)
+
+    # Relationships
+    requester = db.relationship("User", foreign_keys=[requester_id])
+    buyer = db.relationship("User", foreign_keys=[buyer_id])
+    items = db.relationship(
+        "RequestItem",
+        back_populates="request",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+    messages = db.relationship(
+        "UserRequestMessage",
+        back_populates="request",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+
+    OPEN_STATUSES = {"new", "awaiting_info", "in_progress", "partially_ordered", "ordered", "partially_received"}
+    CLOSED_STATUSES = {"received", "cancelled"}
+
+    def is_closed(self) -> bool:
+        return self.status in self.CLOSED_STATUSES
+
+    def _due_state(self):
+        if not self.expected_due_date:
+            return "unscheduled"
+
+        if self.is_closed():
+            return "completed"
+
+        now = get_current_time()
+        if self.expected_due_date < now:
+            return "late"
+
+        if (self.expected_due_date - now).days <= 3:
+            return "due_soon"
+
+        return "on_track"
+
+    def update_status_from_items(self):
+        """Update request status based on item statuses."""
+        if not self.items or self.items.count() == 0:
+            return
+
+        item_statuses = [item.status for item in self.items.all()]
+
+        # If all items are cancelled, request is cancelled
+        if all(status == "cancelled" for status in item_statuses):
+            self.status = "cancelled"
+            return
+
+        # Filter out cancelled items for status calculation
+        active_statuses = [s for s in item_statuses if s != "cancelled"]
+        if not active_statuses:
+            self.status = "cancelled"
+            return
+
+        # If all active items are received, request is received
+        if all(status == "received" for status in active_statuses):
+            self.status = "received"
+        # If some items are received
+        elif any(status == "received" for status in active_statuses):
+            self.status = "partially_received"
+        # If all active items are ordered or shipped
+        elif all(status in ("ordered", "shipped") for status in active_statuses):
+            self.status = "ordered"
+        # If some items are ordered
+        elif any(status in ("ordered", "shipped") for status in active_statuses):
+            self.status = "partially_ordered"
+        # If any item is in progress
+        elif any(status == "in_progress" for status in active_statuses):
+            self.status = "in_progress"
+        # If awaiting info
+        elif self.needs_more_info:
+            self.status = "awaiting_info"
+        else:
+            self.status = "new"
+
+    def to_dict(self, include_items: bool = True, include_messages: bool = False):
+        """Serialize request for API responses."""
+
+        latest_message = None
+        message_count = 0
+        unread_message_count = 0
+        if self.messages is not None:
+            message_count = self.messages.count()
+            unread_message_count = self.messages.filter_by(is_read=False).count()
+            if message_count:
+                latest_message = self.messages.order_by(UserRequestMessage.sent_date.desc()).first()
+
+        data = {
+            "id": self.id,
+            "request_number": self.request_number,
+            "title": self.title,
+            "description": self.description,
+            "priority": self.priority,
+            "status": self.status,
+            "requester_id": self.requester_id,
+            "requester_name": self.requester.name if self.requester else None,
+            "buyer_id": self.buyer_id,
+            "buyer_name": self.buyer.name if self.buyer else None,
+            "notes": self.notes,
+            "needs_more_info": self.needs_more_info,
+            "expected_due_date": self.expected_due_date.isoformat() if self.expected_due_date else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "message_count": message_count,
+            "unread_message_count": unread_message_count,
+            "latest_message_at": latest_message.sent_date.isoformat() if latest_message else None,
+            "due_status": self._due_state(),
+            "is_late": self._due_state() == "late",
+            "days_overdue": None,
+            "days_open": None,
+            "item_count": self.items.count() if self.items else 0,
+        }
+
+        if self.expected_due_date and not self.is_closed():
+            delta = get_current_time() - self.expected_due_date
+            if delta.days >= 0:
+                data["days_overdue"] = delta.days
+
+        if self.created_at:
+            open_delta = get_current_time() - self.created_at
+            data["days_open"] = open_delta.days
+
+        if include_items and self.items:
+            data["items"] = [item.to_dict() for item in self.items.all()]
+
+        if include_messages and self.messages:
+            messages_query = self.messages.order_by(UserRequestMessage.sent_date.desc())
+            data["messages"] = [message.to_dict() for message in messages_query]
+
+        return data
+
+
+class RequestItem(db.Model):
+    """Individual item within a multi-item request."""
+
+    __tablename__ = "request_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("user_requests.id"), nullable=False, index=True)
+    item_type = db.Column(db.String(50), nullable=False, default="tool")  # tool, chemical, expendable, other
+    part_number = db.Column(db.String(100), nullable=True, index=True)
+    description = db.Column(db.String(500), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    unit = db.Column(db.String(20), nullable=True, default="each")  # mL, Gallon, each, etc.
+    status = db.Column(db.String(50), nullable=False, default="pending")  # pending, ordered, shipped, received, cancelled
+
+    # Order fulfillment details (filled by buyer)
+    vendor = db.Column(db.String(200), nullable=True)
+    tracking_number = db.Column(db.String(120), nullable=True)
+    ordered_date = db.Column(db.DateTime, nullable=True)
+    expected_delivery_date = db.Column(db.DateTime, nullable=True)
+    received_date = db.Column(db.DateTime, nullable=True)
+    received_quantity = db.Column(db.Integer, nullable=True)
+    unit_cost = db.Column(db.Float, nullable=True)
+    total_cost = db.Column(db.Float, nullable=True)
+    order_notes = db.Column(db.String(1000), nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_current_time, onupdate=get_current_time)
+
+    # Relationships
+    request = db.relationship("UserRequest", back_populates="items")
+
+    def to_dict(self):
+        """Serialize item for API responses."""
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "item_type": self.item_type,
+            "part_number": self.part_number,
+            "description": self.description,
+            "quantity": self.quantity,
+            "unit": self.unit,
+            "status": self.status,
+            "vendor": self.vendor,
+            "tracking_number": self.tracking_number,
+            "ordered_date": self.ordered_date.isoformat() if self.ordered_date else None,
+            "expected_delivery_date": self.expected_delivery_date.isoformat() if self.expected_delivery_date else None,
+            "received_date": self.received_date.isoformat() if self.received_date else None,
+            "received_quantity": self.received_quantity,
+            "unit_cost": self.unit_cost,
+            "total_cost": self.total_cost,
+            "order_notes": self.order_notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class UserRequestMessage(db.Model):
+    """Message thread entries associated with user requests."""
+
+    __tablename__ = "user_request_messages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("user_requests.id"), nullable=False, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    subject = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.String(5000), nullable=False)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    sent_date = db.Column(db.DateTime, default=get_current_time, nullable=False)
+    read_date = db.Column(db.DateTime)
+    parent_message_id = db.Column(db.Integer, db.ForeignKey("user_request_messages.id"))
+    attachments = db.Column(db.String(1000))
+
+    request = db.relationship("UserRequest", back_populates="messages")
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+    parent_message = db.relationship("UserRequestMessage", remote_side=[id], backref="replies")
+
+    def to_dict(self, include_replies: bool = False):
+        data = {
+            "id": self.id,
+            "request_id": self.request_id,
             "subject": self.subject,
             "message": self.message,
             "sender_id": self.sender_id,
