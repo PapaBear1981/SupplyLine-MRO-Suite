@@ -804,6 +804,12 @@ class RequestItem(db.Model):
     unit = db.Column(db.String(20), nullable=True, default="each")  # mL, Gallon, each, etc.
     status = db.Column(db.String(50), nullable=False, default="pending")  # pending, ordered, shipped, received, cancelled
 
+    # Source tracking for unified request system
+    source_type = db.Column(db.String(50), nullable=False, default="manual")  # manual, chemical_reorder, kit_reorder
+    chemical_id = db.Column(db.Integer, db.ForeignKey("chemicals.id"), nullable=True, index=True)
+    kit_id = db.Column(db.Integer, nullable=True, index=True)  # Kit ID for kit reorders
+    kit_reorder_request_id = db.Column(db.Integer, nullable=True, index=True)  # Reference to KitReorderRequest
+
     # Order fulfillment details (filled by buyer)
     vendor = db.Column(db.String(200), nullable=True)
     tracking_number = db.Column(db.String(120), nullable=True)
@@ -820,6 +826,7 @@ class RequestItem(db.Model):
 
     # Relationships
     request = db.relationship("UserRequest", back_populates="items")
+    chemical = db.relationship("Chemical", foreign_keys=[chemical_id])
 
     def to_dict(self):
         """Serialize item for API responses."""
@@ -832,6 +839,10 @@ class RequestItem(db.Model):
             "quantity": self.quantity,
             "unit": self.unit,
             "status": self.status,
+            "source_type": self.source_type,
+            "chemical_id": self.chemical_id,
+            "kit_id": self.kit_id,
+            "kit_reorder_request_id": self.kit_reorder_request_id,
             "vendor": self.vendor,
             "tracking_number": self.tracking_number,
             "ordered_date": self.ordered_date.isoformat() if self.ordered_date else None,

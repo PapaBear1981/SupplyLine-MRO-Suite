@@ -13,7 +13,7 @@ import {
   Col,
   Alert,
 } from 'react-bootstrap';
-import { FaEdit, FaEnvelope, FaTruck, FaCheckCircle, FaBoxOpen, FaUser, FaCalendarAlt } from 'react-icons/fa';
+import { FaEdit, FaEnvelope, FaTruck, FaCheckCircle, FaBoxOpen, FaUser, FaCalendarAlt, FaFlask, FaToolbox, FaSuitcase } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import {
@@ -59,6 +59,23 @@ const formatStatusLabel = (status) => {
     .split(' ')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+};
+
+const SOURCE_TYPE_CONFIG = {
+  manual: { label: 'Manual', variant: 'secondary', icon: null },
+  chemical_reorder: { label: 'Chemical Reorder', variant: 'warning', icon: FaFlask },
+  kit_reorder: { label: 'Kit Reorder', variant: 'info', icon: FaSuitcase },
+};
+
+const renderSourceBadge = (sourceType) => {
+  const config = SOURCE_TYPE_CONFIG[sourceType] || SOURCE_TYPE_CONFIG.manual;
+  const Icon = config.icon;
+  return (
+    <Badge bg={config.variant} className="ms-1" style={{ fontSize: '0.7em' }}>
+      {Icon && <Icon className="me-1" />}
+      {config.label}
+    </Badge>
+  );
 };
 
 const UserRequestsManagementTab = () => {
@@ -379,6 +396,7 @@ const UserRequestsManagementTab = () => {
                       <th>Description</th>
                       <th>Qty</th>
                       <th>Status</th>
+                      <th>Source</th>
                       <th>Vendor</th>
                       <th>Tracking</th>
                     </tr>
@@ -396,6 +414,7 @@ const UserRequestsManagementTab = () => {
                             {formatStatusLabel(item.status)}
                           </Badge>
                         </td>
+                        <td>{renderSourceBadge(item.source_type)}</td>
                         <td>{item.vendor || '-'}</td>
                         <td>
                           {item.tracking_number ? (
@@ -523,6 +542,15 @@ const UserRequestsManagementTab = () => {
                         )}
                       </Col>
                     </Row>
+                    {item.source_type && item.source_type !== 'manual' && (
+                      <Row className="mb-3">
+                        <Col>
+                          <strong>Source:</strong> {renderSourceBadge(item.source_type)}
+                          {item.chemical_id && <span className="ms-2 text-muted small">(Chemical ID: {item.chemical_id})</span>}
+                          {item.kit_id && <span className="ms-2 text-muted small">(Kit ID: {item.kit_id})</span>}
+                        </Col>
+                      </Row>
+                    )}
 
                     {item.status === 'pending' && (
                       <Row className="g-3">
