@@ -17,6 +17,7 @@ import {
   FaEnvelope,
   FaClipboardList,
 } from 'react-icons/fa';
+import { ShoppingCartOutlined } from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import {
   fetchOrders,
@@ -37,6 +38,7 @@ import ChemicalsOnOrderTab from '../components/orders/ChemicalsOnOrderTab';
 import AnalyticsTab from '../components/orders/AnalyticsTab';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
 import UserRequestsManagementTab from '../components/orders/UserRequestsManagementTab';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 
 const ORDER_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -292,20 +294,21 @@ const OrderManagementPage = () => {
   };
 
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="mb-1">
-            <FaClipboardList className="me-2" />
-            Order Management Dashboard
-          </h2>
-          <p className="text-muted mb-0">Track and manage procurement orders</p>
-        </div>
-        <Button variant="primary" onClick={handleOpenCreate}>
-          <FaPlus className="me-2" />
-          Create Order
-        </Button>
-      </div>
+    <div className="enterprise-order-management">
+      <EnterprisePageHeader
+        title="Order Management"
+        subtitle="Track and manage procurement orders across all departments"
+        icon={<ShoppingCartOutlined />}
+        breadcrumbs={[{ title: 'Orders' }]}
+        actions={[
+          {
+            label: 'Create Order',
+            icon: <FaPlus />,
+            type: 'primary',
+            onClick: handleOpenCreate,
+          },
+        ]}
+      />
 
       <Card>
         <Card.Body>

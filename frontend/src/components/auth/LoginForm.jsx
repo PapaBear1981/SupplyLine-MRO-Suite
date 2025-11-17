@@ -1,129 +1,111 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { Eye, EyeSlash } from 'react-bootstrap-icons';
+import { Form, Input, Button, Checkbox, Alert, Space } from 'antd';
+import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { login } from '../../store/authSlice';
 
 const LoginForm = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [validated, setValidated] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
+  const [form] = Form.useForm();
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
-
-    setValidated(true);
-
-    // Use the actual backend login API
+  const handleSubmit = async (values) => {
     try {
-      await dispatch(login({ username, password })).unwrap();
+      await dispatch(login({
+        username: values.employeeNumber,
+        password: values.password,
+      })).unwrap();
     } catch (err) {
       console.error('Login failed:', err);
     }
   };
 
   return (
-    <Form noValidate validated={validated} onSubmit={handleSubmit}>
+    <Form
+      form={form}
+      name="login"
+      onFinish={handleSubmit}
+      layout="vertical"
+      requiredMark={false}
+      size="large"
+    >
       {error && (
-        <div className="login-alert login-alert-danger">
-          {error.message || error.error || 'Login failed. Please try again.'}
-        </div>
+        <Alert
+          message="Authentication Failed"
+          description={error.message || error.error || 'Login failed. Please try again.'}
+          type="error"
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
       )}
 
-      <div className="login-form-group">
-        <label htmlFor="formUsername" className="login-form-label">
-          Employee Number
-        </label>
-        <div className="login-input-wrapper">
-          <input
-            id="formUsername"
-            type="text"
-            className={`login-form-control ${validated && !username ? 'is-invalid' : ''}`}
-            placeholder="Enter your employee number"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            autoComplete="username"
-          />
-        </div>
-        {validated && !username && (
-          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Please provide your employee number.
-          </div>
-        )}
-      </div>
-
-      <div className="login-form-group">
-        <label htmlFor="formPassword" className="login-form-label">
-          Password
-        </label>
-        <div className="login-input-wrapper">
-          <input
-            id="formPassword"
-            type={showPassword ? 'text' : 'password'}
-            className={`login-form-control ${validated && !password ? 'is-invalid' : ''}`}
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            style={{ paddingRight: '3rem' }}
-          />
-          <button
-            type="button"
-            className="password-toggle-btn"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-        {validated && !password && (
-          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Please provide a password.
-          </div>
-        )}
-      </div>
-
-      <div className="login-checkbox-wrapper">
-        <input
-          id="formRememberMe"
-          type="checkbox"
-          className="login-checkbox"
-          checked={rememberMe}
-          onChange={(e) => setRememberMe(e.target.checked)}
-        />
-        <label htmlFor="formRememberMe" className="login-checkbox-label">
-          Remember me
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        className="login-submit-btn"
-        disabled={loading}
+      <Form.Item
+        name="employeeNumber"
+        label={<span style={{ fontWeight: 500, color: '#16325c' }}>Employee Number</span>}
+        rules={[
+          {
+            required: true,
+            message: 'Please enter your employee number',
+          },
+        ]}
       >
-        {loading ? (
-          <>
-            <span className="login-spinner"></span>
-            <span>Logging in...</span>
-          </>
-        ) : (
-          'Login'
-        )}
-      </button>
+        <Input
+          prefix={<UserOutlined style={{ color: '#8a96a8' }} />}
+          placeholder="Enter employee number"
+          autoComplete="username"
+          style={{
+            height: 44,
+            borderRadius: 6,
+          }}
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="password"
+        label={<span style={{ fontWeight: 500, color: '#16325c' }}>Password</span>}
+        rules={[
+          {
+            required: true,
+            message: 'Please enter your password',
+          },
+        ]}
+      >
+        <Input.Password
+          prefix={<LockOutlined style={{ color: '#8a96a8' }} />}
+          placeholder="Enter password"
+          autoComplete="current-password"
+          iconRender={(visible) => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+          style={{
+            height: 44,
+            borderRadius: 6,
+          }}
+        />
+      </Form.Item>
+
+      <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 24 }}>
+        <Checkbox>
+          <span style={{ color: '#54698d' }}>Remember me</span>
+        </Checkbox>
+      </Form.Item>
+
+      <Form.Item style={{ marginBottom: 0 }}>
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
+          block
+          style={{
+            height: 44,
+            borderRadius: 6,
+            fontWeight: 600,
+            fontSize: 14,
+            background: '#0070d2',
+            boxShadow: '0 4px 12px rgba(0, 112, 210, 0.3)',
+          }}
+        >
+          {loading ? 'Authenticating...' : 'Sign In'}
+        </Button>
+      </Form.Item>
     </Form>
   );
 };

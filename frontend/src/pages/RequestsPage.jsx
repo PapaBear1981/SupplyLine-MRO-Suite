@@ -15,6 +15,7 @@ import {
   Table,
 } from 'react-bootstrap';
 import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck } from 'react-icons/fa';
+import { FileAddOutlined } from '@ant-design/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import {
@@ -26,6 +27,7 @@ import {
   sendRequestMessage,
 } from '../store/userRequestsSlice';
 import { PRIORITY_VARIANTS } from '../constants/orderConstants';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 
 const ITEM_TYPES = [
   { value: 'tool', label: 'Tool' },
@@ -317,18 +319,13 @@ const RequestsPage = () => {
   };
 
   return (
-    <div className="requests-page">
-      <div className="d-flex align-items-center justify-content-between mb-4">
-        <div>
-          <h1 className="mb-1 d-flex align-items-center gap-2">
-            <FaClipboardList />
-            Procurement Requests
-          </h1>
-          <p className="text-muted mb-0">
-            Submit multi-item requests for tools, chemicals, expendables, or other materials.
-          </p>
-        </div>
-      </div>
+    <div className="enterprise-requests-page">
+      <EnterprisePageHeader
+        title="Procurement Requests"
+        subtitle="Submit and track multi-item requests for tools, chemicals, expendables, or other materials"
+        icon={<FileAddOutlined />}
+        breadcrumbs={[{ title: 'Requests' }]}
+      />
 
       <Row className="g-4 mb-4">
         <Col md={3}>

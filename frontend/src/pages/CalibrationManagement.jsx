@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Row, Col, Nav, Tab, Alert, Button } from 'react-bootstrap';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { SlidersOutlined, PlusCircleOutlined } from '@ant-design/icons';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 import CalibrationDueList from '../components/calibration/CalibrationDueList';
 import CalibrationOverdueList from '../components/calibration/CalibrationOverdueList';
 import CalibrationHistoryList from '../components/calibration/CalibrationHistoryList';
@@ -11,6 +13,7 @@ const CalibrationManagement = () => {
   const { user } = useSelector((state) => state.auth);
   const isAdmin = user?.is_admin || user?.department === 'Materials';
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const tabParam = queryParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabParam || 'due');
@@ -35,21 +38,20 @@ const CalibrationManagement = () => {
   }
 
   return (
-    <div className="w-100">
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <h1 className="mb-0">Calibration Management</h1>
-        <div>
-          <Button
-            as={Link}
-            to="/calibration-standards/new"
-            variant="outline-primary"
-            className="me-2"
-          >
-            <i className="bi bi-plus-circle me-2"></i>
-            Add Calibration Standard
-          </Button>
-        </div>
-      </div>
+    <div className="enterprise-calibration-management">
+      <EnterprisePageHeader
+        title="Calibration Management"
+        subtitle="Track calibration schedules, due dates, and standards compliance"
+        icon={<SlidersOutlined />}
+        breadcrumbs={[{ title: 'Calibrations' }]}
+        actions={[
+          {
+            label: 'Add Calibration Standard',
+            icon: <PlusCircleOutlined />,
+            onClick: () => navigate('/calibration-standards/new'),
+          },
+        ]}
+      />
 
       <Tab.Container id="calibration-tabs" activeKey={activeTab} onSelect={setActiveTab}>
         <Row>

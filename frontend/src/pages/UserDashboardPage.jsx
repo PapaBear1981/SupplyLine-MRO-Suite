@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Container, Row, Col, Button, Modal, ListGroup, ButtonGroup } from 'react-bootstrap';
+import { Row, Col, Button, Modal, List, Card, Typography, Space, Tooltip, Divider } from 'antd';
+import {
+  SettingOutlined,
+  ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  SwapOutlined,
+  DashboardOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import { toast } from 'react-toastify';
 import { fetchRegistrationRequests } from '../store/adminSlice';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
 import UserCheckoutStatus from '../components/dashboard/UserCheckoutStatus';
 import RecentActivity from '../components/dashboard/RecentActivity';
@@ -17,6 +29,8 @@ import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
 import PendingUserRequests from '../components/admin/PendingUserRequests';
 import PendingUpdateRequestsWidget from '../components/dashboard/PendingUpdateRequestsWidget';
 import '../styles/dashboardThemes.css';
+
+const { Text, Title } = Typography;
 
 // Constants for column names
 const COLUMN_MAIN = 'main';
@@ -147,8 +161,7 @@ const UserDashboardPage = () => {
   );
 
   const availableWidgets = useMemo(
-    () =>
-      DASHBOARD_WIDGETS.filter((widget) => widget.isAvailable(roleFlags)),
+    () => DASHBOARD_WIDGETS.filter((widget) => widget.isAvailable(roleFlags)),
     [roleFlags]
   );
 
@@ -169,12 +182,8 @@ const UserDashboardPage = () => {
 
       const normalized = {
         [COLUMN_MAIN]: Array.isArray(base[COLUMN_MAIN]) ? base[COLUMN_MAIN].filter((id) => availableSet.has(id)) : [],
-        [COLUMN_SIDEBAR]: Array.isArray(base[COLUMN_SIDEBAR])
-          ? base[COLUMN_SIDEBAR].filter((id) => availableSet.has(id))
-          : [],
-        [COLUMN_HIDDEN]: Array.isArray(base[COLUMN_HIDDEN])
-          ? base[COLUMN_HIDDEN].filter((id) => availableSet.has(id))
-          : [],
+        [COLUMN_SIDEBAR]: Array.isArray(base[COLUMN_SIDEBAR]) ? base[COLUMN_SIDEBAR].filter((id) => availableSet.has(id)) : [],
+        [COLUMN_HIDDEN]: Array.isArray(base[COLUMN_HIDDEN]) ? base[COLUMN_HIDDEN].filter((id) => availableSet.has(id)) : [],
       };
 
       const used = new Set([...normalized[COLUMN_MAIN], ...normalized[COLUMN_SIDEBAR], ...normalized[COLUMN_HIDDEN]]);
@@ -232,7 +241,7 @@ const UserDashboardPage = () => {
 
   const [showCustomizer, setShowCustomizer] = useState(false);
 
-  // Consolidated layout initialization - handles both initial load and storage key changes
+  // Consolidated layout initialization
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -267,16 +276,6 @@ const UserDashboardPage = () => {
     }
   }, [layout, layoutStorageKey]);
 
-  const roleThemeClass = useMemo(() => {
-    if (isAdmin) {
-      return 'dashboard-theme-admin';
-    }
-    if (isMaterials) {
-      return 'dashboard-theme-materials';
-    }
-    return 'dashboard-theme-standard';
-  }, [isAdmin, isMaterials]);
-
   const moveWidget = (column, index, direction) => {
     setLayout((currentLayout) => {
       const updatedColumn = [...currentLayout[column]];
@@ -284,10 +283,7 @@ const UserDashboardPage = () => {
       if (newIndex < 0 || newIndex >= updatedColumn.length) {
         return currentLayout;
       }
-      [updatedColumn[index], updatedColumn[newIndex]] = [
-        updatedColumn[newIndex],
-        updatedColumn[index],
-      ];
+      [updatedColumn[index], updatedColumn[newIndex]] = [updatedColumn[newIndex], updatedColumn[index]];
       return {
         ...currentLayout,
         [column]: updatedColumn,
@@ -339,68 +335,12 @@ const UserDashboardPage = () => {
         return null;
       }
       const Component = widget.component;
-      return <Component key={id} />;
+      return (
+        <div key={id} style={{ marginBottom: 24 }}>
+          <Component />
+        </div>
+      );
     });
-
-  // Reusable component for rendering widget list in customization modal
-  const renderWidgetList = (columnName, widgetIds, canMoveToColumn) => (
-    <ListGroup>
-      {widgetIds.map((widgetId, index) => {
-        const widget = widgetLookup[widgetId];
-        return (
-          <ListGroup.Item
-            key={widgetId}
-            className="d-flex flex-column gap-2"
-          >
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="fw-semibold">{widget?.label}</span>
-              <ButtonGroup size="sm">
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => moveWidget(columnName, index, -1)}
-                  disabled={index === 0}
-                  aria-label="Move up"
-                >
-                  <i className="bi bi-arrow-up"></i>
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => moveWidget(columnName, index, 1)}
-                  disabled={index === widgetIds.length - 1}
-                  aria-label="Move down"
-                >
-                  <i className="bi bi-arrow-down"></i>
-                </Button>
-              </ButtonGroup>
-            </div>
-            <div className="d-flex gap-2 flex-wrap">
-              {canMoveToColumn && (
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => moveWidgetToColumn(widgetId, columnName, canMoveToColumn)}
-                >
-                  Move to {canMoveToColumn === COLUMN_MAIN ? 'Main' : 'Sidebar'}
-                </Button>
-              )}
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={() => hideWidget(widgetId, columnName)}
-              >
-                Hide
-              </Button>
-            </div>
-          </ListGroup.Item>
-        );
-      })}
-      {widgetIds.length === 0 && (
-        <ListGroup.Item className="text-muted">
-          No widgets in this column.
-        </ListGroup.Item>
-      )}
-    </ListGroup>
-  );
 
   // Expose the customize function to the window object so ProfileModal can access it
   useEffect(() => {
@@ -410,86 +350,219 @@ const UserDashboardPage = () => {
     };
   }, []);
 
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
-    <div
-      className={`dashboard-root w-100 ${roleThemeClass}`}
-      data-testid="dashboard-content"
-    >
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1 className="mb-0">Dashboard</h1>
-      </div>
+    <div className="enterprise-dashboard" data-testid="dashboard-content">
+      <EnterprisePageHeader
+        title={`Welcome back, ${user?.name || 'User'}`}
+        subtitle={`Here's your operational overview for today`}
+        icon={<DashboardOutlined />}
+        breadcrumbs={[{ title: 'Dashboard' }]}
+        actions={[
+          {
+            label: 'Customize',
+            icon: <SettingOutlined />,
+            onClick: () => setShowCustomizer(true),
+          },
+        ]}
+        meta={[
+          {
+            icon: <CalendarOutlined />,
+            label: 'Date',
+            value: currentDate,
+          },
+        ]}
+      />
 
-      <Container fluid className="p-0">
-        <Row>
-          {/* Main content area - 2/3 width on large screens */}
-          <Col lg={8}>{renderWidgets(layout[COLUMN_MAIN])}</Col>
+      <Row gutter={[24, 24]}>
+        {/* Main content area - 2/3 width on large screens */}
+        <Col xs={24} lg={16}>
+          {renderWidgets(layout[COLUMN_MAIN])}
+        </Col>
 
-          {/* Sidebar - 1/3 width on large screens */}
-          <Col lg={4}>{renderWidgets(layout[COLUMN_SIDEBAR])}</Col>
-        </Row>
-      </Container>
+        {/* Sidebar - 1/3 width on large screens */}
+        <Col xs={24} lg={8}>
+          {renderWidgets(layout[COLUMN_SIDEBAR])}
+        </Col>
+      </Row>
 
       <Modal
-        show={showCustomizer}
-        onHide={() => setShowCustomizer(false)}
-        size="lg"
-        centered
+        title="Customize Dashboard"
+        open={showCustomizer}
+        onCancel={() => setShowCustomizer(false)}
+        width={900}
+        footer={[
+          <Button key="reset" onClick={resetLayout}>
+            Reset to Default
+          </Button>,
+          <Button key="done" type="primary" onClick={() => setShowCustomizer(false)}>
+            Done
+          </Button>,
+        ]}
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Customize Dashboard</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="text-muted">
-            Reorder, hide, or move widgets between columns. Changes are saved
-            automatically for your account.
-          </p>
-          <Row className="gy-3">
-            <Col md={4}>
-              <h6 className="text-uppercase text-muted mb-2">Main Column</h6>
-              {renderWidgetList(COLUMN_MAIN, layout[COLUMN_MAIN], COLUMN_SIDEBAR)}
-            </Col>
-            <Col md={4}>
-              <h6 className="text-uppercase text-muted mb-2">Sidebar</h6>
-              {renderWidgetList(COLUMN_SIDEBAR, layout[COLUMN_SIDEBAR], COLUMN_MAIN)}
-            </Col>
-            <Col md={4}>
-              <h6 className="text-uppercase text-muted mb-2">Hidden Widgets</h6>
-              <ListGroup>
-                {layout[COLUMN_HIDDEN].map((widgetId) => {
+        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          Reorder, hide, or move widgets between columns. Changes are saved automatically for your account.
+        </Text>
+
+        <Row gutter={16}>
+          <Col span={8}>
+            <Card
+              title={<Text strong>Main Column</Text>}
+              size="small"
+              style={{ height: '100%' }}
+            >
+              <List
+                dataSource={layout[COLUMN_MAIN]}
+                renderItem={(widgetId, index) => {
                   const widget = widgetLookup[widgetId];
                   return (
-                    <ListGroup.Item
-                      key={widgetId}
-                      className="d-flex justify-content-between align-items-center"
+                    <List.Item
+                      style={{ display: 'block', padding: '12px 0' }}
                     >
-                      <span className="fw-semibold">{widget?.label}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text strong>{widget?.label}</Text>
+                        <Space size={4}>
+                          <Tooltip title="Move Up">
+                            <Button
+                              size="small"
+                              icon={<ArrowUpOutlined />}
+                              onClick={() => moveWidget(COLUMN_MAIN, index, -1)}
+                              disabled={index === 0}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Move Down">
+                            <Button
+                              size="small"
+                              icon={<ArrowDownOutlined />}
+                              onClick={() => moveWidget(COLUMN_MAIN, index, 1)}
+                              disabled={index === layout[COLUMN_MAIN].length - 1}
+                            />
+                          </Tooltip>
+                        </Space>
+                      </div>
+                      <Space size={8}>
+                        <Button
+                          size="small"
+                          icon={<SwapOutlined />}
+                          onClick={() => moveWidgetToColumn(widgetId, COLUMN_MAIN, COLUMN_SIDEBAR)}
+                        >
+                          To Sidebar
+                        </Button>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<EyeInvisibleOutlined />}
+                          onClick={() => hideWidget(widgetId, COLUMN_MAIN)}
+                        >
+                          Hide
+                        </Button>
+                      </Space>
+                    </List.Item>
+                  );
+                }}
+                locale={{ emptyText: 'No widgets in this column' }}
+              />
+            </Card>
+          </Col>
+
+          <Col span={8}>
+            <Card
+              title={<Text strong>Sidebar</Text>}
+              size="small"
+              style={{ height: '100%' }}
+            >
+              <List
+                dataSource={layout[COLUMN_SIDEBAR]}
+                renderItem={(widgetId, index) => {
+                  const widget = widgetLookup[widgetId];
+                  return (
+                    <List.Item
+                      style={{ display: 'block', padding: '12px 0' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text strong>{widget?.label}</Text>
+                        <Space size={4}>
+                          <Tooltip title="Move Up">
+                            <Button
+                              size="small"
+                              icon={<ArrowUpOutlined />}
+                              onClick={() => moveWidget(COLUMN_SIDEBAR, index, -1)}
+                              disabled={index === 0}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Move Down">
+                            <Button
+                              size="small"
+                              icon={<ArrowDownOutlined />}
+                              onClick={() => moveWidget(COLUMN_SIDEBAR, index, 1)}
+                              disabled={index === layout[COLUMN_SIDEBAR].length - 1}
+                            />
+                          </Tooltip>
+                        </Space>
+                      </div>
+                      <Space size={8}>
+                        <Button
+                          size="small"
+                          icon={<SwapOutlined />}
+                          onClick={() => moveWidgetToColumn(widgetId, COLUMN_SIDEBAR, COLUMN_MAIN)}
+                        >
+                          To Main
+                        </Button>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<EyeInvisibleOutlined />}
+                          onClick={() => hideWidget(widgetId, COLUMN_SIDEBAR)}
+                        >
+                          Hide
+                        </Button>
+                      </Space>
+                    </List.Item>
+                  );
+                }}
+                locale={{ emptyText: 'No widgets in this column' }}
+              />
+            </Card>
+          </Col>
+
+          <Col span={8}>
+            <Card
+              title={<Text strong>Hidden Widgets</Text>}
+              size="small"
+              style={{ height: '100%' }}
+            >
+              <List
+                dataSource={layout[COLUMN_HIDDEN]}
+                renderItem={(widgetId) => {
+                  const widget = widgetLookup[widgetId];
+                  return (
+                    <List.Item
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    >
+                      <Text strong>{widget?.label}</Text>
                       <Button
-                        variant="outline-success"
-                        size="sm"
+                        size="small"
+                        type="primary"
+                        ghost
+                        icon={<EyeOutlined />}
                         onClick={() => restoreWidget(widgetId)}
                       >
                         Restore
                       </Button>
-                    </ListGroup.Item>
+                    </List.Item>
                   );
-                })}
-                {layout[COLUMN_HIDDEN].length === 0 && (
-                  <ListGroup.Item className="text-muted">
-                    No hidden widgets.
-                  </ListGroup.Item>
-                )}
-              </ListGroup>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer className="d-flex justify-content-between">
-          <Button variant="link" onClick={resetLayout}>
-            Reset to Default
-          </Button>
-          <Button variant="primary" onClick={() => setShowCustomizer(false)}>
-            Done
-          </Button>
-        </Modal.Footer>
+                }}
+                locale={{ emptyText: 'No hidden widgets' }}
+              />
+            </Card>
+          </Col>
+        </Row>
       </Modal>
     </div>
   );

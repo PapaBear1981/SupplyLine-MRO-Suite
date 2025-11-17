@@ -3,9 +3,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Tabs, Tab, Badge, Form, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaSearch, FaExclamationTriangle, FaBox, FaPlane } from 'react-icons/fa';
+import { AppstoreOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import { fetchKits, fetchAircraftTypes } from '../store/kitsSlice';
 import { fetchUnreadCount } from '../store/kitMessagesSlice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 import useHotkeys from '../hooks/useHotkeys';
 
 const KitsManagement = () => {
@@ -110,43 +112,31 @@ const KitsManagement = () => {
   }
 
   return (
-    <Container fluid className="py-4">
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h2 className="mb-1">
-                <FaBox className="me-2" />
-                Mobile Warehouses (Kits)
-              </h2>
-              <p className="text-muted mb-0">
-                Manage mobile warehouses that follow aircraft to operating bases
-              </p>
-            </div>
-            <div>
-              <Button
-                variant="primary"
-                onClick={() => navigate('/kits/new')}
-                className="me-2"
-                data-testid="create-kit-button"
-              >
-                <FaPlus className="me-2" />
-                Create Kit
-              </Button>
-              {unreadCount > 0 && (
-                <Button
-                  variant="outline-primary"
-                  onClick={() => navigate('/kits/messages')}
-                  data-testid="messages-button"
-                >
-                  Messages
-                  <Badge bg="danger" className="ms-2">{unreadCount}</Badge>
-                </Button>
-              )}
-            </div>
-          </div>
-        </Col>
-      </Row>
+    <div className="enterprise-kits-management">
+      <EnterprisePageHeader
+        title="Mobile Warehouses (Kits)"
+        subtitle="Manage mobile warehouses that follow aircraft to operating bases"
+        icon={<AppstoreOutlined />}
+        breadcrumbs={[{ title: 'Kits' }]}
+        actions={[
+          {
+            label: 'Create Kit',
+            icon: <PlusCircleOutlined />,
+            type: 'primary',
+            onClick: () => navigate('/kits/new'),
+          },
+        ]}
+        meta={
+          unreadCount > 0
+            ? [
+                {
+                  label: 'Unread Messages',
+                  value: <Badge bg="danger">{unreadCount}</Badge>,
+                },
+              ]
+            : []
+        }
+      />
 
       <Row className="mb-3">
         <Col md={6}>
@@ -266,7 +256,7 @@ const KitsManagement = () => {
           box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
         }
       `}</style>
-    </Container>
+    </div>
   );
 };
 

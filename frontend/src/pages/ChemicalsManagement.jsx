@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Button, Tabs, Tab } from 'react-bootstrap';
-import { Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { Tabs, Tab } from 'react-bootstrap';
+import { ExperimentOutlined, PlusCircleOutlined, RollbackOutlined } from '@ant-design/icons';
+import EnterprisePageHeader from '../components/common/EnterprisePageHeader';
 import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
 import ChemicalReturnModal from '../components/chemicals/ChemicalReturnModal';
 import useHotkeys from '../hooks/useHotkeys';
-import {
-  fetchChemicals,
-  fetchArchivedChemicals
-} from '../store/chemicalsSlice';
+import { fetchChemicals, fetchArchivedChemicals } from '../store/chemicalsSlice';
 
 const ChemicalsManagement = () => {
   const dispatch = useDispatch();
@@ -22,16 +20,19 @@ const ChemicalsManagement = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
 
   // Page-specific hotkeys
-  useHotkeys({
-    'n': () => {
-      if (isAuthorized) {
-        navigate('/chemicals/new');
-      }
+  useHotkeys(
+    {
+      n: () => {
+        if (isAuthorized) {
+          navigate('/chemicals/new');
+        }
+      },
+    },
+    {
+      enabled: isAuthorized,
+      deps: [navigate, isAuthorized],
     }
-  }, {
-    enabled: isAuthorized,
-    deps: [navigate, isAuthorized]
-  });
+  );
 
   // Fetch data based on active tab
   useEffect(() => {
@@ -47,44 +48,48 @@ const ChemicalsManagement = () => {
     return <Navigate to="/tools" replace />;
   }
 
+  const pageActions = [
+    {
+      label: 'Return Chemical',
+      icon: <RollbackOutlined />,
+      onClick: () => setShowReturnModal(true),
+    },
+    {
+      label: 'Add New Chemical',
+      icon: <PlusCircleOutlined />,
+      type: 'primary',
+      onClick: () => navigate('/chemicals/new'),
+    },
+  ];
+
   return (
-    <div className="w-100">
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <h1 className="mb-0">Chemical Inventory</h1>
-        <div className="d-flex gap-2">
-          {user?.is_admin && <BulkImportChemicals />}
-          <Button
-            onClick={() => setShowReturnModal(true)}
-            variant="warning"
-            size="lg"
-          >
-            <i className="bi bi-arrow-return-left me-2"></i>
-            Return Chemical
-          </Button>
-          <Button onClick={() => navigate('/chemicals/new')} variant="success" size="lg">
-            <i className="bi bi-plus-circle me-2"></i>
-            Add New Chemical
-          </Button>
+    <div className="enterprise-chemicals-management">
+      <EnterprisePageHeader
+        title="Chemical Inventory Management"
+        subtitle="Track, issue, and manage chemical inventory with safety compliance"
+        icon={<ExperimentOutlined />}
+        breadcrumbs={[{ title: 'Chemicals' }]}
+        actions={pageActions}
+      />
+
+      {user?.is_admin && (
+        <div style={{ marginBottom: 16 }}>
+          <BulkImportChemicals />
         </div>
+      )}
+
+      <div className="enterprise-card">
+        <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
+          <Tab eventKey="active" title="Active Chemicals">
+            <ChemicalList />
+          </Tab>
+          <Tab eventKey="archived" title="Archived Chemicals">
+            <ArchivedChemicalsList />
+          </Tab>
+        </Tabs>
       </div>
 
-      <Tabs
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k)}
-        className="mb-4"
-      >
-        <Tab eventKey="active" title="Active Chemicals">
-          <ChemicalList />
-        </Tab>
-        <Tab eventKey="archived" title="Archived Chemicals">
-          <ArchivedChemicalsList />
-        </Tab>
-      </Tabs>
-
-      <ChemicalReturnModal
-        show={showReturnModal}
-        onHide={() => setShowReturnModal(false)}
-      />
+      <ChemicalReturnModal show={showReturnModal} onHide={() => setShowReturnModal(false)} />
     </div>
   );
 };
