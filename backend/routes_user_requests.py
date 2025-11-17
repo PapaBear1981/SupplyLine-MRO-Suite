@@ -9,6 +9,7 @@ from sqlalchemy import or_, text
 from auth import jwt_required, permission_required_any
 from models import (
     AuditLog,
+    ProcurementOrder,
     RequestItem,
     User,
     UserActivity,
@@ -48,6 +49,15 @@ def _generate_request_number():
     ).scalar()
     next_number = (result or 0) + 1
     return f"REQ-{next_number:05d}"
+
+
+def _generate_order_number():
+    """Generate a unique order number in format ORD-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(order_number, 5) AS INTEGER)) FROM procurement_orders WHERE order_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"ORD-{next_number:05d}"
 
 
 def _parse_datetime(value, field_name="timestamp"):
@@ -605,6 +615,7 @@ def register_user_request_routes(app):
         if not item_updates:
             raise ValidationError("At least one item update is required")
 
+        created_orders = []
         for item_update in item_updates:
             item_id = item_update.get("item_id")
             if not item_id:
@@ -633,12 +644,40 @@ def register_user_request_routes(app):
             if "order_notes" in item_update:
                 request_item.order_notes = item_update["order_notes"].strip() if item_update["order_notes"] else None
 
+            # Create a ProcurementOrder for this item
+            procurement_order = ProcurementOrder(
+                title=request_item.description[:200] if request_item.description else "Request Item",
+                order_type=request_item.item_type or "expendable",
+                part_number=request_item.part_number,
+                description=f"Request: {user_request.request_number or f'#{user_request.id}'}\nQuantity: {request_item.quantity} {request_item.unit or 'each'}\n{request_item.description or ''}",
+                priority=user_request.priority or "normal",
+                status="ordered",
+                reference_type="user_request",
+                reference_number=user_request.request_number or str(user_request.id),
+                tracking_number=request_item.tracking_number,
+                vendor=request_item.vendor,
+                ordered_date=request_item.ordered_date,
+                expected_due_date=request_item.expected_delivery_date,
+                requester_id=user_request.requester_id,
+                buyer_id=current_user.get("user_id"),
+            )
+            db.session.add(procurement_order)
+            db.session.flush()  # Get the ID for order number generation
+
+            # Generate and assign order number
+            procurement_order.order_number = _generate_order_number()
+            created_orders.append(procurement_order.order_number)
+
+            logger.info(f"Created ProcurementOrder {procurement_order.order_number} for RequestItem {request_item.id}")
+
         # Assign buyer if not already assigned
         if not user_request.buyer_id:
             user_request.buyer_id = current_user.get("user_id")
 
         user_request.update_status_from_items()
         db.session.commit()
+
+        logger.info(f"Marked {len(item_updates)} items as ordered, created orders: {', '.join(created_orders)}")
 
         return jsonify(user_request.to_dict(include_items=True))
 

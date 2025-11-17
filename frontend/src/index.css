@@ -125,12 +125,8 @@ code {
 }
 
 /* Transitions */
-.btn, .card, .nav-link {
+.card, .nav-link {
   transition: all 0.2s ease-in-out;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
 }
 
 /* Avatar circles */
