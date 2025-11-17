@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from models import Tool, AuditLog
+from models import AuditLog, Tool
 
 
 class TestCalibrationListEndpoint:

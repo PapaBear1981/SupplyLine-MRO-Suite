@@ -79,6 +79,8 @@ def parse_iso_datetime(dt_str: str) -> datetime | None:
     try:
         # Try parsing with timezone info
         dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
     except ValueError:
         try:
             # Try parsing without timezone info (assume UTC)

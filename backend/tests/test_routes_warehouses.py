@@ -12,7 +12,7 @@ from datetime import datetime
 
 import pytest
 
-from models import Warehouse, Tool, Chemical
+from models import Chemical, Tool, Warehouse
 
 
 class TestWarehouseListEndpoint:

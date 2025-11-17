@@ -13,12 +13,12 @@ This module tests the authentication endpoints including:
 
 import json
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import g
 
-from models import User, UserActivity, AuditLog
+from models import AuditLog, User, UserActivity
 
 
 class TestLoginEndpoint:
