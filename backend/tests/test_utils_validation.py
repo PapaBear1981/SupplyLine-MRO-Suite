@@ -647,7 +647,6 @@ class TestWarehouseIdValidation:
             # Create inactive warehouse
             warehouse = Warehouse(
                 name="Inactive Warehouse",
-                code="IW001",
                 is_active=False
             )
             db_session.add(warehouse)
@@ -665,7 +664,6 @@ class TestWarehouseIdValidation:
             # Create active warehouse
             warehouse = Warehouse(
                 name="Active Warehouse",
-                code="AW001",
                 is_active=True
             )
             db_session.add(warehouse)
@@ -826,5 +824,7 @@ class TestStringSanitizationInSchema:
             "serial_number": "SN001",
             "description": "A" * 600  # Longer than max_length of 500
         }
-        result = validate_schema(data, "tool")
-        assert len(result["description"]) <= 500
+        # Schema validation raises error when max_length is exceeded
+        with pytest.raises(ValidationError) as exc_info:
+            validate_schema(data, "tool")
+        assert "must be at most" in str(exc_info.value) or "characters" in str(exc_info.value)
