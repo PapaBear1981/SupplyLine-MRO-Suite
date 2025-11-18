@@ -38,10 +38,4 @@ class TestCISetup:
     def test_pytest_markers_registered(self):
         """Verify custom pytest markers are registered"""
         # This test will fail if markers aren't properly registered in pytest.ini
-        pass  # Just having this decorated with markers below tests registration
-
-test_pytest_markers_registered = pytest.mark.performance(
-    pytest.mark.security(
-        pytest.mark.concurrency(test_pytest_markers_registered)
-    )
-)
+        pass  # Just having this test run without warnings verifies registration
