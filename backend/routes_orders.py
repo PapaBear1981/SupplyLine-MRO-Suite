@@ -774,3 +774,293 @@ def register_order_routes(app):
             db.session.commit()
 
         return jsonify(message.to_dict())
+
+    @app.route("/api/orders/<int:order_id>/receive", methods=["POST"])
+    @orders_permission
+    @handle_errors
+    def receive_order(order_id):
+        """
+        Receive a procurement order and automatically handle:
+        1. Update order status to received
+        2. Add items to kit if kit_id is set
+        3. Update linked RequestItems status
+        4. Update chemical inventory
+        5. Send notifications to requester
+        """
+        from models import Chemical, RequestItem, UserRequest, UserRequestMessage
+        from models_kits import KitBox, KitExpendable, KitItem
+        from utils.unified_requests import update_request_item_status
+
+        order = ProcurementOrder.query.get_or_404(order_id)
+
+        # Validate order status
+        if order.status not in ["new", "ordered", "shipped", "in_progress"]:
+            return jsonify({"error": f"Cannot receive order when status is '{order.status}'"}), 400
+
+        # Get request data
+        data = request.get_json() or {}
+        received_quantity = data.get("received_quantity") or order.quantity
+        box_id = data.get("box_id")
+        notes = data.get("notes", "")
+
+        # Update order status
+        order.status = "received"
+        order.completed_date = get_current_time()
+
+        # Add notes about received quantity if different from ordered
+        if received_quantity and order.quantity and received_quantity != order.quantity:
+            quantity_note = f"\n\nReceived Quantity: {received_quantity} {order.unit or 'units'} (Ordered: {order.quantity})"
+            order.notes = (order.notes or "") + quantity_note
+        elif notes:
+            order.notes = (order.notes or "") + f"\n\n{notes}"
+
+        messages = []
+
+        # Handle kit item addition if kit_id is set
+        if order.kit_id:
+            kit = db.session.get(Kit, order.kit_id)
+            if not kit:
+                return jsonify({"error": "Kit not found"}), 404
+
+            # Get or validate box
+            if box_id:
+                box = db.session.get(KitBox, box_id)
+                if not box or box.kit_id != order.kit_id:
+                    return jsonify({"error": "Invalid box for this kit"}), 400
+            else:
+                # Use first box if not specified
+                box = KitBox.query.filter_by(kit_id=order.kit_id).order_by(KitBox.box_number).first()
+                if not box:
+                    return jsonify({"error": "Kit has no boxes. Please create a box first."}), 400
+                box_id = box.id
+
+            # Add item to kit based on order type
+            if order.order_type == "chemical":
+                # For chemicals, we need to find or create the chemical record
+                chemical = Chemical.query.filter_by(part_number=order.part_number).first()
+
+                if chemical:
+                    # Add existing chemical to kit via KitItem
+                    kit_item = KitItem(
+                        kit_id=order.kit_id,
+                        box_id=box_id,
+                        item_type="chemical",
+                        item_id=chemical.id,
+                        part_number=chemical.part_number,
+                        lot_number=chemical.lot_number,
+                        description=chemical.description or order.description,
+                        quantity=received_quantity or order.quantity or 1,
+                        location=f"Box {box.box_number}",
+                        status="available",
+                        added_date=get_current_time(),
+                        last_updated=get_current_time()
+                    )
+                    db.session.add(kit_item)
+                    messages.append(f"Added chemical {order.part_number} to kit {kit.name}")
+                else:
+                    # Chemical doesn't exist, add as KitExpendable
+                    from models import LotNumberSequence
+                    lot_number = LotNumberSequence.generate_lot_number()
+
+                    kit_expendable = KitExpendable(
+                        kit_id=order.kit_id,
+                        box_id=box_id,
+                        part_number=order.part_number,
+                        lot_number=lot_number,
+                        tracking_type="lot",
+                        description=order.description or f"Chemical {order.part_number}",
+                        quantity=received_quantity or order.quantity or 1,
+                        unit=order.unit or "each",
+                        location=f"Box {box.box_number}",
+                        status="available",
+                        added_date=get_current_time(),
+                        last_updated=get_current_time()
+                    )
+                    db.session.add(kit_expendable)
+                    messages.append(f"Added chemical {order.part_number} (Lot: {lot_number}) to kit {kit.name}")
+
+            elif order.order_type == "expendable":
+                # Add as KitExpendable with auto-generated lot number
+                from models import LotNumberSequence
+                lot_number = LotNumberSequence.generate_lot_number()
+
+                kit_expendable = KitExpendable(
+                    kit_id=order.kit_id,
+                    box_id=box_id,
+                    part_number=order.part_number,
+                    lot_number=lot_number,
+                    tracking_type="lot",
+                    description=order.description or f"Expendable {order.part_number}",
+                    quantity=received_quantity or order.quantity or 1,
+                    unit=order.unit or "each",
+                    location=f"Box {box.box_number}",
+                    status="available",
+                    added_date=get_current_time(),
+                    last_updated=get_current_time()
+                )
+                db.session.add(kit_expendable)
+                messages.append(f"Added expendable {order.part_number} (Lot: {lot_number}) to kit {kit.name}")
+
+            elif order.order_type == "tool":
+                # For tools, try to find existing tool record
+                from models import Tool
+                tool = Tool.query.filter_by(tool_number=order.part_number).first()
+
+                if tool:
+                    # Add tool to kit via KitItem
+                    kit_item = KitItem(
+                        kit_id=order.kit_id,
+                        box_id=box_id,
+                        item_type="tool",
+                        item_id=tool.id,
+                        part_number=tool.tool_number,
+                        serial_number=tool.serial_number,
+                        description=tool.description or order.description,
+                        quantity=1,  # Tools are individual items
+                        location=f"Box {box.box_number}",
+                        status="available",
+                        added_date=get_current_time(),
+                        last_updated=get_current_time()
+                    )
+                    db.session.add(kit_item)
+                    messages.append(f"Added tool {order.part_number} to kit {kit.name}")
+                else:
+                    messages.append(f"Warning: Tool {order.part_number} not found in inventory. Not added to kit.")
+
+        # Update linked RequestItems
+        # Find request items by matching part_number and order type
+        request_items = RequestItem.query.filter(
+            RequestItem.part_number == order.part_number,
+            RequestItem.item_type == order.order_type,
+            RequestItem.status.in_(["pending", "ordered", "shipped"])
+        ).all()
+
+        for item in request_items:
+            # Update via unified request system if it has source tracking
+            if item.source_type == "chemical_reorder" and item.chemical_id:
+                update_request_item_status(
+                    source_type="chemical_reorder",
+                    source_id=item.chemical_id,
+                    new_status="received",
+                    received_date=get_current_time(),
+                    received_quantity=received_quantity
+                )
+                messages.append(f"Updated chemical reorder request item")
+            elif item.source_type == "kit_reorder" and item.kit_reorder_request_id:
+                update_request_item_status(
+                    source_type="kit_reorder",
+                    source_id=item.kit_reorder_request_id,
+                    new_status="received",
+                    received_date=get_current_time(),
+                    received_quantity=received_quantity
+                )
+                messages.append(f"Updated kit reorder request item")
+            else:
+                # Manual update for items without source tracking
+                item.status = "received"
+                item.received_date = get_current_time()
+                item.received_quantity = received_quantity
+                item.updated_at = get_current_time()
+
+                # Update parent request status
+                if item.request:
+                    item.request.update_status_from_items()
+
+                    # Send notification to requester
+                    if item.request.requester_id:
+                        notification = UserRequestMessage(
+                            request_id=item.request.id,
+                            sender_id=request.current_user.get("user_id"),
+                            recipient_id=item.request.requester_id,
+                            subject=f"Items Received for Request {item.request.request_number}",
+                            message=f"The following items from your request have been received:\n\n" +
+                                    f"• {item.description} (Part: {item.part_number})\n" +
+                                    f"  Quantity: {received_quantity or item.quantity} {item.unit}\n\n" +
+                                    (f"Order: {order.order_number}\n" if order.order_number else "") +
+                                    (f"Vendor: {order.vendor}\n" if order.vendor else "") +
+                                    (f"Kit: {kit.name}\n" if order.kit_id and kit else ""),
+                            is_read=False,
+                            sent_date=get_current_time()
+                        )
+                        db.session.add(notification)
+                        messages.append(f"Sent notification to requester")
+
+        # Update chemical inventory if this is a chemical order
+        if order.order_type == "chemical" and order.part_number:
+            # Find matching chemicals by part number
+            chemicals = Chemical.query.filter_by(part_number=order.part_number).all()
+
+            for chemical in chemicals:
+                # Only update if this chemical is linked to this order or needs reordering
+                if (hasattr(chemical, 'procurement_order_id') and
+                    chemical.procurement_order_id == order.id) or \
+                   (hasattr(chemical, 'reorder_status') and
+                    chemical.reorder_status == "ordered"):
+
+                    # Update quantity
+                    if not order.kit_id:  # Only update inventory if not going to kit
+                        chemical.quantity = (chemical.quantity or 0) + (received_quantity or order.quantity or 0)
+
+                    # Clear reorder fields
+                    if hasattr(chemical, 'reorder_status'):
+                        chemical.reorder_status = "not_needed"
+                        chemical.reorder_date = None
+                        chemical.expected_delivery_date = None
+                        if hasattr(chemical, 'procurement_order_id'):
+                            chemical.procurement_order_id = None
+
+                    # Update status based on new quantity
+                    if hasattr(chemical, 'minimum_stock_level') and chemical.minimum_stock_level:
+                        if chemical.quantity >= chemical.minimum_stock_level:
+                            chemical.status = "available"
+                        elif chemical.quantity > 0:
+                            chemical.status = "low_stock"
+
+                    messages.append(f"Updated chemical inventory for {chemical.part_number}")
+
+                    # Update unified request system
+                    update_request_item_status(
+                        source_type="chemical_reorder",
+                        source_id=chemical.id,
+                        new_status="received",
+                        received_date=get_current_time(),
+                        received_quantity=received_quantity
+                    )
+
+        # Commit all changes
+        db.session.commit()
+
+        # Log the action
+        user_name = request.current_user.get("user_name", "Unknown user")
+        log_details = f"Order '{order.title}' (ID: {order.id}, {order.order_number}) received by {user_name}"
+        if order.kit_id:
+            log_details += f", added to kit {kit.name}"
+
+        log = AuditLog(
+            action_type="order_received",
+            action_details=log_details
+        )
+        db.session.add(log)
+
+        # Log user activity
+        activity = UserActivity(
+            user_id=request.current_user["user_id"],
+            activity_type="order_received",
+            description=f"Received order '{order.title}'"
+        )
+        db.session.add(activity)
+
+        db.session.commit()
+
+        logger.info("Order received", extra={
+            "order_id": order.id,
+            "user": user_name,
+            "kit_id": order.kit_id,
+            "order_type": order.order_type
+        })
+
+        return jsonify({
+            "order": order.to_dict(),
+            "message": "Order received successfully",
+            "details": messages
+        })
