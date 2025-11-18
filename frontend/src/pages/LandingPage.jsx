@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Form, Button, Navbar, Nav } from 'react-bootstrap';
-import { 
-  FaTools, FaChartLine, FaShieldAlt, FaClock, 
-  FaClipboardCheck, FaUsers, FaArrowDown, FaArrowUp,
+import {
+  FaTools, FaChartLine, FaShieldAlt, FaFlask,
+  FaClipboardCheck, FaWarehouse, FaBarcode, FaShoppingCart,
+  FaBox, FaArrowDown, FaArrowUp,
   FaEnvelope, FaPhone, FaLinkedin, FaTwitter, FaGithub
 } from 'react-icons/fa';
 import './LandingPage.css';
@@ -121,59 +122,74 @@ const LandingPage = () => {
     {
       icon: <FaTools />,
       title: 'Tool Management',
-      description: 'Comprehensive tracking and management of all MRO tools and equipment with real-time status updates.'
+      description: 'Complete tool inventory tracking with checkout/return system, calibration scheduling, and multi-serial number support.'
+    },
+    {
+      icon: <FaFlask />,
+      title: 'Chemical Management',
+      description: 'Track chemicals by part number, lot, and expiration. Automated reorder requests, child lot creation, and compliance tracking.'
+    },
+    {
+      icon: <FaWarehouse />,
+      title: 'Kit & Warehouse System',
+      description: 'Mobile warehouse kits for aircraft support. Manage boxes, transfers, issuances, and kit-to-kit transactions.'
+    },
+    {
+      icon: <FaBarcode />,
+      title: 'Barcode & QR Labels',
+      description: 'Professional PDF labels with barcodes and QR codes. Mobile-friendly landing pages for quick item lookup and tracking.'
+    },
+    {
+      icon: <FaShoppingCart />,
+      title: 'Procurement & Ordering',
+      description: 'Automated reorder requests from low stock. Track chemicals on order and streamline procurement workflows.'
     },
     {
       icon: <FaChartLine />,
       title: 'Analytics & Reporting',
-      description: 'Powerful analytics dashboard with customizable reports to track usage, costs, and efficiency metrics.'
-    },
-    {
-      icon: <FaShieldAlt />,
-      title: 'Security & Compliance',
-      description: 'Enterprise-grade security with role-based access control and full audit trail capabilities.'
-    },
-    {
-      icon: <FaClock />,
-      title: 'Real-Time Tracking',
-      description: 'Monitor tool checkouts, returns, and maintenance schedules in real-time across your organization.'
+      description: 'Comprehensive reports on tool usage, chemical waste, shelf life analytics, and department distribution with export options.'
     },
     {
       icon: <FaClipboardCheck />,
-      title: 'Maintenance Scheduling',
-      description: 'Automated maintenance reminders and calibration tracking to ensure optimal tool performance.'
+      title: 'Calibration Tracking',
+      description: 'Automated calibration scheduling, standards management, and overdue alerts to maintain compliance and quality.'
     },
     {
-      icon: <FaUsers />,
-      title: 'Multi-User Support',
-      description: 'Collaborative platform supporting multiple departments with customizable permissions and workflows.'
+      icon: <FaShieldAlt />,
+      title: 'Security & RBAC',
+      description: 'Role-based access control with JWT authentication, full audit trails, and configurable permissions for Admin, Materials, and Maintenance roles.'
+    },
+    {
+      icon: <FaBox />,
+      title: 'Expendables Management',
+      description: 'Track consumables with lot/serial numbers. Streamlined warehouse-to-kit transfers with auto-complete functionality.'
     }
   ];
 
   const testimonials = [
     {
-      quote: "SupplyLine MRO Suite has transformed how we manage our tool inventory. The real-time tracking and analytics have saved us countless hours and significantly reduced tool loss.",
+      quote: "The chemical management system with automated expiration tracking and child lot creation has eliminated waste and improved our compliance. The barcode labels make everything traceable.",
       name: "Sarah Johnson",
-      role: "Operations Manager",
-      company: "TechManufacturing Inc."
+      role: "Materials Manager",
+      company: "Regional Aviation Services"
     },
     {
-      quote: "The calibration tracking feature alone has paid for itself. We've never been more compliant with our quality standards, and the automated reminders ensure nothing falls through the cracks.",
+      quote: "Managing mobile warehouse kits for our Q400 and CL415 fleet used to be a nightmare. SupplyLine's kit transfer system and issuance tracking have streamlined our entire operation.",
       name: "Michael Chen",
-      role: "Quality Assurance Director",
-      company: "Precision Engineering Co."
+      role: "Fleet Maintenance Supervisor",
+      company: "Northern Air Operations"
     },
     {
-      quote: "Implementation was seamless, and the support team was exceptional. Our maintenance team loves the mobile interface for quick checkouts and returns on the shop floor.",
+      quote: "The automated reorder requests from chemical issuance have cut our procurement cycle time in half. We always know what's on order and what needs reordering.",
       name: "David Martinez",
-      role: "Maintenance Supervisor",
-      company: "Industrial Solutions Ltd."
+      role: "Procurement Specialist",
+      company: "Aerospace Supply Solutions"
     },
     {
-      quote: "The reporting capabilities give us insights we never had before. We've optimized our tool purchasing and reduced redundancy across departments.",
+      quote: "Having tools, chemicals, kits, and expendables all in one system is a game-changer. The analytics give us visibility we never had before, and the RBAC keeps everything secure.",
       name: "Emily Thompson",
-      role: "Supply Chain Manager",
-      company: "Global Manufacturing Group"
+      role: "MRO Operations Director",
+      company: "Continental Aircraft Maintenance"
     }
   ];
 
@@ -212,11 +228,11 @@ const LandingPage = () => {
           <Row className="align-items-center min-vh-100">
             <Col lg={8} className="mx-auto text-center">
               <h1 className="hero-title fade-in stagger-1">
-                Streamline Your MRO Operations
+                Complete MRO Suite for Aerospace & Manufacturing
               </h1>
               <p className="hero-subtitle fade-in stagger-2">
-                The complete solution for Maintenance, Repair, and Operations tool management. 
-                Track, manage, and optimize your entire tool inventory with enterprise-grade precision.
+                Comprehensive platform for managing tools, chemicals, kits, and warehouses.
+                From inventory tracking to procurement, barcode labels to analytics—everything your MRO operations need in one powerful suite.
               </p>
               <div className="hero-cta fade-in stagger-3">
                 <Link to="/register" className="btn btn-primary btn-lg me-3">
@@ -241,20 +257,21 @@ const LandingPage = () => {
             <Col lg={6} className="fade-in">
               <h2 className="section-title">About SupplyLine MRO Suite</h2>
               <p className="section-text">
-                SupplyLine MRO Suite is a comprehensive tool management platform designed specifically 
-                for Maintenance, Repair, and Operations (MRO) environments. We understand that efficient 
-                tool management is critical to operational success.
+                SupplyLine MRO Suite is an enterprise-grade platform designed for aerospace and manufacturing
+                MRO operations. We provide unified management of tools, chemicals, mobile warehouse kits,
+                expendables, and procurement—all in one integrated system.
               </p>
               <p className="section-text">
-                Our platform combines powerful tracking capabilities with intuitive interfaces, enabling 
-                organizations to reduce tool loss, optimize maintenance schedules, and ensure compliance 
-                with industry standards. From small workshops to large manufacturing facilities, SupplyLine 
-                scales to meet your needs.
+                From tracking tool calibrations and chemical expiration dates to managing mobile warehouse
+                kits for aircraft maintenance, our platform handles the complexity of modern MRO operations.
+                Features like automated reorder requests, barcode/QR label generation, and comprehensive
+                analytics help you maintain compliance while optimizing efficiency.
               </p>
               <p className="section-text">
-                Built with modern technology and designed for real-world use, SupplyLine MRO Suite delivers 
-                the reliability and performance your operations demand. Join hundreds of organizations that 
-                trust SupplyLine to manage their critical tool assets.
+                Built with React and Flask, deployed via Docker, and designed for real-world aerospace
+                environments, SupplyLine delivers the reliability and scalability your operations demand.
+                Whether you're managing Q400, RJ85, or CL415 aircraft kits, or tracking chemicals across
+                multiple warehouses, SupplyLine has you covered.
               </p>
             </Col>
             <Col lg={6} className="fade-in">
@@ -273,9 +290,9 @@ const LandingPage = () => {
       {/* Features Section */}
       <section id="features" className="features-section">
         <Container>
-          <h2 className="section-title text-center fade-in">Powerful Features</h2>
+          <h2 className="section-title text-center fade-in">Comprehensive Feature Set</h2>
           <p className="section-subtitle text-center fade-in">
-            Everything you need to manage your MRO operations efficiently
+            Everything you need to manage tools, chemicals, kits, warehouses, and procurement in one unified platform
           </p>
           <Row className="g-4 mt-4">
             {features.map((feature, index) => (
@@ -445,7 +462,7 @@ const LandingPage = () => {
                 SupplyLine MRO Suite
               </h5>
               <p className="footer-text">
-                The complete solution for Maintenance, Repair, and Operations tool management.
+                Enterprise MRO platform for managing tools, chemicals, kits, warehouses, and procurement operations.
               </p>
             </Col>
             <Col lg={4} md={6} className="mb-4 mb-lg-0">
