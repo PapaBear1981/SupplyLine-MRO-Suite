@@ -16,7 +16,11 @@ from models import (
     db,
 )
 from utils.error_handler import ValidationError, handle_errors
-from utils.validation import validate_lot_number_format, validate_schema, validate_warehouse_id
+from utils.validation import (
+    validate_lot_number_format,
+    validate_schema,
+    validate_warehouse_id,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -85,7 +89,7 @@ def register_chemical_routes(app):
                 is_archived = chemical.is_archived
             except AttributeError:
                 # If the column doesn't exist, assume not archived
-                logger.debug(f"is_archived attribute not found for chemical {chemical.id}")
+                logger.debug("is_archived attribute not found for chemical %s", chemical.id)
                 is_archived = False
 
             if not is_archived:  # Only update status for non-archived chemicals

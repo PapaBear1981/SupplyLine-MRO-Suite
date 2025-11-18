@@ -672,7 +672,6 @@ class TestDataConsistency:
         db_session.commit()
 
         # Try to delete tool (should handle cascades or prevent deletion)
-        tool_id = tool.id
         db_session.delete(tool)
 
         try:
