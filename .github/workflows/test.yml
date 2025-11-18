@@ -23,7 +23,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
 
     - name: Install system dependencies
       run: |
@@ -34,24 +33,38 @@ jobs:
       working-directory: ./backend
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-xdist pytest-timeout
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pytest pytest-cov pytest-xdist pytest-timeout pytest-mock
+
+    - name: Verify test setup
+      working-directory: ./backend
+      run: |
+        echo "Python version:"
+        python --version
+        echo "Pytest version:"
+        pytest --version
+        echo "Test files:"
+        ls -la tests/
+        echo "Collecting tests:"
+        pytest --collect-only -q || echo "Collection failed"
 
     - name: Run fast tests
       working-directory: ./backend
       run: |
-        pytest tests/ -m "not slow" -v --tb=short
+        pytest tests/ -m "not slow" -v --tb=short --maxfail=5
       env:
         FLASK_ENV: testing
         DATABASE_URL: sqlite:///test.db
+      continue-on-error: false
 
     - name: Run all tests with coverage
       working-directory: ./backend
       run: |
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-report=html
+        pytest tests/ -v --cov=. --cov-config=.coveragerc --cov-report=xml --cov-report=term --cov-report=html
       env:
         FLASK_ENV: testing
         DATABASE_URL: sqlite:///test.db
+      continue-on-error: false
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -88,13 +101,12 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install dependencies
       working-directory: ./backend
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-timeout
 
     - name: Run security tests
@@ -118,13 +130,12 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install dependencies
       working-directory: ./backend
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-timeout pytest-benchmark
 
     - name: Run performance tests
@@ -171,13 +182,12 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install dependencies
       working-directory: ./backend
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-timeout psycopg2-binary
 
     - name: Run integration tests with PostgreSQL
@@ -200,7 +210,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install linting tools
       run: |
