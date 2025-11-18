@@ -24,6 +24,17 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Verify repository structure
+      run: |
+        echo "=== Repository Structure ==="
+        ls -la
+        echo ""
+        echo "=== Backend Directory ==="
+        ls -la backend/ || echo "::error::backend directory not found!"
+        echo ""
+        echo "=== Tests Directory ==="
+        ls -la backend/tests/ || echo "::error::backend/tests directory not found!"
+
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -32,35 +43,50 @@ jobs:
     - name: Install Python dependencies
       working-directory: ./backend
       run: |
+        echo "=== Current Directory ==="
+        pwd
+        echo ""
+        echo "=== Files in Current Directory ==="
+        ls -la
+        echo ""
         python -m pip install --upgrade pip
         echo "Installing from requirements.txt..."
         if [ -f requirements.txt ]; then
-          pip install -r requirements.txt || echo "::error::Failed to install requirements.txt"
+          pip install -r requirements.txt
+          echo "✓ Requirements installed"
         else
-          echo "::warning::requirements.txt not found"
+          echo "::error::requirements.txt not found in $(pwd)"
+          exit 1
         fi
         echo "Installing test dependencies..."
-        pip install pytest pytest-cov pytest-xdist pytest-timeout pytest-mock || echo "::error::Failed to install pytest packages"
-        echo "Installation complete"
+        pip install pytest pytest-cov pytest-xdist pytest-timeout pytest-mock
+        echo "✓ Test dependencies installed"
 
     - name: Verify installations
       working-directory: ./backend
       run: |
         echo "=== Python Information ==="
         python --version
-        python -c "import sys; print(f'Python executable: {sys.executable}')"
+        which python
         echo ""
-        echo "=== Installed Packages ==="
-        pip list | grep -E "pytest|flask|sqlalchemy" || echo "No matching packages"
+        echo "=== Pip List ==="
+        pip list
         echo ""
-        echo "=== Pytest Information ==="
-        pytest --version || echo "::error::Pytest not found!"
+        echo "=== Pytest Verification ==="
+        pytest --version
+        python -m pytest --version
         echo ""
-        echo "=== Test Files ==="
-        ls -la tests/ | head -20
+        echo "=== Key Packages ==="
+        pip show pytest flask sqlalchemy || echo "Some packages missing"
+        echo ""
+        echo "=== Test Files Count ==="
+        ls tests/test_*.py | wc -l
+        echo ""
+        echo "=== Pytest Configuration ==="
+        cat pytest.ini || echo "pytest.ini not found"
         echo ""
         echo "=== Collecting Tests ==="
-        pytest --collect-only -q 2>&1 | head -50 || echo "::error::Collection failed"
+        pytest --collect-only -q 2>&1 || echo "::warning::Collection had issues"
 
     - name: Run smoke test
       working-directory: ./backend
