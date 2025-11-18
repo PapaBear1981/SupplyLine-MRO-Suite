@@ -38,4 +38,5 @@ class TestCISetup:
     def test_pytest_markers_registered(self):
         """Verify custom pytest markers are registered"""
         # This test will fail if markers aren't properly registered in pytest.ini
-        pass  # Just having this test run without warnings verifies registration
+        # Just having this test run without warnings verifies registration
+        assert True

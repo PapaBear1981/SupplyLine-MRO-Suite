@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from models import Chemical, Tool, User, AuditLog, InventoryTransaction
-from models_kits import Kit, KitItem, KitExpendable, AircraftType
+from models import AuditLog, Chemical, InventoryTransaction, Tool, User
+from models_kits import AircraftType, Kit, KitExpendable, KitItem
 
 
 @pytest.mark.performance

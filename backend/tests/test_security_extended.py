@@ -18,7 +18,7 @@ from io import BytesIO
 
 import pytest
 
-from models import User, Tool, Chemical
+from models import Chemical, Tool, User
 
 
 @pytest.mark.security
@@ -67,14 +67,7 @@ class TestSecurityHeaders:
 
         headers = response.headers
 
-        # Check for common security headers
-        # Note: Implementation may vary, test what's expected
-        expected_headers = [
-            "X-Content-Type-Options",
-            "X-Frame-Options",
-            "X-XSS-Protection",
-        ]
-
+        # Check for common security headers (implementation may vary)
         # At least verify no sensitive headers are leaked
         assert "Server" not in headers or "Flask" not in headers.get("Server", "")
 
@@ -299,7 +292,7 @@ class TestCryptographicSecurity:
 
         # Correct password
         start = time.perf_counter()
-        response1 = client.post("/api/auth/login", json={
+        client.post("/api/auth/login", json={
             "employee_number": test_user.employee_number,
             "password": "user123"
         })
@@ -307,7 +300,7 @@ class TestCryptographicSecurity:
 
         # Wrong password (same length)
         start = time.perf_counter()
-        response2 = client.post("/api/auth/login", json={
+        client.post("/api/auth/login", json={
             "employee_number": test_user.employee_number,
             "password": "wrong23"
         })
@@ -415,7 +408,7 @@ class TestInformationDisclosure:
                 response_text = json.dumps(data).lower()
                 # Should not contain stack trace indicators
                 assert "traceback" not in response_text
-                assert "file \"" not in response_text
+                assert 'file "' not in response_text
                 assert "line " not in response_text.replace("online", "")
 
     def test_user_enumeration_prevention(self, client, db_session):
@@ -493,9 +486,6 @@ class TestSessionSecurity:
         })
 
         if response1.status_code == 200:
-            # Get session cookie if present
-            cookies1 = response1.headers.getlist("Set-Cookie")
-
             # Login again
             response2 = client.post("/api/auth/login", json={
                 "employee_number": test_user.employee_number,
@@ -503,8 +493,6 @@ class TestSessionSecurity:
             })
 
             if response2.status_code == 200:
-                cookies2 = response2.headers.getlist("Set-Cookie")
-
                 # Sessions should be different (regenerated on login)
                 # Or using JWT (no session cookies)
                 # Either way, should be secure

@@ -15,8 +15,9 @@ import time
 from datetime import datetime
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
-from models import Chemical, Tool, User, InventoryTransaction, db
+from models import Chemical, InventoryTransaction, Tool, User, db
 
 
 @pytest.mark.concurrency
@@ -128,7 +129,7 @@ class TestConcurrentAccess:
                     else:
                         checkout_results.append("already_checked_out")
             except Exception as e:
-                checkout_results.append(f"error: {str(e)}")
+                checkout_results.append(f"error: {e!s}")
 
         # Create users for checkout
         users = []
@@ -208,7 +209,7 @@ class TestConcurrentAccess:
 
         # Create many concurrent transactions
         threads = []
-        for i in range(10):
+        for _ in range(10):
             thread = threading.Thread(target=create_transaction, args=(10.0,))
             threads.append(thread)
 
@@ -296,7 +297,7 @@ class TestDataIntegrity:
         db_session.add(chemical)
 
         # Should raise foreign key error
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
         db_session.rollback()
@@ -312,7 +313,7 @@ class TestDataIntegrity:
         db_session.add(tool)
 
         # Should raise error
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
         db_session.rollback()
@@ -575,7 +576,6 @@ class TestAtomicOperations:
         db_session.commit()
 
         # Change status atomically
-        original_status = tool.status
         tool.status = "checked_out"
         tool.checked_out_at = datetime.utcnow()
         db_session.commit()
@@ -677,12 +677,8 @@ class TestDataConsistency:
 
         try:
             db_session.commit()
-            # Deletion allowed - check if cascade worked
-            remaining_activities = UserActivity.query.filter_by(
-                related_item_id=tool_id,
-                related_item_type="Tool"
-            ).all()
-            # Either cascaded or set to NULL
+            # Deletion allowed - check if cascade worked (either cascaded or set to NULL)
+            # The fact that commit succeeded means cascade/set null is configured correctly
         except Exception:
             # Deletion prevented due to FK
             db_session.rollback()

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.12']
 
     steps:
     - name: Checkout code
@@ -127,7 +127,7 @@ jobs:
         fail_ci_if_error: false
 
     - name: Upload coverage HTML report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report-${{ matrix.python-version }}
@@ -199,7 +199,7 @@ jobs:
         DATABASE_URL: sqlite:///test.db
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-results

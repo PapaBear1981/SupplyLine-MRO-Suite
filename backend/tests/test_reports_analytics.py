@@ -15,7 +15,7 @@ from io import BytesIO
 
 import pytest
 
-from models import Chemical, Tool, User, InventoryTransaction, UserActivity
+from models import Chemical, InventoryTransaction, Tool, User, UserActivity
 
 
 @pytest.mark.reports
@@ -510,21 +510,14 @@ class TestReportPerformance:
 
     def test_report_caching(self, client, db_session, admin_user, auth_headers):
         """Test that reports are cached appropriately"""
-        import time
-
         # First request
-        start_time = time.time()
         response1 = client.get("/api/reports/inventory", headers=auth_headers)
-        time1 = time.time() - start_time
 
         if response1.status_code == 200:
-            # Second request (should be faster if cached)
-            start_time = time.time()
+            # Second request (may be cached depending on implementation)
             response2 = client.get("/api/reports/inventory", headers=auth_headers)
-            time2 = time.time() - start_time
 
-            # Second request should not be significantly slower
-            # (May or may not be cached depending on implementation)
+            # Second request should succeed
             assert response2.status_code == 200
 
 

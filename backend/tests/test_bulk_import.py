@@ -23,11 +23,11 @@ class TestChemicalBulkImport:
 
     def test_bulk_import_valid_chemicals(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test importing valid chemicals from CSV"""
-        csv_data = """part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id
-BULK001,LOT001,Test Chemical 1,Manufacturer A,100.0,ml,Storage A,Category1,{warehouse_id}
-BULK002,LOT002,Test Chemical 2,Manufacturer B,200.0,ml,Storage B,Category2,{warehouse_id}
-BULK003,LOT003,Test Chemical 3,Manufacturer C,150.0,ml,Storage C,Category1,{warehouse_id}
-""".format(warehouse_id=test_warehouse.id)
+        csv_data = f"""part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id
+BULK001,LOT001,Test Chemical 1,Manufacturer A,100.0,ml,Storage A,Category1,{test_warehouse.id}
+BULK002,LOT002,Test Chemical 2,Manufacturer B,200.0,ml,Storage B,Category2,{test_warehouse.id}
+BULK003,LOT003,Test Chemical 3,Manufacturer C,150.0,ml,Storage C,Category1,{test_warehouse.id}
+"""
 
         # Create file upload
         data = {
@@ -141,7 +141,7 @@ BULK007,LOT007,Duplicate Chemical,Manufacturer A,200.0,ml,Storage A,Category1,{t
         if response.status_code in [200, 201]:
             # Verify all imported
             imported = Chemical.query.filter(Chemical.part_number.like("LARGE%")).count()
-            assert imported == 100 or imported == 0  # All or none (transaction rollback)
+            assert imported in {100, 0}  # All or none (transaction rollback)
 
     def test_bulk_import_invalid_csv_format(self, client, db_session, admin_user, auth_headers):
         """Test rejection of invalid CSV format"""
@@ -166,7 +166,7 @@ BULK007,LOT007,Duplicate Chemical,Manufacturer A,200.0,ml,Storage A,Category1,{t
     def test_bulk_import_with_special_characters(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test import with special characters in data"""
         # Using different quote style to avoid triple-quote ambiguity
-        csv_data = f"part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
+        csv_data = "part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
         csv_data += f'BULK009,LOT009,"Chemical with quotes",Manufacturer,100.0,ml,Storage,Category,{test_warehouse.id}\n'
         csv_data += f"BULK010,LOT010,Chemical with commas in name,Manufacturer,100.0,ml,Storage,Category,{test_warehouse.id}\n"
 
@@ -362,7 +362,7 @@ SEC001,LOT001,Test Chemical,Manufacturer,100.0,ml,Storage,Category
     def test_bulk_import_sql_injection_protection(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test protection against SQL injection in bulk import"""
         # CSV with SQL injection attempts
-        csv_data = f"part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
+        csv_data = "part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
         csv_data += f"SQL001,\"' OR '1'='1\",\"Test'; DROP TABLE chemicals;--\",Manufacturer,100.0,ml,Storage,Category,{test_warehouse.id}\n"
 
         data = {
@@ -388,7 +388,7 @@ SEC001,LOT001,Test Chemical,Manufacturer,100.0,ml,Storage,Category
     def test_bulk_import_csv_injection_protection(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test protection against CSV injection attacks"""
         # CSV injection (formula injection)
-        csv_data = f"part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
+        csv_data = "part_number,lot_number,description,manufacturer,quantity,unit,location,category,warehouse_id\n"
         csv_data += f"CSV001,LOT001,=cmd|'/c calc'!A1,Manufacturer,100.0,ml,Storage,Category,{test_warehouse.id}\n"
         csv_data += f"CSV002,LOT002,@SUM(1+1),Manufacturer,100.0,ml,Storage,Category,{test_warehouse.id}\n"
 

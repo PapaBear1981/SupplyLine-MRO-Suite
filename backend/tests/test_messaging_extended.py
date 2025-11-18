@@ -20,10 +20,10 @@ from models_messaging import (
     Channel,
     ChannelMember,
     ChannelMessage,
-    MessageReaction,
     MessageAttachment,
+    MessageReaction,
+    TypingIndicator,
     UserPresence,
-    TypingIndicator
 )
 
 
@@ -455,10 +455,9 @@ class TestRealTimeFeatures:
             tokens = JWTManager.generate_tokens(test_user)
             user_headers = {"Authorization": f"Bearer {tokens['access_token']}"}
 
-        # Logout
-        response = client.post("/api/auth/logout", headers=user_headers)
+        # Logout (presence should be updated to offline or removed)
+        client.post("/api/auth/logout", headers=user_headers)
 
-        # Presence should be updated to offline or removed
         # Implementation specific
 
 
@@ -545,8 +544,9 @@ class TestMessageAttachments:
 
     def test_send_message_with_attachment(self, client, db_session, test_user, test_channel):
         """Test sending a message with attachment"""
-        from auth import JWTManager
         from io import BytesIO
+
+        from auth import JWTManager
 
         # Add user to channel
         member = ChannelMember(
