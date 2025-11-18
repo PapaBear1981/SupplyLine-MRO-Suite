@@ -1,0 +1,245 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop, claude/** ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3
+
+    - name: Install Python dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist pytest-timeout
+
+    - name: Run fast tests
+      working-directory: ./backend
+      run: |
+        pytest tests/ -m "not slow" -v --tb=short
+      env:
+        FLASK_ENV: testing
+        DATABASE_URL: sqlite:///test.db
+
+    - name: Run all tests with coverage
+      working-directory: ./backend
+      run: |
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-report=html
+      env:
+        FLASK_ENV: testing
+        DATABASE_URL: sqlite:///test.db
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: backend/htmlcov/
+        retention-days: 30
+
+    - name: Check coverage threshold
+      working-directory: ./backend
+      run: |
+        coverage report --fail-under=70
+      continue-on-error: true
+
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-timeout
+
+    - name: Run security tests
+      working-directory: ./backend
+      run: |
+        pytest tests/ -m security -v --tb=short
+      env:
+        FLASK_ENV: testing
+        DATABASE_URL: sqlite:///test.db
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-timeout pytest-benchmark
+
+    - name: Run performance tests
+      working-directory: ./backend
+      run: |
+        pytest tests/ -m performance -v --tb=short --durations=10
+      env:
+        FLASK_ENV: testing
+        DATABASE_URL: sqlite:///test.db
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results
+        path: backend/.benchmarks/
+        retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: supplyline_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-timeout psycopg2-binary
+
+    - name: Run integration tests with PostgreSQL
+      working-directory: ./backend
+      run: |
+        pytest tests/ -m integration -v --tb=short
+      env:
+        FLASK_ENV: testing
+        DATABASE_URL: postgresql://test:test@localhost:5432/supplyline_test
+
+  lint-and-format:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy
+
+    - name: Check formatting with Black
+      working-directory: ./backend
+      run: |
+        black --check tests/ || echo "::warning::Code not formatted with Black"
+      continue-on-error: true
+
+    - name: Check imports with isort
+      working-directory: ./backend
+      run: |
+        isort --check tests/ || echo "::warning::Imports not sorted"
+      continue-on-error: true
+
+    - name: Lint with flake8
+      working-directory: ./backend
+      run: |
+        flake8 tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 tests/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+      continue-on-error: true
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test, security-tests, performance-tests, integration-tests]
+    if: always()
+
+    steps:
+    - name: Check test results
+      run: |
+        echo "## Test Suite Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ All test suites completed!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Main Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security Tests: ${{ needs.security-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance Tests: ${{ needs.performance-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
