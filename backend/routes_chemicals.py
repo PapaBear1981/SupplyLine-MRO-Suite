@@ -10,11 +10,15 @@ from models import (
     Chemical,
     ChemicalIssuance,
     ChemicalReturn,
+    ProcurementOrder,
+    RequestItem,
     User,
     UserActivity,
+    UserRequest,
     Warehouse,
     db,
 )
+from sqlalchemy import text
 from utils.error_handler import ValidationError, handle_errors
 from utils.validation import validate_lot_number_format, validate_schema, validate_warehouse_id
 
@@ -23,6 +27,95 @@ logger = logging.getLogger(__name__)
 
 # Decorator to check if user is admin or in Materials department
 materials_manager_required = department_required("Materials")
+
+
+def _generate_request_number():
+    """Generate a unique request number in format REQ-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(request_number, 5) AS INTEGER)) FROM user_requests WHERE request_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"REQ-{next_number:05d}"
+
+
+def _generate_order_number():
+    """Generate a unique order number in format ORD-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(order_number, 5) AS INTEGER)) FROM procurement_orders WHERE order_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"ORD-{next_number:05d}"
+
+
+def _create_auto_reorder_request(chemical, user_id):
+    """Create an automatic reorder request for a chemical that is low stock or out of stock."""
+    # Check if there's already an open request for this chemical
+    existing_request = (
+        db.session.query(UserRequest)
+        .join(RequestItem, UserRequest.id == RequestItem.request_id)
+        .filter(
+            RequestItem.item_type == "chemical",
+            RequestItem.part_number == chemical.part_number,
+            UserRequest.status.in_(UserRequest.OPEN_STATUSES)
+        )
+        .first()
+    )
+
+    if existing_request:
+        logger.info(f"Auto-reorder request already exists for chemical {chemical.part_number}: Request #{existing_request.request_number}")
+        return None
+
+    # Determine priority based on status
+    if chemical.status == "out_of_stock":
+        priority = "critical"
+        title = f"URGENT: Restock {chemical.part_number} - Out of Stock"
+    else:  # low_stock
+        priority = "high"
+        title = f"Restock {chemical.part_number} - Low Stock"
+
+    # Calculate quantity to order (bring back to minimum stock level + buffer)
+    if chemical.minimum_stock_level:
+        quantity_to_order = max(chemical.minimum_stock_level * 2, 1)
+    else:
+        quantity_to_order = 1
+
+    # Create the request
+    user_request = UserRequest(
+        request_number=_generate_request_number(),
+        title=title,
+        description=f"Auto-generated reorder request for {chemical.part_number} ({chemical.lot_number}). "
+                    f"Current quantity: {chemical.quantity} {chemical.unit}. "
+                    f"Minimum stock level: {chemical.minimum_stock_level or 'Not set'}.",
+        priority=priority,
+        status="new",
+        requester_id=user_id,
+        notes=f"Automatically created after issuance depleted stock.",
+        is_auto_generated=True
+    )
+    db.session.add(user_request)
+    db.session.flush()  # Get the request ID
+
+    # Create the request item
+    request_item = RequestItem(
+        request_id=user_request.id,
+        item_type="chemical",
+        part_number=chemical.part_number,
+        description=chemical.description or f"{chemical.part_number} - {chemical.manufacturer or 'Unknown manufacturer'}",
+        quantity=quantity_to_order,
+        unit=chemical.unit,
+        status="pending"
+    )
+    db.session.add(request_item)
+
+    # Log the auto-creation
+    log = AuditLog(
+        action_type="auto_reorder_request_created",
+        action_details=f"Auto-created reorder request {user_request.request_number} for chemical {chemical.part_number} (status: {chemical.status})"
+    )
+    db.session.add(log)
+
+    logger.info(f"Auto-created reorder request {user_request.request_number} for chemical {chemical.part_number}")
+    return user_request
 
 
 def register_chemical_routes(app):
@@ -470,6 +563,15 @@ def register_chemical_routes(app):
             )
             db.session.add(activity)
 
+        # Auto-create reorder request if chemical is now low stock or out of stock
+        auto_request = None
+        if chemical.status in ("low_stock", "out_of_stock"):
+            try:
+                auto_request = _create_auto_reorder_request(chemical, request.current_user["user_id"])
+            except Exception as e:
+                logger.exception(f"Error creating auto-reorder request: {e}")
+                # Don't fail the issuance if request creation fails
+
         db.session.commit()
 
         logger.info(f"Chemical issued successfully: {chemical.part_number} - {child_chemical.lot_number if child_chemical else chemical.lot_number}, quantity: {quantity}")
@@ -884,8 +986,6 @@ def register_chemical_routes(app):
                 return jsonify({"error": "Invalid date format for expected_delivery_date. Use ISO format (YYYY-MM-DDTHH:MM:SS)"}), 400
 
             # Create a procurement order for this chemical
-            from models import ProcurementOrder
-
             # Generate order title
             order_title = f"Chemical Reorder: {chemical.part_number} - {chemical.description or chemical.lot_number}"
 
@@ -906,8 +1006,10 @@ def register_chemical_routes(app):
                 part_number=chemical.part_number,
                 description="\n".join(description_parts),
                 priority="normal",
-                status="pending",
+                status="ordered",
                 requester_id=request.current_user.get("user_id"),
+                buyer_id=request.current_user.get("user_id"),
+                ordered_date=datetime.utcnow(),
                 expected_due_date=expected_delivery_date,
                 notes=data.get("notes", ""),
                 quantity=order_quantity,
@@ -915,6 +1017,9 @@ def register_chemical_routes(app):
             )
             db.session.add(procurement_order)
             db.session.flush()  # Get the procurement_order.id
+
+            # Generate and assign order number
+            procurement_order.order_number = _generate_order_number()
 
             # Update chemical reorder status and link to procurement order
             try:

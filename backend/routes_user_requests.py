@@ -1,6 +1,7 @@
 """API routes for multi-item user request management."""
 
 import logging
+from collections import Counter
 from datetime import datetime, timezone
 
 from flask import jsonify, request
@@ -9,6 +10,7 @@ from sqlalchemy import or_, text
 from auth import jwt_required, permission_required_any
 from models import (
     AuditLog,
+    Chemical,
     ProcurementOrder,
     RequestItem,
     User,
@@ -24,6 +26,15 @@ from utils.error_handler import ValidationError, handle_errors
 logger = logging.getLogger(__name__)
 
 requests_permission = permission_required_any("page.orders", "page.requests")
+
+
+def _generate_order_number():
+    """Generate a unique order number in format ORD-00001."""
+    result = db.session.execute(
+        text("SELECT MAX(CAST(SUBSTR(order_number, 5) AS INTEGER)) FROM procurement_orders WHERE order_number IS NOT NULL")
+    ).scalar()
+    next_number = (result or 0) + 1
+    return f"ORD-{next_number:05d}"
 
 VALID_ITEM_TYPES = {"tool", "chemical", "expendable", "other"}
 VALID_PRIORITIES = {"low", "normal", "high", "critical"}
@@ -119,6 +130,11 @@ def register_user_request_routes(app):
         current_user = getattr(request, "current_user", {}) or {}
         permission_set = set(current_user.get("permissions", []))
         has_orders_permission = bool(current_user.get("is_admin")) or "page.orders" in permission_set
+        user_id = current_user.get("user_id")
+
+        # If user doesn't have orders permission, only show their own requests
+        if not has_orders_permission and user_id:
+            query = query.filter(UserRequest.requester_id == user_id)
 
         # Status filtering
         status_filter = request.args.get("status")
@@ -418,6 +434,67 @@ def register_user_request_routes(app):
 
         return jsonify({"message": "Request cancelled", "request": user_request.to_dict(include_items=True)})
 
+    @app.route("/api/user-requests/<int:request_id>/items/cancel", methods=["POST"])
+    @requests_permission
+    @handle_errors
+    def cancel_request_items(request_id):
+        """Cancel specific items in a request with a cancellation reason."""
+
+        user_request = db.session.get(UserRequest, request_id)
+        if not user_request:
+            return jsonify({"error": "Request not found"}), 404
+
+        current_user = getattr(request, "current_user", {}) or {}
+        if not _user_can_access_request(current_user, user_request):
+            return jsonify({"error": "Access denied"}), 403
+
+        data = request.get_json() or {}
+        item_ids = data.get("item_ids", [])
+        cancellation_reason = data.get("reason", "").strip()
+
+        if not item_ids:
+            raise ValidationError("At least one item must be selected for cancellation")
+
+        if not cancellation_reason:
+            raise ValidationError("Cancellation reason is required")
+
+        if len(cancellation_reason) < 10:
+            raise ValidationError("Cancellation reason must be at least 10 characters")
+
+        cancelled_items = []
+        for item_id in item_ids:
+            item = db.session.get(RequestItem, item_id)
+            if not item or item.request_id != request_id:
+                continue
+
+            if item.status in ("received", "cancelled"):
+                continue
+
+            item.status = "cancelled"
+            item.order_notes = f"CANCELLED: {cancellation_reason}" + (f"\n\nPrevious notes: {item.order_notes}" if item.order_notes else "")
+            cancelled_items.append(item.id)
+
+        if not cancelled_items:
+            raise ValidationError("No items were cancelled. Items may already be received or cancelled.")
+
+        # Update request status based on remaining items
+        user_request.update_status_from_items()
+
+        # Log the cancellation
+        audit = AuditLog(
+            action_type="REQUEST_ITEMS_CANCELLED",
+            action_details=f"Items {cancelled_items} cancelled in request {request_id}. Reason: {cancellation_reason}",
+        )
+        db.session.add(audit)
+
+        db.session.commit()
+
+        return jsonify({
+            "message": f"{len(cancelled_items)} item(s) cancelled successfully",
+            "cancelled_item_ids": cancelled_items,
+            "request": user_request.to_dict(include_items=True)
+        })
+
     # Item-specific routes
     @app.route("/api/user-requests/<int:request_id>/items", methods=["POST"])
     @requests_permission
@@ -615,7 +692,11 @@ def register_user_request_routes(app):
         if not item_updates:
             raise ValidationError("At least one item update is required")
 
+        # Group items by vendor to create procurement orders
+        items_by_vendor = {}
+        request_items_to_update = []
         created_orders = []
+
         for item_update in item_updates:
             item_id = item_update.get("item_id")
             if not item_id:
@@ -625,8 +706,10 @@ def register_user_request_routes(app):
             if not request_item:
                 raise ValidationError(f"Item {item_id} not found in this request")
 
+            vendor = item_update.get("vendor", "").strip() or "Unknown Vendor"
+
             request_item.status = "ordered"
-            request_item.vendor = item_update.get("vendor", "").strip() or None
+            request_item.vendor = vendor if vendor != "Unknown Vendor" else None
             request_item.tracking_number = item_update.get("tracking_number", "").strip() or None
             request_item.ordered_date = get_current_time()
 
@@ -644,42 +727,113 @@ def register_user_request_routes(app):
             if "order_notes" in item_update:
                 request_item.order_notes = item_update["order_notes"].strip() if item_update["order_notes"] else None
 
-            # Create a ProcurementOrder for this item
-            procurement_order = ProcurementOrder(
-                title=request_item.description[:200] if request_item.description else "Request Item",
-                order_type=request_item.item_type or "expendable",
-                part_number=request_item.part_number,
-                description=f"Request: {user_request.request_number or f'#{user_request.id}'}\nQuantity: {request_item.quantity} {request_item.unit or 'each'}\n{request_item.description or ''}",
-                priority=user_request.priority or "normal",
-                status="ordered",
-                reference_type="user_request",
-                reference_number=user_request.request_number or str(user_request.id),
-                tracking_number=request_item.tracking_number,
-                vendor=request_item.vendor,
-                ordered_date=request_item.ordered_date,
-                expected_due_date=request_item.expected_delivery_date,
-                requester_id=user_request.requester_id,
-                buyer_id=current_user.get("user_id"),
-            )
-            db.session.add(procurement_order)
-            db.session.flush()  # Get the ID for order number generation
-
-            # Generate and assign order number
-            procurement_order.order_number = _generate_order_number()
-            created_orders.append(procurement_order.order_number)
-
-            logger.info(f"Created ProcurementOrder {procurement_order.order_number} for RequestItem {request_item.id}")
+            # Group by vendor for procurement order creation
+            if vendor not in items_by_vendor:
+                items_by_vendor[vendor] = []
+            items_by_vendor[vendor].append((request_item, item_update))
+            request_items_to_update.append(request_item)
 
         # Assign buyer if not already assigned
         if not user_request.buyer_id:
             user_request.buyer_id = current_user.get("user_id")
 
+        # Create procurement orders for each vendor
+        created_orders = []
+        for vendor, vendor_items in items_by_vendor.items():
+            # Create a title for the procurement order
+            item_descriptions = [item.description[:50] for item, _ in vendor_items[:3]]
+            if len(vendor_items) > 3:
+                order_title = f"{', '.join(item_descriptions)}... ({len(vendor_items)} items)"
+            else:
+                order_title = ", ".join(item_descriptions)
+
+            # Determine priority (use highest priority from items or request)
+            priority = user_request.priority
+
+            # Get part number (use first item's part number if available)
+            first_item = vendor_items[0][0]
+            part_number = first_item.part_number
+            if len(vendor_items) > 1:
+                # If multiple items, list all part numbers
+                part_numbers = [item.part_number for item, _ in vendor_items if item.part_number]
+                if part_numbers:
+                    part_number = ", ".join(part_numbers[:5])
+                    if len(part_numbers) > 5:
+                        part_number += f"... (+{len(part_numbers) - 5} more)"
+
+            # Calculate total quantity
+            total_quantity = sum(item.quantity for item, _ in vendor_items)
+
+            # Determine order_type based on items (use most common type, default to first item's type)
+            item_types = [item.item_type for item, _ in vendor_items]
+            # Use most common item type, or first item's type if all different
+            type_counts = Counter(item_types)
+            order_type = type_counts.most_common(1)[0][0] if type_counts else "tool"
+            # Ensure order_type is valid (tool, chemical, expendable, kit)
+            if order_type not in {"tool", "chemical", "expendable", "kit"}:
+                order_type = "tool"  # Default fallback
+
+            # Create the procurement order
+            procurement_order = ProcurementOrder(
+                title=order_title,
+                order_type=order_type,
+                part_number=part_number,
+                description=f"Order from request {user_request.request_number or f'#{user_request.id}'}: {user_request.title}",
+                priority=priority,
+                status="ordered",
+                vendor=vendor if vendor != "Unknown Vendor" else None,
+                quantity=total_quantity,
+                requester_id=user_request.requester_id,
+                buyer_id=current_user.get("user_id"),
+                ordered_date=get_current_time(),
+                expected_due_date=user_request.expected_due_date,
+            )
+
+            # Generate order number
+            procurement_order.order_number = _generate_order_number()
+
+            db.session.add(procurement_order)
+            db.session.flush()  # Get the ID
+
+            # Link items to this procurement order
+            for request_item, _ in vendor_items:
+                request_item.procurement_order_id = procurement_order.id
+
+            # If any items are chemicals, update the corresponding Chemical records
+            for request_item, _ in vendor_items:
+                if request_item.item_type == "chemical" and request_item.part_number:
+                    # Find matching chemicals by part_number
+                    chemicals = Chemical.query.filter_by(part_number=request_item.part_number).all()
+                    for chemical in chemicals:
+                        # Update reorder status to "ordered"
+                        chemical.reorder_status = "ordered"
+                        chemical.reorder_date = get_current_time()
+                        logger.info(
+                            f"Updated chemical {chemical.id} (part: {chemical.part_number}) reorder_status to 'ordered'"
+                        )
+
+            created_orders.append(procurement_order)
+
+            # Log the order creation
+            logger.info(
+                f"Created procurement order {procurement_order.order_number} for {len(vendor_items)} items from request {request_id}"
+            )
+
         user_request.update_status_from_items()
         db.session.commit()
 
-        logger.info(f"Marked {len(item_updates)} items as ordered, created orders: {', '.join(created_orders)}")
+        response_data = user_request.to_dict(include_items=True)
+        response_data["created_orders"] = [
+            {
+                "id": order.id,
+                "order_number": order.order_number,
+                "vendor": order.vendor,
+                "item_count": len([item for item in request_items_to_update if item.procurement_order_id == order.id]),
+            }
+            for order in created_orders
+        ]
 
-        return jsonify(user_request.to_dict(include_items=True))
+        return jsonify(response_data)
 
     @app.route("/api/user-requests/<int:request_id>/items/mark-received", methods=["POST"])
     @requests_permission
