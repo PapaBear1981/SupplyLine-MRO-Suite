@@ -59,18 +59,6 @@ export default [
     },
   },
 
-  // Temporary: Ignore unused vars in files pending refactoring
-  {
-    files: [
-      'src/components/users/UserManagement.jsx',
-      'src/components/users/UserProfileModal.jsx',
-      'src/pages/UserDashboardPage.jsx'
-    ],
-    rules: {
-      'no-unused-vars': 'warn',
-    },
-  },
-
   // Source files (React components, services, etc.)
   {
     files: ['src/**/*.{js,jsx}'],
@@ -100,6 +88,18 @@ export default [
       ],
       // Allow useless catch for now (services use this pattern intentionally)
       'no-useless-catch': 'off',
+    },
+  },
+
+  // Temporary: Ignore unused vars in files pending refactoring
+  {
+    files: [
+      'src/components/users/UserManagement.jsx',
+      'src/components/users/UserProfileModal.jsx',
+      'src/pages/UserDashboardPage.jsx'
+    ],
+    rules: {
+      'no-unused-vars': 'warn',
     },
   },
 
