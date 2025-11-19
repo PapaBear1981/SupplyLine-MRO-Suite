@@ -34,9 +34,11 @@ def unified_setup(app):
     with app.app_context():
         db.create_all()
 
-        # Create test user
+        # Create test user with unique employee number
+        import random
+        unique_id = random.randint(10000, 99999)
         user = User(
-            employee_number="TEST001",
+            employee_number=f"TEST{unique_id}",
             name="Test User",
             department="Materials",
             is_admin=True,
