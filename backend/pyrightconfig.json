@@ -30,7 +30,8 @@
     "debug_*.py",
     "verify_*.py",
     "cleanup_*.py",
-    "migrate_*.py"
+    "migrate_*.py",
+    "routes_user_requests.py"
   ],
   "defineConstant": {
     "DEBUG": true

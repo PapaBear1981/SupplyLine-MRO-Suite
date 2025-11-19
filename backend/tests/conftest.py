@@ -48,7 +48,7 @@ def app():
         global create_app, db, User, Tool, Chemical, UserActivity, AuditLog, JWTManager
         global Permission, Role, RolePermission, UserRole
         if create_app is None:
-            from app import create_app as _create_app  # noqa: I001
+            from app import create_app as _create_app
             from auth import JWTManager as _JWTManager
             from models import (
                 AuditLog as _AuditLog,
