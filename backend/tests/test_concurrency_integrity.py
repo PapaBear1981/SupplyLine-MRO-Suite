@@ -609,9 +609,8 @@ class TestDataConsistency:
                 item_type="Chemical",
                 item_id=chemical.id,
                 transaction_type="issuance",
-                quantity=amount,
-                user_id=admin_user.id,
-                notes="Consistency test transaction"
+                quantity_change=-amount,
+                user_id=admin_user.id
             )
             db_session.add(transaction)
             transactions.append(transaction)
@@ -619,7 +618,7 @@ class TestDataConsistency:
         db_session.commit()
 
         # Verify consistency
-        total_issued = sum(t.quantity for t in transactions)
+        total_issued = sum(abs(t.quantity_change) for t in transactions)
         expected_quantity = initial_quantity - total_issued
 
         db_session.refresh(chemical)
@@ -648,9 +647,7 @@ class TestDataConsistency:
         activity = UserActivity(
             user_id=admin_user.id,
             activity_type="checkout",
-            description=f"Checked out {tool.tool_number}",
-            related_item_type="Tool",
-            related_item_id=tool.id
+            description=f"Checked out {tool.tool_number}"
         )
         db_session.add(activity)
         db_session.commit()
