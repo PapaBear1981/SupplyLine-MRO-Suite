@@ -39,7 +39,6 @@ class TestConcurrentAccess:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
         db_session.commit()
@@ -107,7 +106,6 @@ class TestConcurrentAccess:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(tool)
         db_session.commit()
@@ -177,7 +175,6 @@ class TestConcurrentAccess:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
         db_session.commit()
@@ -248,7 +245,6 @@ class TestDataIntegrity:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical1)
         db_session.commit()
@@ -265,7 +261,6 @@ class TestDataIntegrity:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical2)
 
@@ -292,7 +287,6 @@ class TestDataIntegrity:
             category="Testing",
             warehouse_id=99999,  # Non-existent warehouse
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
 
@@ -332,7 +326,6 @@ class TestDataIntegrity:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
 
@@ -370,7 +363,6 @@ class TestTransactionIsolation:
                 category="Testing",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                created_by=admin_user.id
             )
             db_session.add(chemical1)
             db_session.flush()
@@ -387,7 +379,6 @@ class TestTransactionIsolation:
                 category="Testing",
                 warehouse_id=99999,  # Invalid FK
                 status="available",
-                created_by=admin_user.id
             )
             db_session.add(chemical2)
             db_session.commit()
@@ -413,7 +404,6 @@ class TestTransactionIsolation:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
         db_session.commit()
@@ -454,7 +444,6 @@ class TestDeadlockPrevention:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         chem2 = Chemical(
             part_number="DEAD-C002",
@@ -467,7 +456,6 @@ class TestDeadlockPrevention:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chem1)
         db_session.add(chem2)
@@ -545,7 +533,6 @@ class TestAtomicOperations:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
         db_session.commit()
@@ -570,7 +557,6 @@ class TestAtomicOperations:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(tool)
         db_session.commit()
@@ -605,7 +591,6 @@ class TestDataConsistency:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(chemical)
         db_session.commit()
@@ -653,7 +638,6 @@ class TestDataConsistency:
             category="Testing",
             warehouse_id=test_warehouse.id,
             status="available",
-            created_by=admin_user.id
         )
         db_session.add(tool)
         db_session.flush()

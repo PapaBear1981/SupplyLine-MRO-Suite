@@ -519,7 +519,7 @@ class TestCalibrationModels:
         for field in expected_fields:
             assert hasattr(ToolCalibration, field), f"ToolCalibration missing field: {field}"
 
-    def test_calibration_status_calculation(self, db_session, test_warehouse):
+    def test_calibration_status_calculation(self, db_session, admin_user, test_warehouse):
         """Test calibration status is calculated correctly"""
         from models import ToolCalibration
 
