@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, Row, Col, Spinner } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
@@ -8,14 +8,7 @@ const QuickStatsWidget = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchStats();
-    // Refresh stats every 2 minutes
-    const interval = setInterval(fetchStats, 120000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await api.get('/api/dashboard/quick-stats');
       setStats(response.data);
@@ -23,14 +16,25 @@ const QuickStatsWidget = () => {
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
       setError('Failed to load statistics');
-      if (!stats) {
-        // Only show toast on initial load failure
-        toast.error('Failed to load dashboard statistics');
-      }
+      // Use a ref or state to track if it's the initial load
+      setStats((prevStats) => {
+        if (!prevStats) {
+          // Only show toast on initial load failure
+          toast.error('Failed to load dashboard statistics');
+        }
+        return prevStats;
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    // Refresh stats every 2 minutes
+    const interval = setInterval(fetchStats, 120000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   if (loading) {
     return (

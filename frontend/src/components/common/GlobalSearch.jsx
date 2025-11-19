@@ -196,7 +196,6 @@ const GlobalSearch = () => {
     if (!results) return null;
 
     const { tools = [], kits = [], chemicals = [], users = [], totalResults = 0 } = results;
-    const allResults = [...tools, ...kits, ...chemicals, ...users];
 
     if (totalResults === 0) {
       return (

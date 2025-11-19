@@ -646,8 +646,9 @@ def register_routes(app):
         logger.debug("Dashboard quick stats requested", extra={"user_id": request.current_user.get("user_id")})
 
         try:
-            from sqlalchemy import func
             from datetime import datetime, timedelta
+
+            from sqlalchemy import func
 
             now = datetime.now()
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -724,7 +725,7 @@ def register_routes(app):
             }), 200
 
         except Exception as e:
-            logger.error(f"Error fetching dashboard quick stats: {str(e)}")
+            logger.error(f"Error fetching dashboard quick stats: {e!s}")
             return jsonify({"error": "Failed to fetch dashboard statistics"}), 500
 
     @app.route("/api/search/global", methods=["GET"])
@@ -802,7 +803,6 @@ def register_routes(app):
             except Exception:
                 # Chemical model might not exist in all configurations
                 logger.debug("Chemical search skipped")
-                pass
 
             # Search Users (only if user has permissions, limit to 10 results)
             user_permissions = request.current_user.get("permissions", [])
@@ -834,7 +834,7 @@ def register_routes(app):
             return jsonify(results), 200
 
         except Exception as e:
-            logger.error(f"Error during global search: {str(e)}")
+            logger.error(f"Error during global search: {e!s}")
             return jsonify({"error": "Search failed"}), 500
 
     # SYSTEM RESOURCES ENDPOINT - DISABLED
