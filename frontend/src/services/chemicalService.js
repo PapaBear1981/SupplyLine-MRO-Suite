@@ -296,6 +296,50 @@ const ChemicalService = {
       console.error(`API Error [POST] /chemicals/${id}/mark-delivered:`, error);
       throw error;
     }
+  },
+
+  // Get unified transaction timeline for a chemical
+  getChemicalTimeline: async (id) => {
+    try {
+      const response = await api.get(`/chemicals/${id}/timeline`);
+      return response.data;
+    } catch (error) {
+      console.error(`API Error [GET] /chemicals/${id}/timeline:`, error);
+      throw error;
+    }
+  },
+
+  // Search chemical transactions with advanced filters
+  searchTransactions: async (filters = {}) => {
+    try {
+      const response = await api.get('/chemicals/transactions/search', { params: filters });
+      return response.data;
+    } catch (error) {
+      console.error('API Error [GET] /chemicals/transactions/search:', error);
+      throw error;
+    }
+  },
+
+  // Get activity feed across all chemicals
+  getActivityFeed: async (limit = 50) => {
+    try {
+      const response = await api.get('/chemicals/activity-feed', { params: { limit } });
+      return response.data;
+    } catch (error) {
+      console.error('API Error [GET] /chemicals/activity-feed:', error);
+      throw error;
+    }
+  },
+
+  // Get workflow statistics
+  getWorkflowStats: async () => {
+    try {
+      const response = await api.get('/chemicals/workflow-stats');
+      return response.data;
+    } catch (error) {
+      console.error('API Error [GET] /chemicals/workflow-stats:', error);
+      throw error;
+    }
   }
 };
 

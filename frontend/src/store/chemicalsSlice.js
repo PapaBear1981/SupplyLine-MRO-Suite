@@ -321,6 +321,55 @@ export const markChemicalAsDelivered = createAsyncThunk(
   }
 );
 
+// New workflow-based thunks
+export const fetchChemicalTimeline = createAsyncThunk(
+  'chemicals/fetchTimeline',
+  async (id, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getChemicalTimeline(id);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch chemical timeline' });
+    }
+  }
+);
+
+export const searchTransactions = createAsyncThunk(
+  'chemicals/searchTransactions',
+  async (filters, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.searchTransactions(filters);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to search transactions' });
+    }
+  }
+);
+
+export const fetchActivityFeed = createAsyncThunk(
+  'chemicals/fetchActivityFeed',
+  async (limit = 50, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getActivityFeed(limit);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch activity feed' });
+    }
+  }
+);
+
+export const fetchWorkflowStats = createAsyncThunk(
+  'chemicals/fetchWorkflowStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await ChemicalService.getWorkflowStats();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch workflow stats' });
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   chemicals: [],
@@ -362,6 +411,20 @@ const initialState = {
   chemicalsExpiringSoon: [],
   reorderLoading: false,
   reorderError: null,
+  // New state for workflow-based features
+  timeline: null,
+  timelineLoading: false,
+  timelineError: null,
+  transactions: [],
+  transactionsPagination: null,
+  transactionsLoading: false,
+  transactionsError: null,
+  activityFeed: [],
+  activityFeedLoading: false,
+  activityFeedError: null,
+  workflowStats: null,
+  workflowStatsLoading: false,
+  workflowStatsError: null,
 };
 
 // Slice
@@ -811,6 +874,63 @@ const chemicalsSlice = createSlice({
       .addCase(markChemicalAsDelivered.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || { message: 'An error occurred while marking chemical as delivered' };
+      })
+
+      // fetchChemicalTimeline
+      .addCase(fetchChemicalTimeline.pending, (state) => {
+        state.timelineLoading = true;
+        state.timelineError = null;
+      })
+      .addCase(fetchChemicalTimeline.fulfilled, (state, action) => {
+        state.timelineLoading = false;
+        state.timeline = action.payload;
+      })
+      .addCase(fetchChemicalTimeline.rejected, (state, action) => {
+        state.timelineLoading = false;
+        state.timelineError = action.payload;
+      })
+
+      // searchTransactions
+      .addCase(searchTransactions.pending, (state) => {
+        state.transactionsLoading = true;
+        state.transactionsError = null;
+      })
+      .addCase(searchTransactions.fulfilled, (state, action) => {
+        state.transactionsLoading = false;
+        state.transactions = action.payload.transactions || [];
+        state.transactionsPagination = action.payload.pagination || null;
+      })
+      .addCase(searchTransactions.rejected, (state, action) => {
+        state.transactionsLoading = false;
+        state.transactionsError = action.payload;
+      })
+
+      // fetchActivityFeed
+      .addCase(fetchActivityFeed.pending, (state) => {
+        state.activityFeedLoading = true;
+        state.activityFeedError = null;
+      })
+      .addCase(fetchActivityFeed.fulfilled, (state, action) => {
+        state.activityFeedLoading = false;
+        state.activityFeed = action.payload.activities || [];
+      })
+      .addCase(fetchActivityFeed.rejected, (state, action) => {
+        state.activityFeedLoading = false;
+        state.activityFeedError = action.payload;
+      })
+
+      // fetchWorkflowStats
+      .addCase(fetchWorkflowStats.pending, (state) => {
+        state.workflowStatsLoading = true;
+        state.workflowStatsError = null;
+      })
+      .addCase(fetchWorkflowStats.fulfilled, (state, action) => {
+        state.workflowStatsLoading = false;
+        state.workflowStats = action.payload;
+      })
+      .addCase(fetchWorkflowStats.rejected, (state, action) => {
+        state.workflowStatsLoading = false;
+        state.workflowStatsError = action.payload;
       });
   }
 });

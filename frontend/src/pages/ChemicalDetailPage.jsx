@@ -12,6 +12,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChemicalIssuanceHistory from '../components/chemicals/ChemicalIssuanceHistory';
 import ChemicalReturnHistory from '../components/chemicals/ChemicalReturnHistory';
 import ChemicalBarcode from '../components/chemicals/ChemicalBarcode';
+import TransactionTimeline from '../components/chemicals/TransactionTimeline';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const ChemicalDetailPage = () => {
@@ -222,14 +223,17 @@ const ChemicalDetailPage = () => {
         </Card.Body>
       </Card>
 
-      <Tabs defaultActiveKey="issuances" className="mb-3">
-        <Tab eventKey="issuances" title="Issuance History">
+      <Tabs defaultActiveKey="timeline" className="mb-3">
+        <Tab eventKey="timeline" title={<><i className="bi bi-clock-history me-2"></i>Transaction Timeline</>}>
+          <TransactionTimeline chemicalId={id} />
+        </Tab>
+        <Tab eventKey="issuances" title={<><i className="bi bi-arrow-up-circle me-2"></i>Issuance History</>}>
           <ChemicalIssuanceHistory
             issuances={issuances[id] || []}
             loading={issuanceLoading}
           />
         </Tab>
-        <Tab eventKey="returns" title="Return History">
+        <Tab eventKey="returns" title={<><i className="bi bi-arrow-down-circle me-2"></i>Return History</>}>
           <ChemicalReturnHistory
             returns={returns[id] || []}
             loading={returnsLoading}

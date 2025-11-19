@@ -10,6 +10,7 @@ from models import (
     Chemical,
     ChemicalIssuance,
     ChemicalReturn,
+    InventoryTransaction,
     ProcurementOrder,
     RequestItem,
     User,
@@ -1439,3 +1440,451 @@ def register_chemical_routes(app):
             db.session.rollback()
             print(f"Error in mark chemical as delivered route: {e!s}")
             return jsonify({"error": "An error occurred while marking the chemical as delivered"}), 500
+
+    # Get unified transaction timeline for a chemical
+    @app.route("/api/chemicals/<int:id>/timeline", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_timeline_route(id):
+        """
+        Get a unified timeline view of all transactions for a chemical.
+        Combines issuances, returns, and inventory transactions into one chronological view.
+        """
+        chemical = Chemical.query.get_or_404(id)
+
+        # Get all related chemical IDs (parent and children)
+        related_ids = {chemical.id}
+        if chemical.lot_number:
+            # Find child lots
+            children = Chemical.query.filter_by(
+                parent_lot_number=chemical.lot_number,
+                part_number=chemical.part_number
+            ).all()
+            related_ids.update(child.id for child in children)
+
+        timeline = []
+
+        # Get issuances
+        issuances = ChemicalIssuance.query.filter(
+            ChemicalIssuance.chemical_id.in_(list(related_ids))
+        ).options(joinedload(ChemicalIssuance.user)).all()
+
+        for issuance in issuances:
+            timeline.append({
+                "type": "issuance",
+                "timestamp": issuance.issue_date.isoformat(),
+                "user_name": issuance.user.name if issuance.user else "Unknown",
+                "user_id": issuance.user_id,
+                "quantity": -issuance.quantity,  # Negative for outbound
+                "unit": chemical.unit,
+                "location": issuance.hangar,
+                "purpose": issuance.purpose,
+                "details": {
+                    "issuance_id": issuance.id,
+                    "chemical_id": issuance.chemical_id,
+                    "hangar": issuance.hangar,
+                    "purpose": issuance.purpose
+                }
+            })
+
+        # Get returns
+        returns = ChemicalReturn.query.filter(
+            ChemicalReturn.chemical_id.in_(list(related_ids))
+        ).options(joinedload(ChemicalReturn.returned_by)).all()
+
+        for ret in returns:
+            timeline.append({
+                "type": "return",
+                "timestamp": ret.return_date.isoformat(),
+                "user_name": ret.returned_by.name if ret.returned_by else "Unknown",
+                "user_id": ret.returned_by_id,
+                "quantity": ret.quantity,  # Positive for inbound
+                "unit": chemical.unit,
+                "location": ret.location,
+                "purpose": ret.notes,
+                "details": {
+                    "return_id": ret.id,
+                    "issuance_id": ret.issuance_id,
+                    "warehouse_id": ret.warehouse_id,
+                    "location": ret.location,
+                    "notes": ret.notes
+                }
+            })
+
+        # Get inventory transactions
+        transactions = InventoryTransaction.query.filter(
+            InventoryTransaction.item_type == "chemical",
+            InventoryTransaction.item_id.in_(list(related_ids))
+        ).options(joinedload(InventoryTransaction.user)).all()
+
+        for trans in transactions:
+            timeline.append({
+                "type": "transaction",
+                "transaction_type": trans.transaction_type,
+                "timestamp": trans.timestamp.isoformat(),
+                "user_name": trans.user.name if trans.user else "Unknown",
+                "user_id": trans.user_id,
+                "quantity": trans.quantity_change,
+                "unit": chemical.unit,
+                "location_from": trans.location_from,
+                "location_to": trans.location_to,
+                "reference_number": trans.reference_number,
+                "notes": trans.notes,
+                "details": {
+                    "transaction_id": trans.id,
+                    "transaction_type": trans.transaction_type,
+                    "lot_number": trans.lot_number,
+                    "reference_number": trans.reference_number
+                }
+            })
+
+        # Sort by timestamp (most recent first)
+        timeline.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        return jsonify({
+            "chemical": chemical.to_dict(),
+            "timeline": timeline,
+            "total_events": len(timeline)
+        })
+
+    # Search and filter chemical transactions
+    @app.route("/api/chemicals/transactions/search", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_transactions_search_route():
+        """
+        Advanced search for chemical transactions.
+        Supports filtering by date range, transaction type, user, part number, etc.
+        """
+        # Get query parameters
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        transaction_type = request.args.get("transaction_type")
+        user_id = request.args.get("user_id", type=int)
+        part_number = request.args.get("part_number")
+        lot_number = request.args.get("lot_number")
+        search_query = request.args.get("q")
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 50, type=int)
+
+        # Build combined results from different sources
+        results = []
+
+        # Search issuances
+        issuance_query = ChemicalIssuance.query.options(
+            joinedload(ChemicalIssuance.user),
+            joinedload(ChemicalIssuance.chemical)
+        )
+
+        if start_date:
+            issuance_query = issuance_query.filter(
+                ChemicalIssuance.issue_date >= datetime.fromisoformat(start_date)
+            )
+        if end_date:
+            issuance_query = issuance_query.filter(
+                ChemicalIssuance.issue_date <= datetime.fromisoformat(end_date)
+            )
+        if user_id:
+            issuance_query = issuance_query.filter(ChemicalIssuance.user_id == user_id)
+        if part_number:
+            issuance_query = issuance_query.join(Chemical).filter(
+                Chemical.part_number.ilike(f"%{part_number}%")
+            )
+        if lot_number:
+            issuance_query = issuance_query.join(Chemical).filter(
+                Chemical.lot_number.ilike(f"%{lot_number}%")
+            )
+
+        for issuance in issuance_query.all():
+            results.append({
+                "type": "issuance",
+                "id": issuance.id,
+                "timestamp": issuance.issue_date.isoformat(),
+                "user_name": issuance.user.name if issuance.user else "Unknown",
+                "user_id": issuance.user_id,
+                "chemical_id": issuance.chemical_id,
+                "part_number": issuance.chemical.part_number if issuance.chemical else None,
+                "lot_number": issuance.chemical.lot_number if issuance.chemical else None,
+                "quantity": -issuance.quantity,
+                "unit": issuance.chemical.unit if issuance.chemical else None,
+                "location": issuance.hangar,
+                "purpose": issuance.purpose,
+                "description": f"Issued {issuance.quantity} to {issuance.hangar}"
+            })
+
+        # Search returns
+        return_query = ChemicalReturn.query.options(
+            joinedload(ChemicalReturn.returned_by),
+            joinedload(ChemicalReturn.chemical)
+        )
+
+        if start_date:
+            return_query = return_query.filter(
+                ChemicalReturn.return_date >= datetime.fromisoformat(start_date)
+            )
+        if end_date:
+            return_query = return_query.filter(
+                ChemicalReturn.return_date <= datetime.fromisoformat(end_date)
+            )
+        if user_id:
+            return_query = return_query.filter(ChemicalReturn.returned_by_id == user_id)
+        if part_number:
+            return_query = return_query.join(Chemical).filter(
+                Chemical.part_number.ilike(f"%{part_number}%")
+            )
+        if lot_number:
+            return_query = return_query.join(Chemical).filter(
+                Chemical.lot_number.ilike(f"%{lot_number}%")
+            )
+
+        for ret in return_query.all():
+            results.append({
+                "type": "return",
+                "id": ret.id,
+                "timestamp": ret.return_date.isoformat(),
+                "user_name": ret.returned_by.name if ret.returned_by else "Unknown",
+                "user_id": ret.returned_by_id,
+                "chemical_id": ret.chemical_id,
+                "part_number": ret.chemical.part_number if ret.chemical else None,
+                "lot_number": ret.chemical.lot_number if ret.chemical else None,
+                "quantity": ret.quantity,
+                "unit": ret.chemical.unit if ret.chemical else None,
+                "location": ret.location,
+                "notes": ret.notes,
+                "description": f"Returned {ret.quantity} to {ret.location}"
+            })
+
+        # Search inventory transactions
+        trans_query = InventoryTransaction.query.filter(
+            InventoryTransaction.item_type == "chemical"
+        ).options(joinedload(InventoryTransaction.user))
+
+        if start_date:
+            trans_query = trans_query.filter(
+                InventoryTransaction.timestamp >= datetime.fromisoformat(start_date)
+            )
+        if end_date:
+            trans_query = trans_query.filter(
+                InventoryTransaction.timestamp <= datetime.fromisoformat(end_date)
+            )
+        if transaction_type:
+            trans_query = trans_query.filter(
+                InventoryTransaction.transaction_type == transaction_type
+            )
+        if user_id:
+            trans_query = trans_query.filter(InventoryTransaction.user_id == user_id)
+        if lot_number:
+            trans_query = trans_query.filter(
+                InventoryTransaction.lot_number.ilike(f"%{lot_number}%")
+            )
+
+        for trans in trans_query.all():
+            # Get chemical for additional details
+            chemical = db.session.get(Chemical, trans.item_id) if trans.item_id else None
+
+            results.append({
+                "type": "transaction",
+                "transaction_type": trans.transaction_type,
+                "id": trans.id,
+                "timestamp": trans.timestamp.isoformat(),
+                "user_name": trans.user.name if trans.user else "Unknown",
+                "user_id": trans.user_id,
+                "chemical_id": trans.item_id,
+                "part_number": chemical.part_number if chemical else None,
+                "lot_number": trans.lot_number,
+                "quantity": trans.quantity_change,
+                "unit": chemical.unit if chemical else None,
+                "location_from": trans.location_from,
+                "location_to": trans.location_to,
+                "reference_number": trans.reference_number,
+                "notes": trans.notes,
+                "description": f"{trans.transaction_type}: {trans.quantity_change or 'N/A'} - {trans.location_from or ''} → {trans.location_to or ''}"
+            })
+
+        # Apply text search if provided
+        if search_query:
+            search_query = search_query.lower()
+            results = [
+                r for r in results
+                if search_query in (r.get("part_number") or "").lower()
+                or search_query in (r.get("lot_number") or "").lower()
+                or search_query in (r.get("description") or "").lower()
+                or search_query in (r.get("notes") or "").lower()
+            ]
+
+        # Sort by timestamp (most recent first)
+        results.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        # Paginate results
+        total = len(results)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_results = results[start:end]
+
+        return jsonify({
+            "transactions": paginated_results,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": (total + per_page - 1) // per_page,
+                "has_next": end < total,
+                "has_prev": page > 1
+            }
+        })
+
+    # Get recent activity feed across all chemicals
+    @app.route("/api/chemicals/activity-feed", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_activity_feed_route():
+        """
+        Get recent activity feed across all chemicals.
+        Shows latest operations for quick visibility.
+        """
+        limit = request.args.get("limit", 50, type=int)
+        limit = min(limit, 200)  # Cap at 200
+
+        activities = []
+
+        # Get recent issuances
+        recent_issuances = ChemicalIssuance.query.options(
+            joinedload(ChemicalIssuance.user),
+            joinedload(ChemicalIssuance.chemical)
+        ).order_by(ChemicalIssuance.issue_date.desc()).limit(limit).all()
+
+        for issuance in recent_issuances:
+            activities.append({
+                "type": "issuance",
+                "timestamp": issuance.issue_date.isoformat(),
+                "user_name": issuance.user.name if issuance.user else "Unknown",
+                "chemical_id": issuance.chemical_id,
+                "part_number": issuance.chemical.part_number if issuance.chemical else "Unknown",
+                "lot_number": issuance.chemical.lot_number if issuance.chemical else "Unknown",
+                "description": f"{issuance.user.name if issuance.user else 'Someone'} issued {issuance.quantity} {issuance.chemical.unit if issuance.chemical else 'units'} to {issuance.hangar}",
+                "quantity": issuance.quantity,
+                "location": issuance.hangar
+            })
+
+        # Get recent returns
+        recent_returns = ChemicalReturn.query.options(
+            joinedload(ChemicalReturn.returned_by),
+            joinedload(ChemicalReturn.chemical)
+        ).order_by(ChemicalReturn.return_date.desc()).limit(limit).all()
+
+        for ret in recent_returns:
+            activities.append({
+                "type": "return",
+                "timestamp": ret.return_date.isoformat(),
+                "user_name": ret.returned_by.name if ret.returned_by else "Unknown",
+                "chemical_id": ret.chemical_id,
+                "part_number": ret.chemical.part_number if ret.chemical else "Unknown",
+                "lot_number": ret.chemical.lot_number if ret.chemical else "Unknown",
+                "description": f"{ret.returned_by.name if ret.returned_by else 'Someone'} returned {ret.quantity} {ret.chemical.unit if ret.chemical else 'units'} to {ret.location}",
+                "quantity": ret.quantity,
+                "location": ret.location
+            })
+
+        # Get recent audit logs for chemicals
+        recent_logs = AuditLog.query.filter(
+            AuditLog.action_type.in_([
+                "chemical_added",
+                "chemical_archived",
+                "chemical_delivered",
+                "chemical_ordered",
+                "chemical_reorder_requested"
+            ])
+        ).order_by(AuditLog.timestamp.desc()).limit(limit).all()
+
+        for log in recent_logs:
+            activities.append({
+                "type": "audit",
+                "audit_type": log.action_type,
+                "timestamp": log.timestamp.isoformat(),
+                "description": log.action_details,
+                "details": log.action_details
+            })
+
+        # Sort all activities by timestamp
+        activities.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        # Return top N activities
+        return jsonify({
+            "activities": activities[:limit],
+            "total": len(activities)
+        })
+
+    # Get workflow statistics
+    @app.route("/api/chemicals/workflow-stats", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def chemical_workflow_stats_route():
+        """
+        Get workflow statistics for dashboard view.
+        Shows counts by status and workflow state.
+        """
+        # Count chemicals by status
+        status_counts = db.session.query(
+            Chemical.status,
+            db.func.count(Chemical.id)
+        ).filter(
+            Chemical.is_archived.is_(False)
+        ).group_by(Chemical.status).all()
+
+        status_dict = {status: count for status, count in status_counts}
+
+        # Count by reorder status
+        reorder_counts = db.session.query(
+            Chemical.reorder_status,
+            db.func.count(Chemical.id)
+        ).filter(
+            Chemical.is_archived.is_(False)
+        ).group_by(Chemical.reorder_status).all()
+
+        reorder_dict = {status: count for status, count in reorder_counts}
+
+        # Count expiring soon (30 days)
+        from datetime import timedelta
+        now = datetime.utcnow()
+        expiring_threshold = now + timedelta(days=30)
+
+        expiring_count = Chemical.query.filter(
+            Chemical.is_archived.is_(False),
+            Chemical.expiration_date.isnot(None),
+            Chemical.expiration_date > now,
+            Chemical.expiration_date <= expiring_threshold
+        ).count()
+
+        # Count by category
+        category_counts = db.session.query(
+            Chemical.category,
+            db.func.count(Chemical.id)
+        ).filter(
+            Chemical.is_archived.is_(False)
+        ).group_by(Chemical.category).all()
+
+        category_dict = {cat: count for cat, count in category_counts}
+
+        # Recent transaction count (last 7 days)
+        seven_days_ago = now - timedelta(days=7)
+
+        recent_issuances = ChemicalIssuance.query.filter(
+            ChemicalIssuance.issue_date >= seven_days_ago
+        ).count()
+
+        recent_returns = ChemicalReturn.query.filter(
+            ChemicalReturn.return_date >= seven_days_ago
+        ).count()
+
+        return jsonify({
+            "status_counts": status_dict,
+            "reorder_counts": reorder_dict,
+            "expiring_soon_count": expiring_count,
+            "category_counts": category_dict,
+            "recent_activity": {
+                "issuances_last_7_days": recent_issuances,
+                "returns_last_7_days": recent_returns,
+                "total_transactions_last_7_days": recent_issuances + recent_returns
+            },
+            "total_active_chemicals": sum(status_dict.values())
+        })

@@ -7,6 +7,9 @@ import ChemicalList from '../components/chemicals/ChemicalList';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
 import ChemicalReturnModal from '../components/chemicals/ChemicalReturnModal';
+import ChemicalWorkflowDashboard from '../components/chemicals/ChemicalWorkflowDashboard';
+import ActivityFeed from '../components/chemicals/ActivityFeed';
+import TransactionResearchCenter from '../components/chemicals/TransactionResearchCenter';
 import useHotkeys from '../hooks/useHotkeys';
 import {
   fetchChemicals,
@@ -18,7 +21,7 @@ const ChemicalsManagement = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const isAuthorized = user?.is_admin || user?.department === 'Materials';
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('workflow');
   const [showReturnModal, setShowReturnModal] = useState(false);
 
   // Page-specific hotkeys
@@ -40,6 +43,7 @@ const ChemicalsManagement = () => {
     } else if (activeTab === 'archived') {
       dispatch(fetchArchivedChemicals());
     }
+    // Workflow tab loads its own data via ChemicalWorkflowDashboard
   }, [dispatch, activeTab]);
 
   // Redirect if user doesn't have permission
@@ -73,10 +77,19 @@ const ChemicalsManagement = () => {
         onSelect={(k) => setActiveTab(k)}
         className="mb-4"
       >
-        <Tab eventKey="active" title="Active Chemicals">
+        <Tab eventKey="workflow" title={<><i className="bi bi-kanban me-2"></i>Workflow Dashboard</>}>
+          <ChemicalWorkflowDashboard />
+          <div className="mt-4">
+            <ActivityFeed limit={20} />
+          </div>
+        </Tab>
+        <Tab eventKey="active" title={<><i className="bi bi-list-ul me-2"></i>All Chemicals</>}>
           <ChemicalList />
         </Tab>
-        <Tab eventKey="archived" title="Archived Chemicals">
+        <Tab eventKey="transactions" title={<><i className="bi bi-search me-2"></i>Transaction Research</>}>
+          <TransactionResearchCenter />
+        </Tab>
+        <Tab eventKey="archived" title={<><i className="bi bi-archive me-2"></i>Archived</>}>
           <ArchivedChemicalsList />
         </Tab>
       </Tabs>
