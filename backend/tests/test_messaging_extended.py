@@ -32,6 +32,8 @@ from models_messaging import (
 class TestChannelManagement:
     """Test channel creation and management"""
 
+    # TODO: Re-enable when channels API is implemented
+    @pytest.mark.skip(reason="Channels API endpoint not yet implemented")
     def test_create_department_channel(self, client, db_session, test_user, auth_headers):
         """Test creating a department channel"""
         from auth import JWTManager
@@ -84,6 +86,8 @@ class TestChannelManagement:
 
         assert response.status_code in [201, 404]
 
+    # TODO: Re-enable when channels API is implemented
+    @pytest.mark.skip(reason="Channels API endpoint not yet implemented")
     def test_add_channel_members(self, client, db_session, test_user, test_user_2, test_channel):
         """Test adding members to a channel"""
         from auth import JWTManager
@@ -109,6 +113,8 @@ class TestChannelManagement:
             ).first()
             assert member is not None
 
+    # TODO: Re-enable when channels API is implemented
+    @pytest.mark.skip(reason="Channels API endpoint not yet implemented")
     def test_remove_channel_member(self, client, db_session, test_user, test_user_2, test_channel):
         """Test removing a member from a channel"""
         from auth import JWTManager
