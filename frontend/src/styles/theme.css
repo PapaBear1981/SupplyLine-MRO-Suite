@@ -1,0 +1,187 @@
+/* src/styles/theme.css */
+
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Typography */
+  --font-family-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-base: var(--font-family-sans-serif);
+
+  /* Enterprise Palette - Light Mode (Keeping for compatibility, but focus is Dark) */
+  --enterprise-primary: #1a1a1a;
+  --enterprise-secondary: #6c757d;
+  --enterprise-accent: #2563EB;
+  --enterprise-bg: #f0f2f5;
+  --enterprise-surface: #ffffff;
+  --enterprise-text: #212529;
+  --enterprise-border: #dee2e6;
+
+  /* Spacing & Layout */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Transitions */
+  --transition-base: all 0.2s ease-in-out;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-bs-theme="dark"] {
+  /* Metploy Palette - Dark Mode */
+  --enterprise-bg: #111111;
+  /* Deep Matte Black */
+  --enterprise-surface: #1C1C1C;
+  /* Dark Grey Surface */
+  --enterprise-surface-hover: #252525;
+  /* Slightly lighter for hover */
+  --enterprise-text: #FFFFFF;
+  /* Pure White */
+  --enterprise-text-secondary: #A1A1AA;
+  /* Cool Grey */
+  --enterprise-border: #2D2D2D;
+  /* Subtle Border */
+  --enterprise-accent: #2563EB;
+  /* Vibrant Blue */
+  --enterprise-accent-hover: #1d4ed8;
+
+  /* Status Colors */
+  --status-success: #10B981;
+  /* Emerald */
+  --status-warning: #F59E0B;
+  /* Amber */
+  --status-danger: #EF4444;
+  /* Red */
+  --status-info: #3B82F6;
+  /* Blue */
+
+  /* Overriding Bootstrap Variables for Dark Mode */
+  --bs-body-bg: var(--enterprise-bg);
+  --bs-body-color: var(--enterprise-text);
+  --bs-primary: var(--enterprise-accent);
+  --bs-secondary: #64748b;
+  --bs-border-color: var(--enterprise-border);
+
+  --bs-card-bg: var(--enterprise-surface);
+  --bs-card-border-color: var(--enterprise-border);
+  --bs-card-border-radius: 1rem;
+}
+
+/* Global Resets & Utilities */
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--bs-body-color);
+}
+
+/* Button Micro-interactions */
+.btn {
+  transition: var(--transition-base);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Card Styling */
+.card {
+  background-color: var(--bs-card-bg);
+  border: 1px solid var(--enterprise-border);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-smooth);
+  border-radius: 1rem;
+  /* 16px */
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #333;
+}
+
+/* Table Styling */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--enterprise-text);
+  --bs-table-border-color: var(--enterprise-border);
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--enterprise-text-secondary);
+  border-bottom-width: 1px;
+}
+
+.table td {
+  vertical-align: middle;
+  color: var(--enterprise-text);
+}
+
+/* Modal Glassmorphism */
+.modal-content {
+  background-color: var(--enterprise-surface);
+  border: 1px solid var(--enterprise-border);
+  box-shadow: var(--shadow-lg);
+  border-radius: 1rem;
+}
+
+.modal-backdrop.show {
+  opacity: 0.8;
+  backdrop-filter: blur(4px);
+}
+
+/* Sidebar/Navigation */
+.sidebar {
+  background-color: var(--enterprise-bg);
+  /* Match body bg for cleaner look, or surface */
+  border-right: 1px solid var(--enterprise-border);
+}
+
+.sidebar .nav-link {
+  color: var(--enterprise-text-secondary);
+  border-radius: 0.5rem;
+  margin: 0.25rem 0.75rem;
+  padding: 0.75rem 1rem;
+  transition: var(--transition-base);
+}
+
+.sidebar .nav-link:hover {
+  color: var(--enterprise-text);
+  background-color: var(--enterprise-surface-hover);
+}
+
+.sidebar .nav-link.active {
+  color: #ffffff;
+  background-color: var(--enterprise-accent);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}

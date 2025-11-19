@@ -1,0 +1,12 @@
+/* Table Header Dark Mode Fix */
+[data-bs-theme="dark"] .table thead,
+[data-bs-theme="dark"] .table thead th {
+    background-color: #1a1a1a !important;
+    color: #A1A1AA !important;
+}
+
+[data-bs-theme="dark"] .table th {
+    background-color: #1a1a1a !important;
+    color: #A1A1AA !important;
+    border-color: #2D2D2D !important;
+}
