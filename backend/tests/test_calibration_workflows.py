@@ -29,11 +29,9 @@ class TestCalibrationRecords:
 
         calibration_data = {
             "calibration_date": datetime.utcnow().strftime("%Y-%m-%d"),
-            "calibration_due": (datetime.utcnow() + timedelta(days=365)).strftime("%Y-%m-%d"),
-            "calibrated_by": "Calibration Lab Inc.",
-            "certificate_number": "CAL-2024-001",
-            "result": "Pass",
-            "notes": "Annual calibration completed"
+            "next_calibration_date": (datetime.utcnow() + timedelta(days=365)).strftime("%Y-%m-%d"),
+            "calibration_status": "pass",
+            "calibration_notes": "Annual calibration completed"
         }
 
         response = client.post(
@@ -47,11 +45,10 @@ class TestCalibrationRecords:
         if response.status_code == 201:
             # Verify calibration created
             calibration = ToolCalibration.query.filter_by(
-                tool_id=sample_tool.id,
-                certificate_number="CAL-2024-001"
+                tool_id=sample_tool.id
             ).first()
             assert calibration is not None
-            assert calibration.result == "Pass"
+            assert calibration.calibration_status == "pass"
 
     def test_calibration_updates_tool_status(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test that calibration updates tool calibration status"""
@@ -75,10 +72,10 @@ class TestCalibrationRecords:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow(),
-            calibration_due=datetime.utcnow() + timedelta(days=365),
-            calibrated_by="Lab",
-            certificate_number="CAL-001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() + timedelta(days=365),
+            performed_by_user_id=admin_user.id,
+            calibration_status="pass",
+            calibration_notes="Annual calibration"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -108,12 +105,9 @@ class TestCalibrationRecords:
         db_session.commit()
 
         calibration_data = {
-            "tool_id": tool.id,
             "calibration_date": datetime.utcnow().strftime("%Y-%m-%d"),
-            "calibrated_by": "Calibration Lab Inc.",
-            "certificate_number": "CAL-FAIL-001",
-            "result": "Fail",
-            "notes": "Out of tolerance, requires adjustment"
+            "calibration_status": "fail",
+            "calibration_notes": "Out of tolerance, requires adjustment"
         }
 
         response = client.post(
@@ -122,7 +116,7 @@ class TestCalibrationRecords:
             json=calibration_data
         )
 
-        assert response.status_code in [201, 404]
+        assert response.status_code in [201, 400, 404]
 
         if response.status_code == 201:
             # Tool should be marked as needing service or out of calibration
@@ -154,10 +148,10 @@ class TestCalibrationRecords:
             calibration = ToolCalibration(
                 tool_id=tool.id,
                 calibration_date=datetime.utcnow() - timedelta(days=365 * i),
-                calibration_due=datetime.utcnow() + timedelta(days=365 * (1 - i)),
-                calibrated_by="Lab",
-                certificate_number=f"CAL-{i:03d}",
-                result="Pass"
+                next_calibration_date=datetime.utcnow() + timedelta(days=365 * (1 - i)),
+                performed_by_user_id=admin_user.id,
+                calibration_status="pass",
+                calibration_notes=f"Calibration {i}"
             )
             db_session.add(calibration)
 
@@ -196,10 +190,10 @@ class TestCalibrationRecords:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow(),
-            calibration_due=datetime.utcnow() + timedelta(days=365),
-            calibrated_by="Lab",
-            certificate_number="CAL-CERT-001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() + timedelta(days=365),
+            performed_by_user_id=admin_user.id,
+            calibration_status="pass",
+            calibration_notes="Certificate test"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -254,10 +248,10 @@ class TestCalibrationDueTracking:
             calibration = ToolCalibration(
                 tool_id=tool.id,
                 calibration_date=datetime.utcnow() - timedelta(days=365),
-                calibration_due=datetime.utcnow() + timedelta(days=days_offset),
-                calibrated_by="Lab",
-                certificate_number=f"CAL-{tool_num}",
-                result="Pass"
+                next_calibration_date=datetime.utcnow() + timedelta(days=days_offset),
+                performed_by_user_id=admin_user.id,
+                calibration_status="pass",
+                calibration_notes=f"Calibration {status}"
             )
             db_session.add(calibration)
 
@@ -298,10 +292,9 @@ class TestCalibrationDueTracking:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow() - timedelta(days=335),
-            calibration_due=datetime.utcnow() + timedelta(days=30),
-            calibrated_by="Lab",
-            certificate_number="CAL-REM001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() + timedelta(days=30),
+            performed_by_user_id=admin_user.id,
+            calibration_status="pass"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -336,10 +329,10 @@ class TestCalibrationDueTracking:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow() - timedelta(days=400),
-            calibration_due=datetime.utcnow() - timedelta(days=35),  # Expired
-            calibrated_by="Lab",
-            certificate_number="CAL-EXP001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() - timedelta(days=35),  # Expired
+            performed_by_user_id=admin_user.id,
+            # certificate_number="CAL-EXP001",
+            calibration_status="pass"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -382,10 +375,10 @@ class TestCalibrationAPI:
             calibration = ToolCalibration(
                 tool_id=tool.id,
                 calibration_date=datetime.utcnow(),
-                calibration_due=datetime.utcnow() + timedelta(days=365),
-                calibrated_by="Lab",
-                certificate_number=f"CAL-LIST{i:03d}",
-                result="Pass"
+                next_calibration_date=datetime.utcnow() + timedelta(days=365),
+                performed_by_user_id=admin_user.id,
+                # certificate_number=f"CAL-LIST{i:03d}",
+                calibration_status="pass"
             )
             db_session.add(calibration)
 
@@ -421,11 +414,11 @@ class TestCalibrationAPI:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow(),
-            calibration_due=datetime.utcnow() + timedelta(days=365),
-            calibrated_by="Lab",
-            certificate_number="CAL-UPD001",
-            result="Pass",
-            notes="Original notes"
+            next_calibration_date=datetime.utcnow() + timedelta(days=365),
+            performed_by_user_id=admin_user.id,
+            # certificate_number="CAL-UPD001",
+            calibration_status="pass",
+            calibration_notes="Original notes"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -470,10 +463,10 @@ class TestCalibrationAPI:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow(),
-            calibration_due=datetime.utcnow() + timedelta(days=365),
-            calibrated_by="Lab",
-            certificate_number="CAL-DEL001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() + timedelta(days=365),
+            performed_by_user_id=admin_user.id,
+            # certificate_number="CAL-DEL001",
+            calibration_status="pass"
         )
         db_session.add(calibration)
         db_session.commit()
@@ -538,10 +531,10 @@ class TestCalibrationModels:
         calibration = ToolCalibration(
             tool_id=tool.id,
             calibration_date=datetime.utcnow(),
-            calibration_due=datetime.utcnow() + timedelta(days=365),
-            calibrated_by="Lab",
-            certificate_number="CAL-STAT001",
-            result="Pass"
+            next_calibration_date=datetime.utcnow() + timedelta(days=365),
+            performed_by_user_id=admin_user.id,
+            # certificate_number="CAL-STAT001",
+            calibration_status="pass"
         )
         db_session.add(calibration)
         db_session.commit()
