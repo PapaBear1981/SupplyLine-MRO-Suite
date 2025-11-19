@@ -16,6 +16,7 @@ import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
 import PendingUserRequests from '../components/admin/PendingUserRequests';
 import PendingUpdateRequestsWidget from '../components/dashboard/PendingUpdateRequestsWidget';
+import QuickStatsWidget from '../components/dashboard/QuickStatsWidget';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -24,6 +25,13 @@ const COLUMN_SIDEBAR = 'sidebar';
 const COLUMN_HIDDEN = 'hidden';
 
 const DASHBOARD_WIDGETS = [
+  {
+    id: 'quickStats',
+    label: 'Quick Stats',
+    defaultColumn: COLUMN_MAIN,
+    component: QuickStatsWidget,
+    isAvailable: () => true,
+  },
   {
     id: 'calibrationNotifications',
     label: 'Calibration Notifications',

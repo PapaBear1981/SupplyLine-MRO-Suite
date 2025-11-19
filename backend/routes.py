@@ -639,6 +639,204 @@ def register_routes(app):
             "departmentDistribution": dept_data
         }), 200
 
+    @app.route("/api/dashboard/quick-stats", methods=["GET"])
+    @login_required
+    def get_dashboard_quick_stats():
+        """Get quick look analytics for the dashboard"""
+        logger.debug("Dashboard quick stats requested", extra={"user_id": request.current_user.get("user_id")})
+
+        try:
+            from sqlalchemy import func
+            from datetime import datetime, timedelta
+
+            now = datetime.now()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Get users logged in today (based on login activity)
+            users_logged_in_today = db.session.query(
+                func.count(func.distinct(UserActivity.user_id))
+            ).filter(
+                UserActivity.activity_type == "login",
+                UserActivity.timestamp >= today_start
+            ).scalar() or 0
+
+            # Get active users (activity in last 15 minutes)
+            fifteen_minutes_ago = now - timedelta(minutes=15)
+            active_users_now = db.session.query(
+                func.count(func.distinct(UserActivity.user_id))
+            ).filter(
+                UserActivity.timestamp >= fifteen_minutes_ago
+            ).scalar() or 0
+
+            # Get today's transactions (checkouts + returns)
+            checkouts_today = Checkout.query.filter(
+                Checkout.checkout_date >= today_start
+            ).count()
+
+            returns_today = Checkout.query.filter(
+                Checkout.return_date >= today_start
+            ).count()
+
+            total_transactions_today = checkouts_today + returns_today
+
+            # Get tool availability
+            total_tools = Tool.query.count()
+            available_tools = Tool.query.filter_by(status="available").count()
+            checked_out_tools = Tool.query.filter_by(status="checked_out").count()
+
+            # Get pending items (if user has permissions)
+            pending_items = {}
+            user_permissions = request.current_user.get("permissions", [])
+
+            if "order.approve" in user_permissions or request.current_user.get("is_admin"):
+                from models import Order
+                pending_orders = Order.query.filter_by(status="pending").count()
+                pending_items["orders"] = pending_orders
+
+            if "user_request.manage" in user_permissions or request.current_user.get("is_admin"):
+                from models import UserRequest
+                pending_requests = UserRequest.query.filter_by(status="pending").count()
+                pending_items["requests"] = pending_requests
+
+            # Get recent activity count (last 24 hours)
+            twenty_four_hours_ago = now - timedelta(hours=24)
+            recent_activity_count = AuditLog.query.filter(
+                AuditLog.timestamp >= twenty_four_hours_ago
+            ).count()
+
+            return jsonify({
+                "usersLoggedInToday": users_logged_in_today,
+                "activeUsersNow": active_users_now,
+                "transactionsToday": {
+                    "total": total_transactions_today,
+                    "checkouts": checkouts_today,
+                    "returns": returns_today
+                },
+                "toolAvailability": {
+                    "total": total_tools,
+                    "available": available_tools,
+                    "checkedOut": checked_out_tools,
+                    "availabilityRate": round((available_tools / total_tools * 100) if total_tools > 0 else 0, 1)
+                },
+                "pendingItems": pending_items,
+                "recentActivityCount": recent_activity_count,
+                "timestamp": now.isoformat()
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Error fetching dashboard quick stats: {str(e)}")
+            return jsonify({"error": "Failed to fetch dashboard statistics"}), 500
+
+    @app.route("/api/search/global", methods=["GET"])
+    @login_required
+    def global_search():
+        """Unified global search across tools, kits, chemicals, and users"""
+        query = request.args.get("q", "")
+        logger.debug("Global search endpoint called", extra={"has_query": bool(query)})
+
+        if not query or len(query) < 2:
+            return jsonify({"error": "Search query must be at least 2 characters"}), 400
+
+        try:
+            search_term = f"%{query.lower()}%"
+            results = {
+                "tools": [],
+                "kits": [],
+                "chemicals": [],
+                "users": [],
+                "query": query
+            }
+
+            # Search Tools (limit to 10 results)
+            tools = Tool.query.filter(
+                db.or_(
+                    db.func.lower(Tool.tool_number).like(search_term),
+                    db.func.lower(Tool.serial_number).like(search_term),
+                    db.func.lower(Tool.description).like(search_term)
+                )
+            ).limit(10).all()
+
+            results["tools"] = [{
+                "id": t.id,
+                "tool_number": t.tool_number,
+                "description": t.description,
+                "status": t.status,
+                "type": "tool"
+            } for t in tools]
+
+            # Search Kits (limit to 10 results)
+            from models import Kit
+            kits = Kit.query.filter(
+                db.or_(
+                    db.func.lower(Kit.kit_number).like(search_term),
+                    db.func.lower(Kit.description).like(search_term)
+                )
+            ).limit(10).all()
+
+            results["kits"] = [{
+                "id": k.id,
+                "kit_number": k.kit_number,
+                "description": k.description,
+                "status": k.status,
+                "type": "kit"
+            } for k in kits]
+
+            # Search Chemicals (limit to 10 results)
+            try:
+                from models import Chemical
+                chemicals = Chemical.query.filter(
+                    db.or_(
+                        db.func.lower(Chemical.name).like(search_term),
+                        db.func.lower(Chemical.cas_number).like(search_term),
+                        db.func.lower(Chemical.part_number).like(search_term)
+                    )
+                ).limit(10).all()
+
+                results["chemicals"] = [{
+                    "id": c.id,
+                    "name": c.name,
+                    "cas_number": c.cas_number,
+                    "part_number": c.part_number,
+                    "type": "chemical"
+                } for c in chemicals]
+            except Exception:
+                # Chemical model might not exist in all configurations
+                logger.debug("Chemical search skipped")
+                pass
+
+            # Search Users (only if user has permissions, limit to 10 results)
+            user_permissions = request.current_user.get("permissions", [])
+            if "user.view" in user_permissions or request.current_user.get("is_admin"):
+                users = User.query.filter(
+                    db.or_(
+                        db.func.lower(User.name).like(search_term),
+                        db.func.lower(User.email).like(search_term),
+                        db.func.lower(User.department).like(search_term)
+                    )
+                ).limit(10).all()
+
+                results["users"] = [{
+                    "id": u.id,
+                    "name": u.name,
+                    "email": u.email,
+                    "department": u.department,
+                    "type": "user"
+                } for u in users]
+
+            # Count total results
+            results["totalResults"] = (
+                len(results["tools"]) +
+                len(results["kits"]) +
+                len(results["chemicals"]) +
+                len(results["users"])
+            )
+
+            return jsonify(results), 200
+
+        except Exception as e:
+            logger.error(f"Error during global search: {str(e)}")
+            return jsonify({"error": "Search failed"}), 500
+
     # SYSTEM RESOURCES ENDPOINT - DISABLED
     # This endpoint has been removed from the Admin Dashboard UI
     # The entire function has been commented out to prevent unnecessary backend processing

@@ -1,0 +1,117 @@
+.global-search-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.global-search-input {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.global-search-input .form-control {
+  border: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+}
+
+.global-search-input .form-control:focus {
+  box-shadow: none;
+  border-color: #86b7fe;
+}
+
+.global-search-input .input-group-text {
+  border: 1px solid #dee2e6;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.global-search-results {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 500px;
+  overflow-y: auto;
+  z-index: 1050;
+}
+
+.global-search-list {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.global-search-result-item {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.global-search-result-item:hover {
+  background-color: #f8f9fa;
+}
+
+.global-search-result-item.active {
+  background-color: #e7f1ff;
+  border-color: #b6d4fe;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .global-search-input {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .global-search-input .form-control,
+[data-theme='dark'] .global-search-input .input-group-text {
+  background-color: var(--bs-dark);
+  border-color: var(--bs-gray-700);
+  color: var(--bs-light);
+}
+
+[data-theme='dark'] .global-search-input .form-control:focus {
+  background-color: var(--bs-dark);
+  color: var(--bs-light);
+  border-color: #4c8bf5;
+}
+
+[data-theme='dark'] .global-search-results {
+  background: var(--bs-dark);
+  border-color: var(--bs-gray-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .global-search-result-item {
+  background-color: var(--bs-dark);
+  color: var(--bs-light);
+  border-color: var(--bs-gray-700);
+}
+
+[data-theme='dark'] .global-search-result-item:hover {
+  background-color: var(--bs-gray-800);
+}
+
+[data-theme='dark'] .global-search-result-item.active {
+  background-color: #1e3a5f;
+  border-color: #4c8bf5;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .global-search-container {
+    max-width: 100%;
+  }
+
+  .global-search-results {
+    max-height: 400px;
+  }
+
+  .global-search-list {
+    max-height: 350px;
+  }
+}

@@ -296,3 +296,26 @@
   background-color: #2563EB;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
+
+/* Global Search Wrapper */
+.global-search-wrapper {
+  padding: 1rem 2rem;
+  background-color: var(--enterprise-bg);
+  border-bottom: 1px solid var(--enterprise-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  background-color: rgba(var(--enterprise-bg-rgb), 0.95);
+}
+
+[data-bs-theme="light"] .global-search-wrapper {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom-color: #dee2e6;
+}
+
+@media (max-width: 768px) {
+  .global-search-wrapper {
+    padding: 0.75rem 1rem;
+  }
+}
