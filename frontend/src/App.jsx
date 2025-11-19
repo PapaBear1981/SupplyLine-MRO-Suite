@@ -27,6 +27,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
+import DirectoryPage from './pages/DirectoryPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
@@ -145,333 +146,344 @@ function App() {
         <Router>
           <GlobalHotkeys />
           <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-        {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}
-        <Route path="/" element={<RootRoute />} />
+            {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}
+            <Route path="/" element={<RootRoute />} />
 
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <UserDashboardPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <UserDashboardPage />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
 
-        <Route path="/tools" element={
-          <PermissionRoute permission="page.tools">
-            <MainLayout>
-              <ToolsManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route
+              path="/directory"
+              element={
+                <ProtectedRoute requiredPermission="user.view">
+                  <MainLayout>
+                    <DirectoryPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
 
-        <Route path="/orders" element={
-          <PermissionRoute permission="page.orders">
-            <MainLayout>
-              <OrderManagementPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools" element={
+              <PermissionRoute permission="page.tools">
+                <MainLayout>
+                  <ToolsManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/requests" element={
-          <PermissionRoute permission="page.requests">
-            <MainLayout>
-              <RequestsPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/orders" element={
+              <PermissionRoute permission="page.orders">
+                <MainLayout>
+                  <OrderManagementPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/tools/new" element={
-          <PermissionRoute permission="page.tools">
-            <MainLayout>
-              <NewToolPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/requests" element={
+              <PermissionRoute permission="page.requests">
+                <MainLayout>
+                  <RequestsPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/tools/:id" element={
-          <PermissionRoute permission="page.tools">
-            <MainLayout>
-              <ToolDetailPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools/new" element={
+              <PermissionRoute permission="page.tools">
+                <MainLayout>
+                  <NewToolPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/tools/:id/edit" element={
-          <PermissionRoute permission="page.tools">
-            <MainLayout>
-              <EditToolPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools/:id" element={
+              <PermissionRoute permission="page.tools">
+                <MainLayout>
+                  <ToolDetailPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        {/* NOTE: /checkouts route MUST come before /checkout/:id to avoid matching issues */}
-        <Route path="/checkouts" element={
-          <PermissionRoute permission="page.my_checkouts">
-            <MainLayout>
-              <CheckoutsPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools/:id/edit" element={
+              <PermissionRoute permission="page.tools">
+                <MainLayout>
+                  <EditToolPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/checkout/:id" element={
-          <PermissionRoute permission="page.checkouts">
-            <MainLayout>
-              <CheckoutPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            {/* NOTE: /checkouts route MUST come before /checkout/:id to avoid matching issues */}
+            <Route path="/checkouts" element={
+              <PermissionRoute permission="page.my_checkouts">
+                <MainLayout>
+                  <CheckoutsPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/my-checkouts" element={
-          <PermissionRoute permission="page.my_checkouts">
-            <MainLayout>
-              <UserCheckoutsPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/checkout/:id" element={
+              <PermissionRoute permission="page.checkouts">
+                <MainLayout>
+                  <CheckoutPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/checkouts/all" element={
-          <PermissionRoute permission="page.checkouts" fallbackPath="/checkouts">
-            <MainLayout>
-              <AllCheckoutsPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/my-checkouts" element={
+              <PermissionRoute permission="page.my_checkouts">
+                <MainLayout>
+                  <UserCheckoutsPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/checkouts/all" element={
+              <PermissionRoute permission="page.checkouts" fallbackPath="/checkouts">
+                <MainLayout>
+                  <AllCheckoutsPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
 
-        <Route path="/reports" element={
-          <ProtectedRoute requirePermission={null}>
-            <MainLayout>
-              <ReportingPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+            <Route path="/reports" element={
+              <ProtectedRoute requirePermission={null}>
+                <MainLayout>
+                  <ReportingPage />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
 
-        <Route path="/admin/dashboard" element={
-          <PermissionRoute permission="page.admin_dashboard">
-            <MainLayout>
-              <AdminDashboardPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/admin/dashboard" element={
+              <PermissionRoute permission="page.admin_dashboard">
+                <MainLayout>
+                  <AdminDashboardPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/admin/aircraft-types" element={
-          <PermissionRoute permission="page.aircraft_types">
-            <MainLayout>
-              <AircraftTypeManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/admin/aircraft-types" element={
+              <PermissionRoute permission="page.aircraft_types">
+                <MainLayout>
+                  <AircraftTypeManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/warehouses" element={
-          <PermissionRoute permission="page.warehouses">
-            <MainLayout>
-              <WarehousesManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/warehouses" element={
+              <PermissionRoute permission="page.warehouses">
+                <MainLayout>
+                  <WarehousesManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/profile" element={
-          <PermissionRoute permission="page.profile">
-            <ProfilePageNew />
-          </PermissionRoute>
-        } />
+            <Route path="/profile" element={
+              <PermissionRoute permission="page.profile">
+                <ProfilePageNew />
+              </PermissionRoute>
+            } />
 
-        {/* Item History Lookup */}
-        <Route path="/history" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <ItemHistoryPage />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+            {/* Item History Lookup */}
+            <Route path="/history" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <ItemHistoryPage />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
 
-        {/* Chemical routes */}
-        <Route path="/chemicals" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <ChemicalsManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            {/* Chemical routes */}
+            <Route path="/chemicals" element={
+              <PermissionRoute permission="page.chemicals">
+                <MainLayout>
+                  <ChemicalsManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/chemicals/new" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <NewChemicalPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/chemicals/new" element={
+              <PermissionRoute permission="page.chemicals">
+                <MainLayout>
+                  <NewChemicalPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/chemicals/:id" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <ChemicalDetailPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/chemicals/:id" element={
+              <PermissionRoute permission="page.chemicals">
+                <MainLayout>
+                  <ChemicalDetailPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/chemicals/:id/edit" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <EditChemicalPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/chemicals/:id/edit" element={
+              <PermissionRoute permission="page.chemicals">
+                <MainLayout>
+                  <EditChemicalPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/chemicals/:id/issue" element={
-          <PermissionRoute permission="page.chemicals">
-            <MainLayout>
-              <ChemicalIssuePage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/chemicals/:id/issue" element={
+              <PermissionRoute permission="page.chemicals">
+                <MainLayout>
+                  <ChemicalIssuePage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        {/* Calibration routes */}
-        <Route path="/calibrations" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            {/* Calibration routes */}
+            <Route path="/calibrations" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/tools/:id/calibrations/new" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <ToolCalibrationForm />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools/:id/calibrations/new" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <ToolCalibrationForm />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/tools/:id/calibrations/:calibrationId" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationDetailPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/tools/:id/calibrations/:calibrationId" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationDetailPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/calibration-standards" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/calibration-standards" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/calibration-standards/new" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationStandardForm />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/calibration-standards/new" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationStandardForm />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/calibration-standards/:id" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/calibration-standards/:id" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/calibration-standards/:id/edit" element={
-          <PermissionRoute permission="page.calibrations">
-            <MainLayout>
-              <CalibrationStandardForm />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/calibration-standards/:id/edit" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationStandardForm />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        {/* Scanner route */}
-        <Route path="/scanner" element={
-          <PermissionRoute permission="page.scanner">
-            <MainLayout>
-              <ScannerPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            {/* Scanner route */}
+            <Route path="/scanner" element={
+              <PermissionRoute permission="page.scanner">
+                <MainLayout>
+                  <ScannerPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        {/* Kit routes */}
-        <Route path="/kits" element={
-          <PermissionRoute permission="page.kits">
-            <MainLayout>
-              <KitsManagement />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            {/* Kit routes */}
+            <Route path="/kits" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitsManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/kits/new" element={
-          <PermissionRoute permission="page.kits">
-            <MainLayout>
-              <KitWizard />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/kits/new" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitWizard />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/kits/:id/edit" element={
-          <PermissionRoute permission="page.kits">
-            <MainLayout>
-              <EditKitPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/kits/:id/edit" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <EditKitPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/kits/:id" element={
-          <PermissionRoute permission="page.kits">
-            <MainLayout>
-              <KitDetailPage />
-            </MainLayout>
-          </PermissionRoute>
-        } />
+            <Route path="/kits/:id" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitDetailPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
 
-        <Route path="/kits/mobile" element={
-          <PermissionRoute permission="page.kits">
-            <KitMobileInterface />
-          </PermissionRoute>
-        } />
+            <Route path="/kits/mobile" element={
+              <PermissionRoute permission="page.kits">
+                <KitMobileInterface />
+              </PermissionRoute>
+            } />
 
-        {/* CYCLE COUNT ROUTES - TEMPORARILY DISABLED */}
-        {/* ========================================== */}
-        {/* All cycle count routes have been disabled due to GitHub Issue #366 */}
-        {/* */}
-        {/* REASON FOR DISABLING: */}
-        {/* - Backend cycle count API endpoints are non-functional */}
-        {/* - Missing database tables causing system errors */}
-        {/* - Users experiencing "Resource not found" errors */}
-        {/* - Production stability issues */}
-        {/* */}
-        {/* ROUTES DISABLED: */}
-        {/* - /cycle-counts/schedules/new - Create new schedule */}
-        {/* - /cycle-counts/schedules/:id/edit - Edit schedule */}
-        {/* - /cycle-counts/schedules/:id - View schedule details */}
-        {/* - /cycle-counts/batches/new - Create new batch */}
-        {/* - /cycle-counts/batches/:id/edit - Edit batch */}
-        {/* - /cycle-counts/batches/:id - View batch details */}
-        {/* - /cycle-counts/items/:id/count - Count items */}
-        {/* - /cycle-counts/discrepancies/:id - View discrepancies */}
-        {/* - /cycle-counts/schedules - Schedules dashboard */}
-        {/* - /cycle-counts/batches - Batches dashboard */}
-        {/* - /cycle-counts/discrepancies - Discrepancies dashboard */}
-        {/* - /cycle-counts - Main cycle count dashboard */}
-        {/* - /cycle-counts/mobile - Mobile cycle count interface */}
-        {/* */}
-        {/* TO RE-ENABLE: */}
-        {/* 1. Uncomment all route definitions below */}
-        {/* 2. Uncomment cycle count imports at top of file */}
-        {/* 3. Enable backend routes in backend/routes.py */}
-        {/* 4. Ensure database tables are created */}
-        {/* 5. Test all functionality thoroughly */}
-        {/* */}
-        {/* DISABLED DATE: 2025-06-22 */}
-        {/* GITHUB ISSUE: #366 */}
-        {/* */}
-        {/* Cycle Count Form Routes - More specific routes first */}
-        {/* <Route path="/cycle-counts/schedules/new" element={
+            {/* CYCLE COUNT ROUTES - TEMPORARILY DISABLED */}
+            {/* ========================================== */}
+            {/* All cycle count routes have been disabled due to GitHub Issue #366 */}
+            {/* */}
+            {/* REASON FOR DISABLING: */}
+            {/* - Backend cycle count API endpoints are non-functional */}
+            {/* - Missing database tables causing system errors */}
+            {/* - Users experiencing "Resource not found" errors */}
+            {/* - Production stability issues */}
+            {/* */}
+            {/* ROUTES DISABLED: */}
+            {/* - /cycle-counts/schedules/new - Create new schedule */}
+            {/* - /cycle-counts/schedules/:id/edit - Edit schedule */}
+            {/* - /cycle-counts/schedules/:id - View schedule details */}
+            {/* - /cycle-counts/batches/new - Create new batch */}
+            {/* - /cycle-counts/batches/:id/edit - Edit batch */}
+            {/* - /cycle-counts/batches/:id - View batch details */}
+            {/* - /cycle-counts/items/:id/count - Count items */}
+            {/* - /cycle-counts/discrepancies/:id - View discrepancies */}
+            {/* - /cycle-counts/schedules - Schedules dashboard */}
+            {/* - /cycle-counts/batches - Batches dashboard */}
+            {/* - /cycle-counts/discrepancies - Discrepancies dashboard */}
+            {/* - /cycle-counts - Main cycle count dashboard */}
+            {/* - /cycle-counts/mobile - Mobile cycle count interface */}
+            {/* */}
+            {/* TO RE-ENABLE: */}
+            {/* 1. Uncomment all route definitions below */}
+            {/* 2. Uncomment cycle count imports at top of file */}
+            {/* 3. Enable backend routes in backend/routes.py */}
+            {/* 4. Ensure database tables are created */}
+            {/* 5. Test all functionality thoroughly */}
+            {/* */}
+            {/* DISABLED DATE: 2025-06-22 */}
+            {/* GITHUB ISSUE: #366 */}
+            {/* */}
+            {/* Cycle Count Form Routes - More specific routes first */}
+            {/* <Route path="/cycle-counts/schedules/new" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountScheduleForm />
@@ -503,7 +515,7 @@ function App() {
           </ProtectedRoute>
         } /> */}
 
-        {/* <Route path="/cycle-counts/batches/:id/edit" element={
+            {/* <Route path="/cycle-counts/batches/:id/edit" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountBatchForm />
@@ -535,8 +547,8 @@ function App() {
           </ProtectedRoute>
         } /> */}
 
-        {/* General Cycle Count routes */}
-        {/* <Route path="/cycle-counts/schedules" element={
+            {/* General Cycle Count routes */}
+            {/* <Route path="/cycle-counts/schedules" element={
           <ProtectedRoute>
             <MainLayout>
               <CycleCountDashboardPage />
@@ -568,17 +580,17 @@ function App() {
           </ProtectedRoute>
         } /> */}
 
-        {/* Mobile Cycle Count route */}
-        {/* <Route path="/cycle-counts/mobile" element={
+            {/* Mobile Cycle Count route */}
+            {/* <Route path="/cycle-counts/mobile" element={
           <ProtectedRoute>
             <CycleCountMobilePage />
           </ProtectedRoute>
         } /> */}
 
-        {/* Redirect any unknown routes to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      </Router>
+            {/* Redirect any unknown routes to dashboard */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
       </HotkeyProvider>
     </HelpProvider>
   );

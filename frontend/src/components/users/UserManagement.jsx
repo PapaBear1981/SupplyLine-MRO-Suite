@@ -10,6 +10,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import PasswordStrengthMeter from '../common/PasswordStrengthMeter';
 import RolesManagementModal from './RolesManagementModal';
 import DepartmentsManagementModal from './DepartmentsManagementModal';
+import UserProfileModal from './UserProfileModal';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
@@ -30,6 +31,8 @@ const UserManagement = () => {
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showRolesManagementModal, setShowRolesManagementModal] = useState(false);
   const [showDepartmentsManagementModal, setShowDepartmentsManagementModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState('overview');
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -77,6 +80,28 @@ const UserManagement = () => {
 
     return matchesSearch && matchesStatus;
   });
+
+  // Helper function to get department badge color
+  const getDepartmentBadgeVariant = (department) => {
+    const departmentColors = {
+      'Materials': 'primary',
+      'Engineering': 'info',
+      'Maintenance': 'warning',
+      'Quality': 'success',
+      'Production': 'danger',
+      'Safety': 'dark',
+      'Administration': 'secondary',
+    };
+    return departmentColors[department] || 'secondary';
+  };
+
+  // Calculate statistics
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.is_active).length,
+    inactive: users.filter(u => !u.is_active).length,
+    locked: users.filter(u => u.account_locked).length,
+  };
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -196,18 +221,11 @@ const UserManagement = () => {
     setPasswordValid(isValid);
   };
 
-  // Open edit modal with user data
+  // Open edit modal with user data - NOW OPENS PROFILE MODAL
   const openEditModal = (user) => {
     setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      employee_number: user.employee_number,
-      department: user.department,
-      password: '', // Don't populate password
-      is_admin: user.is_admin,
-      is_active: user.is_active
-    });
-    setShowEditModal(true);
+    setProfileInitialTab('admin');
+    setShowProfileModal(true);
   };
 
   // Open delete modal with user data
@@ -216,19 +234,11 @@ const UserManagement = () => {
     setShowDeleteModal(true);
   };
 
-  // Open roles modal with user data
+  // Open roles modal with user data - NOW OPENS PROFILE MODAL
   const openRolesModal = (user) => {
     setSelectedUser(user);
-
-    // Fetch user roles if not already loaded
-    if (!userRoles[user.id]) {
-      dispatch(fetchUserRoles(user.id));
-    } else {
-      // Set selected roles from existing data
-      setSelectedRoles(userRoles[user.id].map(role => role.id));
-    }
-
-    setShowRolesModal(true);
+    setProfileInitialTab('admin');
+    setShowProfileModal(true);
   };
 
   // Handle role selection
@@ -299,6 +309,70 @@ const UserManagement = () => {
         </Alert>
       )}
 
+      {/* Statistics Cards */}
+      <div className="row g-3 mb-4">
+        <div className="col-md-3">
+          <Card className="border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-muted small">Total Users</div>
+                  <div className="h3 mb-0">{stats.total}</div>
+                </div>
+                <div className="text-primary" style={{ fontSize: '2rem' }}>
+                  <i className="bi bi-people"></i>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+        <div className="col-md-3">
+          <Card className="border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-muted small">Active</div>
+                  <div className="h3 mb-0 text-success">{stats.active}</div>
+                </div>
+                <div className="text-success" style={{ fontSize: '2rem' }}>
+                  <i className="bi bi-check-circle"></i>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+        <div className="col-md-3">
+          <Card className="border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-muted small">Inactive</div>
+                  <div className="h3 mb-0 text-secondary">{stats.inactive}</div>
+                </div>
+                <div className="text-secondary" style={{ fontSize: '2rem' }}>
+                  <i className="bi bi-dash-circle"></i>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+        <div className="col-md-3">
+          <Card className="border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-muted small">Locked</div>
+                  <div className="h3 mb-0 text-danger">{stats.locked}</div>
+                </div>
+                <div className="text-danger" style={{ fontSize: '2rem' }}>
+                  <i className="bi bi-lock"></i>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      </div>
+
       <Card className="mb-4">
         <Card.Header>
           <div className="d-flex justify-content-between align-items-center">
@@ -327,10 +401,9 @@ const UserManagement = () => {
             <Table striped bordered hover className="mb-0">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Employee Number</th>
+                  <th>Employee</th>
                   <th>Department</th>
-                  <th>Role</th>
+                  <th>Roles</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -339,9 +412,25 @@ const UserManagement = () => {
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
                     <tr key={user.id} className={!user.is_active ? 'table-secondary' : ''}>
-                      <td>{user.name}</td>
-                      <td>{user.employee_number}</td>
-                      <td>{user.department}</td>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <div
+                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3"
+                            style={{ width: '36px', height: '36px', fontSize: '1rem', flexShrink: 0 }}
+                          >
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="fw-bold">{user.name}</div>
+                            <div className="small text-muted font-monospace">{user.employee_number}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <Badge bg={getDepartmentBadgeVariant(user.department)}>
+                          {user.department}
+                        </Badge>
+                      </td>
                       <td>
                         {user.roles && user.roles.length > 0 ? (
                           <div className="d-flex flex-wrap gap-1">
@@ -351,8 +440,8 @@ const UserManagement = () => {
                                 className="status-badge"
                                 style={{
                                   backgroundColor: role.name === 'Administrator' ? 'var(--bs-primary)' :
-                                                  role.name === 'Materials Manager' ? 'var(--bs-success)' :
-                                                  'var(--bs-secondary)',
+                                    role.name === 'Materials Manager' ? 'var(--bs-success)' :
+                                      'var(--bs-secondary)',
                                   color: 'white'
                                 }}
                               >
@@ -361,7 +450,7 @@ const UserManagement = () => {
                             ))}
                           </div>
                         ) : (
-                          <span className="status-badge" style={{backgroundColor: 'var(--bs-secondary)', color: 'white'}}>No Roles</span>
+                          <span className="status-badge" style={{ backgroundColor: 'var(--bs-secondary)', color: 'white' }}>No Roles</span>
                         )}
                       </td>
                       <td>
@@ -378,30 +467,32 @@ const UserManagement = () => {
                               </Tooltip>
                             }
                           >
-                            <span className="status-badge" style={{backgroundColor: 'var(--bs-danger)', color: 'white'}}>Locked</span>
+                            <span className="status-badge" style={{ backgroundColor: 'var(--bs-danger)', color: 'white' }}>Locked</span>
                           </OverlayTrigger>
                         ) : (
                           <span className="status-badge status-active">Active</span>
                         )}
                       </td>
                       <td>
-                        <div className="d-flex gap-2">
-                          {canManageRoles && (
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => openRolesModal(user)}
-                            >
-                              Roles
-                            </Button>
-                          )}
+                        <div className="d-flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setProfileInitialTab('overview');
+                              setShowProfileModal(true);
+                            }}
+                          >
+                            <i className="bi bi-eye me-1"></i>View
+                          </Button>
                           {canEditUsers && (
                             <Button
-                              variant="info"
+                              variant="primary"
                               size="sm"
                               onClick={() => openEditModal(user)}
                             >
-                              Edit
+                              <i className="bi bi-gear me-1"></i>Manage
                             </Button>
                           )}
                           {canEditUsers && user.is_active && user.account_locked && (
@@ -410,7 +501,7 @@ const UserManagement = () => {
                               size="sm"
                               onClick={() => openUnlockModal(user)}
                             >
-                              Unlock
+                              <i className="bi bi-unlock me-1"></i>Unlock
                             </Button>
                           )}
                           {canDeleteUsers && user.is_active && (
@@ -418,9 +509,9 @@ const UserManagement = () => {
                               variant="danger"
                               size="sm"
                               onClick={() => openDeleteModal(user)}
-                              disabled={user.id === currentUser.id} // Can't deactivate yourself
+                              disabled={user.id === currentUser.id}
                             >
-                              Deactivate
+                              <i className="bi bi-x-circle me-1"></i>Deactivate
                             </Button>
                           )}
                         </div>
@@ -429,7 +520,7 @@ const UserManagement = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center py-4">
+                    <td colSpan="5" className="text-center py-4">
                       No users found.
                     </td>
                   </tr>
@@ -533,109 +624,18 @@ const UserManagement = () => {
         </Form>
       </Modal>
 
-      {/* Edit User Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit User</Modal.Title>
-        </Modal.Header>
-        <Form noValidate validated={validated} onSubmit={handleEditUser}>
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-              <Form.Control.Feedback type="invalid">
-                Name is required.
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Employee Number</Form.Label>
-              <Form.Control
-                type="text"
-                name="employee_number"
-                value={formData.employee_number}
-                onChange={handleInputChange}
-                required
-                disabled // Employee number shouldn't be changed
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Department</Form.Label>
-              <Form.Select
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Department</option>
-                {departments && departments.filter(dept => dept.is_active).map((dept) => (
-                  <option key={dept.id} value={dept.name}>{dept.name}</option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">
-                Department is required.
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Password (leave blank to keep current)</Form.Label>
-              <Form.Control
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                isInvalid={validated && formData.password && !passwordValid}
-              />
-              {formData.password && (
-                <>
-                  <Form.Control.Feedback type="invalid">
-                    Please provide a valid password that meets all requirements.
-                  </Form.Control.Feedback>
-                  <PasswordStrengthMeter
-                    password={formData.password}
-                    onValidationChange={handlePasswordValidationChange}
-                  />
-                </>
-              )}
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Admin User"
-                name="is_admin"
-                checked={formData.is_admin}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Active"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit">
-              Save Changes
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+      {/* User Profile Modal (Replaces Edit User Modal) */}
+      <UserProfileModal
+        show={showProfileModal}
+        onHide={() => setShowProfileModal(false)}
+        userId={selectedUser?.id}
+        initialTab={profileInitialTab}
+        onUserUpdated={() => {
+          dispatch(fetchUsers());
+          // If we were editing the current user, we might need to refresh their permissions/session
+          // but for now just refreshing the list is enough
+        }}
+      />
 
       {/* Deactivate User Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
@@ -656,46 +656,7 @@ const UserManagement = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Roles Modal */}
-      <Modal show={showRolesModal} onHide={() => setShowRolesModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Manage Roles for {selectedUser?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {rbacLoading ? (
-            <LoadingSpinner />
-          ) : rbacError ? (
-            <Alert variant="danger">
-              {rbacError.message || 'An error occurred while loading roles.'}
-            </Alert>
-          ) : (
-            <>
-              <p>Select the roles to assign to this user:</p>
-              <ListGroup>
-                {roles.map((role) => (
-                  <ListGroup.Item key={role.id}>
-                    <Form.Check
-                      type="checkbox"
-                      id={`role-${role.id}`}
-                      label={`${role.name} - ${role.description || 'No description'}`}
-                      checked={selectedRoles.includes(role.id)}
-                      onChange={() => handleRoleChange(role.id)}
-                    />
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowRolesModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSaveRoles} disabled={rbacLoading}>
-            Save Roles
-          </Button>
-        </Modal.Footer>
-      </Modal>
+
 
       {/* Unlock Account Modal */}
       <Modal show={showUnlockModal} onHide={() => setShowUnlockModal(false)}>
