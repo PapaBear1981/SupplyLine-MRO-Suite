@@ -143,7 +143,7 @@ class TestBulkOperations:
                     item_type="Chemical",
                     item_id=chemical.id,
                     transaction_type="issuance" if j % 2 == 0 else "receipt",
-                    quantity=10.0,
+                    quantity_change=-10.0 if j % 2 == 0 else 10.0,
                     user_id=admin_user.id,
                     notes=f"Transaction {j}",
                     timestamp=datetime.utcnow() - timedelta(days=j)
@@ -313,7 +313,11 @@ class TestAPIResponseTimes:
         assert elapsed < 2.0, f"Tools list endpoint took {elapsed:.2f}s, expected < 2s"
 
         data = response.get_json()
-        assert len(data) >= 200
+        # API returns paginated response with 'tools' key
+        if isinstance(data, dict) and 'tools' in data:
+            assert data.get('pagination', {}).get('total', 0) >= 200
+        else:
+            assert len(data) >= 200
 
     def test_chemicals_list_response_time(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test chemicals list endpoint response time with large dataset"""
@@ -346,7 +350,11 @@ class TestAPIResponseTimes:
         assert elapsed < 2.0, f"Chemicals list endpoint took {elapsed:.2f}s, expected < 2s"
 
         data = response.get_json()
-        assert len(data) >= 200
+        # API returns paginated response with 'chemicals' key
+        if isinstance(data, dict) and 'chemicals' in data:
+            assert data.get('pagination', {}).get('total', 0) >= 200
+        else:
+            assert len(data) >= 200
 
     def test_search_performance(self, client, db_session, admin_user, auth_headers, test_warehouse):
         """Test search endpoint performance"""
@@ -396,7 +404,7 @@ class TestMemoryUsage:
                 category="Testing",
                 status="available",
                 warehouse_id=test_warehouse.id,
-                reorder_point=100.0
+                minimum_stock_level=100.0
             )
             chemicals.append(chemical)
 
@@ -418,7 +426,7 @@ class TestMemoryUsage:
                     item_type="Chemical",
                     item_id=chemical.id,
                     transaction_type="issuance",
-                    quantity=50.0,
+                    quantity_change=-50.0,
                     user_id=admin_user.id,
                     notes="Bulk issuance test"
                 )

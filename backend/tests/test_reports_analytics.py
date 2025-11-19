@@ -95,7 +95,7 @@ class TestInventoryReports:
                 category="Category1",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                reorder_point=50.0  # Below reorder point
+                minimum_stock_level=50.0  # Below minimum stock level
             )
             db_session.add(chemical)
             low_stock_items.append(chemical)
@@ -113,7 +113,7 @@ class TestInventoryReports:
                 category="Category1",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                reorder_point=50.0
+                minimum_stock_level=50.0
             )
             db_session.add(chemical)
 
@@ -227,7 +227,7 @@ class TestUsageAnalytics:
                 item_type="Chemical",
                 item_id=chemical.id,
                 transaction_type="issuance",
-                quantity=25.0,
+                quantity_change=-25.0,
                 user_id=test_user.id,
                 notes=f"Usage transaction {i}",
                 timestamp=datetime.utcnow() - timedelta(days=i)
@@ -327,7 +327,7 @@ class TestTrendAnalysis:
                 item_type="Chemical",
                 item_id=chemical.id,
                 transaction_type="issuance",
-                quantity=qty,
+                quantity_change=-qty,
                 user_id=admin_user.id,
                 notes=f"Trend transaction {i}",
                 timestamp=datetime.utcnow() - timedelta(days=30 - (i * 3))
