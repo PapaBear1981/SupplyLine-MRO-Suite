@@ -905,6 +905,42 @@ class UserRequestMessage(db.Model):
         return data
 
 
+class RequestAlert(db.Model):
+    """Alerts for users when requested items have been received."""
+
+    __tablename__ = "request_alerts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("user_requests.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    alert_type = db.Column(db.String(50), nullable=False, default="items_received")  # items_received, request_completed
+    message = db.Column(db.String(500), nullable=False)
+    item_ids = db.Column(db.String(500), nullable=True)  # Comma-separated list of received item IDs
+    is_dismissed = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_current_time, index=True)
+    dismissed_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    request = db.relationship("UserRequest", backref="alerts")
+    user = db.relationship("User", backref="request_alerts")
+
+    def to_dict(self):
+        """Serialize alert for API responses."""
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "request_number": self.request.request_number if self.request else None,
+            "request_title": self.request.title if self.request else None,
+            "user_id": self.user_id,
+            "alert_type": self.alert_type,
+            "message": self.message,
+            "item_ids": [int(x) for x in self.item_ids.split(",")] if self.item_ids else [],
+            "is_dismissed": self.is_dismissed,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "dismissed_at": self.dismissed_at.isoformat() if self.dismissed_at else None,
+        }
+
+
 class Expendable(db.Model):
     """
     Expendable model for kit-only consumable inventory.

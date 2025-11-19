@@ -14,7 +14,7 @@ import {
   Alert,
   Table,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck, FaFlask, FaSuitcase } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck, FaFlask, FaSuitcase, FaBell } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import {
@@ -25,6 +25,7 @@ import {
   fetchRequestMessages,
   sendRequestMessage,
 } from '../store/userRequestsSlice';
+import { fetchRequestAlerts, dismissAlert } from '../store/requestAlertsSlice';
 import { PRIORITY_VARIANTS } from '../constants/orderConstants';
 
 const ITEM_TYPES = [
@@ -106,6 +107,7 @@ const INITIAL_FORM_STATE = {
 const RequestsPage = () => {
   const dispatch = useDispatch();
   const { list, loading } = useSelector((state) => state.userRequests);
+  const { alerts } = useSelector((state) => state.requestAlerts);
   const { user } = useSelector((state) => state.auth);
 
   const [activeTab, setActiveTab] = useState('submit');
@@ -122,6 +124,7 @@ const RequestsPage = () => {
 
   useEffect(() => {
     dispatch(fetchUserRequests({ sort: 'created' })).catch(() => {});
+    dispatch(fetchRequestAlerts(false)).catch(() => {});
   }, [dispatch]);
 
   const myRequests = useMemo(() => {
@@ -182,6 +185,10 @@ const RequestsPage = () => {
 
   const resetForm = () => {
     setFormState(INITIAL_FORM_STATE);
+  };
+
+  const handleDismissAlert = (alertId) => {
+    dispatch(dismissAlert(alertId));
   };
 
   const handleSubmit = async (event) => {
@@ -347,6 +354,39 @@ const RequestsPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Alerts Section */}
+      {alerts && alerts.length > 0 && (
+        <Alert variant="success" className="mb-4">
+          <div className="d-flex align-items-center justify-content-between">
+            <div>
+              <FaBell className="me-2" />
+              <strong>Items Received</strong>
+              <div className="mt-2">
+                {alerts.map((alert) => (
+                  <div key={alert.id} className="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                    <div className="flex-grow-1">
+                      <div className="fw-semibold">{alert.request_title || `Request ${alert.request_number}`}</div>
+                      <div className="small text-muted">{alert.message}</div>
+                      <div className="small text-muted">
+                        {alert.created_at && formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => handleDismissAlert(alert.id)}
+                      className="ms-3"
+                    >
+                      <FaTimes /> Dismiss
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Alert>
+      )}
 
       <Row className="g-4 mb-4">
         <Col md={3}>
