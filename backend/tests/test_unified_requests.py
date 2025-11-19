@@ -49,9 +49,8 @@ def unified_setup(app):
         # Create a warehouse
         warehouse = Warehouse(
             name="Main Warehouse",
-            location="Building A",
             is_active=True,
-            warehouse_type="main",
+            warehouse_type="main"
         )
         db.session.add(warehouse)
         db.session.flush()
