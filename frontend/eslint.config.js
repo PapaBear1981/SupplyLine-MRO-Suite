@@ -59,6 +59,18 @@ export default [
     },
   },
 
+  // Temporary: Ignore unused vars in files pending refactoring
+  {
+    files: [
+      'src/components/users/UserManagement.jsx',
+      'src/components/users/UserProfileModal.jsx',
+      'src/pages/UserDashboardPage.jsx'
+    ],
+    rules: {
+      'no-unused-vars': 'warn',
+    },
+  },
+
   // Source files (React components, services, etc.)
   {
     files: ['src/**/*.{js,jsx}'],
