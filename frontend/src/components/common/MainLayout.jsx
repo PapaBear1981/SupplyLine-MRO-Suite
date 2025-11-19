@@ -10,6 +10,7 @@ import TourGuide from './TourGuide';
 import { hasPermission } from '../auth/ProtectedRoute';
 import { fetchSecuritySettings } from '../../store/securitySlice';
 import useInactivityLogout from '../../hooks/useInactivityLogout';
+import GlobalSearchBar from './GlobalSearchBar';
 import './MainLayout.css';
 
 const MainLayout = ({ children }) => {
@@ -318,6 +319,15 @@ const MainLayout = ({ children }) => {
 
       {/* Main Content */}
       <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        {/* Global Search Bar Header */}
+        <div className="main-header">
+          <Container fluid className="px-4 py-3">
+            <div className="d-flex justify-content-end align-items-center">
+              <GlobalSearchBar />
+            </div>
+          </Container>
+        </div>
+
         <Container fluid className="flex-grow-1 px-4 py-0">
           <div key={location.pathname} className={transitionClassName}>
             {children}

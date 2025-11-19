@@ -367,3 +367,18 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* Main Header with Global Search Bar */
+.main-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+}
+
+[data-bs-theme="dark"] .main-header {
+  background-color: #1a1d20;
+  border-bottom-color: #343a40;
+}
