@@ -167,14 +167,16 @@ const GlobalSearch = () => {
         active={isSelected}
         onClick={() => handleNavigate(item)}
         className="global-search-result-item"
+        role="option"
+        aria-selected={isSelected}
       >
         <div className="d-flex align-items-center">
-          <i className={`bi bi-${icon} me-3 fs-5`}></i>
+          <i className={`bi bi-${icon} me-3 fs-5`} aria-hidden="true"></i>
           <div className="flex-grow-1">
             <div className="fw-bold">{primaryText}</div>
             <small className="text-muted">{secondaryText}</small>
           </div>
-          <span className={`badge bg-${getTypeBadgeColor(item.type)}`}>
+          <span className={`badge bg-${getTypeBadgeColor(item.type)}`} aria-label={`Type: ${item.type}`}>
             {item.type}
           </span>
         </div>
@@ -211,41 +213,41 @@ const GlobalSearch = () => {
     let currentIndex = 0;
 
     return (
-      <div className="global-search-results">
+      <div className="global-search-results" id="search-results" role="region" aria-label="Search results">
         <div className="p-2 bg-light border-bottom">
-          <small className="text-muted">
+          <small className="text-muted" role="status" aria-live="polite">
             Found {totalResults} result{totalResults !== 1 ? 's' : ''}
           </small>
         </div>
-        <ListGroup variant="flush" className="global-search-list">
+        <ListGroup variant="flush" className="global-search-list" role="listbox">
           {tools.length > 0 && (
             <>
-              <ListGroup.Item className="bg-light text-muted small fw-bold">
-                <i className="bi bi-tools me-2"></i>Tools ({tools.length})
+              <ListGroup.Item className="bg-light text-muted small fw-bold" role="presentation">
+                <i className="bi bi-tools me-2" aria-hidden="true"></i>Tools ({tools.length})
               </ListGroup.Item>
               {tools.map((tool) => renderResultItem(tool, currentIndex++))}
             </>
           )}
           {kits.length > 0 && (
             <>
-              <ListGroup.Item className="bg-light text-muted small fw-bold">
-                <i className="bi bi-box me-2"></i>Kits ({kits.length})
+              <ListGroup.Item className="bg-light text-muted small fw-bold" role="presentation">
+                <i className="bi bi-box me-2" aria-hidden="true"></i>Kits ({kits.length})
               </ListGroup.Item>
               {kits.map((kit) => renderResultItem(kit, currentIndex++))}
             </>
           )}
           {chemicals.length > 0 && (
             <>
-              <ListGroup.Item className="bg-light text-muted small fw-bold">
-                <i className="bi bi-flask me-2"></i>Chemicals ({chemicals.length})
+              <ListGroup.Item className="bg-light text-muted small fw-bold" role="presentation">
+                <i className="bi bi-flask me-2" aria-hidden="true"></i>Chemicals ({chemicals.length})
               </ListGroup.Item>
               {chemicals.map((chemical) => renderResultItem(chemical, currentIndex++))}
             </>
           )}
           {users.length > 0 && (
             <>
-              <ListGroup.Item className="bg-light text-muted small fw-bold">
-                <i className="bi bi-person me-2"></i>Users ({users.length})
+              <ListGroup.Item className="bg-light text-muted small fw-bold" role="presentation">
+                <i className="bi bi-person me-2" aria-hidden="true"></i>Users ({users.length})
               </ListGroup.Item>
               {users.map((user) => renderResultItem(user, currentIndex++))}
             </>
@@ -258,22 +260,29 @@ const GlobalSearch = () => {
   return (
     <div className="global-search-container" ref={searchRef}>
       <InputGroup className="global-search-input">
-        <InputGroup.Text className="bg-white border-end-0">
-          <i className="bi bi-search text-muted"></i>
+        <InputGroup.Text className="bg-white border-end-0" id="search-icon">
+          <i className="bi bi-search text-muted" aria-hidden="true"></i>
         </InputGroup.Text>
         <Form.Control
           ref={inputRef}
-          type="text"
+          type="search"
           placeholder="Search tools, kits, chemicals, users... (Ctrl+K)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => query.length >= 2 && setShowResults(true)}
           className="border-start-0"
+          aria-label="Global search"
+          aria-describedby="search-icon"
+          aria-autocomplete="list"
+          aria-controls={showResults ? "search-results" : undefined}
+          aria-expanded={showResults}
         />
         {loading && (
-          <InputGroup.Text className="bg-white border-start-0">
-            <Spinner animation="border" size="sm" variant="primary" />
+          <InputGroup.Text className="bg-white border-start-0" aria-live="polite">
+            <Spinner animation="border" size="sm" variant="primary" role="status">
+              <span className="visually-hidden">Searching...</span>
+            </Spinner>
           </InputGroup.Text>
         )}
         {query && !loading && (
@@ -282,8 +291,15 @@ const GlobalSearch = () => {
             onClick={() => setQuery('')}
             role="button"
             aria-label="Clear search"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setQuery('');
+              }
+            }}
           >
-            <i className="bi bi-x-circle text-muted"></i>
+            <i className="bi bi-x-circle text-muted" aria-hidden="true"></i>
           </InputGroup.Text>
         )}
       </InputGroup>

@@ -43,8 +43,10 @@ const QuickStatsWidget = () => {
           <h4 className="mb-0">Quick Stats</h4>
         </Card.Header>
         <Card.Body className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
-          <p className="mt-2 text-muted">Loading statistics...</p>
+          <Spinner animation="border" variant="primary" role="status">
+            <span className="visually-hidden">Loading statistics...</span>
+          </Spinner>
+          <p className="mt-2 text-muted" aria-live="polite">Loading statistics...</p>
         </Card.Body>
       </Card>
     );
@@ -66,8 +68,8 @@ const QuickStatsWidget = () => {
 
   const StatItem = ({ icon, value, label, variant = 'primary', subtext = null }) => (
     <Col xs={6} md={6} lg={6} className="mb-3">
-      <div className={`text-center p-3 rounded bg-${variant} bg-opacity-10 h-100`}>
-        <i className={`bi bi-${icon} fs-2 text-${variant} mb-2`}></i>
+      <div className={`text-center p-3 rounded bg-${variant} bg-opacity-10 h-100`} role="group" aria-label={label}>
+        <i className={`bi bi-${icon} fs-2 text-${variant} mb-2`} aria-hidden="true"></i>
         <h3 className="mb-0 fw-bold">{value}</h3>
         <p className="mb-0 text-muted small">{label}</p>
         {subtext && <p className="mb-0 text-muted" style={{ fontSize: '0.75rem' }}>{subtext}</p>}
@@ -78,14 +80,15 @@ const QuickStatsWidget = () => {
   return (
     <Card className="shadow-sm mb-4 fade-in">
       <Card.Header className="bg-light d-flex justify-content-between align-items-center">
-        <h4 className="mb-0">Quick Stats</h4>
+        <h4 className="mb-0" id="quick-stats-heading">Quick Stats</h4>
         <button
           className="btn btn-link btn-sm text-muted p-0"
           onClick={fetchStats}
           title="Refresh statistics"
           aria-label="Refresh statistics"
+          type="button"
         >
-          <i className="bi bi-arrow-clockwise"></i>
+          <i className="bi bi-arrow-clockwise" aria-hidden="true"></i>
         </button>
       </Card.Header>
       <Card.Body>
@@ -145,7 +148,7 @@ const QuickStatsWidget = () => {
         )}
 
         <div className="text-center mt-3">
-          <small className="text-muted">
+          <small className="text-muted" role="status" aria-live="polite">
             Last updated: {stats?.timestamp ? new Date(stats.timestamp).toLocaleTimeString() : 'N/A'}
           </small>
         </div>
