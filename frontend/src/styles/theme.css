@@ -1,0 +1,145 @@
+/* src/styles/theme.css */
+
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Typography */
+  --font-family-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-base: var(--font-family-sans-serif);
+  
+  /* Enterprise Palette - Light Mode (Silver/Platinum base) */
+  --enterprise-primary: #1a1a1a;       /* Deep Charcoal */
+  --enterprise-secondary: #6c757d;     /* Standard Grey */
+  --enterprise-accent: #4a6fa5;        /* Steel Blue */
+  --enterprise-bg: #f0f2f5;            /* Light Silver/Grey Background */
+  --enterprise-surface: #ffffff;       /* White Surface */
+  --enterprise-text: #212529;          /* Dark Text */
+  --enterprise-border: #dee2e6;
+
+  /* Overriding Bootstrap Variables for Light Mode */
+  --bs-body-font-family: var(--font-family-base);
+  --bs-primary: var(--enterprise-primary);
+  --bs-secondary: var(--enterprise-secondary);
+  --bs-body-bg: var(--enterprise-bg);
+  --bs-body-color: var(--enterprise-text);
+  
+  /* Spacing & Layout */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Transitions */
+  --transition-base: all 0.2s ease-in-out;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-bs-theme="dark"] {
+  /* Enterprise Palette - Dark Mode (Deep Charcoal/Black base) */
+  --enterprise-bg: #121212;            /* Very Dark Grey/Black */
+  --enterprise-surface: #1e1e1e;       /* Dark Grey Surface */
+  --enterprise-text: #e9ecef;          /* Light Silver Text */
+  --enterprise-border: #2d2d2d;
+  --enterprise-accent: #6495ed;        /* Lighter Steel Blue for contrast */
+
+  /* Overriding Bootstrap Variables for Dark Mode */
+  --bs-body-bg: var(--enterprise-bg);
+  --bs-body-color: var(--enterprise-text);
+  --bs-primary: #e9ecef;               /* Silver/Platinum as primary in dark mode for contrast? Or keep it dark? */
+                                       /* Actually, let's keep Primary as the brand color, maybe a lighter charcoal or the accent */
+  --bs-primary: #4a6fa5;               /* Steel Blue */
+  --bs-secondary: #adb5bd;             /* Lighter Grey */
+  
+  --bs-card-bg: var(--enterprise-surface);
+  --bs-card-border-color: var(--enterprise-border);
+}
+
+/* Global Resets & Utilities */
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Button Micro-interactions */
+.btn {
+  transition: var(--transition-base);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Card Styling */
+.card {
+  border: 1px solid var(--enterprise-border);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-smooth);
+  border-radius: 0.75rem; /* Modern rounded corners */
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--enterprise-accent); /* Subtle highlight on hover */
+}
+
+/* Table Styling */
+.table {
+  --bs-table-hover-bg: rgba(74, 111, 165, 0.05); /* Subtle Steel Blue tint */
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary);
+}
+
+/* Modal Glassmorphism */
+.modal-content {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-backdrop.show {
+  opacity: 0.7;
+  backdrop-filter: blur(4px);
+}
+
+/* Sidebar/Navigation (Assuming classes exist, otherwise general) */
+.sidebar {
+  background-color: var(--enterprise-primary);
+  color: white;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.7);
+  transition: var(--transition-base);
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--enterprise-accent);
+}

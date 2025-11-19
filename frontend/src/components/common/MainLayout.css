@@ -13,7 +13,7 @@
   left: 0;
   width: 250px;
   height: 100vh;
-  background-color: #1a1d20;
+  background-color: var(--enterprise-primary);
   transition: all 0.3s ease;
   overflow-y: auto;
   overflow-x: hidden;
@@ -25,7 +25,7 @@
 
 /* Light theme sidebar */
 [data-bs-theme="light"] .sidebar {
-  background-color: #343a40;
+  background-color: var(--enterprise-primary);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -264,12 +264,12 @@
 
 /* Light theme main content background with subtle gradient */
 [data-bs-theme="light"] .main-content {
-  background: linear-gradient(135deg, rgba(13, 110, 253, 0.03) 0%, rgba(248, 249, 250, 1) 65%);
+  background: linear-gradient(135deg, rgba(74, 111, 165, 0.03) 0%, var(--enterprise-bg) 65%);
 }
 
 /* Dark theme main content background with subtle gradient */
 [data-bs-theme="dark"] .main-content {
-  background: linear-gradient(135deg, rgba(13, 110, 253, 0.08) 0%, rgba(33, 37, 41, 1) 65%);
+  background: linear-gradient(135deg, rgba(74, 111, 165, 0.08) 0%, var(--enterprise-bg) 65%);
 }
 
 .main-content.sidebar-collapsed {
@@ -290,6 +290,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+
   /* On mobile, sidebar is always collapsed (icon-only) by default */
   .sidebar {
     width: 70px;
