@@ -134,6 +134,7 @@ class User(db.Model):
     name = db.Column(db.String, nullable=False)
     employee_number = db.Column(db.String, unique=True, nullable=False)
     department = db.Column(db.String)
+    email = db.Column(db.String, nullable=True)
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
@@ -339,6 +340,7 @@ class User(db.Model):
             "name": self.name,
             "employee_number": self.employee_number,
             "department": self.department,
+            "email": self.email,
             "is_admin": self.is_admin,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,

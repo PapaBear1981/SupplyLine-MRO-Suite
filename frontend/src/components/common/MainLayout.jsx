@@ -260,6 +260,18 @@ const MainLayout = ({ children }) => {
               {/* GITHUB ISSUE: #366 */}
               {/* <Nav.Link as={Link} to="/cycle-counts">Cycle Counts</Nav.Link> */}
 
+              {/* Directory Link - Visible to users with user.view permission */}
+              {hasPermission(user, 'user.view') && (
+                <Nav.Link
+                  as={Link}
+                  to="/directory"
+                  className={location.pathname === '/directory' ? 'active' : ''}
+                >
+                  <i className="bi bi-people"></i>
+                  {!sidebarCollapsed && <span>Directory</span>}
+                </Nav.Link>
+              )}
+
               {/* Only show Admin Dashboard to users with permission */}
               {hasPermission(user, 'page.admin_dashboard') && (
                 <Nav.Link
