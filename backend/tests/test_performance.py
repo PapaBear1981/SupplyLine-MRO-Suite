@@ -39,8 +39,7 @@ class TestBulkOperations:
                 location=f"Location-{i % 10}",
                 category="Testing",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             chemicals.append(chemical)
 
@@ -68,8 +67,7 @@ class TestBulkOperations:
                 location=f"Location-{i % 10}",
                 category="Testing",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             tools.append(tool)
 
@@ -130,8 +128,7 @@ class TestBulkOperations:
                 location="Test Location",
                 category="Testing",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             chemicals.append(chemical)
 
@@ -300,8 +297,7 @@ class TestAPIResponseTimes:
                 location=f"Loc-{i % 20}",
                 category="Testing",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             tools.append(tool)
 
@@ -334,8 +330,7 @@ class TestAPIResponseTimes:
                 location=f"Loc-{i % 20}",
                 category="Testing",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             chemicals.append(chemical)
 
@@ -365,8 +360,7 @@ class TestAPIResponseTimes:
                 location=f"Location-{i % 10}",
                 category=f"Category{i % 5}",
                 status="available",
-                warehouse_id=test_warehouse.id,
-                created_by=admin_user.id
+                warehouse_id=test_warehouse.id
             )
             db_session.add(tool)
 
@@ -402,8 +396,7 @@ class TestMemoryUsage:
                 category="Testing",
                 status="available",
                 warehouse_id=test_warehouse.id,
-                reorder_point=100.0,
-                created_by=admin_user.id
+                reorder_point=100.0
             )
             chemicals.append(chemical)
 

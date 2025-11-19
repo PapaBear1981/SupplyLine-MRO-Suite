@@ -35,8 +35,7 @@ class TestInventoryReports:
                 location=f"Location {i % 3}",
                 category=f"Category{i % 2}",
                 warehouse_id=test_warehouse.id,
-                status="available" if i % 3 != 0 else "checked_out",
-                created_by=admin_user.id
+                status="available" if i % 3 != 0 else "checked_out"
             )
             db_session.add(tool)
 
@@ -65,8 +64,7 @@ class TestInventoryReports:
                 location=f"Storage {i % 3}",
                 category=f"Category{i % 2}",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(chemical)
 
@@ -97,8 +95,7 @@ class TestInventoryReports:
                 category="Category1",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                reorder_point=50.0,  # Below reorder point
-                created_by=admin_user.id
+                reorder_point=50.0  # Below reorder point
             )
             db_session.add(chemical)
             low_stock_items.append(chemical)
@@ -116,8 +113,7 @@ class TestInventoryReports:
                 category="Category1",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                reorder_point=50.0,
-                created_by=admin_user.id
+                reorder_point=50.0
             )
             db_session.add(chemical)
 
@@ -149,8 +145,7 @@ class TestInventoryReports:
                 category="Category1",
                 warehouse_id=test_warehouse.id,
                 status="available",
-                expiration_date=datetime.utcnow() + timedelta(days=days_to_expiry),
-                created_by=admin_user.id
+                expiration_date=datetime.utcnow() + timedelta(days=days_to_expiry)
             )
             db_session.add(chemical)
 
@@ -182,8 +177,7 @@ class TestUsageAnalytics:
             location="Lab",
             category="Testing",
             warehouse_id=test_warehouse.id,
-            status="available",
-            created_by=admin_user.id
+            status="available"
         )
         db_session.add(tool)
         db_session.flush()
@@ -194,9 +188,7 @@ class TestUsageAnalytics:
                 user_id=test_user.id,
                 activity_type="checkout",
                 description=f"Checked out {tool.tool_number}",
-                timestamp=datetime.utcnow() - timedelta(days=i),
-                related_item_type="Tool",
-                related_item_id=tool.id
+                timestamp=datetime.utcnow() - timedelta(days=i)
             )
             db_session.add(activity)
 
@@ -224,8 +216,7 @@ class TestUsageAnalytics:
             location="Storage",
             category="Testing",
             warehouse_id=test_warehouse.id,
-            status="available",
-            created_by=admin_user.id
+            status="available"
         )
         db_session.add(chemical)
         db_session.flush()
@@ -291,8 +282,7 @@ class TestUsageAnalytics:
                 location=f"Location {i % 5}",
                 category="Testing",
                 warehouse_id=test_warehouse.id,
-                status="available" if i % 2 == 0 else "checked_out",
-                created_by=admin_user.id
+                status="available" if i % 2 == 0 else "checked_out"
             )
             db_session.add(tool)
 
@@ -325,8 +315,7 @@ class TestTrendAnalysis:
             location="Storage",
             category="Testing",
             warehouse_id=test_warehouse.id,
-            status="available",
-            created_by=admin_user.id
+            status="available"
         )
         db_session.add(chemical)
         db_session.flush()
@@ -368,8 +357,7 @@ class TestTrendAnalysis:
                 location="Lab",
                 category="Testing",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(tool)
             db_session.flush()
@@ -380,9 +368,7 @@ class TestTrendAnalysis:
                     user_id=test_user.id,
                     activity_type="checkout",
                     description=f"Checkout {tool.tool_number}",
-                    timestamp=datetime.utcnow() - timedelta(days=j),
-                    related_item_type="Tool",
-                    related_item_id=tool.id
+                    timestamp=datetime.utcnow() - timedelta(days=j)
                 )
                 db_session.add(activity)
 
@@ -415,8 +401,7 @@ class TestReportExport:
                 location="Storage",
                 category="Category1",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(chemical)
 
@@ -443,8 +428,7 @@ class TestReportExport:
                 location="Lab",
                 category="Testing",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(tool)
 
@@ -493,8 +477,7 @@ class TestReportPerformance:
                 location=f"Location {i % 10}",
                 category=f"Category{i % 5}",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(tool)
 
@@ -538,8 +521,7 @@ class TestAnalyticsAPI:
                 location="Lab",
                 category="Testing",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(tool)
 
@@ -553,8 +535,7 @@ class TestAnalyticsAPI:
                 location="Storage",
                 category="Testing",
                 warehouse_id=test_warehouse.id,
-                status="available",
-                created_by=admin_user.id
+                status="available"
             )
             db_session.add(chemical)
 
