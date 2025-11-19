@@ -71,12 +71,22 @@ def unified_setup(app):
         db.session.add(chemical)
         db.session.flush()
 
+        # Create an aircraft type for the kit
+        from models_kits import AircraftType
+        aircraft_type = AircraftType(
+            name="Test Aircraft",
+            description="Test aircraft type"
+        )
+        db.session.add(aircraft_type)
+        db.session.flush()
+
         # Create a test kit
         kit = Kit(
             name="Test Kit",
             description="A test kit",
             status="active",
             created_by=user.id,
+            aircraft_type_id=aircraft_type.id
         )
         db.session.add(kit)
         db.session.flush()
