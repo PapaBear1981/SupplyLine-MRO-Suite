@@ -97,6 +97,7 @@ import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
 import ItemHistoryPage from './pages/ItemHistoryPage';
 import OrderManagementPage from './pages/OrderManagementPage';
+import TailwindDemo from './pages/TailwindDemo';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
 const RootRoute = () => {
@@ -297,6 +298,15 @@ function App() {
               <ProtectedRoute>
                 <MainLayout>
                   <ItemHistoryPage />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Tailwind Demo Page */}
+            <Route path="/tailwind-demo" element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <TailwindDemo />
                 </MainLayout>
               </ProtectedRoute>
             } />
