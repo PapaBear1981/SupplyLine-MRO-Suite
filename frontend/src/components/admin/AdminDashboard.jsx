@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { Card, Nav, Tab, Alert } from 'react-bootstrap';
+import GlobalSearch from '../common/GlobalSearch';
 import UserManagement from '../users/UserManagement';
 import RoleManagement from './RoleManagement';
 import AuditLogViewer from '../audit/AuditLogViewer';
@@ -108,6 +109,7 @@ const AdminDashboard = () => {
 
   return (
     <div>
+      <GlobalSearch />
       <h2 className="mb-4">Admin Dashboard</h2>
 
       <Tab.Container id="admin-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>

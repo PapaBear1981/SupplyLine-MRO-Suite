@@ -16,6 +16,7 @@ import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
 import PendingUserRequests from '../components/admin/PendingUserRequests';
 import PendingUpdateRequestsWidget from '../components/dashboard/PendingUpdateRequestsWidget';
+import GlobalSearch from '../components/common/GlobalSearch';
 import '../styles/dashboardThemes.css';
 
 // Constants for column names
@@ -416,6 +417,9 @@ const UserDashboardPage = () => {
       data-testid="dashboard-content"
     >
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div className="w-100 mb-3">
+          <GlobalSearch />
+        </div>
         <h1 className="mb-0">Dashboard</h1>
       </div>
 
