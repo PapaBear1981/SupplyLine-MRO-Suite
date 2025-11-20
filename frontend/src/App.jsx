@@ -19,6 +19,7 @@ import { HotkeyProvider } from './context/HotkeyContext';
 
 // Import components
 import MainLayout from './components/common/MainLayout';
+import MainLayoutNew from './components/layout/MainLayoutNew';
 import GlobalHotkeys from './components/common/GlobalHotkeys';
 import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/ProtectedRoute';
 
@@ -305,9 +306,9 @@ function App() {
             {/* Tailwind Demo Page */}
             <Route path="/tailwind-demo" element={
               <ProtectedRoute>
-                <MainLayout>
+                <MainLayoutNew>
                   <TailwindDemo />
-                </MainLayout>
+                </MainLayoutNew>
               </ProtectedRoute>
             } />
 
