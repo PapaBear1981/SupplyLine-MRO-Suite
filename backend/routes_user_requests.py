@@ -12,6 +12,7 @@ from models import (
     AuditLog,
     Chemical,
     ProcurementOrder,
+    RequestAlert,
     RequestItem,
     User,
     UserActivity,
@@ -857,6 +858,7 @@ def register_user_request_routes(app):
         if not item_ids:
             raise ValidationError("At least one item_id is required")
 
+        received_items = []
         for item_id in item_ids:
             request_item = RequestItem.query.filter_by(id=item_id, request_id=request_id).first()
             if not request_item:
@@ -866,8 +868,28 @@ def register_user_request_routes(app):
             request_item.received_date = get_current_time()
             if not request_item.received_quantity:
                 request_item.received_quantity = request_item.quantity
+            received_items.append(request_item)
 
         user_request.update_status_from_items()
+
+        # Create an alert for the requester
+        if received_items and user_request.requester_id:
+            item_count = len(received_items)
+            item_names = ", ".join([item.name or f"Item {item.id}" for item in received_items[:3]])
+            if item_count > 3:
+                item_names += f" and {item_count - 3} more"
+
+            alert_message = f"{item_count} item{'s' if item_count > 1 else ''} received: {item_names}"
+
+            alert = RequestAlert(
+                request_id=request_id,
+                user_id=user_request.requester_id,
+                alert_type="items_received",
+                message=alert_message,
+                item_ids=",".join([str(item.id) for item in received_items]),
+            )
+            db.session.add(alert)
+
         db.session.commit()
 
         return jsonify(user_request.to_dict(include_items=True))
@@ -1006,3 +1028,74 @@ def register_user_request_routes(app):
             "by_priority": priority_counts,
             "items_by_status": items_by_status,
         })
+
+    # Alert routes
+    @app.route("/api/user-requests/alerts", methods=["GET"])
+    @jwt_required
+    @handle_errors
+    def get_request_alerts():
+        """Get alerts for the current user."""
+
+        current_user = getattr(request, "current_user", {}) or {}
+        user_id = current_user.get("user_id")
+        if not user_id:
+            return jsonify({"error": "User not found"}), 401
+
+        # Get query parameters
+        include_dismissed = request.args.get("include_dismissed", "false").lower() == "true"
+
+        # Build query
+        query = RequestAlert.query.filter_by(user_id=user_id)
+        if not include_dismissed:
+            query = query.filter_by(is_dismissed=False)
+
+        # Order by most recent first
+        alerts = query.order_by(RequestAlert.created_at.desc()).all()
+
+        return jsonify([alert.to_dict() for alert in alerts])
+
+    @app.route("/api/user-requests/alerts/<int:alert_id>/dismiss", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def dismiss_alert(alert_id):
+        """Dismiss an alert."""
+
+        current_user = getattr(request, "current_user", {}) or {}
+        user_id = current_user.get("user_id")
+        if not user_id:
+            return jsonify({"error": "User not found"}), 401
+
+        alert = db.session.get(RequestAlert, alert_id)
+        if not alert:
+            return jsonify({"error": "Alert not found"}), 404
+
+        # Verify the alert belongs to the current user
+        if alert.user_id != user_id:
+            return jsonify({"error": "Access denied"}), 403
+
+        alert.is_dismissed = True
+        alert.dismissed_at = get_current_time()
+        db.session.commit()
+
+        return jsonify(alert.to_dict())
+
+    @app.route("/api/user-requests/alerts/dismiss-all", methods=["POST"])
+    @jwt_required
+    @handle_errors
+    def dismiss_all_alerts():
+        """Dismiss all alerts for the current user."""
+
+        current_user = getattr(request, "current_user", {}) or {}
+        user_id = current_user.get("user_id")
+        if not user_id:
+            return jsonify({"error": "User not found"}), 401
+
+        # Update all undismissed alerts for this user
+        alerts = RequestAlert.query.filter_by(user_id=user_id, is_dismissed=False).all()
+        for alert in alerts:
+            alert.is_dismissed = True
+            alert.dismissed_at = get_current_time()
+
+        db.session.commit()
+
+        return jsonify({"dismissed_count": len(alerts), "message": f"Dismissed {len(alerts)} alert(s)"})

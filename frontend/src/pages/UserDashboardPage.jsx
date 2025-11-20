@@ -14,6 +14,7 @@ import KitAlertsSummary from '../components/dashboard/KitAlertsSummary';
 import RecentKitActivity from '../components/dashboard/RecentKitActivity';
 import LateOrdersWidget from '../components/dashboard/LateOrdersWidget';
 import MyRequestsWidget from '../components/dashboard/MyRequestsWidget';
+import ReceivedItemsAlertWidget from '../components/dashboard/ReceivedItemsAlertWidget';
 import PendingUserRequests from '../components/admin/PendingUserRequests';
 import PendingUpdateRequestsWidget from '../components/dashboard/PendingUpdateRequestsWidget';
 import '../styles/dashboardThemes.css';
@@ -99,6 +100,13 @@ const DASHBOARD_WIDGETS = [
     label: 'My Open Requests',
     defaultColumn: COLUMN_SIDEBAR,
     component: MyRequestsWidget,
+    isAvailable: ({ hasRequestPermission }) => hasRequestPermission,
+  },
+  {
+    id: 'receivedItemsAlerts',
+    label: 'Received Items',
+    defaultColumn: COLUMN_MAIN,
+    component: ReceivedItemsAlertWidget,
     isAvailable: ({ hasRequestPermission }) => hasRequestPermission,
   },
   {
