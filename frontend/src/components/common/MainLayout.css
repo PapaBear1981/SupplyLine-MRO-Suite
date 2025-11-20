@@ -163,7 +163,6 @@
 .sidebar .nav-link:hover {
   color: var(--enterprise-text);
   background-color: var(--enterprise-surface-hover);
-  transform: translateX(2px);
 }
 
 .sidebar .nav-link.active {

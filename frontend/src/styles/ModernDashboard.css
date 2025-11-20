@@ -1,0 +1,70 @@
+/* Modern Dashboard Styles */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md) !important;
+}
+
+.quick-link-card {
+    min-height: 100px;
+}
+
+/* Grid Areas */
+.grid-stats {
+    grid-column: span 12;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.grid-main-chart {
+    grid-column: span 8;
+}
+
+.grid-side-chart {
+    grid-column: span 4;
+}
+
+.grid-quick-links {
+    grid-column: span 4;
+}
+
+.grid-secondary-chart {
+    grid-column: span 8;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+
+    .grid-main-chart,
+    .grid-side-chart,
+    .grid-quick-links,
+    .grid-secondary-chart {
+        grid-column: span 12;
+    }
+}
+
+/* Chart Customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: var(--enterprise-border);
+}
+
+.recharts-text {
+    fill: var(--enterprise-text-secondary);
+}
+
+.recharts-legend-item-text {
+    color: var(--enterprise-text-secondary) !important;
+}

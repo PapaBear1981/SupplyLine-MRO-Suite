@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, InputGroup, Table, Badge, Button, Card, Spinner } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import UserProfileModal from '../components/users/UserProfileModal';
 
@@ -11,6 +12,9 @@ const DirectoryPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Helper function to get department badge color
   const getDepartmentBadgeVariant = (department) => {
@@ -38,6 +42,19 @@ const DirectoryPage = () => {
     };
     fetchCurrentUser();
   }, []);
+
+  // Check for userId in query params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const userIdParam = searchParams.get('userId');
+
+    if (userIdParam) {
+      // Set selected user with just the ID to trigger the modal
+      // The modal fetches full details itself
+      setSelectedUser({ id: parseInt(userIdParam) });
+      setShowProfileModal(true);
+    }
+  }, [location.search]);
 
   // Fetch users list
   useEffect(() => {
@@ -69,11 +86,15 @@ const DirectoryPage = () => {
   const handleUserClick = (user) => {
     setSelectedUser(user);
     setShowProfileModal(true);
+    // Update URL without reloading to allow bookmarking/sharing
+    navigate(`/directory?userId=${user.id}`, { replace: true });
   };
 
   const handleCloseModal = () => {
     setShowProfileModal(false);
     setSelectedUser(null);
+    // Clear query param on close
+    navigate('/directory', { replace: true });
   };
 
   const handleUserUpdated = (updatedUser) => {
