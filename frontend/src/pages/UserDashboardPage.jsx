@@ -98,8 +98,23 @@ const UserDashboardPage = () => {
     { name: 'Week 4', value: 65 },
   ];
 
+  // Determine role-based theme class
+  const roleThemeClass = useMemo(() => {
+    if (isAdmin) {
+      return 'dashboard-theme-admin';
+    }
+    if (isMaterials) {
+      return 'dashboard-theme-materials';
+    }
+    return 'dashboard-theme-standard';
+  }, [isAdmin, isMaterials]);
+
   return (
-    <div className="dashboard-root w-100" style={{ minHeight: '100vh', background: 'var(--enterprise-bg)' }}>
+    <div
+      className={`dashboard-root w-100 ${roleThemeClass}`}
+      data-testid="dashboard-content"
+      style={{ minHeight: '100vh', background: 'var(--enterprise-bg)' }}
+    >
       <Container fluid className="p-4">
 
         {/* Header */}
