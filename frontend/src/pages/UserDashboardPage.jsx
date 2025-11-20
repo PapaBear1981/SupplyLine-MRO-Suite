@@ -14,12 +14,12 @@ import {
 import { fetchCheckouts, fetchUserCheckouts } from '../store/checkoutsSlice';
 import { fetchChemicals, fetchChemicalsNeedingReorder, fetchChemicalsExpiringSoon } from '../store/chemicalsSlice';
 import { fetchKits } from '../store/kitsSlice';
-// import { fetchUsers } from '../store/usersSlice'; // Assuming this exists
 import { fetchRegistrationRequests } from '../store/adminSlice';
 
 // Components
 import { StatCard, AnalyticsChart, DistributionChart, QuickLinksGrid } from '../components/dashboard/DashboardWidgets';
 import CalibrationNotifications from '../components/calibration/CalibrationNotifications';
+import ReceivedItemsAlertWidget from '../components/dashboard/ReceivedItemsAlertWidget';
 import GlobalSearch from '../components/common/GlobalSearch';
 
 // Styles
@@ -36,6 +36,7 @@ const UserDashboardPage = () => {
   // Role checks
   const isAdmin = user?.is_admin;
   const isMaterials = user?.department === 'Materials';
+  const hasRequestPermission = Boolean(isAdmin || (user?.permissions || []).includes('page.requests') || (user?.permissions || []).includes('page.orders'));
 
   // Fetch Data
   useEffect(() => {
@@ -45,7 +46,6 @@ const UserDashboardPage = () => {
     dispatch(fetchChemicalsNeedingReorder());
     dispatch(fetchChemicalsExpiringSoon());
     dispatch(fetchKits());
-    // dispatch(fetchUsers()); // Uncomment if users slice is available and needed
 
     if (isAdmin) {
       dispatch(fetchRegistrationRequests('pending'));
@@ -205,6 +205,13 @@ const UserDashboardPage = () => {
           <div className="grid-stats" style={{ gridColumn: 'span 12' }}>
             <CalibrationNotifications />
           </div>
+
+          {/* Received Items Alert Widget - Only show if user has request permissions */}
+          {hasRequestPermission && (
+            <div className="grid-stats" style={{ gridColumn: 'span 12' }}>
+              <ReceivedItemsAlertWidget />
+            </div>
+          )}
 
         </div>
       </Container>

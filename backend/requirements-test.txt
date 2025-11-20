@@ -1,0 +1,46 @@
+# Test Dependencies for SupplyLine MRO Suite
+# Install with: pip install -r requirements-test.txt
+
+# Core testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.1          # Parallel test execution
+pytest-timeout>=2.1.0         # Test timeout handling
+pytest-mock>=3.11.1          # Mocking support
+pytest-benchmark>=4.0.0      # Performance benchmarking
+
+# Flask testing
+pytest-flask>=1.2.0
+
+# Database testing
+pytest-postgresql>=5.0.0     # PostgreSQL testing support
+faker>=19.3.0                # Fake data generation
+
+# Code quality and coverage
+coverage>=7.2.0
+coverage-badge>=1.1.0
+
+# Linting and formatting
+flake8>=6.0.0
+black>=23.7.0
+isort>=5.12.0
+mypy>=1.4.0
+pylint>=2.17.0
+
+# Security scanning
+bandit>=1.7.5                # Security issue scanner
+safety>=2.3.5                # Dependency vulnerability scanner
+
+# Documentation
+pytest-html>=3.2.0           # HTML test reports
+pytest-json-report>=1.5.0    # JSON test reports
+
+# Performance and profiling
+pytest-profiling>=1.7.0
+memory-profiler>=0.61.0
+
+# Pre-commit hooks
+pre-commit>=3.3.3
+
+# Load testing (optional)
+locust>=2.15.0
