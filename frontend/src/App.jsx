@@ -174,29 +174,20 @@ function App() {
                     <DirectoryPage />
                   </MainLayout>
                 </ProtectedRoute>
-              }
-            />
-
-            <Route path="/tools" element={
-              <PermissionRoute permission="page.tools">
-                <MainLayout>
-                  <ToolsManagement />
-                </MainLayout>
-              </PermissionRoute>
-            } />
-
-            <Route path="/orders" element={
-              <PermissionRoute permission="page.orders">
-                <MainLayout>
-                  <OrderManagementPage />
-                </MainLayout>
-              </PermissionRoute>
-            } />
+              } />
 
             <Route path="/requests" element={
               <PermissionRoute permission="page.requests">
                 <MainLayout>
                   <RequestsPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/tools" element={
+              <PermissionRoute permission="page.tools">
+                <MainLayout>
+                  <ToolsManagementNew />
                 </MainLayout>
               </PermissionRoute>
             } />
