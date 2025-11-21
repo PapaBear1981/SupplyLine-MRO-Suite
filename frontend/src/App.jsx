@@ -32,8 +32,10 @@ import DirectoryPage from './pages/DirectoryPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import UserDashboardPageNew from './pages/UserDashboardPageNew';
 import ToolsManagement from './pages/ToolsManagement';
+import ToolsManagementNew from './pages/ToolsManagementNew';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
+import { Toaster } from './components/ui/sonner';
 import EditToolPage from './pages/EditToolPage';
 import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
@@ -597,11 +599,217 @@ function App() {
           <ProtectedRoute>
             <CycleCountMobilePage />
           </ProtectedRoute>
+import { Toaster } from 'react-hot-toast'; // Assuming react-hot-toast is the source
+
+// ... (rest of your imports)
+
+function App() {
+  return (
+    <HelpProvider>
+      <HotkeyProvider>
+        <Router>
+          <Routes>
+
+            <Route path="/calibration-standards/:id/edit" element={
+              <PermissionRoute permission="page.calibrations">
+                <MainLayout>
+                  <CalibrationStandardForm />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            {/* Scanner route */}
+            <Route path="/scanner" element={
+              <PermissionRoute permission="page.scanner">
+                <MainLayout>
+                  <ScannerPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            {/* Kit routes */}
+            <Route path="/kits" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitsManagement />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/kits/new" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitWizard />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/kits/:id/edit" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <EditKitPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/kits/:id" element={
+              <PermissionRoute permission="page.kits">
+                <MainLayout>
+                  <KitDetailPage />
+                </MainLayout>
+              </PermissionRoute>
+            } />
+
+            <Route path="/kits/mobile" element={
+              <PermissionRoute permission="page.kits">
+                <KitMobileInterface />
+              </PermissionRoute>
+            } />
+
+            {/* CYCLE COUNT ROUTES - TEMPORARILY DISABLED */}
+            {/* ========================================== */}
+            {/* All cycle count routes have been disabled due to GitHub Issue #366 */}
+            {/* */}
+            {/* REASON FOR DISABLING: */}
+            {/* - Backend cycle count API endpoints are non-functional */}
+            {/* - Missing database tables causing system errors */}
+            {/* - Users experiencing "Resource not found" errors */}
+            {/* - Production stability issues */}
+            {/* */}
+            {/* ROUTES DISABLED: */}
+            {/* - /cycle-counts/schedules/new - Create new schedule */}
+            {/* - /cycle-counts/schedules/:id/edit - Edit schedule */}
+            {/* - /cycle-counts/schedules/:id - View schedule details */}
+            {/* - /cycle-counts/batches/new - Create new batch */}
+            {/* - /cycle-counts/batches/:id/edit - Edit batch */}
+            {/* - /cycle-counts/batches/:id - View batch details */}
+            {/* - /cycle-counts/items/:id/count - Count items */}
+            {/* - /cycle-counts/discrepancies/:id - View discrepancies */}
+            {/* - /cycle-counts/schedules - Schedules dashboard */}
+            {/* - /cycle-counts/batches - Batches dashboard */}
+            {/* - /cycle-counts/discrepancies - Discrepancies dashboard */}
+            {/* - /cycle-counts - Main cycle count dashboard */}
+            {/* - /cycle-counts/mobile - Mobile cycle count interface */}
+            {/* */}
+            {/* TO RE-ENABLE: */}
+            {/* 1. Uncomment all route definitions below */}
+            {/* 2. Uncomment cycle count imports at top of file */}
+            {/* 3. Enable backend routes in backend/routes.py */}
+            {/* 4. Ensure database tables are created */}
+            {/* 5. Test all functionality thoroughly */}
+            {/* */}
+            {/* DISABLED DATE: 2025-06-22 */}
+            {/* GITHUB ISSUE: #366 */}
+            {/* */}
+            {/* Cycle Count Form Routes - More specific routes first */}
+            {/* <Route path="/cycle-counts/schedules/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/schedules/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/schedules/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountScheduleDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches/new" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } /> */}
+
+            {/* <Route path="/cycle-counts/batches/:id/edit" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchForm />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountBatchDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/items/:id/count" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountItemCountPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/discrepancies/:id" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDiscrepancyDetailPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } /> */}
+
+            {/* General Cycle Count routes */}
+            {/* <Route path="/cycle-counts/schedules" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/batches" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts/discrepancies" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/cycle-counts" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CycleCountDashboardPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } /> */}
+
+            {/* Mobile Cycle Count route */}
+            {/* <Route path="/cycle-counts/mobile" element={
+          <ProtectedRoute>
+            <CycleCountMobilePage />
+          </ProtectedRoute>
         } /> */}
 
             {/* Redirect any unknown routes to dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Toaster />
         </Router>
       </HotkeyProvider>
     </HelpProvider>
