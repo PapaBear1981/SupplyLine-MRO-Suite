@@ -15,7 +15,8 @@ const ReceivedItemsAlertWidgetNew = () => {
     const { alerts, loading } = useSelector((state) => state.requestAlerts);
 
     useEffect(() => {
-        dispatch(fetchRequestAlerts(false)); // Only fetch non-dismissed alerts
+        // Temporarily disabled due to backend schema issues
+        // dispatch(fetchRequestAlerts(false)); // Only fetch non-dismissed alerts
     }, [dispatch]);
 
     const handleDismiss = (alertId, event) => {

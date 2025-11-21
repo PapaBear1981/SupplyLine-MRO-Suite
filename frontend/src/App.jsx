@@ -179,17 +179,17 @@ function App() {
 
             <Route path="/requests" element={
               <PermissionRoute permission="page.requests">
-                <MainLayout>
+                <MainLayoutNew>
                   <RequestsPageNew />
-                </MainLayout>
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/tools" element={
               <PermissionRoute permission="page.tools">
-                <MainLayout>
+                <MainLayoutNew>
                   <ToolsManagementNew />
-                </MainLayout>
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
@@ -257,6 +257,14 @@ function App() {
                   <ReportingPage />
                 </MainLayout>
               </ProtectedRoute>
+            } />
+
+            <Route path="/orders" element={
+              <PermissionRoute permission="page.orders">
+                <MainLayoutNew>
+                  <OrderManagementPage />
+                </MainLayoutNew>
+              </PermissionRoute>
             } />
 
             <Route path="/admin/dashboard" element={
@@ -417,9 +425,9 @@ function App() {
             {/* Kit routes */}
             <Route path="/kits" element={
               <PermissionRoute permission="page.kits">
-                <MainLayout>
+                <MainLayoutNew>
                   <KitsManagementNew />
-                </MainLayout>
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 

@@ -29,7 +29,7 @@ const KitsManagementNew = () => {
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAircraftType, setSelectedAircraftType] = useState('');
+  const [selectedAircraftType, setSelectedAircraftType] = useState('all');
   const searchInputRef = useRef(null);
 
   // Page-specific hotkeys
@@ -58,7 +58,7 @@ const KitsManagementNew = () => {
     }
 
     // Filter by aircraft type
-    if (selectedAircraftType && kit.aircraft_type_id !== parseInt(selectedAircraftType)) {
+    if (selectedAircraftType !== 'all' && kit.aircraft_type_id !== parseInt(selectedAircraftType)) {
       return false;
     }
 
@@ -201,7 +201,7 @@ const KitsManagementNew = () => {
               <SelectValue placeholder="All Aircraft Types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Aircraft Types</SelectItem>
+              <SelectItem value="all">All Aircraft Types</SelectItem>
               {aircraftTypes.map(at => (
                 <SelectItem key={at.id} value={at.id.toString()}>
                   {at.name}
