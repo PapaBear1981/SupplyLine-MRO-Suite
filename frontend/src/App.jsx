@@ -88,6 +88,7 @@ import ToolCalibrationForm from './pages/ToolCalibrationForm';
 import CalibrationStandardForm from './pages/CalibrationStandardForm';
 import CalibrationDetailPage from './pages/CalibrationDetailPage';
 import KitsManagement from './pages/KitsManagement';
+import KitsManagementNew from './pages/KitsManagementNew';
 import KitWizard from './components/kits/KitWizard';
 import KitDetailPage from './pages/KitDetailPage';
 import EditKitPage from './pages/EditKitPage';
@@ -412,7 +413,7 @@ function App() {
             <Route path="/kits" element={
               <PermissionRoute permission="page.kits">
                 <MainLayout>
-                  <KitsManagement />
+                  <KitsManagementNew />
                 </MainLayout>
               </PermissionRoute>
             } />
