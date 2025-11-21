@@ -26,6 +26,7 @@ import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/P
 // Import pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import LoginPageNew from './pages/LoginPageNew';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
 import DirectoryPage from './pages/DirectoryPage';
@@ -154,7 +155,7 @@ function App() {
           <GlobalHotkeys />
           <Routes>
             {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPageNew />} />
             <Route path="/register" element={<RegisterPage />} />
 
             {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}
