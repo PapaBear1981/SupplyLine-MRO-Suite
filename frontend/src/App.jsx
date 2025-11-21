@@ -30,6 +30,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
 import DirectoryPage from './pages/DirectoryPage';
 import UserDashboardPage from './pages/UserDashboardPage';
+import UserDashboardPageNew from './pages/UserDashboardPageNew';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
@@ -157,9 +158,9 @@ function App() {
 
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <MainLayout>
-                  <UserDashboardPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <UserDashboardPageNew />
+                </MainLayoutNew>
               </ProtectedRoute>
             } />
 
