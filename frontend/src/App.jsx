@@ -82,6 +82,7 @@ import ErrorHandlingTestPage from './pages/ErrorHandlingTestPage';
 
 import ReportingPage from './pages/ReportingPage';
 import ChemicalsManagement from './pages/ChemicalsManagement';
+import ChemicalsManagementNew from './pages/ChemicalsManagementNew';
 import ChemicalDetailPage from './pages/ChemicalDetailPage';
 import NewChemicalPage from './pages/NewChemicalPage';
 import EditChemicalPage from './pages/EditChemicalPage';
@@ -318,9 +319,9 @@ function App() {
             {/* Chemical routes */}
             <Route path="/chemicals" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <ChemicalsManagement />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ChemicalsManagementNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
