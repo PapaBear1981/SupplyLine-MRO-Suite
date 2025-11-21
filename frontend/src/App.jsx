@@ -86,7 +86,9 @@ import ChemicalsManagement from './pages/ChemicalsManagement';
 import ChemicalsManagementNew from './pages/ChemicalsManagementNew';
 import ChemicalDetailPage from './pages/ChemicalDetailPage';
 import NewChemicalPage from './pages/NewChemicalPage';
+import NewChemicalPageNew from './pages/NewChemicalPageNew';
 import EditChemicalPage from './pages/EditChemicalPage';
+import EditChemicalPageNew from './pages/EditChemicalPageNew';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import CalibrationManagement from './pages/CalibrationManagement';
@@ -328,9 +330,9 @@ function App() {
 
             <Route path="/chemicals/new" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <NewChemicalPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <NewChemicalPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
@@ -344,9 +346,9 @@ function App() {
 
             <Route path="/chemicals/:id/edit" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <EditChemicalPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <EditChemicalPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
