@@ -53,7 +53,7 @@ const ChemicalsManagementNew = () => {
     <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Chemical Inventory</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Chemical Inventory</h1>
         <div className="flex flex-wrap gap-2">
           {user?.is_admin && <BulkImportChemicals />}
           <Button

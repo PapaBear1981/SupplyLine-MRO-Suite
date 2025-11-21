@@ -343,7 +343,7 @@ const RequestsPageNew = () => {
     <div className="requests-page p-4 md:p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="mb-1 flex items-center gap-2 text-3xl font-bold">
+          <h1 className="mb-1 flex items-center gap-2 text-3xl font-bold text-foreground">
             <FaClipboardList className="text-primary" />
             Procurement Requests
           </h1>
