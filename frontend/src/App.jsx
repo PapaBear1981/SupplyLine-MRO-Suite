@@ -97,7 +97,7 @@ import KitWizard from './components/kits/KitWizard';
 import KitDetailPage from './pages/KitDetailPage';
 import EditKitPage from './pages/EditKitPage';
 import KitMobileInterface from './pages/KitMobileInterface';
-import RequestsPage from './pages/RequestsPage';
+import RequestsPageNew from './pages/RequestsPageNew';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
 import ItemHistoryPage from './pages/ItemHistoryPage';
@@ -180,7 +180,7 @@ function App() {
             <Route path="/requests" element={
               <PermissionRoute permission="page.requests">
                 <MainLayout>
-                  <RequestsPage />
+                  <RequestsPageNew />
                 </MainLayout>
               </PermissionRoute>
             } />
