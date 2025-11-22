@@ -30,18 +30,25 @@ import LoginPageNew from './pages/LoginPageNew';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
 import DirectoryPage from './pages/DirectoryPage';
+import DirectoryPageNew from './pages/DirectoryPageNew';
 import UserDashboardPage from './pages/UserDashboardPage';
 import UserDashboardPageNew from './pages/UserDashboardPageNew';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolsManagementNew from './pages/ToolsManagementNew';
 import ToolDetailPage from './pages/ToolDetailPage';
+import ToolDetailPageNew from './pages/ToolDetailPageNew';
 import NewToolPage from './pages/NewToolPage';
+import NewToolPageNew from './pages/NewToolPageNew';
 import { Toaster } from './components/ui/sonner';
 import EditToolPage from './pages/EditToolPage';
+import EditToolPageNew from './pages/EditToolPageNew';
 import CheckoutPage from './pages/CheckoutPage';
 import UserCheckoutsPage from './pages/UserCheckoutsPage';
+import UserCheckoutsPageNew from './pages/UserCheckoutsPageNew';
 import CheckoutsPage from './pages/CheckoutsPage';
+import CheckoutsPageNew from './pages/CheckoutsPageNew';
 import AllCheckoutsPage from './pages/AllCheckoutsPage';
+import AllCheckoutsPageNew from './pages/AllCheckoutsPageNew';
 import ScannerPage from './pages/ScannerPage';
 import ErrorHandlingTestPage from './pages/ErrorHandlingTestPage';
 // CYCLE COUNT SYSTEM - TEMPORARILY DISABLED
@@ -82,14 +89,21 @@ import ErrorHandlingTestPage from './pages/ErrorHandlingTestPage';
 // import CycleCountMobilePage from './pages/CycleCountMobilePage';
 
 import ReportingPage from './pages/ReportingPage';
+import ReportingPageNew from './pages/ReportingPageNew';
 import ChemicalsManagement from './pages/ChemicalsManagement';
 import ChemicalsManagementNew from './pages/ChemicalsManagementNew';
 import ChemicalDetailPage from './pages/ChemicalDetailPage';
+import ChemicalDetailPageNew from './pages/ChemicalDetailPageNew';
 import NewChemicalPage from './pages/NewChemicalPage';
+import NewChemicalPageNew from './pages/NewChemicalPageNew';
 import EditChemicalPage from './pages/EditChemicalPage';
+import EditChemicalPageNew from './pages/EditChemicalPageNew';
 import ChemicalIssuePage from './pages/ChemicalIssuePage';
+import ChemicalIssuePageNew from './pages/ChemicalIssuePageNew';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminDashboardPageNew from './pages/AdminDashboardPageNew';
 import CalibrationManagement from './pages/CalibrationManagement';
+import CalibrationManagementNew from './pages/CalibrationManagementNew';
 import ToolCalibrationForm from './pages/ToolCalibrationForm';
 import CalibrationStandardForm from './pages/CalibrationStandardForm';
 import CalibrationDetailPage from './pages/CalibrationDetailPage';
@@ -102,7 +116,9 @@ import KitMobileInterface from './pages/KitMobileInterface';
 import RequestsPageNew from './pages/RequestsPageNew';
 import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
+import WarehousesManagementNew from './pages/WarehousesManagementNew';
 import ItemHistoryPage from './pages/ItemHistoryPage';
+import ItemHistoryPageNew from './pages/ItemHistoryPageNew';
 import OrderManagementPage from './pages/OrderManagementPage';
 import TailwindDemo from './pages/TailwindDemo';
 
@@ -173,9 +189,9 @@ function App() {
               path="/directory"
               element={
                 <ProtectedRoute requiredPermission="user.view">
-                  <MainLayout>
-                    <DirectoryPage />
-                  </MainLayout>
+                  <MainLayoutNew>
+                    <DirectoryPageNew />
+                  </MainLayoutNew>
                 </ProtectedRoute>
               } />
 
@@ -197,34 +213,34 @@ function App() {
 
             <Route path="/tools/new" element={
               <PermissionRoute permission="page.tools">
-                <MainLayout>
-                  <NewToolPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <NewToolPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/tools/:id" element={
               <PermissionRoute permission="page.tools">
-                <MainLayout>
-                  <ToolDetailPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ToolDetailPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/tools/:id/edit" element={
               <PermissionRoute permission="page.tools">
-                <MainLayout>
-                  <EditToolPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <EditToolPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             {/* NOTE: /checkouts route MUST come before /checkout/:id to avoid matching issues */}
             <Route path="/checkouts" element={
               <PermissionRoute permission="page.my_checkouts">
-                <MainLayout>
-                  <CheckoutsPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <CheckoutsPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
@@ -238,26 +254,26 @@ function App() {
 
             <Route path="/my-checkouts" element={
               <PermissionRoute permission="page.my_checkouts">
-                <MainLayout>
-                  <UserCheckoutsPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <UserCheckoutsPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/checkouts/all" element={
               <PermissionRoute permission="page.checkouts" fallbackPath="/checkouts">
-                <MainLayout>
-                  <AllCheckoutsPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <AllCheckoutsPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
 
             <Route path="/reports" element={
               <ProtectedRoute requirePermission={null}>
-                <MainLayout>
-                  <ReportingPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ReportingPageNew />
+                </MainLayoutNew>
               </ProtectedRoute>
             } />
 
@@ -271,9 +287,9 @@ function App() {
 
             <Route path="/admin/dashboard" element={
               <PermissionRoute permission="page.admin_dashboard">
-                <MainLayout>
-                  <AdminDashboardPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <AdminDashboardPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
@@ -287,9 +303,9 @@ function App() {
 
             <Route path="/warehouses" element={
               <PermissionRoute permission="page.warehouses">
-                <MainLayout>
-                  <WarehousesManagement />
-                </MainLayout>
+                <MainLayoutNew>
+                  <WarehousesManagementNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
@@ -302,9 +318,9 @@ function App() {
             {/* Item History Lookup */}
             <Route path="/history" element={
               <ProtectedRoute>
-                <MainLayout>
-                  <ItemHistoryPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ItemHistoryPageNew />
+                </MainLayoutNew>
               </ProtectedRoute>
             } />
 
@@ -328,42 +344,42 @@ function App() {
 
             <Route path="/chemicals/new" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <NewChemicalPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <NewChemicalPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/chemicals/:id" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <ChemicalDetailPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ChemicalDetailPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/chemicals/:id/edit" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <EditChemicalPage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <EditChemicalPageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             <Route path="/chemicals/:id/issue" element={
               <PermissionRoute permission="page.chemicals">
-                <MainLayout>
-                  <ChemicalIssuePage />
-                </MainLayout>
+                <MainLayoutNew>
+                  <ChemicalIssuePageNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
             {/* Calibration routes */}
             <Route path="/calibrations" element={
               <PermissionRoute permission="page.calibrations">
-                <MainLayout>
-                  <CalibrationManagement />
-                </MainLayout>
+                <MainLayoutNew>
+                  <CalibrationManagementNew />
+                </MainLayoutNew>
               </PermissionRoute>
             } />
 
