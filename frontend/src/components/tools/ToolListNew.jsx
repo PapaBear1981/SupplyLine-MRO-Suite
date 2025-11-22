@@ -79,7 +79,6 @@ const ToolListNew = ({ workflowFilter = 'all' }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredTools, setFilteredTools] = useState([]);
     const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
-    const [selectedTools, setSelectedTools] = useState([]);
 
     // Modal States
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -196,7 +195,6 @@ const ToolListNew = ({ workflowFilter = 'all' }) => {
 
         setFilteredTools(sortedTools);
         setCurrentPage(1);
-        setSelectedTools([]); // Clear selection when filter changes
     }, [tools, searchQuery, sortConfig, workflowFilter, categoryFilter, locationFilter, warehouseFilter]);
 
     const handleSort = (key) => {
