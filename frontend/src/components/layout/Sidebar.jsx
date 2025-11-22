@@ -28,7 +28,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
     const isActive = (path) => location.pathname === path;
 
-    const NavItem = ({ to, icon: Icon, label, permission }) => {
+    // eslint-disable-next-line no-unused-vars
+    const NavItem = ({ to, icon: IconComponent, label, permission }) => {
         if (permission && !hasPermission(user, permission)) return null;
 
         return (
@@ -43,7 +44,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
                 )}
                 title={collapsed ? label : undefined}
             >
-                <Icon className="h-4 w-4" />
+                <IconComponent className="h-4 w-4" />
                 {!collapsed && <span>{label}</span>}
             </Link>
         );
