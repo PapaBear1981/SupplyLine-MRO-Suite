@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Wrench } from 'lucide-react';
 
 import { Button } from '../components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import ToolListNew from '../components/tools/ToolListNew';
 import BulkImportToolsNew from '../components/tools/BulkImportToolsNew';
 import useHotkeys from '../hooks/useHotkeys';
@@ -14,6 +16,7 @@ const ToolsManagementNew = () => {
     const navigate = useNavigate();
     const isAdmin = user?.is_admin || user?.department === 'Materials';
     const unauthorized = location.state?.unauthorized;
+    const [activeTab, setActiveTab] = useState('available');
 
     // Page-specific hotkeys
     useHotkeys({
@@ -42,7 +45,7 @@ const ToolsManagementNew = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Tool Inventory</h1>
-                    <p className="text-muted-foreground">Manage tools, equipment, and assets.</p>
+                    <p className="text-muted-foreground">Manage tools, equipment, and assets by workflow status.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {isAdmin && (
@@ -65,7 +68,40 @@ const ToolsManagementNew = () => {
                 </div>
             </div>
 
-            <ToolListNew />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList>
+                    <TabsTrigger value="available">Available</TabsTrigger>
+                    <TabsTrigger value="in_use">In Use</TabsTrigger>
+                    <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+                    <TabsTrigger value="calibration">Calibration Due</TabsTrigger>
+                    <TabsTrigger value="retired">Retired</TabsTrigger>
+                    <TabsTrigger value="all">All Tools</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="available" className="mt-6">
+                    <ToolListNew workflowFilter="available" />
+                </TabsContent>
+
+                <TabsContent value="in_use" className="mt-6">
+                    <ToolListNew workflowFilter="in_use" />
+                </TabsContent>
+
+                <TabsContent value="maintenance" className="mt-6">
+                    <ToolListNew workflowFilter="maintenance" />
+                </TabsContent>
+
+                <TabsContent value="calibration" className="mt-6">
+                    <ToolListNew workflowFilter="calibration" />
+                </TabsContent>
+
+                <TabsContent value="retired" className="mt-6">
+                    <ToolListNew workflowFilter="retired" />
+                </TabsContent>
+
+                <TabsContent value="all" className="mt-6">
+                    <ToolListNew workflowFilter="all" />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };

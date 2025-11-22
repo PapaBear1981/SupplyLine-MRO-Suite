@@ -14,7 +14,9 @@ import {
     ArrowLeftRight,
     ScanLine,
     Trash2,
-    Eye
+    Eye,
+    RotateCcw,
+    AlertTriangle
 } from 'lucide-react';
 
 import { fetchTools } from '../../store/toolsSlice';
@@ -61,13 +63,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 // Custom Components (Legacy or New)
 import LoadingSpinner from '../common/LoadingSpinner'; // Need to check if this is migrated or usable
 import CheckoutModal from '../checkouts/CheckoutModal'; // Legacy
+import ReturnToolModal from '../checkouts/ReturnToolModal'; // Legacy
+import ReturnToServiceModal from './ReturnToServiceModal'; // Legacy
 import ToolBarcode from './ToolBarcode'; // Legacy
 import DeleteToolModal from './DeleteToolModal'; // Legacy
 import CalibrationStatusIndicator from './CalibrationStatusIndicator'; // Legacy
 import ItemTransferModal from '../common/ItemTransferModal'; // Legacy
 import HelpIcon from '../common/HelpIcon'; // Legacy
 
-const ToolListNew = () => {
+const ToolListNew = ({ workflowFilter = 'all' }) => {
     const dispatch = useDispatch();
     const { tools, loading } = useSelector((state) => state.tools);
     const { user } = useSelector((state) => state.auth);
@@ -75,18 +79,19 @@ const ToolListNew = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredTools, setFilteredTools] = useState([]);
     const [sortConfig, setSortConfig] = useState({ key: 'tool_number', direction: 'ascending' });
+    const [selectedTools, setSelectedTools] = useState([]);
 
     // Modal States
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
     const [showBarcodeModal, setShowBarcodeModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showTransferModal, setShowTransferModal] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [showServiceModal, setShowServiceModal] = useState(false);
     const [selectedTool, setSelectedTool] = useState(null);
 
     // Filter states
     const [showFilters, setShowFilters] = useState(false);
-    const [hideRetired, setHideRetired] = useState(true);
-    const [statusFilter, setStatusFilter] = useState('all'); // 'all' instead of '' for Select value
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [locationFilter, setLocationFilter] = useState('all');
     const [warehouseFilter, setWarehouseFilter] = useState('all');
@@ -130,6 +135,25 @@ const ToolListNew = () => {
     useEffect(() => {
         let toolsToDisplay = [...tools];
 
+        // Apply workflow filter based on tab
+        if (workflowFilter === 'available') {
+            toolsToDisplay = toolsToDisplay.filter(tool => tool.status === 'available');
+        } else if (workflowFilter === 'in_use') {
+            toolsToDisplay = toolsToDisplay.filter(tool => tool.status === 'checked_out');
+        } else if (workflowFilter === 'maintenance') {
+            toolsToDisplay = toolsToDisplay.filter(tool => tool.status === 'maintenance');
+        } else if (workflowFilter === 'calibration') {
+            toolsToDisplay = toolsToDisplay.filter(tool =>
+                tool.requires_calibration &&
+                tool.calibration_status &&
+                (tool.calibration_status === 'due_soon' || tool.calibration_status === 'overdue')
+            );
+        } else if (workflowFilter === 'retired') {
+            toolsToDisplay = toolsToDisplay.filter(tool => tool.status === 'retired');
+        }
+        // 'all' shows everything
+
+        // Apply search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             toolsToDisplay = toolsToDisplay.filter(tool =>
@@ -140,18 +164,17 @@ const ToolListNew = () => {
             );
         }
 
-        if (statusFilter && statusFilter !== 'all') {
-            toolsToDisplay = toolsToDisplay.filter(tool => tool.status === statusFilter);
-        }
-
+        // Apply category filter
         if (categoryFilter && categoryFilter !== 'all') {
             toolsToDisplay = toolsToDisplay.filter(tool => (tool.category || 'General') === categoryFilter);
         }
 
+        // Apply location filter
         if (locationFilter && locationFilter !== 'all') {
             toolsToDisplay = toolsToDisplay.filter(tool => tool.location === locationFilter);
         }
 
+        // Apply warehouse filter
         if (warehouseFilter && warehouseFilter !== 'all') {
             if (warehouseFilter === 'in_kit') {
                 toolsToDisplay = toolsToDisplay.filter(tool => tool.warehouse_id === null || tool.warehouse_id === undefined);
@@ -160,10 +183,7 @@ const ToolListNew = () => {
             }
         }
 
-        if (hideRetired) {
-            toolsToDisplay = toolsToDisplay.filter(tool => tool.status !== 'retired');
-        }
-
+        // Sort tools
         const sortedTools = [...toolsToDisplay].sort((a, b) => {
             if (a[sortConfig.key] < b[sortConfig.key]) {
                 return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -176,7 +196,8 @@ const ToolListNew = () => {
 
         setFilteredTools(sortedTools);
         setCurrentPage(1);
-    }, [tools, searchQuery, sortConfig, statusFilter, categoryFilter, locationFilter, warehouseFilter, hideRetired]);
+        setSelectedTools([]); // Clear selection when filter changes
+    }, [tools, searchQuery, sortConfig, workflowFilter, categoryFilter, locationFilter, warehouseFilter]);
 
     const handleSort = (key) => {
         setSortConfig({
@@ -220,6 +241,16 @@ const ToolListNew = () => {
         setShowDeleteModal(true);
     };
 
+    const handleReturnClick = (tool) => {
+        setSelectedTool(tool);
+        setShowReturnModal(true);
+    };
+
+    const handleServiceClick = (tool) => {
+        setSelectedTool(tool);
+        setShowServiceModal(true);
+    };
+
     const handleToolDelete = () => {
         dispatch(fetchTools());
     };
@@ -229,21 +260,38 @@ const ToolListNew = () => {
     };
 
     const resetFilters = () => {
-        setStatusFilter('all');
         setCategoryFilter('all');
         setLocationFilter('all');
         setWarehouseFilter('all');
-        setHideRetired(true);
         setSearchQuery('');
     };
 
     const activeFilterCount = [
-        statusFilter !== 'all',
         categoryFilter !== 'all',
         locationFilter !== 'all',
         warehouseFilter !== 'all',
-        !hideRetired
+        searchQuery.trim() !== ''
     ].filter(Boolean).length;
+
+    // Get workflow description based on current filter
+    const getWorkflowDescription = () => {
+        switch (workflowFilter) {
+            case 'available':
+                return 'Tools ready for checkout';
+            case 'in_use':
+                return 'Tools currently checked out to users';
+            case 'maintenance':
+                return 'Tools removed from service for maintenance or repair';
+            case 'calibration':
+                return 'Tools requiring calibration attention';
+            case 'retired':
+                return 'Tools retired from active service';
+            case 'all':
+                return 'All tools in inventory';
+            default:
+                return '';
+        }
+    };
 
     if (loading && !filteredTools.length) {
         return <LoadingSpinner />;
@@ -254,11 +302,13 @@ const ToolListNew = () => {
             <Card>
                 <CardHeader className="pb-3">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <CardTitle>Tool Inventory</CardTitle>
-                            <Badge variant="secondary" className="ml-2">
-                                {filteredTools.length} items
-                            </Badge>
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <CardTitle>{getWorkflowDescription()}</CardTitle>
+                                <Badge variant="secondary" className="ml-2">
+                                    {filteredTools.length} {filteredTools.length === 1 ? 'item' : 'items'}
+                                </Badge>
+                            </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -300,23 +350,7 @@ const ToolListNew = () => {
 
                     <Collapsible open={showFilters}>
                         <CollapsibleContent className="pt-4 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Status</Label>
-                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="All Statuses" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Statuses</SelectItem>
-                                            <SelectItem value="available">Available</SelectItem>
-                                            <SelectItem value="checked_out">Checked Out</SelectItem>
-                                            <SelectItem value="maintenance">Maintenance</SelectItem>
-                                            <SelectItem value="retired">Retired</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <Label>Category</Label>
                                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -366,15 +400,7 @@ const ToolListNew = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 border-t">
-                                <div className="flex items-center space-x-2">
-                                    <Switch
-                                        id="hide-retired"
-                                        checked={hideRetired}
-                                        onCheckedChange={setHideRetired}
-                                    />
-                                    <Label htmlFor="hide-retired">Hide Retired Tools</Label>
-                                </div>
+                            <div className="flex justify-end pt-2 border-t">
                                 <Button variant="ghost" onClick={resetFilters} size="sm">
                                     Reset Filters
                                 </Button>
@@ -475,37 +501,56 @@ const ToolListNew = () => {
                                                             <TooltipContent>View Details</TooltipContent>
                                                         </Tooltip>
 
+                                                        {/* Context-aware action buttons */}
                                                         {tool.status === 'available' && (
-                                                            <>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20">
-                                                                            <Link to={`/checkout/${tool.id}`}>
-                                                                                <CheckCircle className="h-4 w-4" />
-                                                                                <span className="sr-only">Checkout to Me</span>
-                                                                            </Link>
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Checkout to Me</TooltipContent>
-                                                                </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                                        onClick={() => handleCheckoutClick(tool)}
+                                                                    >
+                                                                        <CheckCircle className="h-4 w-4" />
+                                                                        <span className="sr-only">Checkout</span>
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Checkout Tool</TooltipContent>
+                                                            </Tooltip>
+                                                        )}
 
-                                                                {isAdmin && (
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                                                                onClick={() => handleCheckoutClick(tool)}
-                                                                            >
-                                                                                <User className="h-4 w-4" />
-                                                                                <span className="sr-only">Checkout to User</span>
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>Checkout to User</TooltipContent>
-                                                                    </Tooltip>
-                                                                )}
-                                                            </>
+                                                        {tool.status === 'checked_out' && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                                        onClick={() => handleReturnClick(tool)}
+                                                                    >
+                                                                        <RotateCcw className="h-4 w-4" />
+                                                                        <span className="sr-only">Return</span>
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Return Tool</TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+
+                                                        {tool.status === 'maintenance' && isAdmin && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                                        onClick={() => handleServiceClick(tool)}
+                                                                    >
+                                                                        <RotateCcw className="h-4 w-4" />
+                                                                        <span className="sr-only">Return to Service</span>
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Return to Service</TooltipContent>
+                                                            </Tooltip>
                                                         )}
 
                                                         <Tooltip>
@@ -625,6 +670,23 @@ const ToolListNew = () => {
                     <CheckoutModal
                         show={showCheckoutModal}
                         onHide={() => setShowCheckoutModal(false)}
+                        tool={selectedTool}
+                    />
+                    <ReturnToolModal
+                        show={showReturnModal}
+                        onHide={() => {
+                            setShowReturnModal(false);
+                            dispatch(fetchTools());
+                        }}
+                        checkoutId={selectedTool.current_checkout_id}
+                        toolInfo={selectedTool}
+                    />
+                    <ReturnToServiceModal
+                        show={showServiceModal}
+                        onHide={() => {
+                            setShowServiceModal(false);
+                            dispatch(fetchTools());
+                        }}
                         tool={selectedTool}
                     />
                     <ToolBarcode
