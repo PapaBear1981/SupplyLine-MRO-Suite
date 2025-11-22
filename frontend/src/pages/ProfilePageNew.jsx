@@ -347,7 +347,7 @@ const ProfilePageNew = () => {
   return (
     <MainLayout>
       <Container>
-        <h1 className="mb-4">My Profile</h1>
+        <h1 className="mb-4 text-3xl font-bold text-foreground">My Profile</h1>
 
         {error && (
           <Alert variant="danger" className="mb-4">
