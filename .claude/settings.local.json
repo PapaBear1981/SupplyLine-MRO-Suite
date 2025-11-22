@@ -59,7 +59,11 @@
       "Bash(source venv/bin/activate)",
       "Bash(source venv/Scripts/activate)",
       "Bash(pip install:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(sqlite3:*)",
+      "Bash(py:*)",
+      "Bash(gh pr create:*)",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []

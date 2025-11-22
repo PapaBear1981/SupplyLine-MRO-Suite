@@ -28,7 +28,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
     const isActive = (path) => location.pathname === path;
 
-    const NavItem = ({ to, icon: Icon, label, permission }) => {
+    const NavItem = ({ to, icon: _Icon, label, permission }) => {
         if (permission && !hasPermission(user, permission)) return null;
 
         return (

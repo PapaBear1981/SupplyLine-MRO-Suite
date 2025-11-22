@@ -17,7 +17,6 @@ const DirectoryPageNew = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,18 +35,7 @@ const DirectoryPageNew = () => {
     return departmentColors[department] || 'secondary';
   };
 
-  // Fetch current user permissions
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await api.get('/auth/me');
-        setCurrentUser(response.data);
-      } catch (error) {
-        console.error('Error fetching current user:', error);
-      }
-    };
-    fetchCurrentUser();
-  }, []);
+  // Current user is available via Redux auth state if needed
 
   // Check for userId in query params
   useEffect(() => {

@@ -4,11 +4,10 @@ import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, CheckCircle, ExternalLink, X, Loader2 } from 'lucide-react';
 
-import { fetchRequestAlerts, dismissAlert, dismissAllAlerts } from '../../store/requestAlertsSlice';
+import { dismissAlert, dismissAllAlerts } from '../../store/requestAlertsSlice';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { cn } from '../../utils/cn';
 
 const ReceivedItemsAlertWidgetNew = () => {
     const dispatch = useDispatch();
