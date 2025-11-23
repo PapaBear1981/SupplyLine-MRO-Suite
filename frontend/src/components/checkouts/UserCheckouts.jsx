@@ -76,7 +76,7 @@ const UserCheckouts = () => {
           </div>
         )}
         <Card className="mb-4 shadow-sm">
-          <Card.Header className="bg-light">
+          <Card.Header className="bg-body-tertiary">
             <div className="d-flex justify-content-between align-items-center">
               <h4 className="mb-0">Active Checkouts</h4>
               {showHelp && (
@@ -162,7 +162,7 @@ const UserCheckouts = () => {
         </Card>
 
         <Card className="shadow-sm">
-          <Card.Header className="bg-light">
+          <Card.Header className="bg-body-tertiary">
             <div className="d-flex justify-content-between align-items-center">
               <h4 className="mb-0">Checkout History</h4>
               {showHelp && (
