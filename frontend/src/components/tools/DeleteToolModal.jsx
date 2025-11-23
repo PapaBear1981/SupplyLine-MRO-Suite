@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faTrash, faArchive } from '@fortawesome/free-solid-svg-icons';
+import api from '../../services/api';
 
 const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
   const [step, setStep] = useState(1); // 1: initial warning, 2: choose action, 3: confirm delete, 4: confirm retire
@@ -28,28 +29,20 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
     setError('');
 
     try {
-      const response = await fetch(`/api/tools/${tool.id}?force_delete=false`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+      const response = await api.delete(`/tools/${tool.id}?force_delete=false`);
 
-      const data = await response.clone().json().catch(() => ({}));
+      // Tool can be deleted without issues
+      setStep(3);
+    } catch (err) {
+      const errorData = err.response?.data || {};
 
-      if (response.ok) {
-        // Tool can be deleted without issues
-        setStep(3);
-      } else if (response.status === 400 && data.has_history) {
+      if (err.response?.status === 400 && errorData.has_history) {
         // Tool has history, show options
-        setToolHistory(data);
+        setToolHistory(errorData);
         setStep(2);
       } else {
-        setError(data.error || `Failed to check tool history (HTTP ${response.status})`);
+        setError(errorData.error || err.message || `Failed to check tool history (HTTP ${err.response?.status || 'unknown'})`);
       }
-    } catch (err) {
-      setError(`Network error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -60,24 +53,12 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
     setError('');
 
     try {
-      const response = await fetch(`/api/tools/${tool.id}?force_delete=${forceDelete}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
-
-      const data = await response.clone().json().catch(() => ({}));
-
-      if (response.ok) {
-        onDelete(tool.id);
-        handleClose();
-      } else {
-        setError(data.error || `Failed to delete tool (HTTP ${response.status})`);
-      }
+      await api.delete(`/tools/${tool.id}?force_delete=${forceDelete}`);
+      onDelete(tool.id);
+      handleClose();
     } catch (err) {
-      setError(`Network error: ${err.message}`);
+      const errorData = err.response?.data || {};
+      setError(errorData.error || err.message || `Failed to delete tool (HTTP ${err.response?.status || 'unknown'})`);
     } finally {
       setLoading(false);
     }
@@ -93,28 +74,16 @@ const DeleteToolModal = ({ show, onHide, tool, onDelete, onRetire }) => {
     setError('');
 
     try {
-      const response = await fetch(`/api/tools/${tool.id}/retire`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          reason: retireReason.trim(),
-          comments: retireComments.trim()
-        })
+      const response = await api.post(`/tools/${tool.id}/retire`, {
+        reason: retireReason.trim(),
+        comments: retireComments.trim()
       });
 
-      const data = await response.clone().json().catch(() => ({}));
-
-      if (response.ok) {
-        onRetire(data.tool);
-        handleClose();
-      } else {
-        setError(data.error || `Failed to retire tool (HTTP ${response.status})`);
-      }
+      onRetire(response.data.tool);
+      handleClose();
     } catch (err) {
-      setError(`Network error: ${err.message}`);
+      const errorData = err.response?.data || {};
+      setError(errorData.error || err.message || `Failed to retire tool (HTTP ${err.response?.status || 'unknown'})`);
     } finally {
       setLoading(false);
     }
