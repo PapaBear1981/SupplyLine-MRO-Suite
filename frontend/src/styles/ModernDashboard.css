@@ -8,12 +8,13 @@
 }
 
 .stat-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-md) !important;
+    background: var(--enterprise-surface-hover) !important;
 }
 
 .quick-link-card {
