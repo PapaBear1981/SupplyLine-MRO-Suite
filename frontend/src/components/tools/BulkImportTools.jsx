@@ -4,7 +4,7 @@ import { Button, Toast, ToastContainer } from 'react-bootstrap';
 import BulkImportModal from '../common/BulkImportModal';
 import { fetchTools } from '../../store/toolsSlice';
 
-const BulkImportTools = ({ onImportComplete }) => {
+const BulkImportTools = ({ onImportComplete, triggerId }) => {
   const dispatch = useDispatch();
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -101,6 +101,7 @@ const BulkImportTools = ({ onImportComplete }) => {
         variant="outline-primary"
         onClick={() => setShowModal(true)}
         className="me-2"
+        id={triggerId}
       >
         <i className="bi bi-upload me-2"></i>
         Bulk Import Tools
