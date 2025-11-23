@@ -266,7 +266,7 @@ const ChemicalListNew = () => {
     return (
         <div className="space-y-4">
             <Card>
-                <CardHeader className="pb-3">
+                <CardHeader className="bg-muted/50 pb-3">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
