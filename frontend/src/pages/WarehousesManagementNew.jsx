@@ -190,7 +190,7 @@ const WarehousesManagementNew = () => {
 
   const WarehouseCard = ({ warehouse }) => (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+      className="cursor-pointer hover:shadow-lg transition-shadow hover:bg-gray-50 dark:hover:bg-gray-800/50"
       onClick={() => handleViewDetails(warehouse)}
     >
       <CardHeader>
