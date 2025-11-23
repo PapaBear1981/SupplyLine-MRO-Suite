@@ -149,3 +149,5 @@ When pulling a PR for testing, always follow these steps:
 **Important:** Always check for new migration files in the PR and run them to ensure the database schema is up to date. Migrations are idempotent and safe to run multiple times.
 
 **Important:** When adding new features, keep in mind that the application is FORBIDDEN from including any kind of cost information.  Never include a cost field of any kind. 
+
+**Important** Never delete the Docker database volume without explicitly backing up the database.  The `safe_update.sh` script will automatically create a backup before updating the database.  If you need to manually backup the database, you can use the `database_backup.py` utility in the `backend/utils` directory.  See the `README.md` file in that directory for more information.

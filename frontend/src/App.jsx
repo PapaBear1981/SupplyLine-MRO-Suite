@@ -26,7 +26,6 @@ import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/P
 // Import pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import LoginPageNew from './pages/LoginPageNew';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
 import DirectoryPage from './pages/DirectoryPage';
@@ -150,6 +149,12 @@ function App() {
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-bs-theme', theme);
+    // Also toggle dark class for Tailwind dark mode
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [theme]);
 
   return (
@@ -171,7 +176,7 @@ function App() {
           <GlobalHotkeys />
           <Routes>
             {/* Public routes */}
-            <Route path="/login" element={<LoginPageNew />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
             {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}

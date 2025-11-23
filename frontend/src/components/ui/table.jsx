@@ -51,16 +51,28 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
 ))
 TableRow.displayName = "TableRow"
 
-const TableHead = React.forwardRef(({ className, ...props }, ref) => (
-    <th
-        ref={ref}
-        className={cn(
-            "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-            className
-        )}
-        {...props}
-    />
-))
+const TableHead = React.forwardRef(({ className, style, ...props }, ref) => {
+    const [isHovered, setIsHovered] = React.useState(false);
+    const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+
+    return (
+        <th
+            ref={ref}
+            className={cn(
+                "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+                "transition-colors",
+                className
+            )}
+            style={{
+                ...style,
+                backgroundColor: isHovered ? (isDark ? '#1f2937' : '#f3f4f6') : 'transparent'
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            {...props}
+        />
+    );
+})
 TableHead.displayName = "TableHead"
 
 const TableCell = React.forwardRef(({ className, ...props }, ref) => (

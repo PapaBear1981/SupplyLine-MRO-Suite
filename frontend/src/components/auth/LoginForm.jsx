@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { Eye, EyeSlash } from 'react-bootstrap-icons';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { login } from '../../store/authSlice';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Alert, AlertDescription } from '../ui/alert';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
@@ -16,17 +19,14 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const form = e.currentTarget;
 
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
+    if (!username || !password) {
       setValidated(true);
       return;
     }
 
     setValidated(true);
 
-    // Use the actual backend login API
     try {
       await dispatch(login({ username, password })).unwrap();
     } catch (err) {
@@ -35,96 +35,99 @@ const LoginForm = () => {
   };
 
   return (
-    <Form noValidate validated={validated} onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="login-alert login-alert-danger">
-          {error.message || error.error || 'Login failed. Please try again.'}
-        </div>
+        <Alert variant="destructive" className="animate-slide-up">
+          <AlertDescription>
+            {error.message || error.error || 'Login failed. Please try again.'}
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div className="login-form-group">
-        <label htmlFor="formUsername" className="login-form-label">
+      <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
+        <Label htmlFor="username" className="text-sm font-medium">
           Employee Number
-        </label>
-        <div className="login-input-wrapper">
-          <input
-            id="formUsername"
-            type="text"
-            className={`login-form-control ${validated && !username ? 'is-invalid' : ''}`}
-            placeholder="Enter your employee number"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            autoComplete="username"
-          />
-        </div>
+        </Label>
+        <Input
+          id="username"
+          type="text"
+          placeholder="Enter your employee number"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className={`transition-all ${validated && !username ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+          required
+          autoComplete="username"
+        />
         {validated && !username && (
-          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <p className="text-xs text-destructive animate-slide-up">
             Please provide your employee number.
-          </div>
+          </p>
         )}
       </div>
 
-      <div className="login-form-group">
-        <label htmlFor="formPassword" className="login-form-label">
+      <div className="space-y-2 animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
+        <Label htmlFor="password" className="text-sm font-medium">
           Password
-        </label>
-        <div className="login-input-wrapper">
-          <input
-            id="formPassword"
+        </Label>
+        <div className="relative">
+          <Input
+            id="password"
             type={showPassword ? 'text' : 'password'}
-            className={`login-form-control ${validated && !password ? 'is-invalid' : ''}`}
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className={`pr-10 transition-all ${validated && !password ? 'border-destructive focus-visible:ring-destructive' : ''}`}
             required
             autoComplete="current-password"
-            style={{ paddingRight: '3rem' }}
           />
           <button
             type="button"
-            className="password-toggle-btn"
             onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
         {validated && !password && (
-          <div className="invalid-feedback d-block" style={{ color: '#ff6b6b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <p className="text-xs text-destructive animate-slide-up">
             Please provide a password.
-          </div>
+          </p>
         )}
       </div>
 
-      <div className="login-checkbox-wrapper">
+      <div className="flex items-center space-x-2 animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
         <input
-          id="formRememberMe"
+          id="rememberMe"
           type="checkbox"
-          className="login-checkbox"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
+          className="h-4 w-4 rounded border-input bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         />
-        <label htmlFor="formRememberMe" className="login-checkbox-label">
+        <Label
+          htmlFor="rememberMe"
+          className="text-sm font-normal cursor-pointer select-none"
+        >
           Remember me
-        </label>
+        </Label>
       </div>
 
-      <button
+      <Button
         type="submit"
-        className="login-submit-btn"
+        className="w-full animate-slide-up transition-all hover:scale-[1.02] active:scale-[0.98]"
+        style={{ animationDelay: '0.4s', animationFillMode: 'backwards' }}
         disabled={loading}
       >
         {loading ? (
           <>
-            <span className="login-spinner"></span>
-            <span>Logging in...</span>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Logging in...
           </>
         ) : (
           'Login'
         )}
-      </button>
-    </Form>
+      </Button>
+    </form>
   );
 };
 

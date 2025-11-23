@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import { Plus, ArrowLeftRight, Upload } from 'lucide-react';
-import ChemicalList from '../components/chemicals/ChemicalList';
+import ChemicalListNew from '../components/chemicals/ChemicalListNew';
 import ArchivedChemicalsList from '../components/chemicals/ArchivedChemicalsList';
 import BulkImportChemicals from '../components/chemicals/BulkImportChemicals';
 import ChemicalReturnModal from '../components/chemicals/ChemicalReturnModal';
@@ -84,7 +84,7 @@ const ChemicalsManagementNew = () => {
         </TabsList>
 
         <TabsContent value="active" className="mt-6">
-          <ChemicalList />
+          <ChemicalListNew />
         </TabsContent>
 
         <TabsContent value="archived" className="mt-6">

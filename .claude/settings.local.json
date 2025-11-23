@@ -63,7 +63,11 @@
       "Bash(sqlite3:*)",
       "Bash(py:*)",
       "Bash(gh pr create:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(Select-String \"check\")",
+      "Bash(docker restart:*)",
+      "Bash(cat:*)",
+      "Bash(docker-compose restart:*)"
     ],
     "deny": [],
     "ask": []
