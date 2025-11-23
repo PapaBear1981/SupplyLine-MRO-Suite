@@ -404,7 +404,7 @@ const RequestsPage = () => {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-warning" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('attention')}>
+          <Card className="h-100 shadow-sm border-warning bg-body" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('attention')}>
             <Card.Body>
               <div className="d-flex align-items-center gap-3 mb-3">
                 <FaInfoCircle className="text-warning" size={28} />
