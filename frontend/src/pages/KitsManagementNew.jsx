@@ -83,7 +83,7 @@ const KitsManagementNew = () => {
 
     return (
       <Card
-        className="group cursor-pointer transition-all duration-200 hover:shadow-lg dark:hover:shadow-primary/25 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        className="group cursor-pointer transition-all duration-200 hover:shadow-lg dark:hover:shadow-primary/25 hover:bg-accent/10"
         onClick={() => navigate(`/kits/${kit.id}`)}
         data-testid="kit-card"
       >
