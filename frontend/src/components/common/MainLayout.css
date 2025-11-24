@@ -78,9 +78,26 @@
 
 /* Sidebar User Section */
 .sidebar-user-section {
-  padding: 1rem 0;
+  padding: 1.5rem 0 0 0;
   margin-top: auto;
-  border-top: 1px solid var(--enterprise-border);
+  /* Removed border-top to eliminate black bar between navigation and user button */
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  background: transparent;
+  outline: none !important;
+}
+
+/* Prevent any visual artifacts on user section hover/focus */
+.sidebar-user-section:hover,
+.sidebar-user-section:focus,
+.sidebar-user-section::before,
+.sidebar-user-section::after {
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  content: none !important;
 }
 
 .sidebar-user-btn {
@@ -136,10 +153,23 @@
 .sidebar-nav {
   flex: 1;
   padding: 0.5rem 0;
+  padding-bottom: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  border: none !important;
+  margin-bottom: 0;
+}
+
+/* Remove any borders from Nav items */
+.sidebar-nav .nav-item,
+.sidebar-nav .nav-item::after,
+.sidebar-nav .nav-item::before {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 /* Sidebar Navigation Links */
@@ -156,14 +186,48 @@
   font-size: 0.95rem;
   font-weight: 500;
   margin: 0;
-  border: none;
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
   /* Remove left border style */
+}
+
+/* Remove borders from last nav link */
+.sidebar .nav-link:last-child,
+.sidebar-nav > :last-child {
+  border: none !important;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
+
+/* Remove all focus/outline states */
+.sidebar .nav-link:focus,
+.sidebar .nav-link:focus-visible,
+.sidebar-nav:focus,
+.sidebar-nav:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .sidebar .nav-link:hover {
   color: var(--enterprise-text);
   background-color: var(--enterprise-surface-hover);
   transform: translateX(2px);
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure no borders appear between nav and user section on any state */
+.sidebar-nav:hover,
+.sidebar-nav:focus,
+.sidebar-nav::after,
+.sidebar-nav::before {
+  border: none !important;
+  border-bottom: none !important;
+  content: none !important;
 }
 
 .sidebar .nav-link.active {
@@ -265,8 +329,9 @@
   background-color: #f8f9fa;
 }
 
+/* Light mode user section - border removed to match dark mode */
 [data-bs-theme="light"] .sidebar-user-section {
-  border-top-color: #dee2e6;
+  /* border-top removed */
 }
 
 [data-bs-theme="light"] .sidebar-user-btn {
