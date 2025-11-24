@@ -36,8 +36,8 @@
 
 [data-bs-theme="dark"] {
   /* Metploy Palette - Dark Mode */
-  --enterprise-bg: #111111;
-  /* Deep Matte Black */
+  --enterprise-bg: #212529;
+  /* Dark Mode Background */
   --enterprise-surface: #1C1C1C;
   /* Dark Grey Surface */
   --enterprise-surface-hover: #252525;
@@ -184,4 +184,87 @@ h6 {
   color: #ffffff;
   background-color: var(--enterprise-accent);
   box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+/* Fixed background colors for dashboard cards (same in light/dark mode) */
+.bg-primary-static,
+.card.bg-primary-static,
+.card-body.bg-primary-static {
+  background-color: #0d6efd !important;
+}
+
+.bg-success-static,
+.card.bg-success-static,
+.card-body.bg-success-static {
+  background-color: #198754 !important;
+}
+
+.bg-info-static,
+.card.bg-info-static,
+.card-body.bg-info-static {
+  background-color: #0dcaf0 !important;
+}
+
+.bg-warning-static,
+.card.bg-warning-static,
+.card-body.bg-warning-static {
+  background-color: #ffc107 !important;
+}
+
+.bg-danger-static,
+.card.bg-danger-static,
+.card-body.bg-danger-static {
+  background-color: #dc3545 !important;
+}
+
+/* Ensure static colors work in dark mode with higher specificity */
+[data-bs-theme="dark"] .bg-primary-static,
+[data-bs-theme="dark"] .card.bg-primary-static,
+[data-bs-theme="dark"] .card-body.bg-primary-static {
+  background-color: #0d6efd !important;
+}
+
+[data-bs-theme="dark"] .bg-success-static,
+[data-bs-theme="dark"] .card.bg-success-static,
+[data-bs-theme="dark"] .card-body.bg-success-static {
+  background-color: #198754 !important;
+}
+
+[data-bs-theme="dark"] .bg-info-static,
+[data-bs-theme="dark"] .card.bg-info-static,
+[data-bs-theme="dark"] .card-body.bg-info-static {
+  background-color: #0dcaf0 !important;
+}
+
+[data-bs-theme="dark"] .bg-warning-static,
+[data-bs-theme="dark"] .card.bg-warning-static,
+[data-bs-theme="dark"] .card-body.bg-warning-static {
+  background-color: #ffc107 !important;
+}
+
+[data-bs-theme="dark"] .bg-danger-static,
+[data-bs-theme="dark"] .card.bg-danger-static,
+[data-bs-theme="dark"] .card-body.bg-danger-static {
+  background-color: #dc3545 !important;
+}
+
+/* Fix card-body background when parent card has static color in dark mode */
+[data-bs-theme="dark"] .card.bg-primary-static .card-body {
+  background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .card.bg-success-static .card-body {
+  background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .card.bg-info-static .card-body {
+  background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .card.bg-warning-static .card-body {
+  background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .card.bg-danger-static .card-body {
+  background-color: transparent !important;
 }

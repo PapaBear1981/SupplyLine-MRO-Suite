@@ -6,6 +6,9 @@ import { fetchCurrentUser } from './store/authSlice';
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Import theme CSS AFTER Bootstrap to override Bootstrap styles
+import './styles/theme.css';
+
 // Import react-toastify CSS and ToastContainer
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

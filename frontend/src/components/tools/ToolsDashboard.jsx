@@ -76,38 +76,38 @@ const ToolsDashboard = () => {
           title="Total Tools"
           value={totalTools}
           icon="tools"
-          bgColor="bg-primary"
+          bgColor="bg-primary-static"
         />
         <StatCard
           title="Available"
           value={availableTools}
           icon="check-circle"
-          bgColor="bg-success"
+          bgColor="bg-success-static"
         />
         <StatCard
           title="Checked Out"
           value={checkedOutTools}
           icon="person-fill"
-          bgColor="bg-info"
+          bgColor="bg-info-static"
         />
         <StatCard
           title="Maintenance"
           value={maintenanceTools}
           icon="wrench"
-          bgColor="bg-warning"
+          bgColor="bg-warning-static"
           textColor="text-dark"
         />
         <StatCard
           title="Overdue Checkouts"
           value={overdueCheckouts}
           icon="exclamation-triangle"
-          bgColor="bg-danger"
+          bgColor="bg-danger-static"
         />
         <StatCard
           title="Overdue Calibrations"
           value={calibrationStats.overdue}
           icon="calendar-x"
-          bgColor="bg-danger"
+          bgColor="bg-danger-static"
         />
       </Row>
     </div>
