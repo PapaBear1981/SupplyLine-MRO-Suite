@@ -159,7 +159,20 @@ const MainLayout = ({ children }) => {
                 </Nav.Link>
               )}
 
-              {hasPermission(user, 'page.checkouts') && (
+              {/* CHECKOUTS AND CALIBRATIONS - INTEGRATED INTO TOOLS PAGE */}
+              {/* ======================================================== */}
+              {/* Checkouts and Calibrations have been integrated into the Tools page as tabs */}
+              {/* Users can now access: */}
+              {/* - Checkouts via /tools?tab=my-checkouts or /tools?tab=all-checkouts */}
+              {/* - Calibrations via /tools?tab=calibrations */}
+              {/* */}
+              {/* The standalone /checkouts and /calibrations routes still exist for backward compatibility */}
+              {/* but are no longer shown in the main navigation to reduce clutter. */}
+              {/* */}
+              {/* Date integrated: 2025-11-23 */}
+              {/* */}
+              {/* Old navigation links (commented out): */}
+              {/* {hasPermission(user, 'page.checkouts') && (
                 <Nav.Link
                   as={Link}
                   to="/checkouts"
@@ -168,7 +181,17 @@ const MainLayout = ({ children }) => {
                   <i className="bi bi-box-arrow-right"></i>
                   {!sidebarCollapsed && <span>Checkouts</span>}
                 </Nav.Link>
-              )}
+              )} */}
+              {/* {hasPermission(user, 'page.calibrations') && (
+                <Nav.Link
+                  as={Link}
+                  to="/calibrations"
+                  className={location.pathname === '/calibrations' ? 'active' : ''}
+                >
+                  <i className="bi bi-sliders"></i>
+                  {!sidebarCollapsed && <span>Calibrations</span>}
+                </Nav.Link>
+              )} */}
 
               {hasPermission(user, 'page.kits') && (
                 <Nav.Link
@@ -189,17 +212,6 @@ const MainLayout = ({ children }) => {
                 >
                   <i className="bi bi-droplet"></i>
                   {!sidebarCollapsed && <span>Chemicals</span>}
-                </Nav.Link>
-              )}
-
-              {hasPermission(user, 'page.calibrations') && (
-                <Nav.Link
-                  as={Link}
-                  to="/calibrations"
-                  className={location.pathname === '/calibrations' ? 'active' : ''}
-                >
-                  <i className="bi bi-sliders"></i>
-                  {!sidebarCollapsed && <span>Calibrations</span>}
                 </Nav.Link>
               )}
 
@@ -355,19 +367,19 @@ const MainLayout = ({ children }) => {
           },
           {
             title: 'Navigation',
-            content: 'The navigation sidebar on the left provides access to all main sections of the application, including Tools, Checkouts, Chemicals, and more. You can collapse it using the menu button.'
+            content: 'The navigation sidebar on the left provides access to all main sections of the application, including Tools, Kits, Chemicals, and more. You can collapse it using the menu button.'
           },
           {
             title: 'Tool Management',
-            content: 'The Tools section allows you to view, search, and manage all tools in the inventory. You can checkout tools, view their details, and track their status.'
+            content: 'The Tools section is your central hub for all tool-related operations. Use the tabs to access tool inventory, checkouts, calibrations, and transaction history - all in one place!'
           },
           {
-            title: 'Checkout System',
-            content: 'The Checkouts section shows tools that are currently checked out to users. You can return tools, view checkout history, and manage your checkouts.'
+            title: 'Dashboard Overview',
+            content: 'The Tools page includes a dashboard showing key metrics like total tools, available tools, checkouts, and overdue calibrations. This gives you an at-a-glance view of your inventory status.'
           },
           {
-            title: 'Cycle Count',
-            content: 'The Cycle Count section allows you to manage inventory counts, create count schedules, and track discrepancies to maintain accurate inventory records.'
+            title: 'Tabbed Interface',
+            content: 'Use the tabs to quickly switch between Tools, My Checkouts, All Checkouts (admin), Calibrations (admin), and Recent Transactions. Everything is organized and easy to find.'
           },
           {
             title: 'Help Features',
