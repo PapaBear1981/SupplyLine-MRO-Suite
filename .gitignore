@@ -93,3 +93,10 @@ backend/check_*.py
 
 # Uploaded order documentation
 backend/static/order_documents/
+
+# AI/Code assistant directories
+.codex/
+.specify/
+.claude/
+supplyline_mro_suite/.codex/
+supplyline_mro_suite/.specify/
