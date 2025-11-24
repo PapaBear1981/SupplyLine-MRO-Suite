@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Button, Alert, Tab, Nav, Row, Col } from 'react-bootstrap';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ToolList from '../components/tools/ToolList';
 import BulkImportTools from '../components/tools/BulkImportTools';
 import ToolsDashboard from '../components/tools/ToolsDashboard';
@@ -21,12 +21,12 @@ const ToolsManagement = () => {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isAdmin = user?.is_admin || user?.department === 'Materials';
   const unauthorized = location.state?.unauthorized;
 
   // Get tab from URL query parameter or default to 'tools'
-  const queryParams = new URLSearchParams(location.search);
-  const tabParam = queryParams.get('tab');
+  const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabParam || 'tools');
 
   // Update active tab when URL query parameter changes
@@ -39,6 +39,12 @@ const ToolsManagement = () => {
 
   // Sub-tab for calibrations
   const [calibrationTab, setCalibrationTab] = useState('due');
+
+  // Handle tab selection - update both state and URL
+  const handleTabSelect = (key) => {
+    setActiveTab(key);
+    setSearchParams({ tab: key }, { replace: true });
+  };
 
   // Load data on mount
   useEffect(() => {
@@ -97,7 +103,7 @@ const ToolsManagement = () => {
       <ToolsDashboard />
 
       {/* Tabs */}
-      <Tab.Container id="tools-tabs" activeKey={activeTab} onSelect={setActiveTab}>
+      <Tab.Container id="tools-tabs" activeKey={activeTab} onSelect={handleTabSelect}>
         <Nav variant="tabs" className="mb-3">
           <Nav.Item>
             <Nav.Link eventKey="tools">
