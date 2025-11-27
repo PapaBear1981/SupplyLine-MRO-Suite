@@ -4,7 +4,6 @@
     --dashboard-primary: #4f46e5;
     --dashboard-secondary: #818cf8;
     --dashboard-accent: #c084fc;
-    --dashboard-bg-gradient: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
     --glass-bg: rgba(255, 255, 255, 0.7);
     --glass-border: rgba(255, 255, 255, 0.5);
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
@@ -14,7 +13,6 @@
 }
 
 [data-bs-theme='dark'] {
-    --dashboard-bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     --glass-bg: rgba(30, 41, 59, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
@@ -23,9 +21,7 @@
 }
 
 .modern-dashboard {
-    min-height: 100vh;
     padding: 2rem;
-    background: var(--dashboard-bg-gradient);
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
 }

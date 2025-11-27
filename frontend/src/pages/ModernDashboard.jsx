@@ -15,7 +15,6 @@ import {
     Search,
     Settings,
     ShoppingCart,
-    Tool,
     TrendingUp,
     User,
     Users,
@@ -149,9 +148,9 @@ const ModernDashboard = () => {
     };
 
     return (
-        <div className="modern-dashboard">
+        <div className="w-100">
             <motion.div
-                className="dashboard-content"
+                className="modern-dashboard"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
