@@ -18,6 +18,7 @@ import {
   FaClipboardList,
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import StatCard from '../components/common/StatCard';
 import {
   fetchOrders,
   createOrder,
@@ -82,6 +83,7 @@ const STATUS_VARIANTS = {
 const OrderManagementPage = () => {
   const dispatch = useDispatch();
   const {
+    list: orders,
     messages,
     selectedOrder,
     messageActionLoading,
@@ -112,6 +114,14 @@ const OrderManagementPage = () => {
     if (!selectedOrder) return [];
     return messages[selectedOrder.id] || [];
   }, [messages, selectedOrder]);
+
+  // Calculate order statistics
+  const totalOrders = orders.length;
+  const inProgressOrders = orders.filter(o => o.status === 'in_progress').length;
+  const orderedOrders = orders.filter(o => o.status === 'ordered').length;
+  const shippedOrders = orders.filter(o => o.status === 'shipped').length;
+  const receivedOrders = orders.filter(o => o.status === 'received').length;
+  const needsAttentionOrders = orders.filter(o => o.needs_more_info).length;
 
   useEffect(() => {
     dispatch(fetchUsers()).catch(() => {});
@@ -306,6 +316,52 @@ const OrderManagementPage = () => {
           Create Order
         </Button>
       </div>
+
+      <Row className="g-3 mb-4">
+        <StatCard
+          title="Total Orders"
+          value={totalOrders}
+          icon="clipboard-check"
+          bgColor="bg-primary-static"
+          size="md"
+        />
+        <StatCard
+          title="In Progress"
+          value={inProgressOrders}
+          icon="arrow-repeat"
+          bgColor="bg-info-static"
+          size="md"
+        />
+        <StatCard
+          title="Ordered"
+          value={orderedOrders}
+          icon="cart-check"
+          bgColor="bg-success-static"
+          size="md"
+        />
+        <StatCard
+          title="Shipped"
+          value={shippedOrders}
+          icon="truck"
+          bgColor="bg-info-static"
+          size="md"
+        />
+        <StatCard
+          title="Received"
+          value={receivedOrders}
+          icon="check-circle"
+          bgColor="bg-success-static"
+          size="md"
+        />
+        <StatCard
+          title="Needs Attention"
+          value={needsAttentionOrders}
+          icon="exclamation-triangle"
+          bgColor="bg-warning-static"
+          textColor="text-dark"
+          size="md"
+        />
+      </Row>
 
       <Card>
         <Card.Body>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Card, Row, Col, Spinner } from 'react-bootstrap';
+import { Row } from 'react-bootstrap';
 import api from '../../services/api';
+import StatCard from '../common/StatCard';
 
 const ToolsDashboard = () => {
   const { tools } = useSelector((state) => state.tools);
@@ -45,30 +46,6 @@ const ToolsDashboard = () => {
     c.expected_return_date && new Date(c.expected_return_date) < new Date()
   ).length;
 
-  const StatCard = ({ title, value, icon, bgColor, textColor = 'text-white' }) => (
-    <Col xs={12} sm={6} md={4} lg={2}>
-      <Card className={`${bgColor} ${textColor} shadow-sm h-100`}>
-        <Card.Body className="d-flex flex-column justify-content-between">
-          <div className="d-flex justify-content-between align-items-start mb-2">
-            <div>
-              <h6 className="mb-0 text-uppercase small">{title}</h6>
-            </div>
-            <i className={`bi bi-${icon} fs-3 opacity-50`}></i>
-          </div>
-          <div>
-            <h2 className="mb-0 fw-bold">
-              {loading && (title.includes('Calibration') || title.includes('Overdue')) ? (
-                <Spinner animation="border" size="sm" />
-              ) : (
-                value
-              )}
-            </h2>
-          </div>
-        </Card.Body>
-      </Card>
-    </Col>
-  );
-
   return (
     <div className="mb-4">
       <Row className="g-3">
@@ -108,6 +85,7 @@ const ToolsDashboard = () => {
           value={calibrationStats.overdue}
           icon="calendar-x"
           bgColor="bg-danger-static"
+          loading={loading}
         />
       </Row>
     </div>

@@ -14,7 +14,8 @@ import {
   Alert,
   Table,
 } from 'react-bootstrap';
-import { FaClipboardList, FaPaperPlane, FaPlusCircle, FaInfoCircle, FaCheckCircle, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaBoxes, FaTruck, FaFlask, FaSuitcase } from 'react-icons/fa';
+import { FaClipboardList, FaPaperPlane, FaEdit, FaTimes, FaSync, FaEnvelope, FaTrash, FaPlus, FaTruck, FaFlask, FaSuitcase } from 'react-icons/fa';
+import StatCard from '../components/common/StatCard';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import {
@@ -348,63 +349,36 @@ const RequestsPage = () => {
         </div>
       </div>
 
-      <Row className="g-4 mb-4">
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body>
-              <div className="d-flex align-items-center gap-3 mb-3">
-                <FaPlusCircle className="text-primary" size={28} />
-                <div>
-                  <h5 className="mb-0">Open Requests</h5>
-                  <small className="text-muted">Awaiting processing</small>
-                </div>
-              </div>
-              <h2 className="display-6 fw-bold mb-0">{openRequests}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm border-warning" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('attention')}>
-            <Card.Body>
-              <div className="d-flex align-items-center gap-3 mb-3">
-                <FaInfoCircle className="text-warning" size={28} />
-                <div>
-                  <h5 className="mb-0">Needs Attention</h5>
-                  <small className="text-muted">Requests needing more info</small>
-                </div>
-              </div>
-              <h2 className="display-6 fw-bold mb-0 text-warning">{needsAttentionRequests.length}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body>
-              <div className="d-flex align-items-center gap-3 mb-3">
-                <FaBoxes className="text-info" size={28} />
-                <div>
-                  <h5 className="mb-0">Total Items</h5>
-                  <small className="text-muted">Across all requests</small>
-                </div>
-              </div>
-              <h2 className="display-6 fw-bold mb-0">{totalItemsRequested}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="h-100 shadow-sm">
-            <Card.Body>
-              <div className="d-flex align-items-center gap-3 mb-3">
-                <FaCheckCircle className="text-success" size={28} />
-                <div>
-                  <h5 className="mb-0">Completed</h5>
-                  <small className="text-muted">Fully received</small>
-                </div>
-              </div>
-              <h2 className="display-6 fw-bold mb-0">{completedRequests}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
+      <Row className="g-3 mb-4">
+        <StatCard
+          title="Open Requests"
+          value={openRequests}
+          icon="clipboard-plus"
+          bgColor="bg-primary-static"
+          size="lg"
+        />
+        <StatCard
+          title="Needs Attention"
+          value={needsAttentionRequests.length}
+          icon="exclamation-circle"
+          bgColor="bg-warning-static"
+          textColor="text-dark"
+          size="lg"
+        />
+        <StatCard
+          title="Total Items"
+          value={totalItemsRequested}
+          icon="box-seam"
+          bgColor="bg-info-static"
+          size="lg"
+        />
+        <StatCard
+          title="Completed"
+          value={completedRequests}
+          icon="check-circle"
+          bgColor="bg-success-static"
+          size="lg"
+        />
       </Row>
 
       <Card>
