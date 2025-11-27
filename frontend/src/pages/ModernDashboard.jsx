@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Form, InputGroup, Dropdown, ButtonGroup } from 'react-bootstrap';
 import {
     Activity,
     AlertCircle,
@@ -18,7 +19,10 @@ import {
     TrendingUp,
     User,
     Users,
-    Wrench
+    Wrench,
+    Filter,
+    Beaker,
+    Briefcase
 } from 'lucide-react';
 import { fetchUserCheckouts } from '../store/checkoutsSlice';
 import { fetchOrders } from '../store/ordersSlice';
@@ -66,11 +70,18 @@ const ActivityChart = ({ data }) => {
 
 const ModernDashboard = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { user } = useSelector((state) => state.auth);
     const { userCheckouts } = useSelector((state) => state.checkouts);
     const { list: orders } = useSelector((state) => state.orders);
     const [activities, setActivities] = useState([]);
     const [loadingActivity, setLoadingActivity] = useState(true);
+
+    // Search and Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activityType, setActivityType] = useState('user'); // user, kit, chemical, orders, requests, checkouts
+    const [timeRange, setTimeRange] = useState('week'); // week, month, quarter, year
+    const [chartData, setChartData] = useState([]);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -79,19 +90,86 @@ const ModernDashboard = () => {
         if (user?.is_admin) {
             dispatch(fetchRegistrationRequests('pending'));
         }
+    }, [dispatch, user]);
 
-        const fetchActivity = async () => {
+    // Fetch activity data based on selected type and time range
+    useEffect(() => {
+        const fetchActivityData = async () => {
+            setLoadingActivity(true);
             try {
-                const response = await api.get('/user/activity');
-                setActivities(response.data);
+                let endpoint = '/user/activity';
+                const params = { timeRange };
+
+                // Determine endpoint based on activity type
+                switch (activityType) {
+                    case 'kit':
+                        endpoint = '/kits/activity';
+                        break;
+                    case 'chemical':
+                        endpoint = '/chemicals/activity';
+                        break;
+                    case 'orders':
+                        endpoint = '/orders';
+                        break;
+                    case 'requests':
+                        endpoint = '/user-requests';
+                        break;
+                    case 'checkouts':
+                        endpoint = '/checkouts';
+                        break;
+                    default:
+                        endpoint = '/user/activity';
+                }
+
+                const response = await api.get(endpoint, { params });
+                const data = response.data;
+
+                // Process data for activities list
+                setActivities(Array.isArray(data) ? data : data.activities || []);
+
+                // Generate chart data based on response
+                generateChartData(data, timeRange);
             } catch (error) {
-                console.error('Failed to fetch activity', error);
+                console.error('Failed to fetch activity data', error);
+                setActivities([]);
+                setChartData([]);
             } finally {
                 setLoadingActivity(false);
             }
         };
-        fetchActivity();
-    }, [dispatch, user]);
+
+        fetchActivityData();
+    }, [activityType, timeRange]);
+
+    // Generate chart data from activity data
+    const generateChartData = (data, range) => {
+        // For now, generate mock data based on time range
+        // In a real implementation, this would process the actual data
+        const labels = range === 'week'
+            ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            : range === 'month'
+            ? ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+            : range === 'quarter'
+            ? ['Month 1', 'Month 2', 'Month 3']
+            : ['Q1', 'Q2', 'Q3', 'Q4'];
+
+        const mockData = labels.map((label, i) => ({
+            day: label,
+            value: Math.floor(Math.random() * 10) + 1
+        }));
+
+        setChartData(mockData);
+    };
+
+    // Global search handler
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+
+        // Navigate to appropriate page based on search query
+        // This is a simple implementation - could be enhanced with actual search API
+        navigate(`/history?search=${encodeURIComponent(searchQuery)}`);
+    };
 
     // Derived State
     const activeCheckouts = useMemo(() =>
@@ -110,16 +188,25 @@ const ModernDashboard = () => {
         orders.filter(o => o.requester_id === user?.id && !['received', 'cancelled'].includes(o.status)),
         [orders, user]);
 
-    // Mock Chart Data (replace with real analytics later)
-    const chartData = [
-        { day: 'Mon', value: 3 },
-        { day: 'Tue', value: 5 },
-        { day: 'Wed', value: 2 },
-        { day: 'Thu', value: 8 },
-        { day: 'Fri', value: 4 },
-        { day: 'Sat', value: 6 },
-        { day: 'Sun', value: 9 },
+    // Activity type options
+    const activityTypes = [
+        { value: 'user', label: 'User Activity', icon: User },
+        { value: 'checkouts', label: 'Tool Checkouts', icon: Wrench },
+        { value: 'kit', label: 'Kit Activity', icon: Briefcase },
+        { value: 'chemical', label: 'Chemical Activity', icon: Beaker },
+        { value: 'orders', label: 'Orders', icon: ShoppingCart },
+        { value: 'requests', label: 'Requests', icon: FileText },
     ];
+
+    const timeRanges = [
+        { value: 'week', label: 'This Week' },
+        { value: 'month', label: 'This Month' },
+        { value: 'quarter', label: 'This Quarter' },
+        { value: 'year', label: 'This Year' },
+    ];
+
+    const currentActivityType = activityTypes.find(t => t.value === activityType);
+    const currentTimeRange = timeRanges.find(t => t.value === timeRange);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -155,6 +242,24 @@ const ModernDashboard = () => {
                 initial="hidden"
                 animate="visible"
             >
+                {/* Global Search Section */}
+                <motion.div className="mb-4" variants={itemVariants}>
+                    <Form onSubmit={handleSearch}>
+                        <InputGroup size="lg" className="global-search-input">
+                            <InputGroup.Text className="bg-transparent">
+                                <Search size={20} />
+                            </InputGroup.Text>
+                            <Form.Control
+                                type="text"
+                                placeholder="Search tools, kits, chemicals, orders, or history..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="border-start-0"
+                            />
+                        </InputGroup>
+                    </Form>
+                </motion.div>
+
                 {/* Header Section */}
                 <motion.div className="dashboard-header d-flex justify-content-between align-items-end" variants={itemVariants}>
                     <div className="welcome-text">
@@ -227,14 +332,72 @@ const ModernDashboard = () => {
                     <div className="col-lg-8">
                         {/* Activity Chart Section */}
                         <motion.div className="glass-panel mb-4" variants={itemVariants}>
-                            <div className="d-flex justify-content-between align-items-center mb-4">
-                                <h5 className="mb-0 fw-bold">Weekly Activity</h5>
-                                <select className="form-select form-select-sm w-auto bg-transparent border-0">
-                                    <option>This Week</option>
-                                    <option>Last Week</option>
-                                </select>
+                            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                                <h5 className="mb-0 fw-bold">Activity Overview</h5>
+                                <div className="d-flex gap-2">
+                                    {/* Activity Type Selector */}
+                                    <Dropdown as={ButtonGroup}>
+                                        <Dropdown.Toggle
+                                            variant="outline-primary"
+                                            size="sm"
+                                            className="d-flex align-items-center gap-2"
+                                        >
+                                            {currentActivityType && (
+                                                <>
+                                                    <currentActivityType.icon size={16} />
+                                                    <span>{currentActivityType.label}</span>
+                                                </>
+                                            )}
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            {activityTypes.map((type) => {
+                                                const IconComponent = type.icon;
+                                                return (
+                                                    <Dropdown.Item
+                                                        key={type.value}
+                                                        active={activityType === type.value}
+                                                        onClick={() => setActivityType(type.value)}
+                                                    >
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <IconComponent size={16} />
+                                                            <span>{type.label}</span>
+                                                        </div>
+                                                    </Dropdown.Item>
+                                                );
+                                            })}
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+
+                                    {/* Time Range Selector */}
+                                    <Dropdown as={ButtonGroup}>
+                                        <Dropdown.Toggle
+                                            variant="outline-secondary"
+                                            size="sm"
+                                        >
+                                            {currentTimeRange?.label || 'This Week'}
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            {timeRanges.map((range) => (
+                                                <Dropdown.Item
+                                                    key={range.value}
+                                                    active={timeRange === range.value}
+                                                    onClick={() => setTimeRange(range.value)}
+                                                >
+                                                    {range.label}
+                                                </Dropdown.Item>
+                                            ))}
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                </div>
                             </div>
-                            <ActivityChart data={chartData} />
+                            {chartData.length > 0 ? (
+                                <ActivityChart data={chartData} />
+                            ) : (
+                                <div className="text-center py-5 text-muted">
+                                    <Activity size={48} className="mb-3 opacity-50" />
+                                    <p>No activity data available</p>
+                                </div>
+                            )}
                         </motion.div>
 
                         {/* Recent Activity List */}
