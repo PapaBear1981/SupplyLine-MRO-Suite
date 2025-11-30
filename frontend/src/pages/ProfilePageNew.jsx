@@ -303,21 +303,10 @@ const ProfilePageNew = () => {
             Passwords match
           </Form.Text>
         )}
+        <Form.Text className="text-muted d-block mt-2">
+          Passwords must meet all requirements above and cannot match your last 5 passwords.
+        </Form.Text>
       </Form.Group>
-
-      <div className="bg-light p-3 rounded mb-4">
-        <h6 className="mb-2">
-          <i className="bi bi-info-circle me-2"></i>
-          Password Requirements:
-        </h6>
-        <ul className="mb-0 small">
-          <li>At least 8 characters long</li>
-          <li>Contains uppercase and lowercase letters</li>
-          <li>Contains at least one number</li>
-          <li>Contains at least one special character (!@#$%^&*(),.?":{}|&lt;&gt;)</li>
-          <li>Cannot match your last 5 passwords</li>
-        </ul>
-      </div>
 
       <div className="d-grid">
         <Button

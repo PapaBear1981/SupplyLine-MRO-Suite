@@ -12,53 +12,45 @@ const PasswordStrengthMeter = ({ password, onValidationChange }) => {
     score: 0,
     strength: 'weak',
     feedback: [],
-    isValid: false
+    isValid: false,
+    requirements: []
   });
 
   // Calculate password strength
   useEffect(() => {
-    if (!password) {
-      setStrength({
-        score: 0,
-        strength: 'weak',
-        feedback: ['Enter a password'],
-        isValid: false
-      });
-      if (onValidationChange) onValidationChange(false);
-      return;
-    }
+    const safePassword = password || '';
 
     // Check minimum length
-    const lengthValid = password.length >= 8;
-    
+    const lengthValid = safePassword.length >= 8;
+
     // Check for uppercase letters
-    const uppercaseValid = /[A-Z]/.test(password);
-    
+    const uppercaseValid = /[A-Z]/.test(safePassword);
+
     // Check for lowercase letters
-    const lowercaseValid = /[a-z]/.test(password);
-    
+    const lowercaseValid = /[a-z]/.test(safePassword);
+
     // Check for digits
-    const digitsValid = /\d/.test(password);
-    
+    const digitsValid = /\d/.test(safePassword);
+
     // Check for special characters
-    const specialCharsValid = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const specialCharsValid = /[!@#$%^&*(),.?":{}|<>]/.test(safePassword);
     
     // Calculate score (0-100)
     let score = 0;
-    
+
     // Length contribution (up to 25 points)
-    const lengthScore = Math.min(25, password.length * 2);
+    const lengthScore = Math.min(25, safePassword.length * 2);
     score += lengthScore;
-    
+
     // Character variety contribution (up to 50 points)
     if (uppercaseValid) score += 10;
     if (lowercaseValid) score += 10;
     if (digitsValid) score += 10;
     if (specialCharsValid) score += 20;
-    
+
     // Complexity contribution (up to 25 points)
-    if (new Set(password).size > 6) score += 15; // Unique characters
-    if (password.length > 12) score += 10;
+    if (new Set(safePassword).size > 6) score += 15; // Unique characters
+    if (safePassword.length > 12) score += 10;
     
     // Determine strength category
     let strengthCategory = 'weak';
@@ -72,11 +64,20 @@ const PasswordStrengthMeter = ({ password, onValidationChange }) => {
     
     // Generate feedback
     const feedback = [];
+    if (!safePassword) feedback.push('Enter a password');
     if (!lengthValid) feedback.push('Add more characters (minimum 8)');
     if (!uppercaseValid) feedback.push('Add uppercase letters');
     if (!lowercaseValid) feedback.push('Add lowercase letters');
     if (!digitsValid) feedback.push('Add numbers');
     if (!specialCharsValid) feedback.push('Add special characters (!@#$%^&*(),.?":{}|<>)');
+
+    const requirements = [
+      { label: 'At least 8 characters', met: lengthValid },
+      { label: 'Contains uppercase letters', met: uppercaseValid },
+      { label: 'Contains lowercase letters', met: lowercaseValid },
+      { label: 'Contains at least one number', met: digitsValid },
+      { label: 'Contains at least one special character', met: specialCharsValid }
+    ];
     
     // Check if password is valid (meets all requirements)
     const isValid = lengthValid && uppercaseValid && lowercaseValid && digitsValid && specialCharsValid;
@@ -85,7 +86,8 @@ const PasswordStrengthMeter = ({ password, onValidationChange }) => {
       score,
       strength: strengthCategory,
       feedback,
-      isValid
+      isValid,
+      requirements
     });
     
     if (onValidationChange) onValidationChange(isValid);
@@ -125,12 +127,23 @@ const PasswordStrengthMeter = ({ password, onValidationChange }) => {
         <small>Password Strength:</small>
         <small className={`text-${getVariant()}`}>{getLabel()}</small>
       </div>
-      <ProgressBar 
-        now={strength.score} 
-        variant={getVariant()} 
-        className="mb-2" 
+      <ProgressBar
+        now={strength.score}
+        variant={getVariant()}
+        className="mb-2"
         style={{ height: '8px' }}
       />
+      <div className="small mb-2">
+        {strength.requirements?.map((requirement, index) => (
+          <div
+            key={index}
+            className={`d-flex align-items-center ${requirement.met ? 'text-success' : 'text-muted'}`}
+          >
+            <i className={`bi ${requirement.met ? 'bi-check-circle-fill' : 'bi-circle'} me-2`}></i>
+            <span>{requirement.label}</span>
+          </div>
+        ))}
+      </div>
       {strength.feedback.length > 0 && (
         <Form.Text className="text-muted">
           <ul className="ps-3 mb-0 mt-1">
