@@ -21,6 +21,7 @@ import { HotkeyProvider } from './context/HotkeyContext';
 import MainLayout from './components/common/MainLayout';
 import GlobalHotkeys from './components/common/GlobalHotkeys';
 import ProtectedRoute, { AdminRoute, PermissionRoute } from './components/auth/ProtectedRoute';
+import MobileLayout from './components/mobile/MobileLayout';
 
 // Import pages
 import LandingPage from './pages/LandingPage';
@@ -29,6 +30,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePageNew from './pages/ProfilePageNew';
 import DirectoryPage from './pages/DirectoryPage';
 import UserDashboardPage from './pages/UserDashboardPage';
+import MobileHomePage from './pages/MobileHomePage';
 import ToolsManagement from './pages/ToolsManagement';
 import ToolDetailPage from './pages/ToolDetailPage';
 import NewToolPage from './pages/NewToolPage';
@@ -97,14 +99,15 @@ import AircraftTypeManagement from './components/admin/AircraftTypeManagement';
 import WarehousesManagement from './pages/WarehousesManagement';
 import ItemHistoryPage from './pages/ItemHistoryPage';
 import OrderManagementPage from './pages/OrderManagementPage';
+import useIsMobileDevice from './hooks/useIsMobileDevice';
 
 // Component to handle root route - show landing page for unauthenticated, dashboard for authenticated
-const RootRoute = () => {
+const RootRoute = ({ isMobileDevice }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   // If authenticated and we have user data, redirect to dashboard
   if (isAuthenticated && user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={isMobileDevice ? '/mobile' : '/dashboard'} replace />;
   }
 
   // Otherwise show landing page
@@ -114,6 +117,7 @@ const RootRoute = () => {
 function App() {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.theme);
+  const isMobileDevice = useIsMobileDevice();
 
   useEffect(() => {
     // Always try to fetch current user on app load to check for existing session
@@ -151,15 +155,30 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
 
             {/* Root route - Landing page for unauthenticated, Dashboard for authenticated */}
-            <Route path="/" element={<RootRoute />} />
+            <Route path="/" element={<RootRoute isMobileDevice={isMobileDevice} />} />
 
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <MainLayout>
-                  <UserDashboardPage />
-                </MainLayout>
+                {isMobileDevice ? (
+                  <Navigate to="/mobile" replace />
+                ) : (
+                  <MainLayout>
+                    <UserDashboardPage />
+                  </MainLayout>
+                )}
               </ProtectedRoute>
             } />
+
+            <Route
+              path="/mobile"
+              element={
+                <ProtectedRoute>
+                  <MobileLayout>
+                    <MobileHomePage />
+                  </MobileLayout>
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/directory"
