@@ -13,6 +13,7 @@ from typing import Any
 
 from flask import current_app, has_app_context, jsonify, request, session
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import HTTPException
 
 from .logging_utils import get_request_context
 
@@ -176,6 +177,7 @@ def handle_errors(f):
             )
 
         except DatabaseError as e:
+            _rollback_session()
             duration = (time.time() - start_time) * 1000
             error_reference = _generate_error_reference()
             logger.error(
@@ -200,6 +202,7 @@ def handle_errors(f):
             )
 
         except SQLAlchemyError as e:
+            _rollback_session()
             duration = (time.time() - start_time) * 1000
             error_reference = _generate_error_reference()
             logger.error(
@@ -223,31 +226,33 @@ def handle_errors(f):
             )
 
         except Exception as e:
-            # Handle werkzeug NotFound (from get_or_404)
-            if type(e).__name__ == "NotFound":
+            # Preserve all intentional HTTP failures (including get_or_404)
+            # instead of turning them into misleading 500 responses.
+            if isinstance(e, HTTPException):
                 duration = (time.time() - start_time) * 1000
                 error_reference = _generate_error_reference()
                 logger.warning(
-                    f"Resource not found in {f.__name__}",
+                    f"HTTP {e.code} in {f.__name__}",
                     extra={
                         **context,
                         "operation": f.__name__,
-                        "error_type": "NotFound",
+                        "error_type": type(e).__name__,
                         "duration_ms": round(duration, 2),
                         "error_reference": error_reference
                     }
                 )
                 return _build_error_response(
-                    message="The requested resource could not be found.",
-                    status_code=404,
-                    error_code="not_found",
-                    hint="Verify the identifier or URL and try again.",
+                    message=_default_message_for_code(_status_code_to_error_code(e.code)),
+                    status_code=e.code,
+                    error_code=_status_code_to_error_code(e.code),
+                    hint="Review the request and try again.",
                     reference=error_reference,
                     error=e
                 )
 
             duration = (time.time() - start_time) * 1000
             error_reference = _generate_error_reference()
+            _rollback_session()
             logger.error(
                 f"Unexpected error in {f.__name__}",
                 exc_info=True,
@@ -352,7 +357,19 @@ def setup_global_error_handlers(app):
 
     @app.errorhandler(Exception)
     def handle_exception(e):
+        if isinstance(e, HTTPException):
+            error_reference = _generate_error_reference()
+            return _build_error_response(
+                message=_default_message_for_code(_status_code_to_error_code(e.code)),
+                status_code=e.code,
+                error_code=_status_code_to_error_code(e.code),
+                hint="Review the request and try again.",
+                reference=error_reference,
+                error=e
+            )
+
         error_reference = _generate_error_reference()
+        _rollback_session()
         logger.error(
             f"Unhandled exception: {e!s}",
             exc_info=True,
@@ -372,8 +389,8 @@ def log_security_event(event_type, details, user_id=None, ip_address=None):
     """Log security-related events"""
     from flask import request, session
 
-    user_id = user_id or session.get("user_id", "anonymous")
-    ip_address = ip_address or request.remote_addr
+    user_id = user_id or (session.get("user_id", "anonymous") if has_app_context() else "anonymous")
+    ip_address = ip_address or (request.remote_addr if has_app_context() else None)
 
     logger.warning(f"SECURITY EVENT - Type: {event_type}, User: {user_id}, IP: {ip_address}, Details: {details}")
 
@@ -407,7 +424,23 @@ def _build_error_response(
             "details": str(error)
         }
 
-    return jsonify(payload), status_code
+    response = jsonify(payload)
+    response.status_code = status_code
+    if reference:
+        response.headers["X-Error-Reference"] = reference
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _rollback_session() -> None:
+    """Best-effort rollback so a failed request cannot poison the next one."""
+    if not has_app_context():
+        return
+    try:
+        from models import db
+        db.session.rollback()
+    except Exception:
+        logger.exception("Failed to roll back database session after an error")
 
 
 def _in_debug_mode() -> bool:
@@ -426,12 +459,17 @@ def _status_code_to_error_code(status_code: int) -> str:
         403: "insufficient_permissions",
         404: "not_found",
         405: "method_not_allowed",
+        406: "not_acceptable",
+        408: "request_timeout",
         409: "conflict",
         422: "validation_error",
         429: "rate_limit_exceeded",
+        502: "bad_gateway",
+        503: "service_unavailable",
+        504: "gateway_timeout",
         500: "internal_server_error"
     }
-    return mapping.get(status_code, "internal_server_error")
+    return mapping.get(status_code, "http_error" if 400 <= status_code < 500 else "internal_server_error")
 
 
 def _default_message_for_code(error_code: str) -> str:
@@ -441,8 +479,14 @@ def _default_message_for_code(error_code: str) -> str:
         "insufficient_permissions": "You do not have permission to perform this action.",
         "not_found": "The requested resource could not be found.",
         "method_not_allowed": "This endpoint does not support the requested HTTP method.",
+        "not_acceptable": "The requested response format is not supported.",
+        "request_timeout": "The request timed out before it could be completed.",
         "conflict": "The request could not be completed due to a conflict with the current state of the resource.",
         "rate_limit_exceeded": "Too many requests were made in a short period.",
+        "bad_gateway": "An upstream service returned an invalid response.",
+        "service_unavailable": "The service is temporarily unavailable.",
+        "gateway_timeout": "An upstream service took too long to respond.",
+        "http_error": "The request could not be completed.",
         "database_error": "We were unable to complete the request due to a database issue.",
         "internal_server_error": "An unexpected error occurred while processing your request."
     }
