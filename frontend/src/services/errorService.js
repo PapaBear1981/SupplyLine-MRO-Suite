@@ -5,14 +5,30 @@
  * Centralized error logging, reporting, and handling service
  */
 
-import { createStandardError, ERROR_TYPES } from '../utils/errorMapping';
+import { createStandardError } from '../utils/errorMapping';
+
+const isDevelopment = import.meta.env?.DEV ?? false;
+const debugModeEnabled = import.meta.env?.VITE_DEBUG_MODE === 'true';
+const SENSITIVE_KEYS = /authorization|cookie|password|secret|token|api[-_]?key/i;
+
+const redact = (value, seen = new WeakSet()) => {
+  if (!value || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+  if (Array.isArray(value)) return value.map((item) => redact(item, seen));
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+    key,
+    SENSITIVE_KEYS.test(key) ? '[REDACTED]' : redact(item, seen)
+  ]));
+};
 
 class ErrorService {
   constructor() {
     this.errorQueue = [];
     this.maxQueueSize = 100;
-    this.reportingEnabled = process.env.NODE_ENV === 'production';
-    this.debugMode = process.env.REACT_APP_DEBUG_MODE === 'true';
+    this.reportingEnabled = import.meta.env?.PROD ?? false;
+    this.debugMode = debugModeEnabled;
+    this.globalHandlersInstalled = false;
   }
 
   /**
@@ -24,19 +40,26 @@ class ErrorService {
    */
   logError(error, operation = null, metadata = {}, severity = 'medium') {
     const standardError = createStandardError(error, operation, {
-      ...metadata,
+      ...redact(metadata),
       severity,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: globalThis.navigator?.userAgent || null,
+      url: globalThis.location?.href || null,
       userId: this.getCurrentUserId(),
       sessionId: this.getSessionId()
     });
+    // Do not retain request/response objects, headers, or arbitrary payloads in
+    // the long-lived queue. They commonly contain credentials or PII.
+    standardError.originalError = {
+      name: error?.name || 'Error',
+      message: typeof error?.message === 'string' ? error.message.slice(0, 500) : null,
+      ...(isDevelopment && error?.stack ? { stack: error.stack } : {})
+    };
 
     // Add to error queue
     this.addToQueue(standardError);
 
     // Console logging based on environment
-    if (this.debugMode || process.env.NODE_ENV === 'development') {
+    if (this.debugMode || isDevelopment) {
       console.group(`🚨 Error [${severity.toUpperCase()}]: ${operation || 'Unknown Operation'}`);
       console.error('User Message:', standardError.user);
       console.error('Technical Details:', standardError.technical);
@@ -64,13 +87,13 @@ class ErrorService {
       type: 'WARNING',
       message,
       operation,
-      metadata,
+      metadata: redact(metadata),
       timestamp: new Date().toISOString(),
-      url: window.location.href,
+      url: globalThis.location?.href || null,
       userId: this.getCurrentUserId()
     };
 
-    if (this.debugMode || process.env.NODE_ENV === 'development') {
+    if (this.debugMode || isDevelopment) {
       console.warn(`⚠️ Warning [${operation || 'Unknown'}]:`, message, metadata);
     }
 
@@ -84,7 +107,7 @@ class ErrorService {
    * @param {Object} metadata - Additional metadata
    */
   logInfo(message, operation = null, metadata = {}) {
-    if (this.debugMode || process.env.NODE_ENV === 'development') {
+    if (this.debugMode || isDevelopment) {
       console.info(`ℹ️ Info [${operation || 'Unknown'}]:`, message, metadata);
     }
   }
@@ -112,16 +135,9 @@ class ErrorService {
     }
 
     try {
-      // Placeholder for external error reporting service
-      // Could integrate with services like Sentry, LogRocket, etc.
-      console.log('Reporting error to external service:', errorData);
-      
-      // Example implementation:
-      // await fetch('/api/errors/report', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(errorData)
-      // });
+      // Intentionally a no-op until a vetted reporting transport is configured.
+      // Never fall back to printing production error payloads to the console.
+      void errorData;
     } catch (reportingError) {
       console.error('Failed to report error:', reportingError);
     }
@@ -134,7 +150,7 @@ class ErrorService {
   getCurrentUserId() {
     try {
       // Try to get user ID from Redux store or localStorage
-      const authState = JSON.parse(localStorage.getItem('auth') || '{}');
+      const authState = JSON.parse(globalThis.localStorage?.getItem('auth') || '{}');
       return authState.user?.id || authState.user?.employee_number || null;
     } catch {
       return null;
@@ -146,10 +162,12 @@ class ErrorService {
    * @returns {string} Session ID
    */
   getSessionId() {
-    let sessionId = sessionStorage.getItem('sessionId');
+    const storage = globalThis.sessionStorage;
+    let sessionId = storage?.getItem('sessionId');
     if (!sessionId) {
-      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('sessionId', sessionId);
+      sessionId = globalThis.crypto?.randomUUID?.()
+        || `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      storage?.setItem('sessionId', sessionId);
     }
     return sessionId;
   }
@@ -226,18 +244,21 @@ class ErrorService {
    * Handle global unhandled errors
    */
   setupGlobalErrorHandling() {
+    if (this.globalHandlersInstalled || typeof globalThis.addEventListener !== 'function') return;
+    this.globalHandlersInstalled = true;
+
     // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
+    globalThis.addEventListener('unhandledrejection', (event) => {
       this.logError(
-        event.reason,
+        event.reason || new Error('Unhandled promise rejection'),
         'UNHANDLED_PROMISE_REJECTION',
-        { promise: event.promise },
+        {},
         'high'
       );
     });
 
     // Handle global JavaScript errors
-    window.addEventListener('error', (event) => {
+    globalThis.addEventListener('error', (event) => {
       this.logError(
         new Error(event.message),
         'GLOBAL_ERROR',

@@ -167,9 +167,13 @@ export const OPERATION_ERRORS = {
  * @returns {string} Error type from ERROR_TYPES
  */
 export const determineErrorType = (error) => {
+  if (!error) {
+    return ERROR_TYPES.UNKNOWN_ERROR;
+  }
+
   // Handle axios errors
   if (error.response) {
-    const status = error.response.status;
+    const status = Number(error.response.status);
     
     switch (status) {
       case 400:
@@ -195,22 +199,23 @@ export const determineErrorType = (error) => {
   }
   
   // Handle network errors
-  if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+
+  // A timeout is also a network failure, so classify the more actionable case first.
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' || message.includes('timeout')) {
+    return ERROR_TYPES.TIMEOUT_ERROR;
+  }
+
+  if (message.includes('cors') || message.includes('access-control')) {
+    return ERROR_TYPES.CORS_ERROR;
+  }
+
+  if (error.code === 'NETWORK_ERROR' || error.code === 'ERR_NETWORK' || message.includes('network error')) {
     return ERROR_TYPES.NETWORK_ERROR;
   }
   
-  // Handle CORS errors
-  if (error.message?.includes('CORS') || error.message?.includes('Access-Control')) {
-    return ERROR_TYPES.CORS_ERROR;
-  }
-  
-  // Handle timeout errors
-  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-    return ERROR_TYPES.TIMEOUT_ERROR;
-  }
-  
   // Handle authentication errors
-  if (error.message?.includes('token') || error.message?.includes('authentication')) {
+  if (message.includes('token') || message.includes('authentication')) {
     return ERROR_TYPES.AUTH_ERROR;
   }
   
@@ -230,14 +235,21 @@ export const getErrorInfo = (error, operation = null) => {
   // Check for operation-specific error messages
   const operationError = operation && OPERATION_ERRORS[operation];
   
+  const apiMessage = error?.response?.data?.error;
+  const apiHint = error?.response?.data?.hint;
+  const safeApiMessage = typeof apiMessage === 'string' && apiMessage.length <= 500
+    ? apiMessage
+    : null;
+
   return {
     type: errorType,
-    user: operationError?.user || baseErrorInfo.user,
-    action: operationError?.action || baseErrorInfo.action,
+    user: safeApiMessage || operationError?.user || baseErrorInfo.user,
+    action: apiHint || operationError?.action || baseErrorInfo.action,
     technical: operationError?.technical || baseErrorInfo.technical,
     severity: baseErrorInfo.severity,
     recoverable: baseErrorInfo.recoverable,
     retryable: baseErrorInfo.retryable,
+    reference: error?.response?.data?.reference || null,
     originalError: error
   };
 };
@@ -257,7 +269,7 @@ export const createStandardError = (error, operation = null, metadata = {}) => {
     timestamp: new Date().toISOString(),
     operation,
     metadata,
-    id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    id: globalThis.crypto?.randomUUID?.() || `error_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
   };
 };
 
